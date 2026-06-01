@@ -1,0 +1,39 @@
+{
+  "name": "vrije-academie-sanity",
+  "version": "1.0.0",
+  "description": "Sanity Studio for Vrije Academie CMS",
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "schema:deploy": "sanity schema deploy",
+    "migrate:person-type": "node ./scripts/migrate-person-type.mjs",
+    "migrate:plp-to-page": "node ./scripts/migrate-plp-to-page.mjs",
+    "migrate:gift-card-to-page": "node ./scripts/migrate-gift-card-to-page.mjs",
+    "seed:footer-settings": "node ./scripts/seed-footer-general-settings.mjs",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "keywords": [
+    "sanity",
+    "cms",
+    "content"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@sanity/form-toolkit": "^2.2.3",
+    "@sanity/vision": "^5.18.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "sanity": "^5.18.0",
+    "styled-components": "^6.3.12"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.0"
+  }
+}

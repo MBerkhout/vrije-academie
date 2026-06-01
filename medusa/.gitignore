@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.local
+dist/
+build/
+*.log
+.DS_Store
+coverage/
+.medusa/
+# compiled config artifacts — medusa-config.ts is the source of truth
+medusa-config.js
+medusa-config.js.map
+medusa-config.d.ts
+medusa-config.d.ts.map

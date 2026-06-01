@@ -1,0 +1,6 @@
+export { category } from "./category"
+export { city } from "./city"
+export { usp } from "./usp"
+export { person } from "./person"
+export { product } from "./product"
+export { docent } from "./docent"

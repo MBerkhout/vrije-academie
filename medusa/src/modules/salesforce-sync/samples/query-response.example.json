@@ -1,0 +1,16 @@
+{
+  "totalSize": 1,
+  "done": true,
+  "records": [
+    {
+      "attributes": {
+        "type": "Contact",
+        "url": "/services/data/v60.0/sobjects/Contact/003XX0000000123YAA"
+      },
+      "Id": "003XX0000000123YAA",
+      "FirstName": "Sample",
+      "LastName": "Contact",
+      "Medusa_Customer_Id__c": "cus_test_001"
+    }
+  ]
+}

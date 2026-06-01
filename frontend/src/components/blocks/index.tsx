@@ -1,0 +1,68 @@
+/**
+ * Block renderer - maps block types to components
+ */
+
+import { EventList } from './EventList'
+import { TextBlock } from './TextBlock'
+import { AfbeeldingBlock } from './AfbeeldingBlock'
+import { AccordionBlock } from './AccordionBlock'
+import { WhitespaceBlock } from './WhitespaceBlock'
+import { TabsBlock } from './TabsBlock'
+import { FormBlock } from './FormBlock'
+import { DemandNearbyBlock } from './DemandNearbyBlock'
+import { HeroBlock } from './HeroBlock'
+import { FeaturedTripBlock } from './FeaturedTripBlock'
+import { CategoriesBlock } from './CategoriesBlock'
+import { UspBlock } from './UspBlock'
+import { ReviewBlock } from './ReviewBlock'
+import { PersonsBlock } from './PersonsBlock'
+import { ColumnsBlock } from './ColumnsBlock'
+import { EditorialCardsBlock } from './EditorialCardsBlock'
+import { GiftCardBlock } from './GiftCardBlock'
+import type { Block } from '@/lib/cms'
+
+interface BlockRendererProps {
+  block: Block
+}
+
+export function BlockRenderer({ block }: BlockRendererProps) {
+  switch (block._type) {
+    case 'eventList':
+      return <EventList block={block as any} />
+    case 'textBlock':
+      return <TextBlock block={block as any} />
+    case 'afbeeldingBlock':
+      return <AfbeeldingBlock block={block as any} />
+    case 'accordionBlock':
+      return <AccordionBlock block={block as any} />
+    case 'whitespaceBlock':
+      return <WhitespaceBlock block={block as any} />
+    case 'tabsBlock':
+      return <TabsBlock block={block as any} />
+    case 'formBlock':
+      return <FormBlock block={block as any} />
+    case 'demandNearbyBlock':
+      return <DemandNearbyBlock block={block as any} />
+    case 'heroBlock':
+      return <HeroBlock block={block as any} />
+    case 'featuredTripBlock':
+      return <FeaturedTripBlock block={block as any} />
+    case 'categoriesBlock':
+      return <CategoriesBlock block={block as any} />
+    case 'uspBlock':
+      return <UspBlock block={block as any} />
+    case 'reviewBlock':
+      return <ReviewBlock block={block as any} />
+    case 'personsBlock':
+      return <PersonsBlock block={block as any} />
+    case 'columnsBlock':
+      return <ColumnsBlock block={block as any} />
+    case 'editorialCardsBlock':
+      return <EditorialCardsBlock block={block as any} />
+    case 'giftCardBlock':
+      return <GiftCardBlock block={block} />
+    default:
+      console.warn(`Unknown block type: ${block._type}`)
+      return null
+  }
+}

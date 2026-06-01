@@ -1,0 +1,55 @@
+{
+  "name": "vrije-academie-frontend",
+  "version": "1.0.0",
+  "description": "Next.js frontend for Vrije Academie website",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "nextjs",
+    "react",
+    "frontend"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@medusajs/js-sdk": "^2.13.1",
+    "@portabletext/react": "^6.0.3",
+    "@sanity/client": "^7.20.0",
+    "@sanity/form-toolkit": "^2.2.3",
+    "@sanity/image-url": "^2.1.1",
+    "@sanity/visual-editing": "^5.3.3",
+    "clsx": "^2.1.1",
+    "next": "^16.1.0",
+    "next-sanity": "^12.2.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "autoprefixer": "^10.4.27",
+    "eslint": "^10.0.3",
+    "eslint-config-next": "^16.1.6",
+    "jsdom": "^29.0.1",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.8.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.0"
+  }
+}
