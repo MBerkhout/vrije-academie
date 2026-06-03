@@ -48,7 +48,7 @@ function mapStoreCartItem(raw: unknown): CartItem {
     rawSubtotal > 0 ? (isGiftcard ? rawSubtotal : medusaMajorToCents(rawSubtotal)) : unit_price * quantity
 
   return {
-    ...(o as CartItem),
+    ...(o as unknown as CartItem),
     quantity,
     unit_price,
     subtotal,
@@ -130,7 +130,7 @@ export function normalizeStoreCart(raw: unknown): Cart {
   // #endregion
 
   return {
-    ...(o as Cart),
+    ...(o as unknown as Cart),
     items,
     subtotal,
     discount_total,
