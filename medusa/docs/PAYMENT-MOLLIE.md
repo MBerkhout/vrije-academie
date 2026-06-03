@@ -2,6 +2,8 @@
 
 Mollie is integrated via the community plugin [`@variablevic/mollie-payments-medusa`](https://github.com/VariableVic/mollie-payments-medusa), registered in `medusa-config.ts` under `modules.payment.options.providers`.
 
+The plugin’s npm peer dependencies still target Medusa 2.5.1 while this project uses 2.13.x. `medusa/.npmrc` sets `legacy-peer-deps=true` so `npm ci` / `npm install` succeed until upstream updates the plugin.
+
 ## Environment Variables
 
 Add to `medusa/.env`:
