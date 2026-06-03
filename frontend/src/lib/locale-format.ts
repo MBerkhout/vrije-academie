@@ -22,24 +22,34 @@ const MONTHS_NL_LONG = [
 
 export type PriceEurMode = 'whole' | 'standard'
 
+/** Dutch storefront: whole euro amounts use “,-” instead of “,00”. */
+function applyNlWholeEuroDash(formatted: string): string {
+  return formatted.replace(/,00$/, ',-')
+}
+
 /**
  * Format minor currency units (cents) as EUR.
- * - `whole` — no fraction digits (e.g. PDP/PLP “Vanaf € 50”)
- * - `standard` — locale default, usually two decimals (cart, checkout, orders)
+ * - `whole` — no fraction digits (e.g. booking panel “Vanaf € 50”)
+ * - `standard` — two decimals when needed; whole euros end with “,-” (not “,00”)
  */
 export function formatPriceEur(cents: number, mode: PriceEurMode = 'standard'): string {
+  const amount = cents / 100
   if (mode === 'whole') {
-    return new Intl.NumberFormat(LOCALE_NL, {
+    return applyNlWholeEuroDash(
+      new Intl.NumberFormat(LOCALE_NL, {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount)
+    )
+  }
+  return applyNlWholeEuroDash(
+    new Intl.NumberFormat(LOCALE_NL, {
       style: 'currency',
       currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(cents / 100)
-  }
-  return new Intl.NumberFormat(LOCALE_NL, {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(cents / 100)
+    }).format(amount)
+  )
 }
 
 function toDate(iso: string | Date): Date {

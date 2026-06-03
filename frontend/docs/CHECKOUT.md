@@ -81,7 +81,7 @@ Account creation (`createAccount = true`) stores intent in `sessionStorage['va_c
 **When total ≤ €0 (zero-total checkout):** Medusa’s cart completion skips payment when `credit_line_total >= 0` and `total <= 0`. The storefront hides payment tiles, does not require a method, and on submit calls `commerceClient.completeCart(cartId)` (`POST /store/carts/:id/complete`). On success it clears the `va_cart_id` cookie via `clearCartId()` and navigates to `/checkout/bevestiging?order={order.id}`. On `{ type: 'cart', error }` the user sees the error message in the existing toast.
 
 **When there is an amount due:** On submit:
-1. `initiatePaymentSession(cartId, selectedProviderId)` → creates payment collection + session → gets Mollie `checkout_url` from `session.data.checkoutUrl`
+1. `initiatePaymentSession(cartId, selectedProviderId)` → creates payment collection + session → reads Mollie checkout URL from `session.data._links.checkout.href` (fallback: `session.data.checkoutUrl`)
 2. `window.location.href = checkoutUrl` — redirects to Mollie hosted page
 
 `selectedProviderId` is the full provider ID (e.g. `pp_mollie-ideal_mollie`). No separate `methodId` is needed.

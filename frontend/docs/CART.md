@@ -15,7 +15,7 @@ Step 1 of the 4-step checkout flow (default step titles in code: **Summary → L
 
 CartView  (client, src/components/cart/CartView.tsx)
   └─ reads va_cart_id cookie
-  └─ commerceClient.getCart(cartId)          — Medusa SDK
+  └─ commerceClient.getCart(cartId)          — Medusa SDK; amounts normalized to cents in `normalize-store-money.ts`
   └─ GET /store/cart/extras?cart_id=…        — enriched session data
   └─ dispatches window Event 'va:cart-updated' after every mutation
   └─ line items are sorted deterministically (`created_at` / `createdAt`, then `id`) so quantity updates cannot reshuffle rows — see `src/lib/commerce/cart-sort.ts`

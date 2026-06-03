@@ -175,7 +175,7 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
                       </span>
                     </td>
                     <td className="py-4 pr-4 align-middle font-medium">
-                      {price ? formatPriceEur(price, 'whole') : '—'}
+                      {price ? formatPriceEur(price) : '—'}
                     </td>
                     <td className="py-4 pr-4 align-middle">
                       <span className={availability.className}>{availability.label}</span>

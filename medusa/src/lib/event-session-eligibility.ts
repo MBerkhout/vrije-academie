@@ -10,6 +10,16 @@ export type EventItemListingRow = EventItemSessionRow & {
   city_slug?: string | null
 }
 
+/** Session is bookable/listable when start_at is absent (on-demand) or in the future. */
+export function isFutureSession(
+  ei: EventItemSessionRow,
+  nowMs: number = Date.now()
+): boolean {
+  const start = ei.start_at
+  if (!start) return true
+  return new Date(start).getTime() >= nowMs
+}
+
 export function isOnlineLikeDeliveryType(
   deliveryType: string | null | undefined
 ): boolean {
@@ -22,9 +32,7 @@ export function isFutureOfflineSession(
   nowMs: number = Date.now()
 ): boolean {
   if (ei.delivery_type !== "offline") return false
-  const start = ei.start_at
-  if (!start) return true
-  return new Date(start).getTime() >= nowMs
+  return isFutureSession(ei, nowMs)
 }
 
 /**
@@ -64,10 +72,17 @@ export function productHasFutureAvailableSession(
   return eventItems.some((ei) => {
     const qty = Number(ei.available_quantity ?? 0)
     if (qty <= 0) return false
-    const start = ei.start_at
-    if (!start) return true
-    return new Date(start).getTime() >= nowMs
+    return isFutureSession(ei, nowMs)
   })
+}
+
+/** Storefront variant rows: keep non-event variants; drop variants whose session is in the past. */
+export function filterVariantsWithFutureSessions<T extends { event_item?: EventItemSessionRow | null }>(
+  variants: T[],
+  now: Date = new Date()
+): T[] {
+  const nowMs = now.getTime()
+  return variants.filter((v) => !v.event_item || isFutureSession(v.event_item, nowMs))
 }
 
 /** Fisher–Yates shuffle (returns new array). */

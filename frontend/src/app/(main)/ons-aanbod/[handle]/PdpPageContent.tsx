@@ -137,7 +137,7 @@ export async function PdpPageContent({ handle }: { handle: string }) {
               settings={settings}
             />
           </div>
-        ) : (event.variants?.length ?? 0) > 0 ? (
+        ) : !isBundleOnly ? (
           <div className={CONTAINER_CLASS}>
             <PdpLocationTabs
               variants={event.variants ?? []}

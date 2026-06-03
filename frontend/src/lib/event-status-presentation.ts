@@ -52,6 +52,19 @@ export function plpEventLocationLabel(event: EventCardLocationInput): string {
   return ''
 }
 
+/** Session variant is shown when start_at is absent (on-demand) or in the future. */
+export function isFutureEventVariant(v: Pick<EventVariant, 'event_item'>): boolean {
+  const ei = v.event_item
+  if (!ei) return true
+  const start = ei.start_at
+  if (!start) return true
+  return new Date(start).getTime() >= Date.now()
+}
+
+export function filterFutureEventVariants(variants: EventVariant[]): EventVariant[] {
+  return variants.filter(isFutureEventVariant)
+}
+
 type EventDateInput = Pick<EventCard, 'delivery_types' | 'variants'>
 
 /**

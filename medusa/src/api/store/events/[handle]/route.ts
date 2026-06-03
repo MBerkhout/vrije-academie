@@ -9,6 +9,7 @@ import {
 } from "../../../../lib/medusa-price-to-cents"
 import { listCategoriesForProductIds } from "../../../../lib/product-catalog-category-links"
 import { externalRegistrationUrlFromMetadata } from "../../../../lib/external-registration-url"
+import { filterVariantsWithFutureSessions } from "../../../../lib/event-session-eligibility"
 
 /** day_part derived from start_at hour: ochtend <12, middag 12–17, avond >=17 */
 function dayPart(startAt: string | null | undefined): string | null {
@@ -84,8 +85,10 @@ export async function GET(
   const categories = categoryByProduct[product.id] ?? []
   const instructors = (docLinks ?? []).map((r: any) => r.docent).filter(Boolean)
 
-  // Compute group-level aggregates
-  const variants = (product.variants ?? []) as Record<string, any>[]
+  // Compute group-level aggregates (past sessions are omitted from the storefront payload)
+  const variants = filterVariantsWithFutureSessions(
+    (product.variants ?? []) as Record<string, any>[]
+  )
   const eventItems = variants.map((v) => v.event_item).filter(Boolean) as Record<string, any>[]
 
   const earliestStartAt = eventItems

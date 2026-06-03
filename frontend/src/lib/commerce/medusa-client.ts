@@ -45,6 +45,14 @@ import {
   removeHandleFromList,
 } from './wishlist'
 import { sortCityFacetsByCount } from './city-facets'
+import { filterFutureEventVariants } from '@/lib/event-status-presentation'
+import {
+  cartAggregateToStorefrontCents,
+  lineUnitToStorefrontCents,
+  medusaMajorToCents,
+  normalizeStoreCart,
+  parseMoney,
+} from './normalize-store-money'
 
 function getFetchStatus(e: unknown): number | undefined {
   if (typeof e === 'object' && e !== null && 'status' in e) {
@@ -98,26 +106,20 @@ function getStoredJwt(): string | null {
   return window.localStorage.getItem(MEDUSA_JWT_STORAGE_KEY)
 }
 
-function parseMoney(v: unknown): number {
-  if (typeof v === 'number' && !Number.isNaN(v)) return v
-  if (v && typeof v === 'object' && v !== null) {
-    const o = v as Record<string, unknown>
-    if (typeof o.numeric_ === 'number') return o.numeric_
-    if (typeof o.amount === 'number') return o.amount
-  }
-  return 0
-}
-
 function mapStoreOrderItem(raw: unknown): OrderItem {
   const o = raw as Record<string, unknown>
-  const unit = parseMoney(o.unit_price)
+  const isGiftcard = Boolean(o.is_giftcard)
+  const unit = lineUnitToStorefrontCents(o.unit_price, isGiftcard)
   const qty = typeof o.quantity === 'number' ? o.quantity : Number(o.quantity ?? 1)
+  const rawTotal = parseMoney(o.total)
+  const total =
+    rawTotal > 0 ? (isGiftcard ? rawTotal : medusaMajorToCents(rawTotal)) : unit * qty
   return {
     id: String(o.id ?? ''),
     title: String(o.title ?? o.product_title ?? '—'),
     quantity: qty,
     unit_price: unit,
-    total: parseMoney(o.total ?? unit * qty),
+    total,
     thumbnail: (o.thumbnail as string | null | undefined) ?? null,
     variant: (o.variant as Variant | null | undefined) ?? null,
   }
@@ -126,15 +128,32 @@ function mapStoreOrderItem(raw: unknown): OrderItem {
 function mapStoreOrder(raw: unknown): Order {
   const o = raw as Record<string, unknown>
   const items = Array.isArray(o.items) ? o.items.map(mapStoreOrderItem) : undefined
+  const onlyGiftcardLines =
+    items != null && items.length > 0 && items.every((_, i) => {
+      const row = (o.items as unknown[])[i] as Record<string, unknown>
+      return Boolean(row.is_giftcard)
+    })
   return {
     id: String(o.id ?? ''),
     display_id: typeof o.display_id === 'number' ? o.display_id : undefined,
     status: String(o.status ?? ''),
     email: o.email as string | undefined,
-    total: parseMoney(o.total),
-    subtotal: parseMoney(o.subtotal ?? o.total),
-    discount_total: o.discount_total !== undefined ? parseMoney(o.discount_total) : undefined,
-    tax_total: o.tax_total !== undefined ? parseMoney(o.tax_total) : undefined,
+    total: onlyGiftcardLines ? parseMoney(o.total) : cartAggregateToStorefrontCents(o.total),
+    subtotal: onlyGiftcardLines
+      ? parseMoney(o.subtotal ?? o.total)
+      : cartAggregateToStorefrontCents(o.subtotal ?? o.total),
+    discount_total:
+      o.discount_total !== undefined
+        ? onlyGiftcardLines
+          ? parseMoney(o.discount_total)
+          : cartAggregateToStorefrontCents(o.discount_total)
+        : undefined,
+    tax_total:
+      o.tax_total !== undefined
+        ? onlyGiftcardLines
+          ? parseMoney(o.tax_total)
+          : cartAggregateToStorefrontCents(o.tax_total)
+        : undefined,
     currency_code: typeof o.currency_code === 'string' ? o.currency_code : undefined,
     items,
     payment_status: typeof o.payment_status === 'string' ? o.payment_status : undefined,
@@ -245,7 +264,11 @@ export const medusaClient: CommerceClient = {
       const data = await response.json()
       const ev = data.event
       if (!ev) return null
-      return normalizeDocentenRow(ev as Record<string, unknown>) as unknown as EventCard
+      const normalized = normalizeDocentenRow(ev as Record<string, unknown>) as unknown as EventCard
+      const variants = filterFutureEventVariants(normalized.variants ?? [])
+      return variants.length === (normalized.variants ?? []).length
+        ? normalized
+        : { ...normalized, variants }
     } catch (error) {
       return null
     }
@@ -341,7 +364,7 @@ export const medusaClient: CommerceClient = {
   async getCart(id: string): Promise<Cart | null> {
     try {
       const response = await medusa.store.cart.retrieve(id)
-      return response.cart || null
+      return response.cart ? normalizeStoreCart(response.cart) : null
     } catch (error) {
       return null
     }
@@ -349,7 +372,7 @@ export const medusaClient: CommerceClient = {
 
   async createCart(): Promise<Cart> {
     const response = await medusa.store.cart.create({})
-    return response.cart
+    return normalizeStoreCart(response.cart)
   },
 
   async addToCart(
@@ -361,7 +384,7 @@ export const medusaClient: CommerceClient = {
       variant_id: variantId,
       quantity,
     })
-    return response.cart
+    return normalizeStoreCart(response.cart)
   },
 
   async updateCartItem(
@@ -372,19 +395,19 @@ export const medusaClient: CommerceClient = {
     const response = await medusa.store.cart.updateLineItem(cartId, itemId, {
       quantity,
     })
-    return response.cart
+    return normalizeStoreCart(response.cart)
   },
 
   async removeFromCart(cartId: string, itemId: string): Promise<Cart> {
     const response = await medusa.store.cart.deleteLineItem(cartId, itemId)
     const cart = (response as { cart?: Cart; parent?: Cart }).parent ?? (response as { cart?: Cart }).cart
     if (!cart) throw new Error('Cart not returned after line item deletion')
-    return cart
+    return normalizeStoreCart(cart)
   },
 
   async applyPromoCodes(cartId: string, codes: string[]): Promise<Cart> {
     const response = await medusa.store.cart.update(cartId, { promo_codes: codes } as any)
-    return response.cart
+    return normalizeStoreCart(response.cart)
   },
 
   async removePromoCodes(cartId: string, codes: string[]): Promise<Cart> {
@@ -402,7 +425,7 @@ export const medusaClient: CommerceClient = {
       throw new Error((err as { message?: string }).message ?? 'Failed to remove promotion')
     }
     const data = await res.json()
-    return data.cart as Cart
+    return normalizeStoreCart(data.cart)
   },
 
   async applyCode(
@@ -428,7 +451,7 @@ export const medusaClient: CommerceClient = {
       if (!res.ok) return null
       const data = await res.json()
       return {
-        cart: data.cart as Cart,
+        cart: normalizeStoreCart(data.cart),
         kind: 'gift_card' as const,
         applied_amount: data.applied_amount,
         remaining_balance: data.remaining_balance,
@@ -478,7 +501,7 @@ export const medusaClient: CommerceClient = {
       throw new Error('REMOVE_GIFT_FAILED')
     }
     const data = await res.json()
-    return data.cart as Cart
+    return normalizeStoreCart(data.cart)
   },
 
   async syncGiftCardCredits(cartId: string): Promise<Cart> {
@@ -491,7 +514,7 @@ export const medusaClient: CommerceClient = {
       throw new Error('SYNC_GIFT_FAILED')
     }
     const data = await res.json()
-    return data.cart as Cart
+    return normalizeStoreCart(data.cart)
   },
 
   async addGiftCardToCart(input: {
@@ -519,12 +542,12 @@ export const medusaClient: CommerceClient = {
       throw new Error((err as any).message || 'ADD_GIFT_CARD_FAILED')
     }
     const data = await res.json()
-    return data.cart as Cart
+    return normalizeStoreCart(data.cart)
   },
 
   async updateCart(cartId: string, input: CartUpdateInput): Promise<Cart> {
     const response = await medusa.store.cart.update(cartId, input as any)
-    return response.cart
+    return normalizeStoreCart(response.cart)
   },
 
   // Auth / customer
@@ -661,7 +684,7 @@ export const medusaClient: CommerceClient = {
       email: customer.email,
       shipping_address: shipping,
     } as any)
-    return response.cart
+    return normalizeStoreCart(response.cart)
   },
 
   async getWishlistHandles(): Promise<string[]> {
@@ -773,7 +796,14 @@ export const medusaClient: CommerceClient = {
       const err = await res.json().catch(() => ({}))
       throw new Error((err as any).message ?? 'Failed to complete cart')
     }
-    return res.json()
+    const data = await res.json()
+    if (data?.type === 'order' && data.order) {
+      return { type: 'order' as const, order: mapStoreOrder(data.order) }
+    }
+    if (data?.cart) {
+      return { ...data, cart: normalizeStoreCart(data.cart) }
+    }
+    return data
   },
 
   async getOrder(orderId: string): Promise<Order | null> {
@@ -781,7 +811,7 @@ export const medusaClient: CommerceClient = {
       const res = await storeFetch(`/store/orders/${orderId}`)
       if (!res.ok) return null
       const data = await res.json()
-      return data.order ?? null
+      return data.order ? mapStoreOrder(data.order) : null
     } catch {
       return null
     }

@@ -239,7 +239,11 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
 
       const session = await commerceClient.initiatePaymentSession(cartId, selectedMethod!)
 
-      const checkoutUrl = (session.data as any)?.checkoutUrl as string | undefined
+      const data = session.data as {
+        checkoutUrl?: string
+        _links?: { checkout?: { href?: string } }
+      }
+      const checkoutUrl = data.checkoutUrl ?? data._links?.checkout?.href
       if (!checkoutUrl) {
         throw new Error('Geen betaallink ontvangen van Mollie.')
       }

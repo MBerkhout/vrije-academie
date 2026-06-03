@@ -129,7 +129,7 @@ export function PlpEventCard({
           <div className="flex flex-col gap-0.5 min-w-0">
             {priceFrom ? (
               <span className="text-sm font-semibold text-va-black">
-                Vanaf {formatPriceEur(priceFrom, 'whole')}
+                Vanaf {formatPriceEur(priceFrom)}
               </span>
             ) : null}
             {soldOut && (

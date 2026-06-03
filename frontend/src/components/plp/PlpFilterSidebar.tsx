@@ -593,7 +593,7 @@ export function PlpFilterSidebar({
         {citiesFromFacets.length > 0 && (
           <FilterGroupCollapsible
             title="Plaats"
-            defaultOpen={groupDefaultOpen(false, collapseGroups)}
+            defaultOpen={groupDefaultOpen(true, collapseGroups)}
           >
             <PlaatsSearchableMultiSelectChecklist
               options={citiesFromFacets}
