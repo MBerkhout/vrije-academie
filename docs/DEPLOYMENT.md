@@ -250,10 +250,20 @@ For Sanity, redeploy Studio from a known-good commit via the workflow or locally
 
 ### Medusa API caching
 
-`GET /store/events` and `GET /store/agenda` scan the full product catalog on every request. Two layers reduce this cost:
+PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized listing snapshots** stored in Redis (60 s TTL), shared across all PM2 cluster workers:
 
-1. **In-process cache** (`medusa/src/lib/store-query-cache.ts`) — caches `allProducts` + `eventGroupLinks` for 60 s. All concurrent requests reuse the same in-flight DB query (single-flight pattern), so only one DB round-trip fires per minute regardless of traffic.
-2. **HTTP `Cache-Control`** — responses carry `public, s-maxage=30, stale-while-revalidate=60`, so any CDN or reverse proxy in front of Medusa can serve repeated identical requests from cache.
+| Layer | File | Role |
+|-------|------|------|
+| Redis keys | `medusa/src/lib/store-listing-redis.ts` | `store:listing:plp`, `store:listing:agenda`, `store:listing:registrations` |
+| Snapshot build | `medusa/src/lib/store-listing-snapshot.ts` | Loads + enriches full catalog once; routes only filter/facet/sort/paginate in memory |
+| Base query cache | `medusa/src/lib/store-query-cache.ts` | Product ids + event-group links (used when building snapshots) |
+| Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Clears keys on `product.*`, `order.completed`, `order.placed` |
+
+Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an in-process fallback is used per worker.
+
+`GET /store/events/:handle/similar` uses a cached registration-count map (`store:listing:registrations`) instead of scanning all completed orders per request.
+
+Responses also carry `Cache-Control: public, s-maxage=30, stale-while-revalidate=60` for CDN/reverse-proxy caching.
 
 ### PM2 cluster mode
 
@@ -273,4 +283,7 @@ Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set
 | `frontend/scripts/deploy.sh` | Server-side frontend deploy |
 | `medusa/scripts/deploy.sh` | Server-side medusa deploy |
 | `frontend/ecosystem.config.cjs` | PM2 config (Next.js, port 3000, cluster mode) |
-| `medusa/ecosystem.config.cjs` | PM2 config (Medusa, port 9000) |
+| `medusa/ecosystem.config.cjs` | PM2 config (Medusa, port 9000, cluster mode) |
+| `medusa/src/lib/store-listing-redis.ts` | Redis listing cache keys + invalidation |
+| `medusa/src/lib/store-listing-snapshot.ts` | PLP/agenda snapshot builders |
+| `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Cache bust on catalog/order changes |

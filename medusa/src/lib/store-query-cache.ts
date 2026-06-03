@@ -1,13 +1,6 @@
 /**
- * Lightweight in-memory TTL cache for the heavy base queries in
- * /store/events and /store/agenda.
- *
- * Both routes fetch the full product catalog + all EventGroup links on every
- * request. These rarely change (only when an admin publishes or edits a
- * product), so caching them for 60 s cuts most of the per-request DB work.
- *
- * Usage:
- *   const { allProducts, eventGroupLinks } = await getBaseEventData(query)
+ * Base catalog query cache (product ids + event-group links).
+ * Used when building Redis-backed listing snapshots in store-listing-snapshot.ts.
  */
 
 interface BaseEventData {

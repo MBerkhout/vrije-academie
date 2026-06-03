@@ -10,19 +10,16 @@ import {
 import { minPriceCentsFromVariants } from "../../../../../lib/medusa-price-to-cents"
 import { listCategoriesForProductIds } from "../../../../../lib/product-catalog-category-links"
 import { filterStoreListingProductIds } from "../../../../../lib/store-listing-eligibility"
+import { getRegistrationCountsByProduct } from "../../../../../lib/store-listing-snapshot"
 
 const SIMILAR_LIMIT = 4
 
 /**
  * GET /store/events/:handle/similar
  * Up to 4 related products in the same catalog category, sorted by most registrations
- * (completed orders). Only listable, future, available products. Random order when
- * no registration signal exists.
+ * (completed orders). Only listable, future, available products.
  */
-export async function GET(
-  req: MedusaRequest,
-  res: MedusaResponse
-): Promise<void> {
+export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void> {
   const handle = req.params.handle as string
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -47,7 +44,7 @@ export async function GET(
   })
 
   const categoryIds = (currentCatLinks ?? [])
-    .map((r: any) => r.catalog_category_id)
+    .map((r: { catalog_category_id?: string }) => r.catalog_category_id)
     .filter(Boolean) as string[]
 
   if (!categoryIds.length) {
@@ -64,7 +61,7 @@ export async function GET(
   const candidateIds = [
     ...new Set(
       (siblingCatLinks ?? [])
-        .map((r: any) => r.product_id as string)
+        .map((r: { product_id?: string }) => r.product_id as string)
         .filter((id) => id && id !== currentId)
     ),
   ]
@@ -74,35 +71,38 @@ export async function GET(
     return
   }
 
-  const [{ data: candidateProducts }, { data: eventGroupLinks }] = await Promise.all([
-    query.graph({
-      entity: "product",
-      fields: [
-        "id",
-        "title",
-        "handle",
-        "description",
-        "thumbnail",
-        "status",
-        "created_at",
-        "type.value",
-        "variants.*",
-        "variants.prices.*",
-        "variants.event_item.*",
-      ],
-      filters: { id: candidateIds },
-    }),
-    query.graph({
-      entity: productEventGroupLink.entryPoint,
-      fields: ["product_id", "event_group.*"],
-      filters: { product_id: candidateIds },
-    }),
-  ])
+  const [{ data: candidateProducts }, { data: eventGroupLinks }, registrationCounts] =
+    await Promise.all([
+      query.graph({
+        entity: "product",
+        fields: [
+          "id",
+          "title",
+          "handle",
+          "description",
+          "thumbnail",
+          "status",
+          "created_at",
+          "type.value",
+          "variants.*",
+          "variants.prices.*",
+          "variants.event_item.*",
+        ],
+        filters: { id: candidateIds },
+      }),
+      query.graph({
+        entity: productEventGroupLink.entryPoint,
+        fields: ["product_id", "event_group.*"],
+        filters: { product_id: candidateIds },
+      }),
+      getRegistrationCountsByProduct(req.scope),
+    ])
 
   const productHandleById: Record<string, string | undefined> = {}
-  const eventGroupByProduct: Record<string, any> = {}
+  const eventGroupByProduct: Record<string, { record_type?: string | null; show_in_plp?: boolean | null } | null> =
+    {}
   for (const r of eventGroupLinks ?? []) {
-    const row = r as any
+    const row = r as { product_id?: string; event_group?: { record_type?: string; show_in_plp?: boolean } | null }
     if (row.product_id) eventGroupByProduct[row.product_id] = row.event_group ?? null
   }
   for (const p of candidateProducts ?? []) {
@@ -111,42 +111,26 @@ export async function GET(
   }
 
   const listableIds = new Set(
-    filterStoreListingProductIds(
-      candidateIds,
-      productHandleById,
-      eventGroupByProduct
-    )
+    filterStoreListingProductIds(candidateIds, productHandleById, eventGroupByProduct)
   )
 
-  const { data: orderItems } = await query.graph({
-    entity: "order",
-    fields: ["items.variant.product_id", "items.quantity"],
-    filters: { status: "completed" },
-  })
-
-  const registrationCounts: Record<string, number> = {}
-  for (const order of orderItems ?? []) {
-    for (const item of (order as any).items ?? []) {
-      const pid = item.variant?.product_id
-      if (pid && listableIds.has(pid)) {
-        registrationCounts[pid] =
-          (registrationCounts[pid] ?? 0) + (item.quantity ?? 1)
-      }
-    }
+  type SimilarRow = Record<string, unknown> & {
+    _registration_count: number
+    _eligible: boolean
   }
 
-  const enriched = (candidateProducts ?? [])
-    .filter((p: any) => listableIds.has(p.id))
-    .map((p: any) => {
-      const variants = (p.variants ?? []) as Record<string, any>[]
+  const enriched: SimilarRow[] = (candidateProducts ?? [])
+    .filter((p: { id: string }) => listableIds.has(p.id))
+    .map((p: Record<string, unknown>) => {
+      const variants = (p.variants ?? []) as Record<string, unknown>[]
       const eventItems = variants
         .map((v) => v.event_item)
-        .filter(Boolean) as Record<string, any>[]
+        .filter(Boolean) as Record<string, unknown>[]
 
       const futureItems = eventItems.filter((ei) => {
         const qty = Number(ei.available_quantity ?? 0)
         if (qty <= 0) return false
-        const start = ei.start_at
+        const start = ei.start_at as string | undefined
         if (!start) return true
         return new Date(start).getTime() >= Date.now()
       })
@@ -162,14 +146,18 @@ export async function GET(
         ...new Set(eventItems.map((ei) => ei.delivery_type).filter(Boolean)),
       ] as string[]
 
-      const priceFrom = minPriceCentsFromVariants(variants)
+      const priceFrom = minPriceCentsFromVariants(
+        variants as Parameters<typeof minPriceCentsFromVariants>[0]
+      )
       const minAvailableQuantity = futureItems.length
         ? Math.min(...futureItems.map((ei) => Number(ei.available_quantity ?? 0)))
         : null
 
+      const pid = p.id as string
       return {
         ...p,
-        record_type: eventGroupByProduct[p.id]?.record_type ?? null,
+        id: pid,
+        record_type: eventGroupByProduct[pid]?.record_type ?? null,
         product_type: (p.type as { value?: string } | null | undefined)?.value ?? null,
         categories: [] as unknown[],
         cities,
@@ -177,8 +165,10 @@ export async function GET(
         earliest_start_at: earliestStartAt,
         price_from: priceFrom,
         min_available_quantity: minAvailableQuantity,
-        _registration_count: registrationCounts[p.id] ?? 0,
-        _eligible: productHasFutureAvailableSession(eventItems),
+        _registration_count: registrationCounts[pid] ?? 0,
+        _eligible: productHasFutureAvailableSession(
+          eventItems as Parameters<typeof productHasFutureAvailableSession>[0]
+        ),
       }
     })
     .filter((p) => p._eligible)
@@ -197,15 +187,15 @@ export async function GET(
       const countDiff = b._registration_count - a._registration_count
       if (countDiff !== 0) return countDiff
       const aDate = a.earliest_start_at
-        ? new Date(a.earliest_start_at).getTime()
+        ? new Date(a.earliest_start_at as string).getTime()
         : Infinity
       const bDate = b.earliest_start_at
-        ? new Date(b.earliest_start_at).getTime()
+        ? new Date(b.earliest_start_at as string).getTime()
         : Infinity
       if (aDate !== bDate) return aDate - bDate
       return (
-        new Date(b.created_at ?? 0).getTime() -
-        new Date(a.created_at ?? 0).getTime()
+        new Date((b.created_at as string) ?? 0).getTime() -
+        new Date((a.created_at as string) ?? 0).getTime()
       )
     })
   } else {
@@ -226,5 +216,6 @@ export async function GET(
     }
   })
 
+  res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60")
   res.json({ similar })
 }
