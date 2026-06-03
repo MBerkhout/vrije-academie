@@ -10,14 +10,6 @@
  *   const { allProducts, eventGroupLinks } = await getBaseEventData(query)
  */
 
-import type { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-
-type QueryService = ReturnType<
-  Parameters<typeof import("@medusajs/framework/http").MedusaRequest.prototype.scope.resolve>[0] extends never
-    ? never
-    : any
->
-
 interface BaseEventData {
   allProducts: Array<{ id: string; handle?: string }>
   eventGroupLinks: Array<{ product_id: string; event_group_id: string; event_group: any }>
