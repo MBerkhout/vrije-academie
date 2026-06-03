@@ -12,6 +12,8 @@
     "migrate:plp-to-page": "node ./scripts/migrate-plp-to-page.mjs",
     "migrate:gift-card-to-page": "node ./scripts/migrate-gift-card-to-page.mjs",
     "seed:footer-settings": "node ./scripts/seed-footer-general-settings.mjs",
+    "seed:homepage-categories": "node ./scripts/seed-homepage-categories.mjs",
+    "seed:homepage-product-columns": "node ./scripts/seed-homepage-product-columns.mjs",
     "test": "vitest",
     "test:run": "vitest run"
   },

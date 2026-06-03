@@ -1,8 +1,13 @@
 /**
- * Import all Salesforce product groups that are in the future or always available (online).
+ * Bulk-import Salesforce product groups (vaProductgroup__c + children).
  *
- *   npx medusa exec ./src/scripts/import-future-productgroups.ts
+ * Default: future / VAthuis / online-only (see shouldBulkImportProductgroup).
+ * --all: every product group since the beginning (manual import, bypasses date guard).
+ *
+ *   npm run salesforce:import-future
+ *   npm run salesforce:import-all
  *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --dry-run --limit=5
+ *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --all --dry-run --limit=5
  */
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
@@ -56,10 +61,13 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
   }
 
   const dryRun = process.argv.includes("--dry-run")
+  const importAll = process.argv.includes("--all")
   const limit = Math.min(5000, Math.max(0, Number(arg("--limit")) || 0))
+  const logTag = importAll ? "import-all-productgroups" : "import-future-productgroups"
 
   logger.info(
-    `[import-future-productgroups] Listing ${SF_PRODUCTGROUP_OBJECT}…` +
+    `[${logTag}] Listing ${SF_PRODUCTGROUP_OBJECT}…` +
+      (importAll ? " (all groups)" : " (future / VAthuis / online-only)") +
       (dryRun ? " (dry-run)" : "") +
       (limit ? ` (limit=${limit})` : "")
   )
@@ -82,14 +90,14 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
     )
     const children = childQuery.records
 
-    if (!shouldBulkImportProductgroup({ group, children })) {
+    if (!importAll && !shouldBulkImportProductgroup({ group, children })) {
       skipped++
       continue
     }
 
     const label = group.Name?.trim() || group.Id
     if (dryRun) {
-      logger.info(`[import-future-productgroups] would import ${label} (${group.Id})`)
+      logger.info(`[${logTag}] would import ${label} (${group.Id})`)
       imported++
       continue
     }
@@ -103,25 +111,21 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
       )
       const result = ret.result as { medusaId?: string; skipped?: boolean; skipReason?: string } | undefined
       if (result?.skipped) {
-        logger.warn(
-          `[import-future-productgroups] skipped ${label} (${group.Id}): ${result.skipReason ?? "skipped"}`
-        )
+        logger.warn(`[${logTag}] skipped ${label} (${group.Id}): ${result.skipReason ?? "skipped"}`)
         skipped++
       } else {
-        logger.info(
-          `[import-future-productgroups] imported ${label} (${group.Id}) → ${result?.medusaId ?? "?"}`
-        )
+        logger.info(`[${logTag}] imported ${label} (${group.Id}) → ${result?.medusaId ?? "?"}`)
         imported++
       }
     } catch (err) {
       failed++
       logger.error(
-        `[import-future-productgroups] failed ${label} (${group.Id}): ${err instanceof Error ? err.message : String(err)}`
+        `[${logTag}] failed ${label} (${group.Id}): ${err instanceof Error ? err.message : String(err)}`
       )
     }
   }
 
   logger.info(
-    `[import-future-productgroups] Done. imported=${imported} skipped=${skipped} failed=${failed} (scanned ${groups.length} groups)`
+    `[${logTag}] Done. imported=${imported} skipped=${skipped} failed=${failed} (scanned ${groups.length} groups)`
   )
 }

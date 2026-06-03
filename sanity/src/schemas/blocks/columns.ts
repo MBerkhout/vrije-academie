@@ -312,7 +312,16 @@ export const columnsBlock = defineType({
               type: "array",
               of: [{ type: "reference", to: [{ type: "product" }] }],
               hidden: ({ parent }) => parent?.columnType !== "productCards",
-              description: "TODO(HUBSPOT): Product cards - manual only for now. Future: Medusa/Sanity source.",
+              description: "Mirrored Medusa products (max 3 recommended per column).",
+            }),
+            defineField({
+              name: "productCardsItemCtaLabel",
+              title: "Card CTA label",
+              type: "string",
+              validation: (Rule) => Rule.max(40),
+              hidden: ({ parent }) => parent?.columnType !== "productCards",
+              description:
+                'Shown on each product card (e.g. "VAthuis – ON DEMAND", "Bekijk meer", "Exclusief in Amsterdam").',
             }),
             defineField({
               name: "productCardsFooterCtaEnabled",

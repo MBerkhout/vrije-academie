@@ -20,6 +20,7 @@ export type SfCourseProductShape = {
   Audience_Player_Product_Id__c?: number | null
   Account_Teacher__c?: string | null
   Main_Teacher_Name__c?: string | null
+  Account_Teacher__r?: { Id?: string; Name?: string } | null
 }
 
 export const SF_COURSE_PRODUCT_OBJECT = "vaProduct__c"
@@ -41,6 +42,7 @@ export const courseProductSalesforceFieldsForPull = [
   "Audience_Player_Article_Id__c",
   "Audience_Player_Product_Id__c",
   "Account_Teacher__c",
+  "Account_Teacher__r.Name",
   "Main_Teacher_Name__c",
 ] as const
 

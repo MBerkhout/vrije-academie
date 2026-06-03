@@ -35,8 +35,8 @@ const variantColor: Record<BadgeVariant, string> = {
 const sizeClasses: Record<BadgeSize, string> = {
   micro: 'text-[10px] px-2 py-0.5 font-semibold',
   compact: 'text-xs px-2 py-0.5 font-medium',
-  sm: 'text-xs px-2.5 py-1 font-medium',
-  md: 'text-sm px-3 py-1.5 font-medium',
+  sm: 'text-xs px-2.5 h-6 font-medium leading-none',
+  md: 'text-sm px-3 h-8 font-medium leading-none',
 }
 
 export interface BadgeProps {
@@ -66,11 +66,12 @@ export function Badge({
   return (
     <span
       className={cn(
+        'inline-flex items-center justify-center',
         variantColor[variant],
         sizeClasses[resolvedSize],
         isLegacy && 'rounded-sm uppercase tracking-wide font-semibold',
         !isLegacy && 'rounded-none',
-        isFreeTrial && 'inline-flex items-center gap-1.5 w-fit',
+        isFreeTrial && 'gap-1.5 w-fit',
         className
       )}
     >

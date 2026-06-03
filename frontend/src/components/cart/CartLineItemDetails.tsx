@@ -40,7 +40,8 @@ function BlockFragment({
   variant: CartLineItemDetailsVariant
 }) {
   switch (block.kind) {
-    case 'session': {
+    case 'session':
+    case 'vathuis': {
       if (!block.lines.length) return null
       if (variant === 'cart') {
         return (

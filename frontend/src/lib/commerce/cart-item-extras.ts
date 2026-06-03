@@ -13,5 +13,10 @@ export interface CartItemExtras {
     end_at: string | null
     city: string | null
   } | null
+  /** VAthuis / online course: episode count + total duration (from Salesforce or episode metadata). */
+  vathuis: {
+    episode_count_label: string | null
+    play_time: string | null
+  } | null
   instructor_names: string[]
 }

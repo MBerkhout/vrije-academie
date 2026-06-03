@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { Cart } from '@/lib/commerce/types'
+import type { Cart, CartItem } from '@/lib/commerce/types'
 import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
-import { buildCartLineItemDetailBlocks } from '@/lib/commerce/line-item-details'
+import { buildCartLineItemDetailBlocks, buildLineItemQuantityLabel, type BuildLineItemDetailsOptions } from '@/lib/commerce/line-item-details'
 import { CartLineItemDetails } from '@/components/cart/CartLineItemDetails'
 import { formatPriceEur } from '@/lib/locale-format'
 import { TrustSignals } from '@/components/cart/TrustSignals'
@@ -111,19 +111,32 @@ function CheckoutHelpAndTrust({
   )
 }
 
+export function resolveLineItemThumbnail(
+  item: Pick<CartItem, 'thumbnail'>,
+  extras: CartItemExtras | null | undefined
+): string | null {
+  return extras?.thumbnail ?? item.thumbnail ?? null
+}
+
+export function OrderSummaryThumbnail({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div className="w-14 h-14 shrink-0 bg-white overflow-hidden relative border border-va-lightgray-200">
+      <Image src={src} alt={alt} fill className="object-cover" sizes="56px" />
+    </div>
+  )
+}
+
 /** Line items only (thumbnail + title + qty + price). */
 export function OrderSummaryLineItems({
   cart,
   extras,
-  excludeLineItemIds,
+  detailOptions,
 }: Pick<CheckoutOrderSummaryProps, 'cart' | 'extras'> & {
-  excludeLineItemIds?: string[]
+  detailOptions?: BuildLineItemDetailsOptions
 }) {
   if (!cart || cart.items.length === 0) return null
 
-  const items = excludeLineItemIds?.length
-    ? cart.items.filter((item) => !excludeLineItemIds.includes(item.id))
-    : cart.items
+  const items = cart.items
 
   if (items.length === 0) return null
 
@@ -131,22 +144,28 @@ export function OrderSummaryLineItems({
     <ul className="space-y-3">
       {items.map((item) => {
         const itemExtras = extras?.find((e) => e.line_item_id === item.id) ?? null
-        const blocks = buildCartLineItemDetailBlocks(item, itemExtras, {})
+        const thumbnail = resolveLineItemThumbnail(item, itemExtras)
+        const title = itemExtras?.product_title ?? item.title
+        const blocks = buildCartLineItemDetailBlocks(item, itemExtras, {
+          onlineCityFallback: true,
+          quantityLabel: buildLineItemQuantityLabel(item),
+          ...detailOptions,
+        })
+        const lineTotal = item.total ?? item.unit_price * item.quantity
         return (
           <li key={item.id} className="flex gap-3 items-start">
-            {item.thumbnail && (
-              <div className="w-14 h-14 shrink-0 bg-white overflow-hidden relative border border-va-lightgray-200">
-                <Image src={item.thumbnail} alt={item.title} fill className="object-cover" sizes="56px" />
+            {thumbnail ? <OrderSummaryThumbnail src={thumbnail} alt={title} /> : null}
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex justify-between items-start gap-3">
+                <p className="font-sans text-sm font-bold text-va-black leading-snug min-w-0 flex-1 line-clamp-2">
+                  {title}
+                </p>
+                <p className="font-sans text-sm font-semibold text-va-black whitespace-nowrap shrink-0">
+                  {formatPriceEur(lineTotal)}
+                </p>
               </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-sans text-xs font-medium text-va-black line-clamp-2">{item.title}</p>
-              <p className="font-sans text-xs text-va-darkgray mt-0.5">{item.quantity}×</p>
-              <CartLineItemDetails blocks={blocks} variant="summary" />
+              <CartLineItemDetails blocks={blocks} variant="payment" />
             </div>
-            <p className="font-sans text-xs font-semibold text-va-black whitespace-nowrap">
-              {formatPriceEur(item.total ?? item.unit_price * item.quantity)}
-            </p>
           </li>
         )
       })}

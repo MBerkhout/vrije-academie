@@ -6,6 +6,7 @@ import PeopleModuleService from "../../people/service"
 import type { SfCourseProductShape } from "../mappings/course-product"
 import type { SfProductgroupShape } from "../mappings/productgroup"
 import SalesforceSyncModuleService from "../service"
+import { fetchTeacherAccountProfile } from "./fetch-teacher-account"
 
 const ENTITY_DOCENT = "docent"
 
@@ -31,18 +32,30 @@ function slugifyTeacher(name: string): string {
     .replace(/^-+|-+$/g, "")
 }
 
+/** Capitalized words only — keyword match uses /i, name capture does not (JS /i makes [A-Z] match lowercase). */
+const TEACHER_NAME_AFTER_KEYWORD =
+  /^([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+)*)/
+
+function teacherNameAfterKeyword(text: string, keyword: RegExp): string | null {
+  const hit = text.match(keyword)
+  if (!hit || hit.index == null) return null
+  const after = text.slice(hit.index + hit[0].length)
+  return after.match(TEACHER_NAME_AFTER_KEYWORD)?.[1]?.trim() ?? null
+}
+
 function fallbackTeacherNameFromGroup(group: SfProductgroupShape): string | null {
   const sources = [group.Samenvatting__c, group.Productgroup_Description__c]
   for (const html of sources) {
     if (!html?.trim()) continue
     const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
-    const patterns = [
-      /kunsthistoricus\s+([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+)+)/i,
-      /neemt\s+([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ]+)+)\s+(?:u|je)\s+mee/i,
-    ]
-    for (const pattern of patterns) {
-      const match = text.match(pattern)
-      if (match?.[1]) return match[1].trim()
+    const fromHistoricus = teacherNameAfterKeyword(text, /kunsthistoricus\s+/i)
+    if (fromHistoricus) return fromHistoricus
+    const neemtAt = text.search(/neemt\s+/i)
+    if (neemtAt >= 0) {
+      const fromNeemt = teacherNameAfterKeyword(text, /neemt\s+/i)
+      if (fromNeemt && /\s+(?:u|je)\s+mee/i.test(text.slice(neemtAt))) {
+        return fromNeemt
+      }
     }
   }
   return null
@@ -59,11 +72,14 @@ export function resolveTeacherFromProductgroup(
 } {
   const salesforceId =
     group.Highlighted_Teacher__c?.trim() || child?.Account_Teacher__c?.trim() || null
-  const relation = (group as Record<string, unknown>).Highlighted_Teacher__r as
+  const highlightedRelation = (group as Record<string, unknown>).Highlighted_Teacher__r as
     | SfTeacherRelation
     | undefined
+  const accountTeacherRelation = (child as Record<string, unknown> | null | undefined)
+    ?.Account_Teacher__r as SfTeacherRelation | undefined
   const name =
-    relation?.Name?.trim() ||
+    highlightedRelation?.Name?.trim() ||
+    accountTeacherRelation?.Name?.trim() ||
     child?.Main_Teacher_Name__c?.trim() ||
     fallbackTeacherNameFromGroup(group) ||
     null
@@ -71,6 +87,38 @@ export function resolveTeacherFromProductgroup(
   const photoUrl = extractImgSrcFromHtml(group.Highlighted_Teacher_Image__c)
 
   return { salesforceId, name, bio, photoUrl }
+}
+
+type ResolvedTeacher = {
+  salesforceId: string | null
+  name: string | null
+  bio: string | null
+  photoUrl: string | null
+  role: string
+}
+
+async function resolveTeacherForDocent(
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  group: SfProductgroupShape,
+  child?: SfCourseProductShape | null
+): Promise<ResolvedTeacher> {
+  const base = resolveTeacherFromProductgroup(group, child)
+  if (!base.salesforceId) {
+    return { ...base, role: "Docent" }
+  }
+
+  const account = await fetchTeacherAccountProfile(sync, base.salesforceId)
+  if (!account) {
+    return { ...base, role: "Docent" }
+  }
+
+  return {
+    salesforceId: base.salesforceId,
+    name: account.name ?? base.name,
+    bio: account.bio ?? base.bio,
+    photoUrl: account.photoUrl ?? base.photoUrl,
+    role: account.role?.trim() || "Docent",
+  }
 }
 
 async function findDocentBySalesforceId(
@@ -124,12 +172,12 @@ export async function linkDocentFromSalesforce(
   group: SfProductgroupShape,
   child?: SfCourseProductShape | null
 ): Promise<string | null> {
-  const teacher = resolveTeacherFromProductgroup(group, child)
-  if (!teacher.salesforceId || !teacher.name) return null
-
   const sync = container.resolve("salesforceSync") as InstanceType<
     typeof SalesforceSyncModuleService
   >
+  const teacher = await resolveTeacherForDocent(sync, group, child)
+  if (!teacher.salesforceId || !teacher.name) return null
+
   const people = container.resolve("people") as InstanceType<typeof PeopleModuleService>
   const link = container.resolve(ContainerRegistrationKeys.LINK)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
@@ -146,7 +194,7 @@ export async function linkDocentFromSalesforce(
       const created = await people.createDocents({
         slug,
         name: teacher.name,
-        role: "Docent",
+        role: teacher.role,
         photo_url: teacher.photoUrl,
         bio: teacher.bio,
         subject_tags: null,
@@ -157,6 +205,7 @@ export async function linkDocentFromSalesforce(
     await people.updateDocents({
       id: docentId,
       name: teacher.name,
+      role: teacher.role,
       photo_url: teacher.photoUrl,
       bio: teacher.bio,
     })

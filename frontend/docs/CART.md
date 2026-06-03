@@ -32,6 +32,7 @@ Cart ID is stored in a **first-party cookie** named **`va_cart_id`** (constant `
 Returns per-line-item:
 - `product_handle`, `product_title`, `thumbnail`
 - `event_item`: `start_at`, `end_at`, `city`, `delivery_type`
+- `vathuis`: for online courses (`metadata.vathuis.purchase_mode: bundle_only`) — `episode_count_label` and `play_time` from Salesforce (`Audience_Player_Episodes__c`, `Audience_Player_Play_Time__c`), with fallbacks from synced episode metadata when those fields are empty
 - `instructor_names`: string[]
 
 This avoids stuffing metadata into Medusa line items; the SDK cart response stays canonical.
@@ -57,9 +58,9 @@ Zie ook [`medusa/docs/GIFT-CARDS.md`](../../medusa/docs/GIFT-CARDS.md).
 
 | File | Purpose |
 |---|---|
-| `CartStepper` | 4-step horizontal stepper pill bar |
+| `CartStepper` | 4-step horizontal stepper pill bar; on mobile, only steps 1–3 are shown (step 4 and its connector are hidden) so the bar fits without horizontal scroll |
 | `CartView` | Client root: loads cart + extras, owns mutations |
-| `CartLineItemDetails` | Rendert `LineItemDetailBlock[]` (`session`, `instructors`, `quantity_label`, `gift_recipient`, `notice`) — varianten `cart` / `payment` / `summary` |
+| `CartLineItemDetails` | Rendert `LineItemDetailBlock[]` (`session`, `vathuis`, `instructors`, `quantity_label`, `gift_recipient`, `notice`) — varianten `cart` / `payment` / `summary` |
 | `GiftCardRecipientLine` | Alleen de **Voor:**-regel; aangeroepen vanuit `CartLineItemDetails` |
 | `CartItemRow` | Thumbnail, title, `CartLineItemDetails`, qty selector, remove |
 | `DiscountCodeForm` | Kortings- **en** cadeauboncodes (zelfde veld); `commerceClient.applyCode`; verwijderen: `removePromoCodes` (alleen niet-automatische promo) / `removeGiftCardCode` (cadeaubon). Promoties met `is_automatic` uit de Store API tonen geen verwijderknop. |
@@ -93,6 +94,6 @@ Nieuwe regeltypen: breid het type **`LineItemDetailBlock`** uit in `src/lib/comm
 
 `ProceedCta` links to `/checkout/inloggen` (step 2).
 
-- **Logged-in customers:** Medusa **customer** profile (naam, adres) is authoritative. If it is complete, the login step runs `syncCartFromCustomer` and sends them to `/checkout/betaling`. If not, they stay on `/checkout/inloggen` in state `logged_in_details` until gegevens are saved to the account and the cart is synced.
+- **Logged-in customers:** Medusa **customer** profile (naam, adres) is authoritative. If it is complete, the login step runs `syncCartFromCustomer` and sends them to `/checkout/betaling`. If not, they stay on `/checkout/inloggen` in state `logged_in_details` until gegevens are saved to the account and the cart is synced. From betaling, **Gegevens aanpassen** (or the stepper back link) uses `?bewerken=1` so the login step is not skipped.
 - **Guest / new users** complete the email-first progressive form at `/checkout/inloggen`; shipping lives on the **cart** until betaling.
 - After the session ends, the `va_cart_id` cookie persists for 30 days; carts do not automatically expire from Medusa during that window.

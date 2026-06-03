@@ -12,7 +12,7 @@ Admin UI and docs use domain wording; APIs and DB keep Medusa names.
 ## `events` module
 
 - **`EventGroup`**: `record_type` — `collegereeks` | `lezing` | `excursie` | `studiedag` (extend via `RECORD_TYPES` in `src/modules/events/types.ts`); **`has_free_trial`** (boolean, default `false`); **`show_in_plp`** (boolean, default `true`) — when `false`, the product is omitted from **`GET /store/events`** (Ons aanbod) and **`GET /store/agenda`**. The storefront also always excludes the configured digitale cadeaubon product handle (`GIFT_CARD_PRODUCT_HANDLE` / default `digitale-cadeaubon`).
-- **`EventItem`**: `delivery_type` — `online` | `offline` | `pre_recorded`; **`available_quantity`** (non-negative integer); **`start_at`** / **`end_at`** (timestamptz nullable); **`city`** (text nullable); **`registration_deadline_at`** (timestamptz nullable — hard registration cutoff); **`is_free_trial`** (boolean, default `false` — marks this variant as a free taster session).
+- **`EventItem`**: `delivery_type` — `online` | `offline` | `pre_recorded`; **`available_quantity`** (non-negative integer); **`start_at`** / **`end_at`** (timestamptz nullable); **`city`** (text nullable); **`registration_deadline_at`** (timestamptz nullable — hard registration cutoff); **`is_free_trial`** (boolean, default `false` — marks this variant as a free taster session); **`instructor_name`** / **`instructor_salesforce_id`** (nullable — synced from Salesforce child `vaProduct__c` `Account_Teacher__c` / `Main_Teacher_Name__c`, exposed on PDP session rows).
 - **VAthuis bundles** (`Lezingen_Thuis`, `Thuis_College` from Salesforce): one purchasable variant; chapters + episodes in `Product.metadata.vathuis` (Audience Player on import). Store API adds `purchase_mode`, `bundle_variant_id`, `vathuis.chapters`, `vathuis.episodes`. PDP: `PdpEpisodesTable` (chapter dropdown, preview modal) + bundle CTA. Docenten sync from `Highlighted_Teacher__c` on import.
 - **`Property`**: `key`, `value` (text). Linked to a **Product Group** *or* a **Product** (variant), not both; enforced in admin API.
 
@@ -77,7 +77,7 @@ Salesforce-driven property import, reservations / lesson scheduling, and other i
 
 ### `GET /store/cart/extras?cart_id=…`
 
-Returns per-line-item enriched data (thumbnail, event_item, instructor names). See CART.md.
+Returns per-line-item enriched data (thumbnail, event_item, instructor names, VAthuis episode count + play time for online courses). See `frontend/docs/CART.md`.
 
 ### `GET /store/customer/exists?email=…`
 

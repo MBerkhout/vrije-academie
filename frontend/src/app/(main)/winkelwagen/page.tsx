@@ -24,7 +24,7 @@ export default async function WinkelwagenPage() {
         {cart?.continueShoppingLabel ?? 'Verder winkelen'}
       </Link>
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4">
         <CartStepper step={1} labels={cart?.stepLabels} />
       </div>
 

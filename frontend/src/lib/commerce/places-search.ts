@@ -1,7 +1,6 @@
 import type { SearchSuggestion } from '@/lib/cms/types'
 import { plpCityHref } from '@/lib/routes'
-
-type CityFacet = { slug: string; label: string; count: number }
+import { sortCityFacetsByCount, type CityFacet } from '@/lib/commerce/city-facets'
 
 /** Map Medusa event city facets to storefront place suggestions (same source as Ons aanbod filters). */
 export function cityFacetsToPlaceSuggestions(
@@ -19,9 +18,7 @@ export function cityFacetsToPlaceSuggestions(
     )
   }
 
-  return filtered
-    .slice()
-    .sort((a, b) => a.label.localeCompare(b.label, 'nl'))
+  return sortCityFacetsByCount(filtered)
     .slice(0, limit)
     .map((c) => ({
       kind: 'place' as const,

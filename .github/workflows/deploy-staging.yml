@@ -1,0 +1,71 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy-sanity:
+    name: Deploy Sanity Studio
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sanity
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: sanity/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy Studio to Sanity hosting
+        run: npm run deploy -- --yes
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_AUTH_TOKEN }}
+          SANITY_STUDIO_PROJECT_ID: ${{ secrets.SANITY_STUDIO_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ secrets.SANITY_STUDIO_DATASET }}
+
+      - name: Deploy schema
+        run: npm run schema:deploy
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_AUTH_TOKEN }}
+          SANITY_STUDIO_PROJECT_ID: ${{ secrets.SANITY_STUDIO_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ secrets.SANITY_STUDIO_DATASET }}
+
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run server deploy script
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: frontend
+          key: ${{ secrets.SSH_DEPLOY_KEY }}
+          script_stop: true
+          script: bash ~/app/frontend/scripts/deploy.sh
+
+  deploy-medusa:
+    name: Deploy Medusa
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run server deploy script
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: medusa
+          key: ${{ secrets.SSH_DEPLOY_KEY }}
+          script_stop: true
+          script: bash ~/app/medusa/scripts/deploy.sh

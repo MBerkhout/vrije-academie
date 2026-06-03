@@ -22,7 +22,7 @@ Steps 2–4 of the 4-step booking flow: **Inloggen → Betaling → Bevestiging*
   {children}
 ```
 
-**Stepper labels:** CMS field `generalSettings.cart.stepLabels`. When not set in Sanity, `CheckoutStepper` and `CartStepper` fall back to Dutch: **Overzicht**, **Inloggen**, **Betaling**, **Bevestiging**. The mobile checkout stepper’s previous-step control uses **Terug**.
+**Stepper labels:** CMS field `generalSettings.cart.stepLabels`. When not set in Sanity, `CheckoutStepper` and `CartStepper` fall back to Dutch: **Overzicht**, **Inloggen**, **Betaling**, **Bevestiging**. The mobile checkout stepper’s previous-step control uses **Terug**. On mobile, step 4 omits the **Bevestiging** label (dots + `(4 / 4)` only) so the bar fits on one screen.
 
 **Layout:** 2/3 + sticky sidebar on all checkout substeps. On **`/checkout/betaling`**, the main column starts with **`CheckoutPaymentOrderOverview`** (order lines + totals in a “Jouw gegevens”-style panel); the sidebar uses **`CheckoutOrderSummaryClient` `variant="helpTrustOnly"`** (Hulp nodig + USPs only — no “Bestellingsoverzicht” block). On **`/checkout/inloggen`** and **`/checkout/bevestiging`**, the sidebar is the full order summary (`CheckoutOrderSummaryMobile` + `CheckoutOrderSummaryDesktop`). Vertical spacing uses `gap-6`. `CheckoutLoginForm` is full width until `lg`, then capped with `max-w-lg` inside the 2/3 column.
 
@@ -62,15 +62,17 @@ Account creation (`createAccount = true`) stores intent in `sessionStorage['va_c
 
 **Guards:**
 - Empty cart → redirect `/winkelwagen`
-- Already logged-in with **complete** profile → `syncCartFromCustomer` then redirect `/checkout/betaling`
+- Already logged-in with **complete** profile → `syncCartFromCustomer` then redirect `/checkout/betaling` (unless `?bewerken=1` — see below)
 - Already logged-in with **incomplete** profile → `logged_in_details` (no immediate redirect to betaling)
+
+**Gegevens aanpassen (edit mode):** From step 3, **Gegevens aanpassen** and the stepper link back to step 2 use `/checkout/inloggen?bewerken=1`. With that query param, a logged-in customer with a complete profile stays on the details form (prefilled from the account) instead of being auto-skipped to betaling. They can save changes (updates customer + cart) and continue to betaling, go **Terug naar betaling** without saving, or **Uitloggen** to switch account or continue as guest.
 
 ## Step 3 — Betaling (`betaling/page.tsx`, `CheckoutPaymentOrderOverview`, `CheckoutPaymentForm`)
 
-**`CheckoutPaymentOrderOverview`** (above the form): loads cart + **`fetchCartExtras`** (zelfde endpoint als winkelwagen). Primary block: titelrij + **`CartLineItemDetails`** met `variant="payment"` (regels uit **`buildCartLineItemDetailBlocks`**: sessie met **Online**-fallback, docenten, aantal tickets/cadeaubon, **Voor:** cadeaubon). Daarna **`OrderSummaryLineItems`** met `extras` (secundaire regels idem); **`OrderSummaryTotalsBlock`**. Sidebar op inloggen/bevestiging: **`CheckoutOrderSummaryClient`** laadt eveneens extras voor **`OrderSummaryDetails`**. Zie `src/lib/commerce/line-item-details.ts` en `src/components/cart/CartLineItemDetails.tsx`; cadeaubon-parser: **`gift-card.ts`**; laag **`GiftCardRecipientLine`** alleen voor de **Voor:**-zin.
+**`CheckoutPaymentOrderOverview`** (above the form): loads cart + **`fetchCartExtras`**. All line items via **`OrderSummaryLineItems`** (bold title, thumbnail, **`buildLineItemQuantityLabel`**, **`onlineCityFallback`**) + **`OrderSummaryTotalsBlock`**. Same component in the sidebar on inloggen/bevestiging.
 
 **`CheckoutPaymentForm`** loads cart. When the cart total is positive, loads `GET /store/payment-providers?region_id={cart.region_id}` (effect re-runs if the total crosses zero, e.g. gift card removed). Renders:
-1. Personal details — **logged-in:** from `Customer` (default checkout address) after `syncCartFromCustomer`; **guest:** from cart `shipping_address`. **Aanpassen** links to step 2, where account gegevens are edited on the customer record.
+1. Personal details — **logged-in:** from `Customer` (default checkout address) after `syncCartFromCustomer`; **guest:** from cart `shipping_address`. **Gegevens aanpassen** links to `/checkout/inloggen?bewerken=1`, where account gegevens can be edited (or the user can log out).
 2. Cadeaubon / tegoedbon input — `commerceClient.applyCode` (promo **of** interne `GIFT-` saldocode via `POST /store/cart/gift-cards`); verwijderen per code: **kortingscode** via `removePromoCodes`, **cadeaubon** via `removeGiftCardCode`. Na succesvolle apply/remove: **`dispatchCartUpdated()`** (`lib/commerce/cart.ts`) zodat o.a. **`CheckoutPaymentOrderOverview`** (luistert naar `va:cart-updated`) totalen opnieuw ophaalt.
 3. Payment method tiles (`PaymentMethodTiles`) — only when there is an amount due; one tile per enabled Mollie provider in the region
 4. Trust signals

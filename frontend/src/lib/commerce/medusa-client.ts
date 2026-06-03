@@ -44,6 +44,7 @@ import {
   parseWishlistHandles,
   removeHandleFromList,
 } from './wishlist'
+import { sortCityFacetsByCount } from './city-facets'
 
 function getFetchStatus(e: unknown): number | undefined {
   if (typeof e === 'object' && e !== null && 'status' in e) {
@@ -80,7 +81,7 @@ function normalizeEventFacets(raw: unknown): EventFacets {
     product_type: f.product_type ?? [],
     categories: f.categories ?? [],
     teachers: f.teachers ?? f.docenten ?? [],
-    cities: f.cities ?? [],
+    cities: sortCityFacetsByCount(f.cities ?? []),
     delivery_type: f.delivery_type ?? [],
     day_part: f.day_part ?? [],
   }

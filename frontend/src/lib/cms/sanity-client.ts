@@ -252,6 +252,7 @@ export const sanityClient: CMSClient = {
         trustUsps,
         labels {
           primaryCta,
+          bundleCta,
           wishlist,
           wishlistSaved,
           inviteSomeone,
@@ -262,7 +263,13 @@ export const sanityClient: CMSClient = {
           similarHeading,
           relatedHeading,
           noSessionsMessage,
-          soldOutLabel
+          soldOutLabel,
+          episodesHeading,
+          chapterLabel,
+          episodeColumn,
+          durationColumn,
+          descriptionColumn,
+          watchEpisode
         }
       },
       cart {

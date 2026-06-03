@@ -147,7 +147,10 @@ npm run salesforce:pull -- --type=product --action=pull --salesforce-id=01t...
 npm run salesforce:pull -- --type=productgroup --action=pull --salesforce-id=a05Mz00000YEMptIAH
 # Bulk import all future product groups + online-only (always available) groups
 npm run salesforce:import-future
+# Bulk import every product group (past + future) — manual guard bypass, re-syncs VAthuis metadata etc.
+npm run salesforce:import-all
 # Preview without writing: npm run salesforce:import-future -- --dry-run --limit=10
+# npm run salesforce:import-all -- --dry-run --limit=10
 # Read-only dump of a product group + children (discover docent / embed fields)
 npm run salesforce:inspect -- --url=art-nouveau
 npm run salesforce:inspect -- --salesforce-id=a052o00001Agr0lAAB --describe --out=./tmp/inspect.json
@@ -235,6 +238,8 @@ Webhooks enqueue product group pulls with `manual: false`. Import is **skipped**
 
 Manual CLI/API imports **ignore** this guard. Logic: `shouldImportProductgroup()` in `src/modules/salesforce-sync/utils/future-import-guard.ts`.
 
+**Bulk historical import:** `npm run salesforce:import-all` (or `import-future-productgroups.ts -- --all`) imports **every** `vaProductgroup__c` with `manual: true` (no date filter). Use `--dry-run` and `--limit=N` first. VAthuis imports call Audience Player per group and can take a long time on a full catalog.
+
 The **storefront** also hides past occurrences (`GET /store/events`, `GET /store/agenda` unless `include_past=true`).
 
 ### Product group field map (`vaProductgroup__c`)
@@ -268,5 +273,6 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | VAthuis episodes label | `Audience_Player_Episodes__c` | `metadata.vathuis.episode_count_label` |
 | VAthuis play time | `Audience_Player_Play_Time__c` | `metadata.vathuis.play_time` |
 | Audience Player article / product | `Audience_Player_Article_Id__c`, `Audience_Player_Product_Id__c` on child | chapter/episode fetch + `metadata.vathuis.audience_player` |
-| Highlighted docent | `Highlighted_Teacher__c`, `Highlighted_Teacher__r.Name`, `Highlighted_Teacher_Teaser__c`, `Highlighted_Teacher_Image__c` | `Docent` + `product-docenten` link (name fallback from `Samenvatting__c`) |
+| Highlighted docent | `Highlighted_Teacher__c`, `Highlighted_Teacher__r.Name`, `Highlighted_Teacher_Teaser__c`, `Highlighted_Teacher_Image__c` | `Docent` + `product-docenten` link (name fallback from `Samenvatting__c` / `Productgroup_Description__c`). When the linked **Account** is readable, also maps `Description` → `bio`, `PhotoUrl` → `photo_url`, `PersonTitle` → `role` (`utils/fetch-teacher-account.ts`). Mirrored to Sanity `docent` on `people.docent.*` events. |
+| Variant instructor | Child `Account_Teacher__c`, `Account_Teacher__r.Name`, `Main_Teacher_Name__c` | `EventItem.instructor_name` + `instructor_salesforce_id` (PDP session table; same name resolution as product docent link) |
 | Preview / iframe | `Audience_Preview_Url__c`, `IFrame_URL_1__c` on group | first-episode `embed_url` in `metadata.vathuis.episodes[]` |

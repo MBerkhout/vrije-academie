@@ -39,7 +39,9 @@ npx medusa exec ./src/scripts/sync-sanity.ts -- --entity=docenten
 npx medusa exec ./src/scripts/sync-sanity.ts -- --entity=products
 ```
 
-Single product (after Salesforce HTML import fixes):
+The `products` entity uses `syncProductById` (includes Salesforce HTML → PDP body import). Sync docenten first if products reference missing docent mirrors. Per-product failures are logged and do not stop the batch.
+
+Single product:
 
 ```bash
 npx medusa exec ./src/scripts/sync-one-product-sanity.ts -- prod_01...
@@ -49,9 +51,9 @@ npx medusa exec ./src/scripts/sync-one-product-sanity.ts -- prod_01...
 
 `html-to-pdp-body.ts` converts Salesforce `Productgroup_Description__c` / web body HTML into Sanity `textBlock` portable text. Inline tags supported: `<strong>`, `<em>`, `<a href="…">` (Sanity link marks), `<span>` (stripped, text kept), `<br>`. Re-sync affected products after parser changes when `pageBodyOwnedBySanity` is false.
 
+## Environment variables (Medusa)
 
 ```env
-SANITY_PROJECT_ID=your_project_id
 SANITY_DATASET=production
 SANITY_WRITE_TOKEN=your_write_token  # Needs write access to all document types
 MEDUSA_ADMIN_URL=http://localhost:9000  # Used in Sanity Studio "Open in Medusa" links

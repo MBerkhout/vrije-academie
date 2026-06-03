@@ -1,6 +1,7 @@
 import {
   fetchVathuisChaptersFromAudiencePlayer,
   fetchVathuisEpisodesFromAudiencePlayer,
+  formatDurationLabel,
   isVathuisRecordType,
   type VathuisChapter,
   type VathuisEpisode,
@@ -22,6 +23,41 @@ export type VathuisProductMetadata = {
   }
   chapters: VathuisChapter[]
   episodes: VathuisEpisode[]
+}
+
+/** Labels for cart / checkout line sublines (Salesforce fields with episode fallbacks). */
+export function vathuisCartDisplayFromProductMetadata(
+  metadata: Record<string, unknown> | null | undefined
+): { episode_count_label: string | null; play_time: string | null } | null {
+  const raw = metadata?.vathuis
+  if (!raw || typeof raw !== "object") return null
+  const vathuis = raw as Record<string, unknown>
+  if (vathuis.purchase_mode !== "bundle_only") return null
+
+  let episode_count_label =
+    typeof vathuis.episode_count_label === "string"
+      ? vathuis.episode_count_label.trim() || null
+      : null
+  let play_time =
+    typeof vathuis.play_time === "string" ? vathuis.play_time.trim() || null : null
+
+  const episodes = Array.isArray(vathuis.episodes) ? (vathuis.episodes as VathuisEpisode[]) : []
+
+  if (!episode_count_label && episodes.length > 0) {
+    const n = episodes.length
+    episode_count_label = n === 1 ? "1 aflevering" : `${n} afleveringen`
+  }
+
+  if (!play_time && episodes.length > 0) {
+    const totalSeconds = episodes.reduce((sum, ep) => {
+      const d = ep.duration_seconds
+      return typeof d === "number" && Number.isFinite(d) ? sum + d : sum
+    }, 0)
+    play_time = formatDurationLabel(totalSeconds)
+  }
+
+  if (!episode_count_label && !play_time) return null
+  return { episode_count_label, play_time }
 }
 
 export function resolveAudienceArticleId(child: SfCourseProductShape): number | null {

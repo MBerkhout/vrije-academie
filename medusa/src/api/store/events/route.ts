@@ -9,6 +9,7 @@ import {
   buildCityLabelMap,
   uniqueCityRefsFromEventItems,
   incrementCityFacetCounts,
+  sortCityFacetsByCount,
   type CityRef,
 } from "../../../lib/city-refs"
 import { listProductCatalogCategoryLinks } from "../../../lib/product-catalog-category-links"
@@ -472,7 +473,7 @@ function buildFacets(
     product_type: Object.values(productTypeCounts),
     categories: Object.values(categoryCounts),
     docenten: Object.values(docentCounts),
-    cities: Object.values(cityCounts),
+    cities: sortCityFacetsByCount(Object.values(cityCounts)),
     delivery_type: Object.entries(deliveryTypeCounts).map(([slug, count]) => ({ slug, count })),
     day_part: Object.entries(dayPartCounts).map(([slug, count]) => ({ slug, count })),
   }

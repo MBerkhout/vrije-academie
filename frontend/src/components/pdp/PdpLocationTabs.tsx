@@ -168,8 +168,11 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
                       {ei?.start_at ? formatTimeRange(ei.start_at, ei?.end_at) : '—'}
                     </td>
                     <td className="py-4 pr-4 align-middle hidden lg:table-cell">
-                      {/* Instructor lookup is best-effort; Medusa API returns instructors at product level */}
-                      <span className="text-va-gray">—</span>
+                      <span className="text-va-gray">
+                        {ei?.instructor_name?.trim() ||
+                          instructors[0]?.name?.trim() ||
+                          '—'}
+                      </span>
                     </td>
                     <td className="py-4 pr-4 align-middle font-medium">
                       {price ? formatPriceEur(price, 'whole') : '—'}

@@ -21,4 +21,8 @@ export const EventItem = model.define("event_item", {
   city_slug: model.text().nullable(),
   registration_deadline_at: model.dateTime().nullable(),
   is_free_trial: model.boolean().default(false),
+  /** Display name from Salesforce child `Account_Teacher__c` / `Main_Teacher_Name__c` (per variant). */
+  instructor_name: model.text().nullable(),
+  /** Salesforce Account id for the teacher (`Account_Teacher__c` on `vaProduct__c`). */
+  instructor_salesforce_id: model.text().nullable(),
 })

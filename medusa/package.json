@@ -16,6 +16,7 @@
     "salesforce:push": "medusa exec ./src/scripts/sync-salesforce.ts --",
     "salesforce:pull": "medusa exec ./src/scripts/sync-salesforce.ts --",
     "salesforce:import-future": "medusa exec ./src/scripts/import-future-productgroups.ts --",
+    "salesforce:import-all": "medusa exec ./src/scripts/import-future-productgroups.ts -- --all",
     "salesforce:inspect": "medusa exec ./src/scripts/inspect-salesforce-productgroup.ts --"
   },
   "keywords": [

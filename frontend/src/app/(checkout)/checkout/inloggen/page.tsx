@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import { cmsClient } from '@/lib/cms/server'
 import { CheckoutLoginForm } from '@/components/checkout/CheckoutLoginForm'
 
@@ -11,6 +11,8 @@ export default async function InloggenPage() {
   const checkout = settings?.checkout ?? {}
 
   return (
-    <CheckoutLoginForm settings={checkout} />
+    <Suspense>
+      <CheckoutLoginForm settings={checkout} />
+    </Suspense>
   )
 }

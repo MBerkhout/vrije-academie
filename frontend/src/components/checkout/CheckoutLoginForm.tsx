@@ -6,7 +6,7 @@
  * Step UI lives under `components/checkout/login/`.
  */
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { commerceClient } from '@/lib/commerce'
 import {
   getDefaultCheckoutAddress,
@@ -39,7 +39,9 @@ interface CheckoutLoginFormProps {
 
 export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   const router = useRouter()
-  const { customer, refresh, loading: customerLoading } = useCustomer()
+  const searchParams = useSearchParams()
+  const editingDetails = searchParams.get('bewerken') === '1'
+  const { customer, refresh, logout, loading: customerLoading } = useCustomer()
   const [state, setState] = useState<State>('email')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -143,6 +145,12 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
         const fresh = await commerceClient.getCustomer()
         if (cancelled || !fresh) return
         if (isCustomerProfileComplete(fresh)) {
+          if (editingDetails) {
+            prefillFromCustomer(fresh)
+            setEmail(fresh.email)
+            setState('logged_in_details')
+            return
+          }
           const cartId = await ensureCart()
           await commerceClient.syncCartFromCustomer(fresh, cartId)
           if (!cancelled) router.replace('/checkout/betaling')
@@ -160,7 +168,35 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     return () => {
       cancelled = true
     }
-  }, [customer?.id, customerLoading, state, router, prefillFromCustomer])
+  }, [customer?.id, customerLoading, state, router, prefillFromCustomer, editingDetails])
+
+  async function handleLogout() {
+    setBusy(true)
+    setError(null)
+    try {
+      await logout()
+      setState('email')
+      setEmail('')
+      setPassword('')
+      setFirstName('')
+      setLastName('')
+      setPhone('')
+      setStreet('')
+      setHouseNumber('')
+      setPostalCode('')
+      setCity('')
+      setCountry('NL')
+      setManualAddress(false)
+      setCreateAccount(false)
+      setNewPassword('')
+      setConfirmPassword('')
+      setValidity(initialCheckoutGuestValidity())
+    } catch {
+      showToast('Uitloggen mislukt. Probeer het opnieuw.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   useCountryToggleManualAddress(country, setManualAddress)
 
@@ -476,6 +512,11 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           blur={blurField}
           reset={resetValidity}
           onSubmit={state === 'logged_in_details' ? handleLoggedInDetailsContinue : handleGuestContinue}
+          onLogout={state === 'logged_in_details' && editingDetails ? handleLogout : undefined}
+          backHref={state === 'logged_in_details' && editingDetails ? '/checkout/betaling' : undefined}
+          backLabel={
+            state === 'logged_in_details' && editingDetails ? 'Terug naar betaling' : undefined
+          }
         />
       )}
     </div>

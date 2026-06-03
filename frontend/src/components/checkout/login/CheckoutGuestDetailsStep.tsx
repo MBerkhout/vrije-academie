@@ -51,6 +51,9 @@ interface CheckoutGuestDetailsStepProps {
   blur: (name: AccountFieldName, value: string, extra?: { password?: string }) => void
   reset: (name: AccountFieldName) => void
   onSubmit: (e: React.FormEvent) => void
+  onLogout?: () => void
+  backHref?: string
+  backLabel?: string
 }
 
 export function CheckoutGuestDetailsStep({
@@ -90,6 +93,9 @@ export function CheckoutGuestDetailsStep({
   blur,
   reset,
   onSubmit,
+  onLogout,
+  backHref,
+  backLabel,
 }: CheckoutGuestDetailsStepProps) {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
@@ -238,12 +244,24 @@ export function CheckoutGuestDetailsStep({
         {busy ? '…' : (settings.unknownEmail?.continueLabel ?? 'Doorgaan')}
       </button>
 
-      <Link
-        href="/winkelwagen"
-        className="block font-sans text-xs text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors"
-      >
-        Terug naar winkelwagen
-      </Link>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+        <Link
+          href={backHref ?? '/winkelwagen'}
+          className="font-sans text-xs text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors"
+        >
+          {backLabel ?? 'Terug naar winkelwagen'}
+        </Link>
+        {onLogout && (
+          <button
+            type="button"
+            onClick={onLogout}
+            disabled={busy}
+            className="font-sans text-xs text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors disabled:opacity-60"
+          >
+            Uitloggen
+          </button>
+        )}
+      </div>
     </form>
   )
 }

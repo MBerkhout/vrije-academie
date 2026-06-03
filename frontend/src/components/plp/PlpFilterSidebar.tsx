@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
 import {
@@ -78,6 +78,9 @@ function ToggleCheckbox({
 const PLAATS_COLLAPSED_COUNT = 5
 const PLAATS_SCROLL_AT_COUNT = 10
 
+/** Categorie: first 6 with fade; Meer tonen reveals the full list. */
+const CATEGORY_COLLAPSED_COUNT = 6
+
 function ChevronDownIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -93,6 +96,27 @@ function ChevronDownIcon({ className }: { className?: string }) {
       <path d="m6 9 6 6 6-6" />
     </svg>
   )
+}
+
+function FilterSlidersIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M4 6h16M4 12h10M4 18h6" />
+    </svg>
+  )
+}
+
+function groupDefaultOpen(desktopDefault: boolean | undefined, collapseGroups: boolean): boolean {
+  if (collapseGroups) return false
+  return desktopDefault ?? true
 }
 
 function PlaatsSearchableMultiSelectChecklist({
@@ -162,6 +186,7 @@ function PlaatsSearchableMultiSelectChecklist({
         <>
           <div
             className={cn(
+              'relative',
               needsScroll && 'max-h-[17.5rem] overflow-y-auto pr-0.5',
             )}
           >
@@ -170,17 +195,19 @@ function PlaatsSearchableMultiSelectChecklist({
               selected={selected}
               onToggle={onToggle}
             />
+            {needsCollapse && !showFullList && (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-8">
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="flex w-full items-center justify-center gap-1.5 pb-0.5 text-sm font-medium text-va-black hover:text-va-darkgray transition-colors"
+                >
+                  Meer bekijken
+                  <ChevronDownIcon className="w-4 h-4 shrink-0 text-va-black" />
+                </button>
+              </div>
+            )}
           </div>
-          {needsCollapse && !showFullList && (
-            <button
-              type="button"
-              onClick={() => setExpanded(true)}
-              className="flex w-full items-center justify-center gap-1.5 bg-white py-2.5 text-sm font-medium text-va-black border-t border-va-lightgray hover:bg-va-lightgray/30 transition-colors"
-            >
-              Meer bekijken
-              <ChevronDownIcon className="w-4 h-4 shrink-0 text-va-black" />
-            </button>
-          )}
         </>
       )}
     </div>
@@ -217,6 +244,56 @@ function MultiSelectChecklist({
           )}
         </label>
       ))}
+    </div>
+  )
+}
+
+function CollapsibleMultiSelectChecklist({
+  options,
+  selected,
+  onToggle,
+  collapsedCount,
+  expandLabel = 'Meer tonen',
+}: {
+  options: { value: string; label: string; count?: number }[]
+  selected: string[]
+  onToggle: (v: string) => void
+  collapsedCount: number
+  expandLabel?: string
+}) {
+  const needsCollapse = options.length > collapsedCount
+  const [expanded, setExpanded] = useState(() => {
+    if (!needsCollapse) return true
+    return selected.some((value) => {
+      const index = options.findIndex((opt) => opt.value === value)
+      return index >= collapsedCount
+    })
+  })
+
+  const showFullList = expanded || !needsCollapse
+  const visibleOptions = showFullList
+    ? options
+    : options.slice(0, collapsedCount)
+
+  return (
+    <div className="relative">
+      <MultiSelectChecklist
+        options={visibleOptions}
+        selected={selected}
+        onToggle={onToggle}
+      />
+      {needsCollapse && !expanded && (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-8">
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="flex w-full items-center justify-center gap-1.5 pb-0.5 text-sm font-medium text-va-black hover:text-va-darkgray transition-colors"
+          >
+            {expandLabel}
+            <ChevronDownIcon className="w-4 h-4 shrink-0 text-va-black" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -365,6 +442,21 @@ export function PlpFilterSidebar({
   const router = useRouter()
   const serialize = resolveFilterSerialize(basePath)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerSession, setDrawerSession] = useState(0)
+
+  useEffect(() => {
+    if (!drawerOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [drawerOpen])
+
+  function openMobileDrawer() {
+    setDrawerSession((n) => n + 1)
+    setDrawerOpen(true)
+  }
 
   const activeCount =
     (filterState.categories?.length ?? 0) +
@@ -442,142 +534,172 @@ export function PlpFilterSidebar({
     .map((opt) => ({ ...opt, count: facetCount.dayPart(opt.value) }))
     .filter((opt) => isVisible(opt.value, filterState.dayParts ?? [], opt.count))
 
-  const sidebarContent = (
-    <div className="space-y-0">
-      {/* Delivery type toggles */}
-      {deliveryOptions.length > 0 && (
-        <FilterGroupCollapsible title="Beschikbaarheid" defaultOpen>
-          <MultiSelectChecklist
-            options={deliveryOptions}
-            selected={filterState.deliveryTypes ?? []}
-            onToggle={(v) => toggleArray('deliveryTypes', v)}
-          />
-        </FilterGroupCollapsible>
-      )}
+  function renderFilterGroups(collapseGroups: boolean, showDesktopReset: boolean) {
+    return (
+      <div className="space-y-0">
+        {deliveryOptions.length > 0 && (
+          <FilterGroupCollapsible
+            title="Beschikbaarheid"
+            defaultOpen={groupDefaultOpen(true, collapseGroups)}
+          >
+            <MultiSelectChecklist
+              options={deliveryOptions}
+              selected={filterState.deliveryTypes ?? []}
+              onToggle={(v) => toggleArray('deliveryTypes', v)}
+            />
+          </FilterGroupCollapsible>
+        )}
 
-      {/* Product type (Reis, Studiedag, …) */}
-      {productTypeOptions.length > 0 && (
-        <FilterGroupCollapsible title="Soort activiteit" defaultOpen>
-          <MultiSelectChecklist
-            options={productTypeOptions}
-            selected={filterState.productTypes ?? []}
-            onToggle={(v) => toggleArray('productTypes', v)}
-          />
-        </FilterGroupCollapsible>
-      )}
+        {productTypeOptions.length > 0 && (
+          <FilterGroupCollapsible
+            title="Soort activiteit"
+            defaultOpen={groupDefaultOpen(true, collapseGroups)}
+          >
+            <MultiSelectChecklist
+              options={productTypeOptions}
+              selected={filterState.productTypes ?? []}
+              onToggle={(v) => toggleArray('productTypes', v)}
+            />
+          </FilterGroupCollapsible>
+        )}
 
-      {/* Categories */}
-      {categoryOptions.length > 0 && (
-        <FilterGroupCollapsible title="Categorie">
-          <MultiSelectChecklist
-            options={categoryOptions}
-            selected={filterState.categories ?? []}
-            onToggle={(v) => toggleArray('categories', v)}
-          />
-        </FilterGroupCollapsible>
-      )}
+        {categoryOptions.length > 0 && (
+          <FilterGroupCollapsible
+            title="Categorie"
+            defaultOpen={groupDefaultOpen(undefined, collapseGroups)}
+          >
+            <CollapsibleMultiSelectChecklist
+              options={categoryOptions}
+              selected={filterState.categories ?? []}
+              onToggle={(v) => toggleArray('categories', v)}
+              collapsedCount={CATEGORY_COLLAPSED_COUNT}
+            />
+          </FilterGroupCollapsible>
+        )}
 
-      {/* Docenten */}
-      {teacherOptions.length > 0 && (
-        <FilterGroupCollapsible title="Docent" defaultOpen={false}>
-          <MultiSelectChecklist
-            options={teacherOptions}
-            selected={filterState.teachers ?? []}
-            onToggle={(v) => toggleArray('teachers', v)}
-          />
-        </FilterGroupCollapsible>
-      )}
+        {teacherOptions.length > 0 && (
+          <FilterGroupCollapsible
+            title="Docent"
+            defaultOpen={groupDefaultOpen(false, collapseGroups)}
+          >
+            <MultiSelectChecklist
+              options={teacherOptions}
+              selected={filterState.teachers ?? []}
+              onToggle={(v) => toggleArray('teachers', v)}
+            />
+          </FilterGroupCollapsible>
+        )}
 
-      {/* City */}
-      {citiesFromFacets.length > 0 && (
-        <FilterGroupCollapsible title="Plaats" defaultOpen={false}>
-          <PlaatsSearchableMultiSelectChecklist
-            options={citiesFromFacets}
-            selected={filterState.cities ?? []}
-            onToggle={(v) => toggleArray('cities', v)}
-            placeholder="Zoek op plaats…"
-          />
-        </FilterGroupCollapsible>
-      )}
+        {citiesFromFacets.length > 0 && (
+          <FilterGroupCollapsible
+            title="Plaats"
+            defaultOpen={groupDefaultOpen(false, collapseGroups)}
+          >
+            <PlaatsSearchableMultiSelectChecklist
+              options={citiesFromFacets}
+              selected={filterState.cities ?? []}
+              onToggle={(v) => toggleArray('cities', v)}
+              placeholder="Zoek op plaats…"
+            />
+          </FilterGroupCollapsible>
+        )}
 
-      {/* Dag deel */}
-      {dayPartOptions.length > 0 && (
-        <FilterGroupCollapsible title="Dagdeel" defaultOpen={false}>
-          <MultiSelectChecklist
-            options={dayPartOptions}
-            selected={filterState.dayParts ?? []}
-            onToggle={(v) => toggleArray('dayParts', v)}
-          />
-        </FilterGroupCollapsible>
-      )}
+        {dayPartOptions.length > 0 && (
+          <FilterGroupCollapsible
+            title="Dagdeel"
+            defaultOpen={groupDefaultOpen(false, collapseGroups)}
+          >
+            <MultiSelectChecklist
+              options={dayPartOptions}
+              selected={filterState.dayParts ?? []}
+              onToggle={(v) => toggleArray('dayParts', v)}
+            />
+          </FilterGroupCollapsible>
+        )}
 
-      {/* Periode */}
-      <FilterGroupCollapsible title="Periode" defaultOpen={false}>
-        <PeriodeFilter
-          periodStart={filterState.periodStart}
-          periodEnd={filterState.periodEnd}
-          onChange={(start, end) =>
-            applyFilter({ ...filterState, periodStart: start, periodEnd: end })
-          }
-        />
-      </FilterGroupCollapsible>
-
-      {/* Reset */}
-      <div className="pt-4">
-        <button
-          type="button"
-          onClick={clearAll}
-          className="w-full text-sm text-va-gray border border-va-lightgray py-2 hover:bg-va-lightgray transition-colors"
+        <FilterGroupCollapsible
+          title="Periode"
+          defaultOpen={groupDefaultOpen(false, collapseGroups)}
         >
-          Reset
-        </button>
+          <PeriodeFilter
+            periodStart={filterState.periodStart}
+            periodEnd={filterState.periodEnd}
+            onChange={(start, end) =>
+              applyFilter({ ...filterState, periodStart: start, periodEnd: end })
+            }
+          />
+        </FilterGroupCollapsible>
+
+        {showDesktopReset && (
+          <div className="pt-4">
+            <button
+              type="button"
+              onClick={clearAll}
+              className="w-full text-sm text-va-gray border border-va-lightgray py-2 hover:bg-va-lightgray transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        )}
       </div>
-    </div>
-  )
+    )
+  }
 
   if (mobileOnly) {
     return (
       <>
         <button
           type="button"
-          onClick={() => setDrawerOpen(true)}
-          className="flex items-center gap-2 border border-va-lightgray px-4 py-2 text-sm font-medium text-va-black bg-white"
+          onClick={openMobileDrawer}
+          className="flex items-center gap-2 border-2 border-va-black px-4 py-2.5 text-sm font-semibold text-va-black bg-white shadow-sm hover:bg-va-lightgray-300 active:bg-va-lightgray transition-colors"
         >
+          <FilterSlidersIcon className="h-4 w-4 shrink-0" />
           Filter
           {activeCount > 0 && (
-            <span className="bg-va-yellow text-va-black text-xs font-bold px-1.5 py-0.5">
+            <span className="bg-va-yellow text-va-black text-xs font-bold px-1.5 py-0.5 min-w-[1.25rem] text-center">
               {activeCount}
             </span>
           )}
         </button>
 
         {drawerOpen && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 bg-black/40 z-40"
-              onClick={() => setDrawerOpen(false)}
-            />
-            {/* Drawer */}
-            <div className="fixed inset-y-0 left-0 z-50 w-80 max-w-full bg-white shadow-xl flex flex-col">
-              <div className="flex items-center justify-between px-4 py-4 border-b border-va-lightgray">
-                <span className="font-semibold text-va-black">Filters</span>
-                <button
-                  type="button"
-                  onClick={() => setDrawerOpen(false)}
-                  aria-label="Sluit filters"
-                  className="text-va-gray hover:text-va-black text-xl leading-none"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="overflow-y-auto flex-1 px-4">{sidebarContent}</div>
+          <div
+            className="fixed inset-0 z-50 flex flex-col bg-white"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="plp-mobile-filters-title"
+          >
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-va-lightgray px-4 py-4">
+              <span id="plp-mobile-filters-title" className="font-semibold text-va-black">
+                Filters
+              </span>
+              <button
+                type="button"
+                onClick={clearAll}
+                className="shrink-0 text-sm text-va-gray underline hover:text-va-black transition-colors"
+              >
+                Wis alle filters
+              </button>
             </div>
-          </>
+
+            <div key={drawerSession} className="min-h-0 flex-1 overflow-y-auto px-4">
+              {renderFilterGroups(true, false)}
+            </div>
+
+            <div className="shrink-0 border-t border-va-lightgray bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="w-full bg-va-yellow text-va-black text-sm font-semibold py-3 hover:bg-va-yellow-600 active:bg-va-yellow-700 transition-colors"
+              >
+                Filters sluiten
+              </button>
+            </div>
+          </div>
         )}
       </>
     )
   }
 
-  return <div>{sidebarContent}</div>
+  return <div>{renderFilterGroups(false, true)}</div>
 }

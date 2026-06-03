@@ -11,11 +11,7 @@ import {
   OrderSummaryLineItems,
   OrderSummaryTotalsBlock,
 } from '@/components/checkout/CheckoutOrderSummary'
-import { formatPriceEur } from '@/lib/locale-format'
-import { isGiftCardPurchaseLineItem } from '@/lib/commerce/gift-card'
 import { fetchCartExtras } from '@/lib/commerce/fetch-cart-extras'
-import { buildCartLineItemDetailBlocks } from '@/lib/commerce/line-item-details'
-import { CartLineItemDetails } from '@/components/cart/CartLineItemDetails'
 
 type OrderSummaryLabels = NonNullable<NonNullable<GeneralSettings['checkout']>['orderSummary']>
 
@@ -73,25 +69,6 @@ export function CheckoutPaymentOrderOverview({ labels }: CheckoutPaymentOrderOve
   const heading = labels?.heading ?? 'Bestellingsoverzicht'
   const changeLinkLabel = labels?.changeLabel ?? 'Winkelwagen wijzigen'
 
-  const primaryItem =
-    cart.items.find((item) => !isGiftCardPurchaseLineItem(item)) ?? cart.items[0]
-  const itemExtras = extras.find((e) => e.line_item_id === primaryItem.id) ?? null
-  const productTitle = itemExtras?.product_title ?? primaryItem.title
-
-  const qty = primaryItem.quantity
-  const ticketLine = isGiftCardPurchaseLineItem(primaryItem)
-    ? qty === 1
-      ? '1 cadeaubon'
-      : `${qty} cadeaubonnen`
-    : `${qty} ${qty === 1 ? 'ticket' : 'tickets'}`
-
-  const primaryBlocks = buildCartLineItemDetailBlocks(primaryItem, itemExtras, {
-    onlineCityFallback: true,
-    quantityLabel: ticketLine,
-  })
-
-  const primaryLineTotal = primaryItem.total ?? primaryItem.unit_price * primaryItem.quantity
-
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-4">
@@ -105,17 +82,7 @@ export function CheckoutPaymentOrderOverview({ labels }: CheckoutPaymentOrderOve
         </Link>
       </div>
       <div className="border border-va-lightgray-300 bg-va-lightgray-100 px-4 py-3 font-sans text-sm space-y-4">
-        <div className="space-y-1">
-          <div className="flex justify-between items-start gap-3">
-            <p className="font-sans text-sm font-bold text-va-black leading-snug min-w-0 flex-1">{productTitle}</p>
-            <p className="font-sans text-sm font-semibold text-va-black whitespace-nowrap shrink-0">
-              {formatPriceEur(primaryLineTotal)}
-            </p>
-          </div>
-          <CartLineItemDetails blocks={primaryBlocks} variant="payment" />
-        </div>
-
-        <OrderSummaryLineItems cart={cart} extras={extras} excludeLineItemIds={[primaryItem.id]} />
+        <OrderSummaryLineItems cart={cart} extras={extras} />
         <OrderSummaryTotalsBlock cart={cart} labels={labels} />
       </div>
     </section>

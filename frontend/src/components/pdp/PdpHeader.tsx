@@ -24,7 +24,7 @@ export function PdpHeader({ title, onlineBadge, recordType, categories, shareLab
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-start gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {categories?.map((cat) => {
           const badge = (
             <Badge variant="category" size="sm">
@@ -37,7 +37,7 @@ export function PdpHeader({ title, onlineBadge, recordType, categories, shareLab
               <Link
                 key={cat.slug}
                 href={plpCategoryHref(cat.slug)}
-                className="hover:opacity-80 transition-opacity"
+                className="inline-flex hover:opacity-80 transition-opacity"
               >
                 {badge}
               </Link>
@@ -45,7 +45,7 @@ export function PdpHeader({ title, onlineBadge, recordType, categories, shareLab
           }
 
           return (
-            <span key={cat.label}>
+            <span key={cat.label} className="inline-flex">
               {badge}
             </span>
           )

@@ -153,6 +153,8 @@ Image Block
 
 **Frontend**: Blocks stored **inline** on a page (no `_ref` on the block) still need GROQ to expand `items[].category->` (including `slug`); see `INLINE_PAGE_BLOCK_LAYOUT` / inline branches in `frontend/src/lib/cms/page-query.ts`. Bibliotheek tiles link to `/ons-aanbod/{slug}` by default, or to **`linkUrl`** when set on the mirrored category.
 
+**Homepage seed**: To wire the eight “Populaire vakgebieden” tiles (library refs + editorial images from [vrijeacademie.nl](https://www.vrijeacademie.nl/)), run `npm run seed:homepage-categories --prefix sanity` (requires `SANITY_API_WRITE_TOKEN`). Images are stored on mirrored `category` documents (`image` override), not on block items.
+
 ---
 
 ## USP
@@ -198,6 +200,8 @@ Image Block
 
 **Nested column types**:
 - Text, Media, Highlight card, Product cards, CTA card, Person card (not arbitrary nested blocks)
+
+**Product cards column**: Pick up to three mirrored **Product** references; optional **Card CTA label** (same text on each card, e.g. “VAthuis – ON DEMAND”). Frontend uses `thumbnailUrl`, `handle`, and `plpProductPath`. Seed homepage trio: `npm run seed:homepage-product-columns --prefix sanity`.
 
 **Example Usage**:
 ```

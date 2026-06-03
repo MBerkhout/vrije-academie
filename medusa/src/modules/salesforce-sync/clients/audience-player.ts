@@ -57,7 +57,7 @@ function metaValue(metas: AudienceArticleNode["metas"], key: string): string | n
   return value || null
 }
 
-function formatDurationLabel(totalSeconds: number | null | undefined): string | null {
+export function formatDurationLabel(totalSeconds: number | null | undefined): string | null {
   if (totalSeconds == null || !Number.isFinite(totalSeconds) || totalSeconds <= 0) return null
   const total = Math.round(totalSeconds)
   const hours = Math.floor(total / 3600)

@@ -279,7 +279,7 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
             {settings.payment?.personalDetailsHeading ?? 'Jouw gegevens'}
           </h2>
           <Link
-            href="/checkout/inloggen"
+            href="/checkout/inloggen?bewerken=1"
             className="flex items-center gap-1.5 font-sans text-sm text-va-darkgray hover:text-va-black transition-colors"
           >
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden>

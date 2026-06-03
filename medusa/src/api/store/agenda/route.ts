@@ -4,7 +4,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import productDocentenLink from "../../../links/product-docenten"
 import productEventGroupLink from "../../../links/product-event-group"
 import CatalogModuleService from "../../../modules/catalog/service"
-import { buildCityLabelMap, cityRefFromEventItem } from "../../../lib/city-refs"
+import { buildCityLabelMap, cityRefFromEventItem, sortCityFacetsByCount } from "../../../lib/city-refs"
 import { listProductCatalogCategoryLinks } from "../../../lib/product-catalog-category-links"
 import { filterStoreListingProductIds } from "../../../lib/store-listing-eligibility"
 import { medusaMajorToCents } from "../../../lib/medusa-price-to-cents"
@@ -400,7 +400,7 @@ function buildFacets(items: any[]): Record<string, any> {
     record_type: Object.entries(recordType).map(([slug, count]) => ({ slug, count })),
     categories: Object.values(categoriesMap),
     docenten: Object.values(docentenMap),
-    cities: Object.values(cities),
+    cities: sortCityFacetsByCount(Object.values(cities)),
     delivery_type: Object.entries(delivery).map(([slug, count]) => ({ slug, count })),
     day_part: Object.entries(daypart).map(([slug, count]) => ({ slug, count })),
   }

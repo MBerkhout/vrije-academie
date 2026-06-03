@@ -41,7 +41,10 @@ import { linkNativeProductCategoriesByLabels } from "./utils/resolve-native-cate
 import { resolveProductTypeId } from "./utils/resolve-product-type-id"
 import { shouldImportProductgroup } from "./utils/future-import-guard"
 import { syncProductById } from "../sanity-sync/sync-product-by-id"
-import { linkDocentFromSalesforce } from "./utils/link-docent-from-salesforce"
+import {
+  linkDocentFromSalesforce,
+  resolveTeacherFromProductgroup,
+} from "./utils/link-docent-from-salesforce"
 import { buildVathuisMetadata } from "./utils/vathuis-metadata"
 
 const INCOMING_LOCK_MS = 10_000
@@ -173,6 +176,7 @@ async function upsertEventItemForVariant(
   container: MedusaContainer,
   variantId: string,
   child: SfCourseProductShape,
+  group: SfProductgroupShape,
   groupRecordType?: string | null
 ): Promise<void> {
   const events = container.resolve("events") as InstanceType<typeof EventsModuleService>
@@ -192,6 +196,12 @@ async function upsertEventItemForVariant(
     ? await applyCityToEventItemPatch(catalog, child.Product_City__c)
     : { city: null, city_slug: null }
 
+  const teacher = resolveTeacherFromProductgroup(group, child)
+  const instructorPatch = {
+    instructor_name: teacher.name,
+    instructor_salesforce_id: teacher.salesforceId,
+  }
+
   const { data: existing } = await query.graph({
     entity: variantEventItemLink.entryPoint,
     fields: ["*", "event_item.*"],
@@ -209,6 +219,7 @@ async function upsertEventItemForVariant(
       city: cityFields.city,
       city_slug: cityFields.city_slug,
       is_free_trial: !!child.Free_Product__c,
+      ...instructorPatch,
     })
   } else {
     const eventItem = await events.createEventItems({
@@ -219,6 +230,7 @@ async function upsertEventItemForVariant(
       city: cityFields.city,
       city_slug: cityFields.city_slug,
       is_free_trial: !!child.Free_Product__c,
+      ...instructorPatch,
     })
     if (!eventItem?.id) throw new Error("Failed to create event item")
     await link.create({
@@ -259,6 +271,7 @@ async function syncChildVariant(
   sync: InstanceType<typeof SalesforceSyncModuleService>,
   productId: string,
   child: SfCourseProductShape,
+  group: SfProductgroupShape,
   optionName: string,
   groupRecordType?: string | null
 ): Promise<string> {
@@ -285,7 +298,7 @@ async function syncChildVariant(
         ],
       },
     })
-    await upsertEventItemForVariant(container, existing.medusa_id, child, groupRecordType)
+    await upsertEventItemForVariant(container, existing.medusa_id, child, group, groupRecordType)
     return existing.medusa_id
   }
 
@@ -308,7 +321,7 @@ async function syncChildVariant(
   })
 
   const createdVariantId = result?.[0]?.id ?? variantId
-  await upsertEventItemForVariant(container, createdVariantId, child, groupRecordType)
+  await upsertEventItemForVariant(container, createdVariantId, child, group, groupRecordType)
   await upsertVariantSyncState(sync, createdVariantId, sfId)
   return createdVariantId
 }
@@ -475,7 +488,13 @@ export async function importProductgroupFromSalesforce(
       if (!variant?.id) continue
 
       await upsertVariantSyncState(sync, variant.id, child.Id)
-      await upsertEventItemForVariant(container, variant.id, child, group.Productgroup_Record_Type_Developer_Name__c)
+      await upsertEventItemForVariant(
+        container,
+        variant.id,
+        child,
+        group,
+        group.Productgroup_Record_Type_Developer_Name__c
+      )
       variantIds.push(variant.id)
     }
   } else {
@@ -486,6 +505,7 @@ export async function importProductgroupFromSalesforce(
         sync,
         productId,
         child,
+        group,
         optionName,
         group.Productgroup_Record_Type_Developer_Name__c
       )

@@ -130,6 +130,9 @@ export interface EventVariant {
     city?: string | null
     registration_deadline_at?: string | null
     is_free_trial: boolean
+    /** Per-variant instructor from Salesforce child `Account_Teacher__c`. */
+    instructor_name?: string | null
+    instructor_salesforce_id?: string | null
   } | null
 }
 

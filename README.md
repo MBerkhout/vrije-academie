@@ -178,6 +178,10 @@ Each project requires its own environment variables. See each project's README f
 - All projects use TypeScript for type safety
 - Cursor rules are configured for each project
 
+## Deployment
+
+Staging deploys run via GitHub Actions on push to the `staging` branch (Sanity hosting + server deploy for frontend and medusa). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for setup, secrets, and rollback.
+
 ## Future Enhancements
 
 See each project's `OPEN_POINTS.md` for future considerations:

@@ -1,12 +1,18 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
 import { Button } from '@/components/ui'
 import { PortableText } from '@/components/cms/PortableText'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { getTitleTag, getTitleSizeClass, cleanBlockValue, type ColumnsBlock as ColumnsBlockType, type ColumnItem } from '@/lib/cms'
+import {
+  classNameForProductBadge,
+  DEFAULT_PRODUCT_BADGE_CLASS,
+} from '@/lib/event-status-presentation'
+import { plpProductPath } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 
 const GAP_CLASS = { sm: 'gap-4', md: 'gap-8', lg: 'gap-16' } as const
@@ -155,13 +161,22 @@ function ColumnPerson({ col }: { col: ColumnItem }) {
   )
 }
 
+function productCardCtaLabel(col: ColumnItem, product: { badge?: string | null }): string | null {
+  const custom = col.productCardsItemCtaLabel?.trim()
+  if (custom) return custom
+  const badge = product.badge?.trim()
+  if (badge) return badge
+  return null
+}
+
 function ColumnProductCards({ col }: { col: ColumnItem }) {
   const columnType = cleanBlockValue(col.columnType)
   if (columnType !== 'productCards') return null
+  const TitleTag = getTitleTag('h2')
   const items = col.productCardsManualItems ?? []
   if (items.length === 0) {
     return (
-      <div className="text-va-gray text-center py-8 border border-va-lightgray rounded">
+      <div className="rounded border border-va-lightgray py-8 text-center text-va-gray">
         Geen items gevonden.
       </div>
     )
@@ -169,34 +184,86 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
   return (
     <div className="space-y-4">
       {col.productCardsTitle && (
-        <h3 className={cn(getTitleSizeClass('h3'), 'font-semibold text-va-black')}>{col.productCardsTitle}</h3>
+        <TitleTag className={cn(getTitleSizeClass('h2'), 'font-bold text-va-black')}>
+          {col.productCardsTitle}
+        </TitleTag>
       )}
-      <div className="grid grid-cols-1 gap-4">
+      <ul className="grid list-none grid-cols-1 gap-3 p-0 m-0">
         {items.map((item) => {
           const product = typeof item === 'object' && item !== null ? item : null
           if (!product) return null
-          const title = (product as { title?: string }).title
-          const image = (product as { image?: { asset?: unknown } }).image
-          const linkUrl = (product as { linkUrl?: string }).linkUrl
+          const title = product.title?.trim()
+          const handle = product.handle?.trim()
+          const href = handle ? plpProductPath(handle) : '#'
+          const thumbnailUrl = product.thumbnailUrl?.trim()
+          const ctaLabel = productCardCtaLabel(col, product)
+          const ctaClass = ctaLabel
+            ? (() => {
+                const derived = classNameForProductBadge(ctaLabel)
+                return derived === DEFAULT_PRODUCT_BADGE_CLASS
+                  ? 'bg-white text-va-black'
+                  : derived
+              })()
+            : null
           return (
-            <Link
-              key={(product as { _id?: string })._id}
-              href={linkUrl ?? '#'}
-              className="flex gap-3 border border-va-lightgray rounded p-3 hover:border-va-black"
-            >
-              {image && (
-                <div className="w-16 h-16 flex-shrink-0 rounded overflow-hidden">
-                  <SanityImage source={image} width={64} height={64} aspectRatio="aspect-square" />
+            <li key={product._id ?? title}>
+              <Link
+                href={href}
+                className={cn(
+                  'group flex overflow-hidden rounded-sm border border-va-lightgray bg-white shadow-sm',
+                  'transition-[box-shadow,border-color] hover:border-va-black/25 hover:shadow-md',
+                  'outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2',
+                )}
+              >
+                <div className="relative h-[88px] w-[88px] shrink-0 bg-va-lightgray">
+                  {thumbnailUrl ? (
+                    <Image
+                      src={thumbnailUrl}
+                      alt=""
+                      fill
+                      className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                      sizes="88px"
+                    />
+                  ) : null}
                 </div>
-              )}
-              <span className="font-medium">{title}</span>
-            </Link>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  {title ? (
+                    <p className="flex flex-1 items-start px-3 py-2.5 font-sans text-sm font-semibold leading-snug text-va-black group-hover:text-va-orange">
+                      {title}
+                    </p>
+                  ) : null}
+                  {ctaLabel ? (
+                    <span
+                      className={cn(
+                        'flex items-center justify-between gap-1 border-t border-va-lightgray px-3 py-1.5',
+                        'font-sans text-[10px] font-bold uppercase tracking-wide',
+                        ctaClass ?? 'bg-white text-va-black',
+                      )}
+                    >
+                      <span>{ctaLabel}</span>
+                      <span aria-hidden className="text-sm leading-none">
+                        ›
+                      </span>
+                    </span>
+                  ) : null}
+                </div>
+              </Link>
+            </li>
           )
         })}
-      </div>
+      </ul>
       {col.productCardsFooterCtaEnabled && col.productCardsFooterCtaLabel && col.productCardsFooterCtaUrl && (
-        <Link href={col.productCardsFooterCtaUrl} className="text-va-orange underline text-sm">
+        <Link
+          href={col.productCardsFooterCtaUrl}
+          className={cn(
+            'inline-block font-sans text-sm font-bold uppercase tracking-wide text-va-black',
+            'underline decoration-va-black decoration-1 underline-offset-[5px]',
+            'hover:text-va-orange hover:decoration-va-yellow',
+            'outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2',
+          )}
+        >
           {col.productCardsFooterCtaLabel}
+          {' ›'}
         </Link>
       )}
     </div>

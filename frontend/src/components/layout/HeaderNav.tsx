@@ -380,8 +380,13 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
                     : 'Winkelwagen'
                 }
               >
-                <IconCart className="w-6 h-6" aria-hidden />
-                <CartLinkLabel label="Winkelwagen" count={cartItemCount} />
+                <span className="inline-flex items-center gap-1">
+                  <IconCart className="w-6 h-6" aria-hidden />
+                  {cartItemCount !== null && cartItemCount > 0 ? (
+                    <CartCountBadge count={cartItemCount} />
+                  ) : null}
+                </span>
+                <span>Winkelwagen</span>
               </Link>
               <button
                 type="button"

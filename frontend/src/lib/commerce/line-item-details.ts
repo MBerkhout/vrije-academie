@@ -1,6 +1,6 @@
 import type { CartItem } from '@/lib/commerce/types'
 import type { GiftCardPurchaseLineMeta } from '@/lib/commerce/gift-card'
-import { getGiftCardPurchaseMetaFromLineItem } from '@/lib/commerce/gift-card'
+import { getGiftCardPurchaseMetaFromLineItem, isGiftCardPurchaseLineItem } from '@/lib/commerce/gift-card'
 import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
 import {
   formatDateShortOrNull,
@@ -14,6 +14,7 @@ import {
  */
 export type LineItemDetailBlock =
   | { kind: 'session'; lines: string[] }
+  | { kind: 'vathuis'; lines: string[] }
   | { kind: 'instructors'; names: string[] }
   | { kind: 'quantity_label'; label: string }
   | { kind: 'gift_recipient'; meta: GiftCardPurchaseLineMeta }
@@ -30,6 +31,15 @@ export type BuildLineItemDetailsOptions = {
   groupBookingNotice?: string
   /** Show notice when quantity is strictly greater than this (default 12). */
   groupBookingQuantityThreshold?: number
+}
+
+/** Checkout summaries: “1 ticket”, “2 tickets”, “1 cadeaubon”, etc. */
+export function buildLineItemQuantityLabel(item: Pick<CartItem, 'quantity'> & Parameters<typeof isGiftCardPurchaseLineItem>[0]): string {
+  const qty = item.quantity
+  if (isGiftCardPurchaseLineItem(item)) {
+    return qty === 1 ? '1 cadeaubon' : `${qty} cadeaubonnen`
+  }
+  return `${qty} ${qty === 1 ? 'ticket' : 'tickets'}`
 }
 
 function sessionLinesFromExtras(
@@ -56,6 +66,12 @@ function sessionLinesFromExtras(
   return lines
 }
 
+function vathuisLinesFromExtras(extras: CartItemExtras | null): string[] {
+  const v = extras?.vathuis
+  if (!v) return []
+  return [v.episode_count_label, v.play_time].filter((s): s is string => Boolean(s?.trim()))
+}
+
 /**
  * Single source of truth for which detail blocks appear for a cart line (cart, checkout overview, order summary).
  */
@@ -70,6 +86,11 @@ export function buildCartLineItemDetailBlocks(
   const sessionLines = sessionLinesFromExtras(extras, ops)
   if (sessionLines.length > 0) {
     blocks.push({ kind: 'session', lines: sessionLines })
+  }
+
+  const vathuisLines = vathuisLinesFromExtras(extras)
+  if (vathuisLines.length > 0) {
+    blocks.push({ kind: 'vathuis', lines: vathuisLines })
   }
 
   const instructors = extras?.instructor_names ?? []

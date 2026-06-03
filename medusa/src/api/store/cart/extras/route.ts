@@ -2,13 +2,14 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import productDocentenLink from "../../../../links/product-docenten"
+import { vathuisCartDisplayFromProductMetadata } from "../../../../modules/salesforce-sync/utils/vathuis-metadata"
 
 /**
  * GET /store/cart/extras?cart_id=…
  *
  * Returns per-line-item enriched session data (product handle, thumbnail,
- * event_item fields, instructor names) so the cart page can render rich
- * session details without stuffing metadata into the Medusa cart response.
+ * event_item fields, instructor names, VAthuis episode count + play time) so the
+ * cart page can render rich line details without stuffing metadata into the Medusa cart response.
  */
 export async function GET(
   req: MedusaRequest,
@@ -31,6 +32,7 @@ export async function GET(
       "items.*",
       "items.variant.*",
       "items.variant.product.*",
+      "items.variant.product.metadata",
       "items.variant.event_item.*",
     ],
     filters: { id: cartId },
@@ -75,6 +77,10 @@ export async function GET(
     const product = variant.product ?? {}
     const eventItem = variant.event_item ?? null
 
+    const vathuis = vathuisCartDisplayFromProductMetadata(
+      (product.metadata as Record<string, unknown> | null | undefined) ?? null
+    )
+
     return {
       line_item_id: item.id as string,
       product_id: product.id ?? null,
@@ -89,9 +95,10 @@ export async function GET(
             city: eventItem.city ?? null,
           }
         : null,
-      instructor_names: (docentsByProductId[product.id] ?? []).map(
-        (d: any) => d.name
-      ),
+      vathuis,
+      instructor_names: eventItem?.instructor_name?.trim()
+        ? [eventItem.instructor_name.trim()]
+        : (docentsByProductId[product.id] ?? []).map((d: { name: string }) => d.name),
     }
   })
 

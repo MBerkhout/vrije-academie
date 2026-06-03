@@ -1,0 +1,225 @@
+# Deployment (Staging)
+
+Push to the `staging` branch triggers a GitHub Actions workflow that deploys all three apps:
+
+| App | Where it runs | How |
+|-----|---------------|-----|
+| **Sanity Studio** | GitHub Actions runner | `sanity deploy` + `schema:deploy` to Sanity hosting |
+| **Frontend** | Your server (`frontend` user) | SSH → `frontend/scripts/deploy.sh` |
+| **Medusa** | Your server (`medusa` user) | SSH → `medusa/scripts/deploy.sh` |
+
+Heavy work (install, build, migrate, restart) runs on the server for Frontend and Medusa. GitHub Actions only orchestrates.
+
+Workflow file: [`.github/workflows/deploy-staging.yml`](../.github/workflows/deploy-staging.yml)
+
+## Architecture
+
+```
+push to staging
+    ├── deploy-sanity   → npm ci, sanity deploy, schema deploy (Actions runner)
+    ├── deploy-frontend → SSH frontend@server → ~/app/frontend/scripts/deploy.sh
+    └── deploy-medusa   → SSH medusa@server   → ~/app/medusa/scripts/deploy.sh
+```
+
+The three jobs run **in parallel**.
+
+## Zero-downtime approach
+
+1. **Build before restart** — deploy scripts run `npm ci` and `npm run build` while the old PM2 process keeps serving traffic.
+2. **PM2 reload** — after a successful build (and `npm run migrate` for Medusa), `pm2 reload` replaces the process gracefully instead of a hard restart.
+3. **Failed deploys** — if build or migrate fails, the script exits before reload; the running process is unchanged.
+
+## One-time server setup
+
+### 1. Create OS users
+
+```bash
+sudo adduser frontend
+sudo adduser medusa
+```
+
+### 2. Install runtime (both users need Node + PM2)
+
+On the server (as root or via sudo):
+
+```bash
+# Node.js 20 (example via NodeSource)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs git
+
+# PM2 globally
+sudo npm install -g pm2
+```
+
+Ensure `node`, `npm`, `git`, and `pm2` are on the PATH for both `frontend` and `medusa`.
+
+### 3. Clone the repository
+
+Each user gets a full monorepo clone at `~/app`:
+
+```bash
+# As frontend user
+sudo -u frontend -i
+git clone git@github.com:MBerkhout/vrije-academie.git ~/app
+cd ~/app && git checkout staging
+
+# As medusa user
+sudo -u medusa -i
+git clone git@github.com:MBerkhout/vrije-academie.git ~/app
+cd ~/app && git checkout staging
+```
+
+Use SSH deploy keys or HTTPS with credentials the server can use for `git pull`.
+
+### 4. Environment files
+
+Create `.env` on the server (never commit these):
+
+| Path | Template |
+|------|----------|
+| `~/app/frontend/.env` | [`frontend/.env.example`](../frontend/.env.example) |
+| `~/app/medusa/.env` | [`medusa/docs/README.md`](../medusa/docs/README.md) + [`medusa/.env.template`](../medusa/.env.template) |
+
+Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS origins, database, Redis, etc.
+
+Sanity Studio env for CI is provided via GitHub Secrets (see below), not on the server.
+
+### 5. Medusa dependencies
+
+Medusa requires PostgreSQL and (recommended) Redis on the server or reachable from it:
+
+- `DATABASE_URL` — PostgreSQL connection string
+- `REDIS_URL` — Redis connection string (enables workflow engine)
+
+Run migrations on first deploy or manually:
+
+```bash
+cd ~/app/medusa && npm ci && npm run migrate
+```
+
+### 6. SSH deploy key for GitHub Actions
+
+Generate a key pair used only for deploys:
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f deploy_key -N ""
+```
+
+Add the **public** key to both users:
+
+```bash
+# frontend
+sudo -u frontend mkdir -p /home/frontend/.ssh
+sudo -u frontend bash -c 'cat deploy_key.pub >> /home/frontend/.ssh/authorized_keys'
+sudo chmod 700 /home/frontend/.ssh
+sudo chmod 600 /home/frontend/.ssh/authorized_keys
+
+# medusa
+sudo -u medusa mkdir -p /home/medusa/.ssh
+sudo -u medusa bash -c 'cat deploy_key.pub >> /home/medusa/.ssh/authorized_keys'
+sudo chmod 700 /home/medusa/.ssh
+sudo chmod 600 /home/medusa/.ssh/authorized_keys
+```
+
+Store the **private** key as the `SSH_DEPLOY_KEY` GitHub secret.
+
+### 7. First-time PM2 start
+
+```bash
+# As frontend user
+cd ~/app/frontend
+npm ci && npm run build
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 startup   # follow the printed command (may need sudo)
+
+# As medusa user
+cd ~/app/medusa
+npm ci && npm run build && npm run migrate
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 startup
+```
+
+Default ports: Frontend **3000**, Medusa **9000** (configure reverse proxy/nginx in front).
+
+## GitHub Secrets
+
+In the repo: **Settings → Secrets and variables → Actions**
+
+| Secret | Description |
+|--------|-------------|
+| `SSH_DEPLOY_KEY` | Private SSH key for `frontend` and `medusa` users |
+| `SERVER_HOST` | Server hostname or IP |
+| `SANITY_AUTH_TOKEN` | Token from [sanity.io/manage](https://sanity.io/manage) (Deploy / API) |
+| `SANITY_STUDIO_PROJECT_ID` | Sanity project ID |
+| `SANITY_STUDIO_DATASET` | Dataset name (e.g. `production` or `staging`) |
+
+## Triggering a deploy
+
+Push or merge to `staging`:
+
+```bash
+git checkout staging
+git merge main   # or commit directly
+git push origin staging
+```
+
+Monitor progress under **Actions** in GitHub.
+
+## Manual deploy (debugging)
+
+SSH into the server and run the same scripts GitHub Actions uses:
+
+```bash
+# Frontend
+sudo -u frontend bash ~/app/frontend/scripts/deploy.sh
+
+# Medusa
+sudo -u medusa bash ~/app/medusa/scripts/deploy.sh
+```
+
+Optional overrides:
+
+```bash
+DEPLOY_BRANCH=staging REPO_DIR=~/app PM2_APP_NAME=frontend bash ~/app/frontend/scripts/deploy.sh
+```
+
+## Logs and status
+
+```bash
+pm2 status
+pm2 logs frontend
+pm2 logs medusa
+```
+
+## Rollback
+
+1. SSH to the server as the relevant user.
+2. Reset the repo to a previous commit:
+
+   ```bash
+   cd ~/app
+   git log --oneline -5
+   git reset --hard <commit-sha>
+   ```
+
+3. Re-run the deploy script (rebuilds and reloads):
+
+   ```bash
+   bash ~/app/frontend/scripts/deploy.sh
+   # or
+   bash ~/app/medusa/scripts/deploy.sh
+   ```
+
+For Sanity, redeploy Studio from a known-good commit via the workflow or locally with `SANITY_AUTH_TOKEN` set.
+
+## Files reference
+
+| File | Purpose |
+|------|---------|
+| `.github/workflows/deploy-staging.yml` | GitHub Actions workflow |
+| `frontend/scripts/deploy.sh` | Server-side frontend deploy |
+| `medusa/scripts/deploy.sh` | Server-side medusa deploy |
+| `frontend/ecosystem.config.cjs` | PM2 config (Next.js, port 3000) |
+| `medusa/ecosystem.config.cjs` | PM2 config (Medusa, port 9000) |

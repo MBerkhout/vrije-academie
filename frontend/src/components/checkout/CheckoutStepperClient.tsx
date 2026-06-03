@@ -10,13 +10,6 @@ function pathToStep(pathname: string): 1 | 2 | 3 | 4 {
   return 1
 }
 
-const STEP_HREFS = {
-  summary: '/winkelwagen',
-  login: '/checkout/inloggen',
-  payment: '/checkout/betaling',
-  confirmation: '/checkout/bevestiging',
-}
-
 interface CheckoutStepperClientProps {
   labels?: StepLabels
 }
@@ -24,5 +17,13 @@ interface CheckoutStepperClientProps {
 export function CheckoutStepperClient({ labels }: CheckoutStepperClientProps) {
   const pathname = usePathname() ?? ''
   const step = pathToStep(pathname)
-  return <CheckoutStepper step={step} labels={labels} hrefs={STEP_HREFS} />
+  const loginHref =
+    step >= 3 ? '/checkout/inloggen?bewerken=1' : '/checkout/inloggen'
+  const hrefs = {
+    summary: '/winkelwagen',
+    login: loginHref,
+    payment: '/checkout/betaling',
+    confirmation: '/checkout/bevestiging',
+  }
+  return <CheckoutStepper step={step} labels={labels} hrefs={hrefs} />
 }

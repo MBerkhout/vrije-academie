@@ -53,7 +53,9 @@ export function CheckoutStepper({ step, labels, hrefs }: CheckoutStepperProps) {
               />
             ))}
           </div>
-          <span className="font-semibold text-va-black">{current?.label}</span>
+          {step !== 4 && current?.label ? (
+            <span className="font-semibold text-va-black">{current.label}</span>
+          ) : null}
           <span className="text-va-gray text-xs">({step} / 4)</span>
         </div>
         {prevStep?.href && (

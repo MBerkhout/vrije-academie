@@ -308,7 +308,15 @@ export interface ColumnItem {
   highlightTeaser?: PortableTextBlock[]
   highlightLabel?: string
   productCardsTitle?: string
-  productCardsManualItems?: { _ref: string }[]
+  productCardsItemCtaLabel?: string
+  productCardsManualItems?: {
+    _id?: string
+    title?: string
+    handle?: string
+    thumbnailUrl?: string | null
+    badge?: string | null
+    recordType?: string | null
+  }[]
   productCardsFooterCtaEnabled?: boolean
   productCardsFooterCtaLabel?: string
   productCardsFooterCtaUrl?: string
@@ -433,6 +441,8 @@ export interface GeneralSettings {
     trustUsps?: string[]
     labels?: {
       primaryCta?: string
+      /** CTA when the product is bundle-only (default: Koop alle lessen) */
+      bundleCta?: string
       wishlist?: string
       /** Label when the product is already on the wishlist (e.g. “Verwijderen uit bewaard”) */
       wishlistSaved?: string
@@ -447,6 +457,13 @@ export interface GeneralSettings {
       relatedHeading?: string
       noSessionsMessage?: string
       soldOutLabel?: string
+      /** VAthuis episodes table */
+      episodesHeading?: string
+      chapterLabel?: string
+      episodeColumn?: string
+      durationColumn?: string
+      descriptionColumn?: string
+      watchEpisode?: string
     }
   }
   cart?: {

@@ -242,6 +242,13 @@ export const generalSettings = defineType({
           description: "User-facing labels. Change copy here without touching code.",
           fields: [
             defineField({ name: "primaryCta", title: "Primary CTA", type: "string", initialValue: "Direct inschrijven" }),
+            defineField({
+              name: "bundleCta",
+              title: "Bundle CTA",
+              type: "string",
+              initialValue: "Koop alle lessen",
+              description: "Primary button label when the course is sold as a bundle only.",
+            }),
             defineField({ name: "wishlist", title: "Wishlist", type: "string", initialValue: "Bewaren" }),
             defineField({
               name: "wishlistSaved",
@@ -271,6 +278,12 @@ export const generalSettings = defineType({
             defineField({ name: "relatedHeading", title: "Related products heading", type: "string", initialValue: "Gerelateerd" }),
             defineField({ name: "noSessionsMessage", title: "No sessions message", type: "string", initialValue: "Momenteel geen sessies beschikbaar." }),
             defineField({ name: "soldOutLabel", title: "Sold out label", type: "string", initialValue: "Volgeboekt" }),
+            defineField({ name: "episodesHeading", title: "Episodes heading", type: "string", initialValue: "Lessen" }),
+            defineField({ name: "chapterLabel", title: "Chapter label", type: "string", initialValue: "Hoofdstuk" }),
+            defineField({ name: "episodeColumn", title: "Episode column", type: "string", initialValue: "Aflevering" }),
+            defineField({ name: "durationColumn", title: "Duration column", type: "string", initialValue: "Duur" }),
+            defineField({ name: "descriptionColumn", title: "Description column", type: "string", initialValue: "Beschrijving" }),
+            defineField({ name: "watchEpisode", title: "Watch episode CTA", type: "string", initialValue: "Bekijk aflevering" }),
           ],
         }),
       ],
