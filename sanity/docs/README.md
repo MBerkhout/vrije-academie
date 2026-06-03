@@ -74,6 +74,8 @@ Studio will be available at `http://localhost:3333/studio`
 npm run deploy
 ```
 
+CI uses `sanity deploy --yes`; set `studioHost` via `SANITY_STUDIO_HOSTNAME` or `SANITY_STUDIO_PROJECT_ID` in `sanity.cli.ts` (defaults to project ID → `https://<id>.sanity.studio`).
+
 ### Deploy Schema
 
 ```bash

@@ -7,7 +7,7 @@
     "dev": "medusa develop",
     "build": "medusa build",
     "start": "medusa start",
-    "migrate": "medusa migrations run",
+    "migrate": "medusa db:migrate",
     "seed": "medusa seed -f ./data/seed.json",
     "seed:region": "medusa exec ./src/scripts/seed-region.ts",
     "seed:gift-card": "medusa exec ./src/scripts/seed-gift-card.ts",

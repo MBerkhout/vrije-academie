@@ -19,6 +19,12 @@ git pull --ff-only origin "$BRANCH"
 cd "$APP_DIR"
 npm ci
 npm run build
+
+# Production start serves admin from public/admin; build writes dist/public/admin
+mkdir -p public
+rm -rf public/admin
+ln -sfn ../dist/public/admin public/admin
+
 npm run migrate
 
 if pm2 describe "$PM2_APP_NAME" >/dev/null 2>&1; then

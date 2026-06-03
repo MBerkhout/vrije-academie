@@ -152,8 +152,10 @@ In the repo: **Settings → Secrets and variables → Actions**
 | `SSH_DEPLOY_KEY` | Private SSH key for `frontend` and `medusa` users |
 | `SERVER_HOST` | Server hostname or IP |
 | `SANITY_AUTH_TOKEN` | Token from [sanity.io/manage](https://sanity.io/manage) (Deploy / API) |
-| `SANITY_STUDIO_PROJECT_ID` | Sanity project ID |
+| `SANITY_STUDIO_PROJECT_ID` | Sanity project ID (also used as the hosted studio subdomain on first deploy) |
 | `SANITY_STUDIO_DATASET` | Dataset name (e.g. `production` or `staging`) |
+
+You do **not** need a separate studio hostname secret. CI sets `studioHost` from `SANITY_STUDIO_PROJECT_ID`, so the first deploy registers `https://<project-id>.sanity.studio` automatically. Only add `SANITY_STUDIO_HOSTNAME` if you later want a custom subdomain instead of the project ID.
 
 ## Triggering a deploy
 
@@ -191,6 +193,27 @@ DEPLOY_BRANCH=staging REPO_DIR=~/app PM2_APP_NAME=frontend bash ~/app/frontend/s
 pm2 status
 pm2 logs frontend
 pm2 logs medusa
+```
+
+## Medusa troubleshooting
+
+**`ecosystem.config.cjs not found`** — The server checkout is behind `staging`. As the `medusa` user:
+
+```bash
+cd ~/app && git pull --ff-only origin staging
+```
+
+Then use `~/app/medusa/scripts/deploy.sh` (preferred) or `cd ~/app/medusa && pm2 start ecosystem.config.cjs`.
+
+**`Unknown arguments: migrations, run`** — Medusa v2 uses `db:migrate`, not `migrations run`. Ensure `package.json` has `"migrate": "medusa db:migrate"` (then `npm run migrate`).
+
+**`Could not find index.html in the admin build directory`** — After `npm run build`, link the admin output (deploy script does this automatically):
+
+```bash
+cd ~/app/medusa
+mkdir -p public && rm -rf public/admin
+ln -sfn ../dist/public/admin public/admin
+pm2 restart medusa
 ```
 
 ## Rollback
