@@ -195,6 +195,14 @@ pm2 logs frontend
 pm2 logs medusa
 ```
 
+**`local changes would be overwritten by merge` (e.g. `frontend/next-env.d.ts`)** — Next.js auto-regenerates `frontend/next-env.d.ts` on `dev`/`build`. That file is gitignored; if an older server checkout still tracks it, run once as the `frontend` user:
+
+```bash
+cd ~/app && git rm --cached frontend/next-env.d.ts && git pull --ff-only origin staging
+```
+
+Future deploys should not hit this after the ignore is on `staging`.
+
 ## Medusa troubleshooting
 
 **`ecosystem.config.cjs not found`** — The server checkout is behind `staging`. As the `medusa` user:
@@ -236,6 +244,14 @@ pm2 restart medusa
    ```
 
 For Sanity, redeploy Studio from a known-good commit via the workflow or locally with `SANITY_AUTH_TOKEN` set.
+
+## Sanity Studio troubleshooting
+
+**White screen on sanity.io dashboard** — If the hosted Studio URL shows a blank page and the console logs `Load failed, error in settings`, check that `sanity/sanity.cli.ts` does **not** contain a stale `deployment.appId`. Running `sanity deploy` with an invalid app ID fails with `Cannot find app with app ID …`. Remove the block, redeploy, then commit the new `appId` the CLI writes after the first successful deploy.
+
+**Verify hosting** — After deploy, `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio` should load (not `Studio not found`). Local dev: `cd sanity && npm run dev` → `http://localhost:3333/studio`.
+
+**Token permissions** — `SANITY_AUTH_TOKEN` must include the **Deploy Studio** grant (`sanity.project.deployStudio`). A write-only API token is not enough for `sanity deploy`.
 
 ## Performance & caching
 
