@@ -5,6 +5,7 @@ import productDocentenLink from "../../../links/product-docenten"
 import productEventGroupLink from "../../../links/product-event-group"
 import CatalogModuleService from "../../../modules/catalog/service"
 import { filterStoreListingProductIds } from "../../../lib/store-listing-eligibility"
+import { getBaseEventData } from "../../../lib/store-query-cache"
 import {
   buildCityLabelMap,
   uniqueCityRefsFromEventItems,
@@ -90,14 +91,11 @@ export async function GET(
     if (typeof v === "string" && v) propertyFilters[m[1]] = v
   }
 
-  // --- Step 1: Fetch all products + EventGroup links (for record_type filter & facets) ---
-  const [{ data: allProducts }, { data: eventGroupLinks }] = await Promise.all([
-    query.graph({ entity: "product", fields: ["id", "handle"] }),
-    query.graph({
-      entity: productEventGroupLink.entryPoint,
-      fields: ["product_id", "event_group_id", "event_group.*"],
-    }),
-  ])
+  // --- Step 1: Fetch all products + EventGroup links (cached 60 s) ---
+  const { allProducts, eventGroupLinks } = await getBaseEventData(
+    query,
+    productEventGroupLink.entryPoint
+  )
 
   // Build product_id → event_group map
   const eventGroupByProduct: Record<string, any> = {}
@@ -118,29 +116,6 @@ export async function GET(
     eventGroupByProduct
   )
 
-  // #region agent log
-  const _dbgSherGil = eligibleProductIds
-    .map((id) => ({ id, handle: productHandleById[id], eg: eventGroupByProduct[id] }))
-    .filter((r) => r.handle?.includes("sher-gil"))
-  fetch("http://127.0.0.1:7397/ingest/95d10c99-ac39-4827-a636-26ce82ef70b6", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "65697a" },
-    body: JSON.stringify({
-      sessionId: "65697a",
-      runId: "post-fix",
-      hypothesisId: "A",
-      location: "events/route.ts:eligibility",
-      message: "events product eligibility after shared filter",
-      data: {
-        sherGilEligible: _dbgSherGil.length > 0,
-        sherGilRows: _dbgSherGil,
-        eligibleCount: eligibleProductIds.length,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
-
   // Apply record_type filter (only products with a matching EventGroup record_type)
   if (recordTypes.length) {
     eligibleProductIds = eligibleProductIds.filter((id) => {
@@ -150,6 +125,7 @@ export async function GET(
   }
 
   if (!eligibleProductIds.length) {
+    res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60")
     res.json({ events: [], count: 0, facets: emptyFacets() })
     return
   }
@@ -354,6 +330,7 @@ export async function GET(
   // --- Step 9: Paginate ---
   list = list.slice(offset, offset + limit)
 
+  res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60")
   res.json({ events: list, count, facets })
 }
 

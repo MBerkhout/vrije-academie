@@ -8,6 +8,7 @@ import { buildCityLabelMap, cityRefFromEventItem, sortCityFacetsByCount } from "
 import { listProductCatalogCategoryLinks } from "../../../lib/product-catalog-category-links"
 import { filterStoreListingProductIds } from "../../../lib/store-listing-eligibility"
 import { medusaMajorToCents } from "../../../lib/medusa-price-to-cents"
+import { getBaseEventData } from "../../../lib/store-query-cache"
 
 /**
  * GET /store/agenda
@@ -58,14 +59,11 @@ export async function GET(
   const limit = Math.min(Math.max(1, Number(q.limit) || 24), 100)
   const offset = Math.max(0, Number(q.offset) || 0)
 
-  // --- Step 1: Determine eligible product ids (record_type, category, docent filters) ---
-  const [{ data: allProducts }, { data: eventGroupLinks }] = await Promise.all([
-    query.graph({ entity: "product", fields: ["id", "handle"] }),
-    query.graph({
-      entity: productEventGroupLink.entryPoint,
-      fields: ["product_id", "event_group_id", "event_group.*"],
-    }),
-  ])
+  // --- Step 1: Determine eligible product ids (cached 60 s) ---
+  const { allProducts, eventGroupLinks } = await getBaseEventData(
+    query,
+    productEventGroupLink.entryPoint
+  )
 
   const eventGroupByProduct: Record<string, any> = {}
   for (const r of eventGroupLinks ?? []) {
@@ -85,29 +83,6 @@ export async function GET(
     eventGroupByProduct
   )
 
-  // #region agent log
-  const _dbgSherGil = eligibleProductIds
-    .map((id) => ({ id, handle: productHandleById[id], eg: eventGroupByProduct[id] }))
-    .filter((r) => r.handle?.includes("sher-gil"))
-  fetch("http://127.0.0.1:7397/ingest/95d10c99-ac39-4827-a636-26ce82ef70b6", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "65697a" },
-    body: JSON.stringify({
-      sessionId: "65697a",
-      runId: "post-fix",
-      hypothesisId: "A",
-      location: "agenda/route.ts:eligibility",
-      message: "agenda product eligibility after shared filter",
-      data: {
-        sherGilEligible: _dbgSherGil.length > 0,
-        sherGilRows: _dbgSherGil,
-        eligibleCount: eligibleProductIds.length,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
-
   if (recordTypes.length) {
     eligibleProductIds = eligibleProductIds.filter((id) => {
       const eg = eventGroupByProduct[id]
@@ -116,6 +91,7 @@ export async function GET(
   }
 
   if (!eligibleProductIds.length) {
+    res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60")
     res.json({ items: [], count: 0, facets: emptyFacets() })
     return
   }
@@ -298,6 +274,7 @@ export async function GET(
   // --- Step 9: Paginate ---
   items = items.slice(offset, offset + limit)
 
+  res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60")
   res.json({ items, count, facets })
 }
 

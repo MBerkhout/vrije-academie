@@ -248,9 +248,18 @@ For Sanity, redeploy Studio from a known-good commit via the workflow or locally
 | Homepage | `sanityFetch` with CDN, no explicit revalidate |
 | Redirect rules | In-memory, 60 s TTL |
 
+### Medusa API caching
+
+`GET /store/events` and `GET /store/agenda` scan the full product catalog on every request. Two layers reduce this cost:
+
+1. **In-process cache** (`medusa/src/lib/store-query-cache.ts`) — caches `allProducts` + `eventGroupLinks` for 60 s. All concurrent requests reuse the same in-flight DB query (single-flight pattern), so only one DB round-trip fires per minute regardless of traffic.
+2. **HTTP `Cache-Control`** — responses carry `public, s-maxage=30, stale-while-revalidate=60`, so any CDN or reverse proxy in front of Medusa can serve repeated identical requests from cache.
+
 ### PM2 cluster mode
 
 `frontend/ecosystem.config.cjs` uses `instances: "max"` and `exec_mode: "cluster"` so all CPU cores serve requests in parallel. Memory limit is per-instance.
+
+Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set on the server (which switches the workflow engine to Redis so state is shared across all cluster instances).
 
 ### Sanity Live / Draft mode
 
