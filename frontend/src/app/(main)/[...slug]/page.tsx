@@ -3,7 +3,8 @@ import { cmsClient } from '@/lib/cms/server'
 import { CONTAINER_CLASS } from '@/lib/cms'
 import { BlockRenderer } from '@/components/blocks'
 
-export const dynamic = 'force-dynamic'
+// Revalidate cached HTML every 60 s; on-demand revalidation from Sanity webhooks can lower this further.
+export const revalidate = 60
 
 interface PageProps {
   params: Promise<{ slug: string[] }>

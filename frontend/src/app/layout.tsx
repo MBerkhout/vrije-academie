@@ -39,9 +39,9 @@ export default async function RootLayout({
     >
       <body>
         {children}
-        {!!process.env.SANITY_API_READ_TOKEN && <SanityLive />}
         {isDraftMode && (
           <>
+            <SanityLive />
             <VisualEditing />
             <DisableDraftMode />
           </>

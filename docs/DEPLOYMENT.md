@@ -237,6 +237,25 @@ pm2 restart medusa
 
 For Sanity, redeploy Studio from a known-good commit via the workflow or locally with `SANITY_AUTH_TOKEN` set.
 
+## Performance & caching
+
+### Caching strategy
+
+| Route type | Caching |
+|------------|---------|
+| CMS pages (`[...slug]`) | ISR, `revalidate = 60` — first hit renders fresh, subsequent hits serve from cache |
+| PLP / Agenda pages | `force-dynamic` — must be dynamic due to `searchParams` filters and live Medusa data |
+| Homepage | `sanityFetch` with CDN, no explicit revalidate |
+| Redirect rules | In-memory, 60 s TTL |
+
+### PM2 cluster mode
+
+`frontend/ecosystem.config.cjs` uses `instances: "max"` and `exec_mode: "cluster"` so all CPU cores serve requests in parallel. Memory limit is per-instance.
+
+### Sanity Live / Draft mode
+
+`SanityLive` and `VisualEditing` are only rendered when `draftMode()` is enabled. Regular visitors never open a Live Content API connection.
+
 ## Files reference
 
 | File | Purpose |
@@ -244,5 +263,5 @@ For Sanity, redeploy Studio from a known-good commit via the workflow or locally
 | `.github/workflows/deploy-staging.yml` | GitHub Actions workflow |
 | `frontend/scripts/deploy.sh` | Server-side frontend deploy |
 | `medusa/scripts/deploy.sh` | Server-side medusa deploy |
-| `frontend/ecosystem.config.cjs` | PM2 config (Next.js, port 3000) |
+| `frontend/ecosystem.config.cjs` | PM2 config (Next.js, port 3000, cluster mode) |
 | `medusa/ecosystem.config.cjs` | PM2 config (Medusa, port 9000) |
