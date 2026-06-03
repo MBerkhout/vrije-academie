@@ -30,10 +30,16 @@ function FilterGroupCollapsible({
   title,
   children,
   defaultOpen = true,
+  activeCount = 0,
+  showActiveCount = false,
+  largeTitle = false,
 }: {
   title: string
   children: React.ReactNode
   defaultOpen?: boolean
+  activeCount?: number
+  showActiveCount?: boolean
+  largeTitle?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
@@ -41,10 +47,20 @@ function FilterGroupCollapsible({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between text-sm font-semibold text-va-black"
+        className={cn(
+          'flex w-full items-center justify-between font-semibold text-va-black',
+          largeTitle ? 'text-base' : 'text-sm',
+        )}
         aria-expanded={open}
       >
-        {title}
+        <span className="flex items-center gap-2">
+          {title}
+          {showActiveCount && activeCount > 0 && (
+            <span className="bg-va-yellow text-va-black text-xs font-bold px-1.5 py-0.5 min-w-[1.25rem] text-center">
+              {activeCount}
+            </span>
+          )}
+        </span>
         <span className="text-va-gray">{open ? '−' : '+'}</span>
       </button>
       {open && <div className="mt-3 space-y-2">{children}</div>}
@@ -535,12 +551,18 @@ export function PlpFilterSidebar({
     .filter((opt) => isVisible(opt.value, filterState.dayParts ?? [], opt.count))
 
   function renderFilterGroups(collapseGroups: boolean, showDesktopReset: boolean) {
+    const groupBadge = collapseGroups
+    const largeTitle = collapseGroups
+
     return (
       <div className="space-y-0">
         {deliveryOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Beschikbaarheid"
             defaultOpen={groupDefaultOpen(true, collapseGroups)}
+            showActiveCount={groupBadge}
+            largeTitle={largeTitle}
+            activeCount={filterState.deliveryTypes?.length ?? 0}
           >
             <MultiSelectChecklist
               options={deliveryOptions}
@@ -554,6 +576,9 @@ export function PlpFilterSidebar({
           <FilterGroupCollapsible
             title="Soort activiteit"
             defaultOpen={groupDefaultOpen(true, collapseGroups)}
+            showActiveCount={groupBadge}
+            largeTitle={largeTitle}
+            activeCount={filterState.productTypes?.length ?? 0}
           >
             <MultiSelectChecklist
               options={productTypeOptions}
@@ -567,6 +592,9 @@ export function PlpFilterSidebar({
           <FilterGroupCollapsible
             title="Categorie"
             defaultOpen={groupDefaultOpen(undefined, collapseGroups)}
+            showActiveCount={groupBadge}
+            largeTitle={largeTitle}
+            activeCount={filterState.categories?.length ?? 0}
           >
             <CollapsibleMultiSelectChecklist
               options={categoryOptions}
@@ -581,6 +609,9 @@ export function PlpFilterSidebar({
           <FilterGroupCollapsible
             title="Docent"
             defaultOpen={groupDefaultOpen(false, collapseGroups)}
+            showActiveCount={groupBadge}
+            largeTitle={largeTitle}
+            activeCount={filterState.teachers?.length ?? 0}
           >
             <MultiSelectChecklist
               options={teacherOptions}
@@ -594,6 +625,9 @@ export function PlpFilterSidebar({
           <FilterGroupCollapsible
             title="Plaats"
             defaultOpen={groupDefaultOpen(true, collapseGroups)}
+            showActiveCount={groupBadge}
+            largeTitle={largeTitle}
+            activeCount={filterState.cities?.length ?? 0}
           >
             <PlaatsSearchableMultiSelectChecklist
               options={citiesFromFacets}
@@ -608,6 +642,9 @@ export function PlpFilterSidebar({
           <FilterGroupCollapsible
             title="Dagdeel"
             defaultOpen={groupDefaultOpen(false, collapseGroups)}
+            showActiveCount={groupBadge}
+            largeTitle={largeTitle}
+            activeCount={filterState.dayParts?.length ?? 0}
           >
             <MultiSelectChecklist
               options={dayPartOptions}
@@ -620,6 +657,9 @@ export function PlpFilterSidebar({
         <FilterGroupCollapsible
           title="Periode"
           defaultOpen={groupDefaultOpen(false, collapseGroups)}
+          showActiveCount={groupBadge}
+          largeTitle={largeTitle}
+          activeCount={filterState.periodStart || filterState.periodEnd ? 1 : 0}
         >
           <PeriodeFilter
             periodStart={filterState.periodStart}

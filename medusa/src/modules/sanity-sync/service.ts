@@ -148,9 +148,22 @@ type MirrorCategoryInput = {
   color?: string | null
 }
 
+type ExistingCategoryEditorial = {
+  image?: unknown
+  linkUrl?: string | null
+}
+
 export async function mirrorCategory(category: MirrorCategoryInput): Promise<void> {
-  const doc = {
-    _id: `medusa-category-${category.id}`,
+  const client = getSanityClient()
+  const id = `medusa-category-${category.id}`
+
+  const existing = await client.fetch<ExistingCategoryEditorial | null>(
+    `*[_id == $id][0]{ image, linkUrl }`,
+    { id }
+  )
+
+  const doc: Record<string, unknown> = {
+    _id: id,
     _type: "category",
     medusaId: category.id,
     slug: category.slug,
@@ -159,6 +172,14 @@ export async function mirrorCategory(category: MirrorCategoryInput): Promise<voi
     imageUrl: category.image_url ?? null,
     color: category.color ?? null,
   }
+
+  if (existing?.image) {
+    doc.image = existing.image
+  }
+  if (existing?.linkUrl) {
+    doc.linkUrl = existing.linkUrl
+  }
+
   await upsertDoc(doc)
 }
 

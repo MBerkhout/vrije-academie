@@ -101,8 +101,8 @@ export function PlpEventCard({
           ))}
       </div>
 
-      <div className="p-4 flex flex-col gap-1.5 flex-1">
-        <h3 className="font-serif font-bold text-va-black text-base leading-snug line-clamp-2">
+      <div className="p-3 md:p-4 flex flex-col gap-1.5 flex-1">
+        <h3 className="font-serif font-bold text-va-black text-sm leading-snug line-clamp-3 md:text-base md:line-clamp-2">
           <Link
             href={href}
             className="transition-colors hover:text-va-yellow group-hover:text-va-yellow after:absolute after:inset-0 after:content-['']"
@@ -136,8 +136,9 @@ export function PlpEventCard({
               <span className="text-xs text-va-gray">Uitverkocht</span>
             )}
           </div>
-          <span className="text-sm font-medium text-va-black flex items-center gap-1 group-hover:text-va-yellow transition-colors shrink-0">
-            Bekijk meer →
+          <span className="text-xs md:text-sm font-medium text-va-black flex items-center gap-1 group-hover:text-va-yellow transition-colors shrink-0">
+            <span className="md:hidden">Bekijk →</span>
+            <span className="hidden md:inline">Bekijk meer →</span>
           </span>
         </div>
       </div>

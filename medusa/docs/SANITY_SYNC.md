@@ -105,10 +105,12 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | `sortOrder` | `ProductCategory.rank` (default `0`) | No |
 | `imageUrl` | `ProductCategory.metadata.image_url` or `imageUrl` | No |
 | `color` | `ProductCategory.metadata.color` | No |
-| `image` | — | **Yes** (editorial override) |
-| `linkUrl` | — | **Yes** |
+| `image` | — | **Yes** (editorial override; preserved on Medusa/Salesforce sync — not cleared when mirror fields update) |
+| `linkUrl` | — | **Yes** (preserved on sync) |
 
 Legacy `catalog_category` rows use the same Sanity `category` type and `sync-category-to-sanity.ts`; prefer native categories for new work.
+
+Homepage category tile images can be re-seeded with `npm run seed:homepage-categories --prefix sanity` (see `sanity/docs/BLOCKS.md`).
 
 ## Sanity Studio behaviour
 

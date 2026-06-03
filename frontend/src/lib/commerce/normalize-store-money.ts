@@ -101,34 +101,6 @@ export function normalizeStoreCart(raw: unknown): Cart {
         : undefined
   }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7397/ingest/95d10c99-ac39-4827-a636-26ce82ef70b6', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '6925f0' },
-    body: JSON.stringify({
-      sessionId: '6925f0',
-      runId: 'post-fix',
-      hypothesisId: 'A',
-      location: 'normalize-store-money.ts:normalizeStoreCart',
-      message: 'cart money normalized',
-      data: {
-        rawSubtotal: parseMoney(o.subtotal),
-        rawTotal: parseMoney(o.total),
-        normalizedSubtotal: subtotal,
-        normalizedTotal: total,
-        items: items.map((i) => ({
-          id: i.id,
-          is_giftcard: i.is_giftcard,
-          unit_price: i.unit_price,
-        })),
-        hasGiftcardLine,
-        onlyGiftcardLines,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {})
-  // #endregion
-
   return {
     ...(o as unknown as Cart),
     items,

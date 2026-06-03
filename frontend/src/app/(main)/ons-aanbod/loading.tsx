@@ -26,7 +26,7 @@ export default function OnsAanbodLoading() {
             ))}
           </aside>
           {/* Grid skeleton */}
-          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+          <div className="flex-1 grid grid-cols-2 gap-2 md:gap-4 lg:grid-cols-3 lg:gap-6">
             {Array.from({ length: 9 }).map((_, i) => (
               <SkeletonCard key={i} />
             ))}

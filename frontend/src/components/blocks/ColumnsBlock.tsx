@@ -15,7 +15,7 @@ import {
 import { plpProductPath } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 
-const GAP_CLASS = { sm: 'gap-4', md: 'gap-8', lg: 'gap-16' } as const
+const GAP_CLASS = { sm: 'gap-3 md:gap-4', md: 'gap-4 md:gap-8', lg: 'gap-6 md:gap-16' } as const
 const OVERLAY_CLASS = { none: '', light: 'bg-black/20', medium: 'bg-black/40', dark: 'bg-black/60' } as const
 
 const TITLE_ALIGN_CLASS = {
@@ -169,6 +169,15 @@ function productCardCtaLabel(col: ColumnItem, product: { badge?: string | null }
   return null
 }
 
+/** Shorten default “Bekijk meer” CTA on narrow viewports. */
+function productCardCtaDisplay(label: string): { mobile: string; desktop: string } {
+  const trimmed = label.trim()
+  if (/^bekijk meer$/i.test(trimmed)) {
+    return { mobile: 'Bekijk', desktop: trimmed }
+  }
+  return { mobile: trimmed, desktop: trimmed }
+}
+
 function ColumnProductCards({ col }: { col: ColumnItem }) {
   const columnType = cleanBlockValue(col.columnType)
   if (columnType !== 'productCards') return null
@@ -184,7 +193,12 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
   return (
     <div className="space-y-4">
       {col.productCardsTitle && (
-        <TitleTag className={cn(getTitleSizeClass('h2'), 'font-bold text-va-black')}>
+        <TitleTag
+          className={cn(
+            getTitleSizeClass('h2'),
+            'font-bold text-va-black text-lg md:text-2xl',
+          )}
+        >
           {col.productCardsTitle}
         </TitleTag>
       )}
@@ -228,19 +242,27 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   {title ? (
-                    <p className="flex flex-1 items-start px-3 py-2.5 font-sans text-sm font-semibold leading-snug text-va-black group-hover:text-va-orange">
+                    <p className="flex flex-1 items-start px-2.5 py-2 font-sans text-xs font-semibold leading-snug line-clamp-3 text-va-black group-hover:text-va-orange md:px-3 md:py-2.5 md:text-sm md:line-clamp-none">
                       {title}
                     </p>
                   ) : null}
                   {ctaLabel ? (
                     <span
                       className={cn(
-                        'flex items-center justify-between gap-1 border-t border-va-lightgray px-3 py-1.5',
+                        'flex items-center justify-between gap-1 border-t border-va-lightgray px-2.5 py-1.5 md:px-3',
                         'font-sans text-[10px] font-bold uppercase tracking-wide',
                         ctaClass ?? 'bg-white text-va-black',
                       )}
                     >
-                      <span>{ctaLabel}</span>
+                      {(() => {
+                        const { mobile, desktop } = productCardCtaDisplay(ctaLabel)
+                        return (
+                          <>
+                            <span className="md:hidden">{mobile}</span>
+                            <span className="hidden md:inline">{desktop}</span>
+                          </>
+                        )
+                      })()}
                       <span aria-hidden className="text-sm leading-none">
                         ›
                       </span>
