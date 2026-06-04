@@ -3,6 +3,7 @@ import { draftMode } from 'next/headers'
 import { Merriweather, Source_Sans_3 } from 'next/font/google'
 import { VisualEditing } from 'next-sanity/visual-editing'
 import { SanityLive } from '@/lib/cms/live'
+import { refreshOnPresentation } from '@/app/actions/refresh'
 import { DisableDraftMode } from '@/components/DisableDraftMode'
 import './globals.css'
 
@@ -41,7 +42,7 @@ export default async function RootLayout({
         {children}
         {isDraftMode && (
           <>
-            <SanityLive />
+            <SanityLive revalidateSyncTags={refreshOnPresentation} />
             <VisualEditing />
             <DisableDraftMode />
           </>

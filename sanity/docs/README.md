@@ -167,6 +167,13 @@ Menu items support:
 
 The Studio includes the Presentation tool for visual editing with the Next.js frontend. Content creators can see live previews and edit content directly in context.
 
+**CORS for live preview (Sanity v5 Presentation):** Studio connects to the Live Content API from its own origin (`http://localhost:3333` in dev). In [sanity.io/manage](https://sanity.io/manage) → API → CORS origins, add **both** Studio and frontend origins with **Allow credentials** enabled:
+
+- `http://localhost:3333`, `http://localhost:3000` (and `http://127.0.0.1:*` if you open Studio via IP)
+- Hosted: `https://<project-id>.sanity.studio`, `https://frontend-va.thedigitalimprover.nl`
+
+`sanity cors list` only shows URLs, not the credentials flag. Recreate with credentials: `npx sanity cors delete http://localhost:3333 && npx sanity cors add http://localhost:3333 --credentials` (repeat for each origin). Hard-refresh Studio after changes.
+
 ## Schema Structure
 
 ```

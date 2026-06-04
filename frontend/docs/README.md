@@ -174,7 +174,9 @@ The frontend supports Sanity's visual editing through the Presentation tool:
 
 If `SANITY_API_READ_TOKEN` is missing, `/api/draft` returns 503 with a helpful error.
 
-**Live updates**: In Draft Mode, string fields are stega-encoded for overlays, which breaks strict equality (`=== 'h3'`, `=== 'bibliotheek'`). Block components use `getTitleTag()`, `getTitleSizeClass()`, and `cleanBlockValue()` from `@/lib/cms` (`stegaClean`) for heading size/alignment and for **library vs custom** item `source` on Categories and USP blocks so labels, images, and links resolve correctly.
+**Staging / production**: Add the frontend origin (e.g. `https://frontend-va.thedigitalimprover.nl`) to the Sanity project **CORS origins** with **Allow credentials**. Set `NEXT_PUBLIC_SANITY_STUDIO_URL` to the deployed Studio URL (`https://<project-id>.sanity.studio/studio`). Without CORS or the viewer token on the server, Presentation may show click-to-edit overlays on published content while draft edits do not refresh.
+
+**Live updates**: `SanityLive` uses the same viewer token in the browser during draft mode and `revalidateSyncTags` → `router.refresh()` (required on Next.js 16). In Draft Mode, string fields are stega-encoded for overlays, which breaks strict equality (`=== 'h3'`, `=== 'bibliotheek'`). Block components use `getTitleTag()`, `getTitleSizeClass()`, and `cleanBlockValue()` from `@/lib/cms` (`stegaClean`) for heading size/alignment and for **library vs custom** item `source` on Categories and USP blocks so labels, images, and links resolve correctly.
 
 ## 404
 

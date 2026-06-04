@@ -79,8 +79,12 @@ export default defineConfig({
 
     adminCors: process.env.ADMIN_CORS || "http://localhost:7001,http://localhost:9000",
     // Include :3000 so Next.js storefront works without a custom .env in dev.
-    storeCors: process.env.STORE_CORS || "http://localhost:3000,http://localhost:8000",
-    authCors: process.env.AUTH_CORS || "http://localhost:7001,http://localhost:9000,http://localhost:3000",
+    storeCors:
+      process.env.STORE_CORS ||
+      "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:8000",
+    authCors:
+      process.env.AUTH_CORS ||
+      "http://localhost:7001,http://localhost:9000,http://localhost:3000,http://localhost:3001,http://localhost:3002",
   },
   admin: {
     path: "/app",

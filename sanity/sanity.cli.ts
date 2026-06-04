@@ -12,7 +12,4 @@ export default defineCliConfig({
     hostname: 'localhost',
     port: 3333,
   },
-  deployment: {
-    appId: 'o2zj4sblnrnlmddkbsg4dean',
-  },
 })

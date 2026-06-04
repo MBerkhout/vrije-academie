@@ -1,3 +1,4 @@
+import { isGiftCardPurchaseLineItem } from './gift-card'
 import type { Cart, CartItem } from './types'
 
 /**
@@ -31,9 +32,16 @@ export function cartAggregateToStorefrontCents(raw: unknown): number {
   return medusaMajorToCents(parseMoney(raw))
 }
 
+function isGiftcardCartLine(o: Record<string, unknown>): boolean {
+  return isGiftCardPurchaseLineItem({
+    is_giftcard: o.is_giftcard as boolean | undefined,
+    metadata: o.metadata as Record<string, unknown> | null | undefined,
+  })
+}
+
 function mapStoreCartItem(raw: unknown): CartItem {
   const o = raw as Record<string, unknown>
-  const isGiftcard = Boolean(o.is_giftcard)
+  const isGiftcard = isGiftcardCartLine(o)
   const unit_price = lineUnitToStorefrontCents(o.unit_price, isGiftcard)
   const quantity = typeof o.quantity === 'number' ? o.quantity : Number(o.quantity ?? 1)
   const rawLineTotal = parseMoney(o.total)

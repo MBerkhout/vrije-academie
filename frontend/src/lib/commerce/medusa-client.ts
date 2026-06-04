@@ -46,6 +46,7 @@ import {
 } from './wishlist'
 import { sortCityFacetsByCount } from './city-facets'
 import { filterFutureEventVariants } from '@/lib/event-status-presentation'
+import { isGiftCardPurchaseLineItem } from './gift-card'
 import {
   cartAggregateToStorefrontCents,
   lineUnitToStorefrontCents,
@@ -108,7 +109,10 @@ function getStoredJwt(): string | null {
 
 function mapStoreOrderItem(raw: unknown): OrderItem {
   const o = raw as Record<string, unknown>
-  const isGiftcard = Boolean(o.is_giftcard)
+  const isGiftcard = isGiftCardPurchaseLineItem({
+    is_giftcard: o.is_giftcard as boolean | undefined,
+    metadata: o.metadata as Record<string, unknown> | null | undefined,
+  })
   const unit = lineUnitToStorefrontCents(o.unit_price, isGiftcard)
   const qty = typeof o.quantity === 'number' ? o.quantity : Number(o.quantity ?? 1)
   const rawTotal = parseMoney(o.total)
@@ -129,9 +133,14 @@ function mapStoreOrder(raw: unknown): Order {
   const o = raw as Record<string, unknown>
   const items = Array.isArray(o.items) ? o.items.map(mapStoreOrderItem) : undefined
   const onlyGiftcardLines =
-    items != null && items.length > 0 && items.every((_, i) => {
+    items != null &&
+    items.length > 0 &&
+    items.every((_, i) => {
       const row = (o.items as unknown[])[i] as Record<string, unknown>
-      return Boolean(row.is_giftcard)
+      return isGiftCardPurchaseLineItem({
+        is_giftcard: row.is_giftcard as boolean | undefined,
+        metadata: row.metadata as Record<string, unknown> | null | undefined,
+      })
     })
   return {
     id: String(o.id ?? ''),

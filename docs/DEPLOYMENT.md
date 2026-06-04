@@ -82,6 +82,15 @@ Create `.env` on the server (never commit these):
 
 Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS origins, database, Redis, etc.
 
+**Visual editing (Presentation tool)** — required in `~/app/frontend/.env`:
+
+| Variable | Description |
+|----------|-------------|
+| `SANITY_API_READ_TOKEN` | Viewer token from [sanity.io/manage](https://sanity.io/manage) → API → Tokens (draft read). Without it, `/api/draft` returns 503 and the preview shows published content only. |
+| `NEXT_PUBLIC_SANITY_STUDIO_URL` | Hosted Studio URL including `basePath`, e.g. `https://<project-id>.sanity.studio/studio` |
+
+In the Sanity project (**API → CORS origins**), add `https://frontend-va.thedigitalimprover.nl` with **Allow credentials** checked so `SanityLive` can subscribe to draft updates in the Presentation iframe.
+
 Sanity Studio env for CI is provided via GitHub Secrets (see below), not on the server.
 
 ### 5. Medusa dependencies
