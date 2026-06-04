@@ -2,6 +2,9 @@ import { cmsClient } from '@/lib/cms/server'
 import { CONTAINER_CLASS } from '@/lib/cms'
 import { BlockRenderer } from '@/components/blocks'
 
+// Match other CMS pages: avoid indefinite static cache of Sanity content (e.g. category tile images).
+export const revalidate = 60
+
 export default async function Home() {
   const page = await cmsClient.getPage('/')
 

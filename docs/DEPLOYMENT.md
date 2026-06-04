@@ -214,6 +214,10 @@ cd ~/app && git rm --cached frontend/next-env.d.ts && git pull --ff-only origin 
 
 Future deploys should not hit this after the ignore is on `staging`.
 
+## Frontend troubleshooting
+
+**Category tiles without images on staging, but correct locally** — The homepage is built during `npm run build`. If Sanity category images were added after the last deploy, redeploy the frontend (push to `staging` or run `frontend/scripts/deploy.sh`). The home route revalidates every 60s after deploy; see `frontend/docs/components.md` (troubleshooting §6).
+
 ## Medusa troubleshooting
 
 **`ecosystem.config.cjs not found`** — The server checkout is behind `staging`. As the `medusa` user:
