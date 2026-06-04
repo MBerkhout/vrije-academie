@@ -54,7 +54,7 @@ email  ──(exists?)──► known   ──(login ok + profile complete)─�
 **Data ownership**
 
 - **Logged-in:** `Customer` (name, phone, saved address via Store API) is the **source of truth**. `commerceClient.updateCustomerProfile`, `upsertCheckoutShippingAddress`, then `syncCartFromCustomer` copies that onto the cart for payment (`updateCart` with `shipping_address`).
-- **Guest:** only the **cart** holds shipping until step 3; `updateCart(cartId, { email, shipping_address })` before routing to betaling.
+- **Guest:** the **cart** holds e-mail and shipping after step 2; a **session draft** (`sessionStorage`, 7 days) mirrors the same fields if the cart is reset. Returning from the cart skips step 2 when the cart (or restored draft) is complete; partial progress restores e-mail and any saved address fields on `/checkout/inloggen`.
 
 Helpers: `src/lib/commerce/checkout-profile.ts` (`isCustomerProfileComplete`, `getDefaultCheckoutAddress`, `customerToShippingPayload`, `isCartShippingComplete`).
 
@@ -65,7 +65,9 @@ Account creation (`createAccount = true`) stores intent in `sessionStorage['va_c
 - Already logged-in with **complete** profile → `syncCartFromCustomer` then redirect `/checkout/betaling` (unless `?bewerken=1` — see below)
 - Already logged-in with **incomplete** profile → `logged_in_details` (no immediate redirect to betaling)
 
-**Gegevens aanpassen (edit mode):** From step 3, **Gegevens aanpassen** and the stepper link back to step 2 use `/checkout/inloggen?bewerken=1`. With that query param, a logged-in customer with a complete profile stays on the details form (prefilled from the account) instead of being auto-skipped to betaling. They can save changes (updates customer + cart) and continue to betaling, go **Terug naar betaling** without saving, or **Uitloggen** to switch account or continue as guest.
+**Gegevens aanpassen (edit mode):** From step 3, **Gegevens aanpassen** and the stepper link back to step 2 use `/checkout/inloggen?bewerken=1`. With that query param, a logged-in customer with a complete profile stays on the details form (prefilled from the account) instead of being auto-skipped to betaling; a **guest** with complete cart shipping sees the same details form prefilled from the **cart** (e-mail included). Both get **Terug naar betaling**. They can save and continue to betaling, go back without saving, or (logged-in only) **Uitloggen** to switch account or continue as guest.
+
+**Bootstrap:** On mount, `CheckoutLoginForm` resolves session/cart before showing the email step (spinner), so logged-in users with a complete profile are not shown step 2 briefly before redirect to betaling. **`ProceedCta`** links straight to `/checkout/betaling` when the customer profile is already complete.
 
 ## Step 3 — Betaling (`betaling/page.tsx`, `CheckoutPaymentOrderOverview`, `CheckoutPaymentForm`)
 
@@ -73,7 +75,7 @@ Account creation (`createAccount = true`) stores intent in `sessionStorage['va_c
 
 **`CheckoutPaymentForm`** loads cart. When the cart total is positive, loads `GET /store/payment-providers?region_id={cart.region_id}` (effect re-runs if the total crosses zero, e.g. gift card removed). Renders:
 1. Personal details — **logged-in:** from `Customer` (default checkout address) after `syncCartFromCustomer`; **guest:** from cart `shipping_address`. **Gegevens aanpassen** links to `/checkout/inloggen?bewerken=1`, where account gegevens can be edited (or the user can log out).
-2. Cadeaubon / tegoedbon input — `commerceClient.applyCode` (promo **of** interne `GIFT-` saldocode via `POST /store/cart/gift-cards`); verwijderen per code: **kortingscode** via `removePromoCodes`, **cadeaubon** via `removeGiftCardCode`. Na succesvolle apply/remove: **`dispatchCartUpdated()`** (`lib/commerce/cart.ts`) zodat o.a. **`CheckoutPaymentOrderOverview`** (luistert naar `va:cart-updated`) totalen opnieuw ophaalt.
+2. Cadeaubon / tegoedbon input — `commerceClient.applyCode` (promo **of** interne `GIFT-` saldocode via `POST /store/cart/gift-cards`); verwijderen per code: **kortingscode** via `removePromoCodes`, **cadeaubon** via `removeGiftCardCode`. **Enter** in het codeveld roept dezelfde apply aan als **Code toepassen** (`preventDefault` — het veld staat in het betaal-`<form>` en mag anders submit naar Mollie triggeren). Na succesvolle apply/remove: **`dispatchCartUpdated()`** (`lib/commerce/cart.ts`) zodat o.a. **`CheckoutPaymentOrderOverview`** (luistert naar `va:cart-updated`) totalen opnieuw ophaalt.
 3. Payment method tiles (`PaymentMethodTiles`) — only when there is an amount due; one tile per enabled Mollie provider in the region
 4. Trust signals
 5. Primary CTA (`payLabel` from CMS) — directly above it: NL notice that clicking pay accepts the terms; `voorwaarden` links to `/algemene-voorwaarden`
@@ -116,6 +118,7 @@ All UI strings come from `generalSettings.checkout` (fetched server-side in layo
 ## Session storage
 
 - Cart: `va_cart_id` cookie (30-day, SameSite=Lax)
+- Guest checkout draft: `sessionStorage['va_checkout_draft']` (7-day TTL; cleared with `clearCartId()` after order)
 - Auth: Medusa session cookie (HttpOnly, set by Medusa server on `/auth/customer/emailpass`)
 - Registration intent: `sessionStorage['va_checkout_register']` (cleared post-payment)
 

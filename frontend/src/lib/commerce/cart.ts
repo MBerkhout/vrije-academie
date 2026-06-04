@@ -1,6 +1,7 @@
 'use client'
 
 import { commerceClient } from '@/lib/commerce'
+import { clearCheckoutDraft } from '@/lib/commerce/checkout-draft'
 import { CART_COOKIE } from '@/lib/commerce/cart-cookie-name'
 
 export function getCartId(): string | null {
@@ -17,6 +18,7 @@ export function setCartId(id: string): void {
 export function clearCartId(): void {
   if (typeof document === 'undefined') return
   document.cookie = `${CART_COOKIE}=; path=/; max-age=0; SameSite=Lax`
+  clearCheckoutDraft()
 }
 
 /** Notify listeners (cart badge, checkout order overview, etc.) after a client-side cart mutation. */

@@ -375,6 +375,12 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
             type="text"
             value={giftCode}
             onChange={(e) => setGiftCode(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void handleApplyGiftCode()
+              }
+            }}
             placeholder="Voer je code in"
             className="flex-1 border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black"
           />

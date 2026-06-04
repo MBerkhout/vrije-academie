@@ -17,6 +17,45 @@ const OVERLAY_CLASS = {
   dark: 'bg-black/60',
 } as const
 
+const slideArrowClass =
+  'pointer-events-auto absolute bottom-4 z-20 flex items-center justify-center rounded-md p-2 md:p-3 text-va-yellow hover:bg-black/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-va-yellow min-w-[2.5rem] md:min-w-[3rem]'
+
+const slideArrowIconClass = 'h-6 w-6 md:h-7 md:w-7 shrink-0'
+
+function ChevronLeftIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  )
+}
+
+function ChevronRightIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  )
+}
+
 function SlideLinkShell({
   href,
   className,
@@ -127,20 +166,39 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
             return <>{slideBody}</>
           })()}
           {slides.length > 1 && (
-            <div className="pointer-events-auto absolute bottom-4 left-0 right-0 z-20 flex justify-center gap-2">
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setSlideIndex(i)}
-                  aria-label={`Go to slide ${i + 1}`}
-                  className={cn(
-                    'w-2 h-2 rounded-full',
-                    i === slideIndex ? 'bg-white' : 'bg-white/50'
-                  )}
-                />
-              ))}
-            </div>
+            <>
+              <button
+                type="button"
+                onClick={() => setSlideIndex((i) => (i - 1 + slides.length) % slides.length)}
+                aria-label="Previous slide"
+                className={cn(slideArrowClass, 'left-2 md:left-4')}
+              >
+                <ChevronLeftIcon className={slideArrowIconClass} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSlideIndex((i) => (i + 1) % slides.length)}
+                aria-label="Next slide"
+                className={cn(slideArrowClass, 'right-2 md:right-4')}
+              >
+                <ChevronRightIcon className={slideArrowIconClass} />
+              </button>
+              <div className="pointer-events-auto absolute bottom-4 left-0 right-0 z-20 flex justify-center gap-2">
+                {slides.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSlideIndex(i)}
+                    aria-label={`Go to slide ${i + 1}`}
+                    aria-current={i === slideIndex}
+                    className={cn(
+                      'w-2 h-2 rounded-full',
+                      i === slideIndex ? 'bg-white' : 'bg-white/50'
+                    )}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
         <div className="flex flex-col gap-6 md:gap-8 lg:h-full lg:min-h-0">

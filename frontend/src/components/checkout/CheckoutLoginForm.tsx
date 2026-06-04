@@ -9,10 +9,19 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { commerceClient } from '@/lib/commerce'
 import {
+  buildCheckoutDraft,
+  clearCheckoutDraft,
+  draftFromCart,
+  saveCheckoutDraft,
+} from '@/lib/commerce/checkout-draft'
+import { ensureGuestCheckoutCartHydrated } from '@/lib/commerce/checkout-resume'
+import {
   getDefaultCheckoutAddress,
+  isGuestCartCheckoutReady,
   isCustomerProfileComplete,
   splitAddressLine,
 } from '@/lib/commerce/checkout-profile'
+import type { Cart } from '@/lib/commerce/types'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { getCartId, setCartId } from '@/lib/commerce/cart'
 import type { Customer } from '@/lib/commerce/types'
@@ -61,6 +70,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   const [toast, setToast] = useState<string | null>(null)
   const [manualAddress, setManualAddress] = useState(false)
   const [validity, setValidity] = useState<CheckoutGuestValidity>(() => initialCheckoutGuestValidity())
+  const [bootstrapping, setBootstrapping] = useState(true)
 
   const { addressLookup } = usePdokAddressLookup({
     postalCode,
@@ -97,6 +107,32 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     setValidity((prev) => ({ ...prev, [name]: validateAccountField(name, value, opts) }))
   }
 
+  const prefillAddressFromLine = useCallback(
+    (line: string, postal: string, cityName: string, countryCode: string) => {
+      setPostalCode(postal)
+      setCity(cityName)
+      const countryUpper = countryCode.toUpperCase()
+      setCountry(countryUpper)
+      const { street: st, houseNumber: hn } = splitAddressLine(line)
+      if (countryUpper !== 'NL') {
+        setManualAddress(true)
+        setStreet(st)
+        setHouseNumber(hn ?? '')
+        return
+      }
+      if (hn) {
+        setManualAddress(false)
+        setStreet(st)
+        setHouseNumber(hn)
+      } else {
+        setManualAddress(true)
+        setStreet(st)
+        setHouseNumber('')
+      }
+    },
+    []
+  )
+
   const prefillFromCustomer = useCallback((c: Customer) => {
     setFirstName(c.first_name ?? '')
     setLastName(c.last_name ?? '')
@@ -111,70 +147,119 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
       setCountry('NL')
       return
     }
-    setPostalCode(addr.postal_code ?? '')
-    setCity(addr.city ?? '')
-    const countryUpper = (addr.country_code ?? 'nl').toUpperCase()
-    setCountry(countryUpper)
-    const line = addr.address_1 ?? ''
-    const { street: st, houseNumber: hn } = splitAddressLine(line)
-    if (countryUpper !== 'NL') {
-      setManualAddress(true)
-      setStreet(st)
-      setHouseNumber(hn ?? '')
+    prefillAddressFromLine(
+      addr.address_1 ?? '',
+      addr.postal_code ?? '',
+      addr.city ?? '',
+      addr.country_code ?? 'nl'
+    )
+  }, [prefillAddressFromLine])
+
+  const prefillFromCart = useCallback(
+    (cart: Cart) => {
+      setEmail(cart.email ?? '')
+      const addr = cart.shipping_address
+      if (!addr) {
+        setManualAddress(false)
+        setPostalCode('')
+        setHouseNumber('')
+        setStreet('')
+        setCity('')
+        setCountry('NL')
+        return
+      }
+      setFirstName(addr.first_name ?? '')
+      setLastName(addr.last_name ?? '')
+      setPhone(addr.phone ?? '')
+      prefillAddressFromLine(
+        addr.address_1 ?? '',
+        addr.postal_code ?? '',
+        addr.city ?? '',
+        addr.country_code ?? 'nl'
+      )
+    },
+    [prefillAddressFromLine]
+  )
+
+  /** Session + edit-mode bootstrap; avoids flashing the email step for logged-in or guest edit flows. */
+  useEffect(() => {
+    if (customerLoading) return
+    if (state !== 'email') {
+      setBootstrapping(false)
       return
     }
-    if (hn) {
-      setManualAddress(false)
-      setStreet(st)
-      setHouseNumber(hn)
-    } else {
-      setManualAddress(true)
-      setStreet(st)
-      setHouseNumber('')
-    }
-  }, [])
-
-  /** Already logged in (e.g. opened checkout): sync or show gegevens. `known` is handled in handleLogin only. */
-  useEffect(() => {
-    if (customerLoading || !customer?.id) return
-    if (state === 'known') return
 
     let cancelled = false
+    let skipBootstrapEnd = false
     ;(async () => {
       try {
-        const fresh = await commerceClient.getCustomer()
-        if (cancelled || !fresh) return
-        if (isCustomerProfileComplete(fresh)) {
-          if (editingDetails) {
-            prefillFromCustomer(fresh)
-            setEmail(fresh.email)
-            setState('logged_in_details')
+        if (customer?.id) {
+          const fresh = await commerceClient.getCustomer()
+          if (cancelled || !fresh) return
+          if (isCustomerProfileComplete(fresh)) {
+            if (editingDetails) {
+              prefillFromCustomer(fresh)
+              setEmail(fresh.email)
+              setState('logged_in_details')
+              return
+            }
+            skipBootstrapEnd = true
+            const cartId = await ensureCart()
+            await commerceClient.syncCartFromCustomer(fresh, cartId)
+            if (!cancelled) router.replace('/checkout/betaling')
             return
           }
-          const cartId = await ensureCart()
-          await commerceClient.syncCartFromCustomer(fresh, cartId)
-          if (!cancelled) router.replace('/checkout/betaling')
-          return
-        }
-        if (state === 'email' || state === 'loading') {
           prefillFromCustomer(fresh)
           setEmail(fresh.email)
           setState('logged_in_details')
+          return
+        }
+
+        const cart = await ensureGuestCheckoutCartHydrated()
+        if (cancelled || !cart?.email) return
+
+        if (isGuestCartCheckoutReady(cart)) {
+          const draft = draftFromCart(cart)
+          if (draft) saveCheckoutDraft(draft)
+          if (editingDetails) {
+            prefillFromCart(cart)
+            setState('unknown')
+            return
+          }
+          skipBootstrapEnd = true
+          router.replace('/checkout/betaling')
+          return
+        }
+
+        setEmail(cart.email)
+        try {
+          const exists = await commerceClient.customerExists(cart.email)
+          if (cancelled) return
+          prefillFromCart(cart)
+          setState(exists ? 'known' : 'unknown')
+        } catch {
+          if (!cancelled) {
+            prefillFromCart(cart)
+            setState('unknown')
+          }
         }
       } catch {
-        // stay on current step
+        // stay on email step
+      } finally {
+        if (!cancelled && !skipBootstrapEnd) setBootstrapping(false)
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [customer?.id, customerLoading, state, router, prefillFromCustomer, editingDetails])
+  }, [customer?.id, customerLoading, state, router, prefillFromCustomer, prefillFromCart, editingDetails])
 
   async function handleLogout() {
     setBusy(true)
     setError(null)
     try {
       await logout()
+      clearCheckoutDraft()
       setState('email')
       setEmail('')
       setPassword('')
@@ -301,7 +386,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     setBusy(true)
     try {
       const cartId = await ensureCart()
-      await commerceClient.updateCart(cartId, {
+      const updated = await commerceClient.updateCart(cartId, {
         email,
         shipping_address: {
           first_name: firstName,
@@ -313,6 +398,20 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           country_code: country.toLowerCase(),
         },
       })
+      const draft =
+        draftFromCart(updated) ??
+        buildCheckoutDraft({
+          email,
+          firstName,
+          lastName,
+          phone,
+          street,
+          houseNumber,
+          postalCode,
+          city,
+          country,
+        })
+      saveCheckoutDraft(draft)
       if (createAccount) {
         sessionStorage.setItem(
           'va_checkout_register',
@@ -409,6 +508,8 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   const knownHeading = settings.knownEmail?.heading ?? 'Welkom terug!'
   const unknownHeading = settings.unknownEmail?.heading ?? 'Vul je gegevens in'
 
+  const showBootstrap = bootstrapping && state === 'email'
+
   return (
     <div className="w-full max-w-none lg:max-w-lg">
       {toast && (
@@ -420,7 +521,17 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
         </div>
       )}
 
-      {(state === 'email' || state === 'loading') && (
+      {(showBootstrap || customerLoading) && (
+        <div
+          className="font-sans text-sm text-va-darkgray py-8"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          …
+        </div>
+      )}
+
+      {!showBootstrap && !customerLoading && (state === 'email' || state === 'loading') && (
         <CheckoutLoginEmailStep
           settings={settings}
           heading={heading}
@@ -438,7 +549,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
         />
       )}
 
-      {state === 'known' && (
+      {!showBootstrap && !customerLoading && state === 'known' && (
         <CheckoutLoginKnownStep
           settings={settings}
           knownHeading={knownHeading}
@@ -467,7 +578,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
         />
       )}
 
-      {(state === 'unknown' || state === 'logged_in_details') && (
+      {!showBootstrap && !customerLoading && (state === 'unknown' || state === 'logged_in_details') && (
         <CheckoutGuestDetailsStep
           settings={settings}
           unknownHeading={unknownHeading}
@@ -490,7 +601,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           manualAddress={manualAddress}
           validity={validity}
           onEditEmail={
-            state === 'logged_in_details'
+            editingDetails || state === 'logged_in_details'
               ? undefined
               : () => {
                   setState('email')
@@ -513,10 +624,8 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           reset={resetValidity}
           onSubmit={state === 'logged_in_details' ? handleLoggedInDetailsContinue : handleGuestContinue}
           onLogout={state === 'logged_in_details' && editingDetails ? handleLogout : undefined}
-          backHref={state === 'logged_in_details' && editingDetails ? '/checkout/betaling' : undefined}
-          backLabel={
-            state === 'logged_in_details' && editingDetails ? 'Terug naar betaling' : undefined
-          }
+          backHref={editingDetails ? '/checkout/betaling' : undefined}
+          backLabel={editingDetails ? 'Terug naar betaling' : undefined}
         />
       )}
     </div>

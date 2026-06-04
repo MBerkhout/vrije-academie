@@ -7,7 +7,7 @@ Full-width hero section with an image slider and a right column: a **Top Panel**
 ## Layout
 
 The hero is split into two columns:
-- **Left (2/3):** Image slider with title, optional subtitle, and dot navigation.
+- **Left (2/3):** Image slider with title, optional subtitle, yellow **chevron** previous/next controls at the bottom left and right, and dot navigation centered below.
 - **Right (1/3):** **Top panel** and **newsletter** use the same chrome: **white** background, **border** only (no drop shadow). The top card has text (and CTA) on the left, optional **Image** on the right (full image visible, `contain` in the area—no yellow divider). The newsletter card has heading *Meld je aan*, subtext, and a primary **Aanmelden** button; the button URL is set in the **Newsletter** tab (**Aanmeldlink**).
 
 ## Fields

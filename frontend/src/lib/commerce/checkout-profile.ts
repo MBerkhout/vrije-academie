@@ -39,6 +39,11 @@ export function isCustomerProfileComplete(customer: Customer | null): boolean {
   )
 }
 
+/** Guest has email + shipping on the cart (or restored draft) — can skip the login step. */
+export function isGuestCartCheckoutReady(cart: Cart | null): boolean {
+  return Boolean(cart?.email?.trim() && isCartShippingComplete(cart))
+}
+
 /** Guest checkout: cart holds shipping until there is a customer. */
 export function isCartShippingComplete(cart: Cart | null): boolean {
   const a = cart?.shipping_address

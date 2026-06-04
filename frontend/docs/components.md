@@ -107,6 +107,8 @@ Block components in `@/components/blocks` map to Sanity block types. The main pa
 
 **Development only** (`NODE_ENV === 'development'`): each `BlockWrapper` root `div` gets `data-cms-block-id` (Sanity block `_id`) and `data-cms-block-type` (e.g. `heroBlock`) so tools and agents can target a specific row in the DOM without affecting production markup.
 
+**Hero block**: Multi-slide slider shows **yellow chevron** previous/next controls at the **bottom left and right**, with **dot** indicators centered along the bottom. Arrows sit above slide links so they change slides without navigating. Autoplay follows Sanity **Autoplay** / **Autoplay Interval**.
+
 **Review block**: With **overall rating** enabled, from **`md`** the score and label sit in a **left column** beside the carousel inside their own **card** (white background, light border, **yellow bottom bar**, square corners); below `md` that card stacks above the quotes. Each quote sits in a **card** (warm `va-yellow-50`, light border, **yellow bottom bar**, square corners, shadow, large decorative opening quote). **Previous/next** use **larger** controls (**`<`** / **`>`**) at the sides of the quote card; **dots** (when enabled) stay **below** the card. Navigation follows Sanity **Navigation Style** (arrows, dots, or both). If that value is missing or invalid on older documents, the UI falls back to **arrows**.
 
 **Accordion (FAQ)**: The **first** question is **expanded by default** on initial page load; users can collapse or open others as usual (including when **allow multiple open** is enabled in Sanity).
