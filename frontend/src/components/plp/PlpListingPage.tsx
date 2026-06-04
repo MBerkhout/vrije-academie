@@ -156,6 +156,7 @@ export async function PlpListingPage({
                         filterState={filterState}
                         categories={categories}
                         teachers={teachers}
+                        cityOptions={facets?.cities}
                         basePath={basePath}
                       />
                     )}
@@ -201,6 +202,7 @@ export async function PlpListingPage({
                         filterState={filterState}
                         categories={categories}
                         teachers={teachers}
+                        cityOptions={facets?.cities}
                         basePath={basePath}
                       />
                     )}

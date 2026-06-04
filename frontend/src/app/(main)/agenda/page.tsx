@@ -175,6 +175,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
                       filterState={filterState as unknown as PlpFilterState}
                       categories={categories}
                       teachers={teachers}
+                      cityOptions={facets?.cities}
                       basePath="/agenda"
                       extraChips={extraChips}
                     />
@@ -222,6 +223,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
                       filterState={filterState as unknown as PlpFilterState}
                       categories={categories}
                       teachers={teachers}
+                      cityOptions={facets?.cities}
                       basePath="/agenda"
                       extraChips={extraChips}
                     />

@@ -10,6 +10,7 @@ import {
 } from '@/app/(main)/ons-aanbod/_state/redirects'
 import { resolveFilterRemove, resolveFilterSerialize } from '@/lib/filter-url-helpers'
 import type { CategoryOption, TeacherOption } from '@/lib/cms/sanity-refs'
+import { cityLabelFromSlug } from '@/lib/commerce/resolve-city-slug'
 import { productTypeLabelFromSlug } from '@/lib/plp-product-types'
 import { cn } from '@/lib/utils'
 import { PLP_BASE_PATH } from '@/lib/routes'
@@ -18,6 +19,8 @@ interface PlpActiveChipsProps {
   filterState: PlpFilterState
   categories: CategoryOption[]
   teachers: TeacherOption[]
+  /** City facet options for resolving slug → label in chips (e.g. `den-haag` → `Den Haag`). */
+  cityOptions?: { slug: string; label?: string | null }[]
   className?: string
   basePath?: string
   /** Extra chips to render for fields not in PlpFilterState (e.g. Agenda `date`).
@@ -35,6 +38,7 @@ export function PlpActiveChips({
   filterState,
   categories,
   teachers,
+  cityOptions,
   className,
   basePath = PLP_BASE_PATH,
   extraChips = [],
@@ -56,8 +60,8 @@ export function PlpActiveChips({
     const teacher = teachers.find((t) => t.slug === slug)
     chips.push({ key: 'teachers', value: slug, label: teacher?.name ?? slug })
   }
-  for (const v of filterState.cities ?? []) {
-    chips.push({ key: 'cities', value: v, label: v })
+  for (const slug of filterState.cities ?? []) {
+    chips.push({ key: 'cities', value: slug, label: cityLabelFromSlug(slug, cityOptions) })
   }
   for (const v of filterState.productTypes ?? []) {
     chips.push({ key: 'productTypes', value: v, label: productTypeLabelFromSlug(v) })
