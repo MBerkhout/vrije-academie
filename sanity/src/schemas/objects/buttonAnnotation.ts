@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { withCtaUrlFormat } from "./ctaUrl"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { InlineButtonAnnotation } from "../../components/InlineButtonAnnotation"
 
@@ -37,9 +38,12 @@ export const buttonAnnotation = defineType({
     defineField({
       name: "url",
       title: "URL",
-      type: "url",
+      type: "string",
+      description: "Site path (e.g. /ons-aanbod) or full URL (https://…, mailto:…).",
       validation: (Rule) =>
-        Rule.required().uri({ scheme: ["http", "https", "mailto"] }).error("URL is required for inline buttons."),
+        withCtaUrlFormat(
+          Rule.required().error("URL is required for inline buttons."),
+        ),
     }),
   ],
 })

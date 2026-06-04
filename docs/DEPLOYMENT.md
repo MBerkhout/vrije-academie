@@ -155,6 +155,8 @@ In the repo: **Settings → Secrets and variables → Actions**
 | `SANITY_STUDIO_PROJECT_ID` | Sanity project ID (also used as the hosted studio subdomain on first deploy) |
 | `SANITY_STUDIO_DATASET` | Dataset name (e.g. `production` or `staging`) |
 
+CI also sets `SANITY_STUDIO_PREVIEW_URL` to `https://frontend-va.thedigitalimprover.nl` for the Presentation tool (bundled at deploy time).
+
 You do **not** need a separate studio hostname secret. CI sets `studioHost` from `SANITY_STUDIO_PROJECT_ID`, so the first deploy registers `https://<project-id>.sanity.studio` automatically. Only add `SANITY_STUDIO_HOSTNAME` if you later want a custom subdomain instead of the project ID.
 
 ## Triggering a deploy
@@ -247,9 +249,19 @@ For Sanity, redeploy Studio from a known-good commit via the workflow or locally
 
 ## Sanity Studio troubleshooting
 
-**White screen on sanity.io dashboard** — If the hosted Studio URL shows a blank page and the console logs `Load failed, error in settings`, check that `sanity/sanity.cli.ts` does **not** contain a stale `deployment.appId`. Running `sanity deploy` with an invalid app ID fails with `Cannot find app with app ID …`. Remove the block, redeploy, then commit the new `appId` the CLI writes after the first successful deploy.
+**White screen on sanity.io dashboard** — Common causes:
 
-**Verify hosting** — After deploy, `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio` should load (not `Studio not found`). Local dev: `cd sanity && npm run dev` → `http://localhost:3333/studio`.
+1. **Duplicate `basePath`** — Do not set `project.basePath` in `sanity.cli.ts` when `sanity.config.ts` already has `basePath: "/studio"`. Both together make the build reference `/studio/static/*.js` while hosting serves bundles at `/static/*.js` (the browser loads HTML instead of JS). Keep `basePath` only in `sanity.config.ts`; redeploy.
+2. **Stale `deployment.appId`** — If the console logs `Load failed, error in settings` or deploy fails with `Cannot find app with app ID …`, remove the `deployment` block from `sanity.cli.ts`, redeploy, then commit the new `appId` the CLI prints.
+
+**Verify hosting** — After deploy, open the studio and confirm the main bundle is JavaScript, not HTML:
+
+```bash
+curl -sI "https://<project-id>.sanity.studio/static/sanity-*.js" -H "Referer: https://www.sanity.io/" | grep content-type
+# expect: content-type: application/javascript
+```
+
+Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev: `cd sanity && npm run dev` → `http://localhost:3333/studio`.
 
 **Token permissions** — `SANITY_AUTH_TOKEN` must include the **Deploy Studio** grant (`sanity.project.deployStudio`). A write-only API token is not enough for `sanity deploy`.
 

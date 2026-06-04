@@ -12,6 +12,10 @@ This Sanity Studio provides a block-based content management system where pages 
 
 Discrete string (and some number) fields with a **fixed set of options** use the shared **button group** custom input (`src/components/ButtonSelectInput.tsx`) instead of the default `<select>`, so editors do not get an extra blank “unset” row at the top.
 
+### CTA and navigation URLs
+
+Fields titled **CTA URL** (and related link fields) use `defineCtaUrlField` from `src/schemas/objects/ctaUrl.ts` (`type: string`), not Sanity’s `url` type. Editors can enter site paths (`/ons-aanbod`, `/ons-aanbod?record_type=collegereeks`) or absolute `http(s)://` / `mailto:` URLs. YouTube, social, and form-endpoint fields stay on `type: url`.
+
 ### Block System
 
 Pages are composed of **blocks** - reusable content components that can be arranged in any order. Each block is a separate document type with:
@@ -58,6 +62,8 @@ Create a `.env` file:
 ```env
 SANITY_STUDIO_PROJECT_ID=your-project-id
 SANITY_STUDIO_DATASET=production
+# Presentation preview (hosted default: https://frontend-va.thedigitalimprover.nl)
+SANITY_STUDIO_PREVIEW_URL=http://localhost:3001
 ```
 
 ### Development
@@ -75,6 +81,8 @@ npm run deploy
 ```
 
 CI uses `sanity deploy --yes`; set `studioHost` via `SANITY_STUDIO_HOSTNAME` or `SANITY_STUDIO_PROJECT_ID` in `sanity.cli.ts` (defaults to project ID → `https://<id>.sanity.studio`).
+
+`basePath: "/studio"` lives in `sanity.config.ts` only (not `sanity.cli.ts` `project.basePath`) so hosted static assets resolve at `/static/*`. See [DEPLOYMENT.md](../../docs/DEPLOYMENT.md) if the dashboard shows a white screen.
 
 ### Deploy Schema
 

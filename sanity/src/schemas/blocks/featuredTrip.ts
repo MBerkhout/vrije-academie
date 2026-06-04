@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineCtaUrlField } from "../objects/ctaUrl"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { OVERLAY_OPTIONS, TITLE_SIZE_OPTIONS, overlayField } from "../objects/mediaEnums"
@@ -142,10 +143,9 @@ export const featuredTripBlock = defineType({
           return true
         }),
     }),
-    defineField({
+    defineCtaUrlField({
       name: "ctaUrl",
       title: "Knop-URL",
-      type: "url",
       group: "article",
       hidden: ({ parent }) => !parent?.ctaEnabled,
       validation: (Rule) =>

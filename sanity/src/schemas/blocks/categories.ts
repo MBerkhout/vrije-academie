@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineCtaUrlField } from "../objects/ctaUrl"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
 import { TITLE_SIZE_OPTIONS } from "../objects/mediaEnums"
@@ -116,10 +117,9 @@ export const categoriesBlock = defineType({
                   return true
                 }),
             }),
-            defineField({
+            defineCtaUrlField({
               name: "url",
               title: "URL",
-              type: "url",
               hidden: ({ parent }) => parent?.source !== "aangepast",
               validation: (Rule) =>
                 Rule.custom((v, ctx) => {
@@ -163,10 +163,9 @@ export const categoriesBlock = defineType({
           return true
         }),
     }),
-    defineField({
+    defineCtaUrlField({
       name: "ctaUrl",
       title: "CTA URL",
-      type: "url",
       group: "content",
       hidden: ({ parent }) => !parent?.ctaEnabled,
       validation: (Rule) =>

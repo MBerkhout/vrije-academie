@@ -30,7 +30,7 @@ The hero is split into two columns:
 | Image | Image | No | Shown to the right of the text; displayed with **contain** in the area (no crop). Hotspot for focal point. Optional **alt text** (recommended for accessibility) |
 | Show CTA | Boolean | No | Toggle CTA button visibility |
 | CTA Label | String | No | Button text |
-| CTA URL | URL | No | Button destination |
+| CTA URL | String | No | Button destination (e.g. `/ons-aanbod` or `https://…`) |
 
 ### Newsletter (tab)
 

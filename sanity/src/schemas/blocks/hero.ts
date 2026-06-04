@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineCtaUrlField } from "../objects/ctaUrl"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
@@ -68,10 +69,9 @@ export const heroBlock = defineType({
               type: "string",
               description: "Optional short line below the title.",
             }),
-            defineField({
+            defineCtaUrlField({
               name: "url",
               title: "Link URL",
-              type: "url",
               description: "If set, the whole slide is clickable and navigates to this address.",
             }),
             defineField({
@@ -156,17 +156,15 @@ export const heroBlock = defineType({
       group: "topPanel",
       hidden: ({ parent }) => !parent?.topPanelCtaEnabled,
     }),
-    defineField({
+    defineCtaUrlField({
       name: "topPanelCtaUrl",
       title: "CTA URL",
-      type: "url",
       group: "topPanel",
       hidden: ({ parent }) => !parent?.topPanelCtaEnabled,
     }),
-    defineField({
+    defineCtaUrlField({
       name: "newsletterSignupUrl",
       title: "Aanmeldlink",
-      type: "url",
       group: "newsletter",
       description: "URL voor de knop Aanmelden (bijv. nieuwsbrief- of inschrijfpagina).",
     }),

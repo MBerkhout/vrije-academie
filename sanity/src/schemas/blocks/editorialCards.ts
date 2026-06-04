@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { ctaUrlFormatMessage } from "../objects/ctaUrl"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
@@ -100,6 +101,7 @@ export const editorialCardsBlock = defineType({
               name: "linkUrl",
               title: "Link-URL",
               type: "string",
+              description: "Site path (e.g. /ons-aanbod) or full URL (https://…, mailto:…).",
               validation: (Rule) =>
                 Rule.custom((v, ctx) => {
                   const row = ctx.parent as { linkLabel?: string }
@@ -107,6 +109,8 @@ export const editorialCardsBlock = defineType({
                   const hasUrl = Boolean((v as string)?.trim())
                   if (hasLabel && !hasUrl) return "Vul een URL in als er linktekst staat."
                   if (hasUrl && !hasLabel) return "Vul linktekst in."
+                  const format = ctaUrlFormatMessage(v)
+                  if (format !== true) return format
                   return true
                 }),
             }),

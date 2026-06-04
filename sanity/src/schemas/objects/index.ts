@@ -1,3 +1,10 @@
+export {
+  CTA_URL_DESCRIPTION,
+  ctaUrlFormatMessage,
+  defineCtaUrlField,
+  isValidCtaUrl,
+  withCtaUrlFormat,
+} from "./ctaUrl"
 export { buttonAnnotation } from "./buttonAnnotation"
 export { portableText } from "./portableText"
 export { linkObject } from "./link"

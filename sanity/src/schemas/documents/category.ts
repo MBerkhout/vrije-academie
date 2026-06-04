@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineCtaUrlField } from "../objects/ctaUrl"
 
 /**
  * Catalog category — mirrored from Medusa.
@@ -63,10 +64,9 @@ export const category = defineType({
       description: "Optional editorial image override (e.g. for category tiles).",
       options: { hotspot: true },
     }),
-    defineField({
+    defineCtaUrlField({
       name: "linkUrl",
       title: "Link URL",
-      type: "url",
       description: "Optional link override for category tiles.",
     }),
   ],

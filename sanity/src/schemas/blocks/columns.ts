@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineCtaUrlField } from "../objects/ctaUrl"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
 import {
@@ -337,10 +338,9 @@ export const columnsBlock = defineType({
               hidden: ({ parent }) =>
                 parent?.columnType !== "productCards" || !parent?.productCardsFooterCtaEnabled,
             }),
-            defineField({
+            defineCtaUrlField({
               name: "productCardsFooterCtaUrl",
               title: "CTA URL",
-              type: "url",
               hidden: ({ parent }) =>
                 parent?.columnType !== "productCards" || !parent?.productCardsFooterCtaEnabled,
             }),
@@ -405,10 +405,9 @@ export const columnsBlock = defineType({
               hidden: ({ parent }) =>
                 parent?.columnType !== "ctaCard" || !parent?.ctaCardCtaEnabled,
             }),
-            defineField({
+            defineCtaUrlField({
               name: "ctaCardCtaUrl",
               title: "CTA URL",
-              type: "url",
               hidden: ({ parent }) =>
                 parent?.columnType !== "ctaCard" || !parent?.ctaCardCtaEnabled,
             }),

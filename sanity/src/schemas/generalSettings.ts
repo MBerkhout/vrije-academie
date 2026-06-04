@@ -1,6 +1,7 @@
 import { defineType, defineField, defineArrayMember } from "sanity"
 import { createButtonSelectInput } from "../components/ButtonSelectInput"
 import { PLP_BASE_PATH } from "../constants/storefront-paths"
+import { defineCtaUrlField } from "./objects/ctaUrl"
 
 const FOOTER_FORM_METHOD_OPTIONS = [
   { title: "GET", value: "get" },
@@ -313,7 +314,11 @@ export const generalSettings = defineType({
         defineField({ name: "emptyHeading", title: "Empty cart heading", type: "string", initialValue: "Je winkelwagen is leeg." }),
         defineField({ name: "emptySubtext", title: "Empty cart subtext", type: "string", initialValue: "Ontdek ons aanbod en schrijf je in voor een activiteit." }),
         defineField({ name: "emptyCtaLabel", title: "Empty cart CTA label", type: "string", initialValue: "Bekijk ons aanbod" }),
-        defineField({ name: "emptyCtaUrl", title: "Empty cart CTA URL", type: "string", initialValue: PLP_BASE_PATH }),
+        defineCtaUrlField({
+          name: "emptyCtaUrl",
+          title: "Empty cart CTA URL",
+          initialValue: PLP_BASE_PATH,
+        }),
         defineField({ name: "trustSecure", title: "Trust signal — secure payment", type: "string", initialValue: "Veilig betalen via Mollie." }),
         defineField({ name: "trustCancellation", title: "Trust signal — cancellation (use {days})", type: "string", initialValue: "Annulering mogelijk tot {days} dagen voor aanvang." }),
         defineField({ name: "trustSupport", title: "Trust signal — support", type: "string", initialValue: "Vragen? Bel ons op 088-518 5000 (ma-vr 9:30-11:30)." }),

@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineCtaUrlField } from "../objects/ctaUrl"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
@@ -123,10 +124,9 @@ export const uspBlock = defineType({
                   return true
                 }),
             }),
-            defineField({
+            defineCtaUrlField({
               name: "linkUrl",
               title: "Link URL",
-              type: "url",
               hidden: ({ parent }) => parent?.source !== "aangepast" || !parent?.linkEnabled,
               validation: (Rule) =>
                 Rule.custom((v, ctx) => {

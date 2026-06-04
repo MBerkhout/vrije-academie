@@ -1,5 +1,6 @@
 import { defineType, defineField, defineArrayMember } from "sanity"
 import { PLP_BASE_PATH } from "../../constants/storefront-paths"
+import { defineCtaUrlField } from "../objects/ctaUrl"
 
 /**
  * PLP editorial surface (banner, intro, tabs) for `/ons-aanbod`.
@@ -21,7 +22,7 @@ export const plpBlock = defineType({
         defineField({ name: "subtitle", title: "Subtitle", type: "text", rows: 2 }),
         defineField({ name: "image", title: "Image", type: "image", options: { hotspot: true } }),
         defineField({ name: "ctaLabel", title: "CTA label", type: "string" }),
-        defineField({ name: "ctaUrl", title: "CTA URL", type: "url" }),
+        defineCtaUrlField({ name: "ctaUrl", title: "CTA URL" }),
       ],
     }),
     defineField({

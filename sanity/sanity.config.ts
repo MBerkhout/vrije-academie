@@ -10,7 +10,8 @@ import { resolve } from "./src/presentation/resolve"
 import { mirroredDocumentActions } from "./src/lib/mirrorActions"
 import { redirectAwareDocumentActions } from "./src/lib/redirectActions"
 
-const previewOrigin = process.env.SANITY_STUDIO_PREVIEW_URL || "http://localhost:3000"
+const previewOrigin =
+  process.env.SANITY_STUDIO_PREVIEW_URL || "https://frontend-va.thedigitalimprover.nl"
 const hubspotApiUrl = `${previewOrigin}/api/hubspot`
 
 export default defineConfig({
@@ -29,7 +30,7 @@ export default defineConfig({
     presentationTool({
       resolve,
       previewUrl: {
-        origin: process.env.SANITY_STUDIO_PREVIEW_URL || "http://localhost:3000",
+        origin: previewOrigin,
         draftMode: {
           enable: "/api/draft",
         },

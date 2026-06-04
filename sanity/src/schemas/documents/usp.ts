@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineCtaUrlField } from "../objects/ctaUrl"
 
 export const usp = defineType({
   name: "usp",
@@ -29,10 +30,9 @@ export const usp = defineType({
       type: "string",
       hidden: ({ parent }) => !parent?.linkEnabled,
     }),
-    defineField({
+    defineCtaUrlField({
       name: "linkUrl",
       title: "Link URL",
-      type: "url",
       hidden: ({ parent }) => !parent?.linkEnabled,
     }),
   ],

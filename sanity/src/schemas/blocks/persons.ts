@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineCtaUrlField } from "../objects/ctaUrl"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { PERSON_TYPE_OPTIONS } from "../../lib/personTypeOptions"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
@@ -172,10 +173,9 @@ export const personsBlock = defineType({
           return true
         }),
     }),
-    defineField({
+    defineCtaUrlField({
       name: "ctaUrl",
       title: "CTA URL",
-      type: "url",
       group: "content",
       hidden: ({ parent }) => !parent?.ctaEnabled,
       validation: (Rule) =>
