@@ -112,7 +112,7 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
       >
         <div
           className={cn(
-            'lg:col-span-2 relative overflow-hidden h-64 md:h-96',
+            'lg:col-span-2 relative overflow-hidden rounded-lg h-64 md:h-96',
             'lg:h-full lg:min-h-0'
           )}
         >
@@ -205,7 +205,7 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
           <div
             className={cn(
               'flex-1 min-h-0 overflow-hidden border border-va-lightgray-300 bg-white',
-              'rounded-sm flex flex-col sm:flex-row sm:items-stretch'
+              'rounded-lg flex flex-col sm:flex-row sm:items-stretch'
             )}
           >
             <div
@@ -246,7 +246,7 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
               </div>
             )}
           </div>
-          <div className="shrink-0 rounded-sm border border-va-lightgray-300 bg-white p-6 lg:p-8">
+          <div className="shrink-0 rounded-lg border border-va-lightgray-300 bg-white p-6 lg:p-8">
             <h3
               className={cn(
                 getTitleSizeClass('h3'),
@@ -255,7 +255,7 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
             >
               Meld je aan
             </h3>
-            <p className="font-serif mb-4 text-va-darkgray">
+            <p className="font-sans mb-4 text-va-darkgray">
               Schrijf je hier in voor onze nieuwsbrief!
             </p>
             {newsletterSignupUrl ? (

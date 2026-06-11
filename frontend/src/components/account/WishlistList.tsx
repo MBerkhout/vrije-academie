@@ -61,13 +61,13 @@ export function WishlistList() {
         return (
           <li
             key={handle}
-            className="flex flex-col sm:flex-row sm:items-center gap-3 border border-va-lightgray bg-white p-3 rounded-none"
+            className="flex flex-col sm:flex-row sm:items-center gap-3 border border-va-lightgray bg-white p-3 rounded-lg"
           >
             <Link
               href={href}
               className="flex gap-3 flex-1 min-w-0 group"
             >
-              <div className="relative w-20 h-14 shrink-0 bg-va-lightgray overflow-hidden">
+              <div className="relative w-20 h-14 shrink-0 rounded-md bg-va-lightgray overflow-hidden">
                 {thumb ? (
                   <Image
                     src={thumb}
@@ -83,7 +83,7 @@ export function WishlistList() {
                 )}
               </div>
               <div className="min-w-0">
-                <span className="font-serif text-va-black group-hover:underline line-clamp-2">{title}</span>
+                <span className="font-sans text-va-black group-hover:underline line-clamp-2">{title}</span>
                 {!event ? (
                   <span className="font-sans text-xs text-va-darkgray block truncate">{handle}</span>
                 ) : null}

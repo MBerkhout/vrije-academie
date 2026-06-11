@@ -144,11 +144,24 @@ export interface HeroSlide {
   contentAlignment?: 'left' | 'center'
 }
 
-export interface FeaturedTripInfoCard {
-  travelDates?: string[]
-  price?: string
-  /** Resolved from Sanity reference. */
-  guide?: Person
+export interface ProductRowBlock extends Block {
+  _type: 'productRowBlock'
+  title?: string
+  titleSize?: 'h1' | 'h2' | 'h3' | 'h4'
+  sourceType?: 'handpicked' | 'automated' | 'personalized'
+  products?: ProductRowProductRef[]
+  automatedFeed?: 'bestsellers' | 'newest'
+  titleFavorites?: string
+  titleRecent?: string
+  ctaEnabled?: boolean
+  ctaLabel?: string
+  ctaUrl?: string
+}
+
+export interface ProductRowProductRef {
+  _id: string
+  handle?: string
+  title?: string
 }
 
 export interface EditorialCardItem {
@@ -169,22 +182,6 @@ export interface EditorialCardsBlock extends Block {
   backgroundImage?: { asset?: { _ref?: string } | unknown; alt?: string }
   overlayOpacity?: 'none' | 'light' | 'medium' | 'dark'
   cards?: EditorialCardItem[]
-}
-
-export interface FeaturedTripBlock extends Block {
-  _type: 'featuredTripBlock'
-  heroImage?: { asset?: { _ref?: string }; alt?: string; caption?: string }
-  overlayOpacity?: 'none' | 'light' | 'medium' | 'dark'
-  heroHeight?: 'sm' | 'md' | 'lg' | 'wide'
-  showInfoCard?: boolean
-  infoCard?: FeaturedTripInfoCard
-  title?: string
-  titleSize?: string
-  subtitle?: string
-  body?: PortableTextBlock[]
-  ctaEnabled?: boolean
-  ctaLabel?: string
-  ctaUrl?: string
 }
 
 export interface CategoriesBlock extends Block {
@@ -513,8 +510,9 @@ export interface GeneralSettings {
       loginLabel?: string
       otpLabel?: string
       otpSentLabel?: string
-      forgotPasswordLabel?: string
-      guestContinueLabel?: string
+      otpCodeLabel?: string
+      otpVerifyLabel?: string
+      otpResendLabel?: string
       backLabel?: string
     }
     unknownEmail?: {
@@ -527,9 +525,7 @@ export interface GeneralSettings {
       postalCodeLabel?: string
       cityLabel?: string
       countryLabel?: string
-      createAccountLabel?: string
-      passwordLabel?: string
-      confirmPasswordLabel?: string
+      newsletterOptInLabel?: string
       continueLabel?: string
     }
     payment?: {

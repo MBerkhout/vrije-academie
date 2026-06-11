@@ -9,7 +9,7 @@ export const metadata = {
 function GegevensFallback() {
   const common = defaultMessages.common
   return (
-    <p className="font-serif text-va-darkgray" aria-busy="true">
+    <p className="font-sans text-va-darkgray" aria-busy="true">
       {common.loadingEllipsis}
     </p>
   )

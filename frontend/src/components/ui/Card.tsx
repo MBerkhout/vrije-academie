@@ -39,7 +39,7 @@ export function Card({
           {title}
         </h3>
         {description && (
-          <p className="font-serif text-xs text-va-darkgray mb-2">
+          <p className="font-sans text-xs text-va-darkgray mb-2">
             {description}
           </p>
         )}
@@ -53,7 +53,7 @@ export function Card({
   )
 
   const cardClasses = cn(
-    'bg-va-white border border-va-lightgray rounded-sm overflow-hidden hover:shadow-sm transition-shadow',
+    'bg-va-white border border-va-lightgray rounded-lg overflow-hidden hover:shadow-sm transition-shadow',
     className
   )
 

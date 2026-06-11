@@ -4,7 +4,7 @@ export default function BedanktPage() {
       <h1 className="font-sans text-2xl font-bold text-va-black mb-4">
         Bedankt
       </h1>
-      <p className="font-serif text-va-darkgray">
+      <p className="font-sans text-va-darkgray">
         Je bestelling is ontvangen. Bedankt voor je aankoop.
       </p>
     </div>

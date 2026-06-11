@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { addVariantToCart } from '@/lib/commerce/cart'
-import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { useWishlist } from '@/lib/commerce/useWishlist'
 import { defaultMessages, interpolate } from '@/lib/i18n/messages'
 import { absolutizeUrl } from '@/lib/json-ld'
@@ -63,14 +62,13 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
   const scrollToSessions = onScrollToSessions ?? defaultScrollToSessions
   const router = useRouter()
   const [addingId, setAddingId] = useState<string | null>(null)
-  const { customer, loading: customerLoading } = useCustomer()
-  const { isInWishlist, pendingHandle, toggle } = useWishlist()
+  const { isInWishlist, pendingHandle, toggle, loading: wishlistLoading } = useWishlist()
   const labels = settings?.pdp?.labels
   const t = defaultMessages.pdp
 
   const primaryCtaLabel = labels?.primaryCta ?? 'Direct inschrijven'
   const bundleCtaLabel = labels?.bundleCta ?? 'Koop alle lessen'
-  const saved = customer ? isInWishlist(event.handle) : false
+  const saved = isInWishlist(event.handle)
   const wishlistLabel = saved
     ? (labels?.wishlistSaved ?? t.bookingWishlistSaved)
     : (labels?.wishlist ?? t.bookingWishlist)
@@ -110,14 +108,10 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
   }
 
   const handleWishlist = () => {
-    if (!customer) {
-      router.push(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`)
-      return
-    }
     void toggle(event.handle)
   }
 
-  const wishlistBusy = customerLoading || pendingHandle === event.handle
+  const wishlistBusy = wishlistLoading || pendingHandle === event.handle
   const wishlistAria = saved ? t.wishlistToggleRemoveAria : t.wishlistToggleAddAria
 
   const productUrl = absolutizeUrl(plpProductPath(event.handle))

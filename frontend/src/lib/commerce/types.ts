@@ -128,6 +128,8 @@ export interface EventVariant {
     start_at?: string | null
     end_at?: string | null
     city?: string | null
+    /** Venue / location from Salesforce `Product_Location_Name__c`. */
+    location_name?: string | null
     registration_deadline_at?: string | null
     is_free_trial: boolean
     /** Per-variant instructor from Salesforce child `Account_Teacher__c`. */
@@ -331,6 +333,31 @@ export interface OrderItem {
   variant?: Variant | null
 }
 
+/** Normalized hit for `/zoeken` (OpenSearch-backed via Medusa). */
+export interface SiteSearchHit {
+  kind: 'page' | 'product' | 'docent' | 'category' | 'place' | 'person'
+  title: string
+  href: string
+  subtitle?: string
+  excerpt?: string
+  thumbnailUrl?: string
+}
+
+export interface SearchSuggestion {
+  kind: 'product' | 'category' | 'place' | 'page'
+  title: string
+  href: string
+  subtitle?: string
+  thumbnailUrl?: string
+}
+
+export interface SearchSuggestionsResult {
+  products: SearchSuggestion[]
+  categories: SearchSuggestion[]
+  places: SearchSuggestion[]
+  pages: SearchSuggestion[]
+}
+
 /**
  * Commerce Client Interface
  * Implementations (Medusa, Shopify, etc.) must conform to this interface
@@ -374,6 +401,11 @@ export interface CommerceClient {
   updateCart(cartId: string, input: CartUpdateInput): Promise<Cart>
   // Auth / customer
   customerExists(email: string): Promise<boolean>
+  customerLookup(email: string): Promise<{ exists: boolean; hasPassword: boolean }>
+  requestOtp(email: string, purpose?: 'login' | 'set_password'): Promise<void>
+  verifyOtp(email: string, code: string): Promise<Customer>
+  registerPasswordless(input: RegisterPasswordlessInput): Promise<Customer>
+  getAuthStatus(): Promise<{ hasPassword: boolean }>
   login(email: string, password: string): Promise<Customer>
   logout(): Promise<void>
   getCustomer(): Promise<Customer | null>
@@ -390,6 +422,8 @@ export interface CommerceClient {
   addWishlistHandle(handle: string): Promise<Customer>
   /** Logged-in: remove handle; merges full metadata. Throws if not authenticated. */
   removeWishlistHandle(handle: string): Promise<Customer>
+  /** Logged-in: replace wishlist with the given handle list. Returns null when not authenticated. */
+  syncWishlistHandles(handles: string[]): Promise<Customer | null>
   /** Record a PDP view (localStorage; syncs to customer.metadata when logged in). */
   recordRecentViewedHandle(handle: string): Promise<void>
   // Checkout / payment
@@ -399,12 +433,22 @@ export interface CommerceClient {
   getOrder(orderId: string): Promise<Order | null>
   /** Logged-in customer orders (store API). */
   listCustomerOrders(options?: { limit?: number; offset?: number }): Promise<{ orders: Order[]; count: number }>
-  /** Validate current password via login, then set new password (emailpass). */
+  /** Change password (with current) or set initial password (with OTP when passwordless). */
+  setPassword(input: {
+    newPassword: string
+    oldPassword?: string
+    otpCode?: string
+  }): Promise<void>
+  /** @deprecated Use setPassword with oldPassword */
   changePassword(input: {
     email: string
     oldPassword: string
     newPassword: string
   }): Promise<void>
+  /** Unified typo-tolerant site search (OpenSearch via Medusa). */
+  searchSite(query: string): Promise<SiteSearchHit[]>
+  /** Grouped quick-search suggestions. */
+  searchSuggestions(query: string): Promise<SearchSuggestionsResult>
 }
 
 export interface CartUpdateInput {
@@ -453,5 +497,19 @@ export interface RegisterInput {
     postal_code: string
     city: string
     country_code: string
+  }
+}
+
+export interface RegisterPasswordlessInput {
+  email: string
+  first_name: string
+  last_name: string
+  phone?: string
+  address: {
+    address_1: string
+    postal_code: string
+    city: string
+    country_code: string
+    phone?: string
   }
 }

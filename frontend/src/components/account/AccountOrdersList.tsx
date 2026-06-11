@@ -38,7 +38,7 @@ export function AccountOrdersList() {
 
   if (loading) {
     return (
-      <p className="font-serif text-va-darkgray" aria-busy="true">
+      <p className="font-sans text-va-darkgray" aria-busy="true">
         {common.loadingEllipsis}
       </p>
     )
@@ -46,14 +46,14 @@ export function AccountOrdersList() {
 
   if (error) {
     return (
-      <p className="font-serif text-sm text-va-darkgray">
+      <p className="font-sans text-sm text-va-darkgray">
         {t.ordersError}
       </p>
     )
   }
 
   if (orders.length === 0) {
-    return <p className="font-serif text-sm text-va-darkgray">{t.ordersEmpty}</p>
+    return <p className="font-sans text-sm text-va-darkgray">{t.ordersEmpty}</p>
   }
 
   return (

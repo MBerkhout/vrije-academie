@@ -45,7 +45,7 @@ export function AgendaRow({ item }: AgendaRowProps) {
   const status = presentationForAvailabilityStatus(item.status, { city: item.city })
 
   return (
-    <article className="grid grid-cols-[76px_1fr_auto_auto] items-stretch gap-0 bg-white border border-va-lightgray rounded-md overflow-hidden hover:shadow-sm transition-shadow">
+    <article className="grid grid-cols-[76px_1fr_auto_auto] items-stretch gap-0 bg-white border border-va-lightgray rounded-lg overflow-hidden hover:shadow-sm transition-shadow">
       {/* Date cell */}
       <div className="bg-va-lightgray/50 flex flex-col items-center justify-center py-3 px-2 text-center">
         <div className="font-bold text-va-black text-sm leading-none">
@@ -58,7 +58,7 @@ export function AgendaRow({ item }: AgendaRowProps) {
       <div className="flex flex-col justify-center px-4 py-3 min-w-0">
         <Link
           href={href}
-          className="font-serif font-semibold text-va-black text-sm leading-snug hover:text-va-yellow transition-colors line-clamp-1"
+          className="font-sans font-semibold text-va-black text-sm leading-snug hover:text-va-yellow transition-colors line-clamp-1"
         >
           {item.product_title}
         </Link>

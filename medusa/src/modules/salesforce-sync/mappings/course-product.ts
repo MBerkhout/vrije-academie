@@ -12,6 +12,7 @@ export type SfCourseProductShape = {
   Start_date_time__c?: string | null
   End_date_time__c?: string | null
   Product_City__c?: string | null
+  Product_Location_Name__c?: string | null
   Maximum_capacity__c?: number | null
   Capacity__c?: number | null
   Availability_capacity__c?: string | null
@@ -35,6 +36,7 @@ export const courseProductSalesforceFieldsForPull = [
   "Start_date_time__c",
   "End_date_time__c",
   "Product_City__c",
+  "Product_Location_Name__c",
   "Maximum_capacity__c",
   "Capacity__c",
   "Availability_capacity__c",

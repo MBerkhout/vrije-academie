@@ -21,7 +21,7 @@ export function EmptyCart({ heading, subtext, ctaLabel, ctaUrl }: EmptyCartProps
         {heading ?? 'Je winkelwagen is leeg.'}
       </h2>
       {subtext && (
-        <p className="font-serif text-va-darkgray max-w-sm">
+        <p className="font-sans text-va-darkgray max-w-sm">
           {subtext}
         </p>
       )}

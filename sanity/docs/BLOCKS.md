@@ -21,6 +21,7 @@ Blocks are reusable content components that can be arranged on pages. Each block
 - [Event List](#event-list) - Dynamic event listing
 - [Demand Nearby](#demand-nearby) - Postcode search → results page
 - [PLP (Ons aanbod)](#plp-ons-aanbod) - Banner, intro, tabs voor de product listing `/ons-aanbod`
+- [Productkaarten](#productkaarten) - Carousel of 4 product cards (handpicked, automated, or personalized)
 - [Cadeaubon (koop)](#cadeaubon-koop) - Teksten en bedragen voor de cadeaubon-kooppagina `/cadeaubon`
 
 ## Shared Block Fields
@@ -348,6 +349,25 @@ Event List Block
 **Fields**: Page title, **Grootte paginatitel** (H1–H4, zelfde typografie als andere blokken), intro, amount presets, min/max euro, section headings, form field labels, order button. **SEO** on the parent Page.
 
 **Documentation**: [CADEAUBON.md](./CADEAUBON.md)
+
+---
+
+## Productkaarten
+
+**Purpose**: Horizontal carousel of four commerce product cards on page surfaces (homepage, landing pages).
+
+**Use when**:
+- Highlighting curated products (e.g. travel picks)
+- Showing bestsellers or newest courses
+- Personalizing for logged-in visitors (saved items or recently viewed)
+
+**Fields**:
+- Title, title size
+- Source: handpicked (4 product refs), automated (`bestsellers` | `newest`), or personalized
+- Personalized: optional separate titles for favorites vs recently viewed
+- Optional footer CTA (label + URL)
+
+**Documentation**: [block-layout.md](./block-layout.md#productkaarten--productrowblock)
 
 ---
 

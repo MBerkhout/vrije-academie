@@ -263,7 +263,7 @@ export function CartView({ settings }: CartViewProps) {
               support={settings?.trustSupport}
               cancellationDays={settings?.cancellationDays}
             />
-            <ProceedCta label={settings?.proceedCtaLabel} />
+            <ProceedCta label={settings?.proceedCtaLabel} fullWidth />
           </div>
         </div>
       </div>

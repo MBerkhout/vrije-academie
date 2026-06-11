@@ -39,26 +39,26 @@ Presentation for each checkout sub-step lives in `src/components/checkout/login/
 Progressive email-first state machine:
 
 ```
-email  ──(exists?)──► known   ──(login ok + profile complete)──► /checkout/betaling
- │                         │                    └──(profile incomplete)──► logged_in_details
- └──► unknown ──(form ok)──► /checkout/betaling
+email  ──(lookup)──► known ──(password or OTP)──► /checkout/betaling
+ │                      └──(profile incomplete)──► logged_in_details
+ └──► unknown ──(register-passwordless)──► /checkout/betaling
 ```
 
 | State | What happens |
 |-------|-------------|
-| `email` | Single email field + Volgende button |
-| `known` | Password + Inloggen. OTP stub. Forgot-password link. Guest bypass (if `guestCheckoutEnabled`). |
-| `unknown` | Full address form (guest). Optional "Account aanmaken" with password fields. |
-| `logged_in_details` | Same address form for **logged-in** users; e-mail read-only; no account checkbox. Saves to **Medusa customer** first, then syncs the cart. |
+| `email` | Single email field + Volgende; `GET /store/customer/lookup` → `{ exists, hasPassword }` |
+| `known` | **Has password:** password login or OTP button → 6-digit code. **No password:** OTP sent automatically. No guest bypass. |
+| `unknown` | Address form + newsletter opt-in. Always `POST /store/customer/register-passwordless` (passwordless account + JWT). |
+| `logged_in_details` | Same address form for **logged-in** users; e-mail read-only. Saves to **Medusa customer** first, then syncs the cart. |
 
 **Data ownership**
 
 - **Logged-in:** `Customer` (name, phone, saved address via Store API) is the **source of truth**. `commerceClient.updateCustomerProfile`, `upsertCheckoutShippingAddress`, then `syncCartFromCustomer` copies that onto the cart for payment (`updateCart` with `shipping_address`).
-- **Guest:** the **cart** holds e-mail and shipping after step 2; a **session draft** (`sessionStorage`, 7 days) mirrors the same fields if the cart is reset. Returning from the cart skips step 2 when the cart (or restored draft) is complete; partial progress restores e-mail and any saved address fields on `/checkout/inloggen`.
+- **New customers:** registered immediately at step 2 via `commerceClient.registerPasswordless`; session JWT links the order to the customer.
 
 Helpers: `src/lib/commerce/checkout-profile.ts` (`isCustomerProfileComplete`, `getDefaultCheckoutAddress`, `customerToShippingPayload`, `isCartShippingComplete`).
 
-Account creation (`createAccount = true`) stores intent in `sessionStorage['va_checkout_register']`. The actual Medusa customer record is created **after successful payment** (deferred to order webhook — see PAYMENT-MOLLIE.md).
+OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `customerLookup`, `requestOtp`, `verifyOtp`, `registerPasswordless`.
 
 **Guards:**
 - Empty cart → redirect `/winkelwagen`
@@ -121,6 +121,7 @@ All UI strings come from `generalSettings.checkout` (fetched server-side in layo
 - Guest checkout draft: `sessionStorage['va_checkout_draft']` (7-day TTL; cleared with `clearCartId()` after order)
 - Auth: Medusa session cookie (HttpOnly, set by Medusa server on `/auth/customer/emailpass`)
 - Registration intent: `sessionStorage['va_checkout_register']` (cleared post-payment)
+- Newsletter opt-in: `sessionStorage['va_checkout_newsletter']` (`{ optIn: boolean }`; also on register payload as `newsletter_opt_in`)
 
 ## CORS requirements
 

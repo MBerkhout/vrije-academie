@@ -56,7 +56,7 @@ function portableTextComponents(tone: 'default' | 'onDark') {
         <h4 className={cn('font-sans text-lg font-semibold mb-2', heading)}>{children}</h4>
       ),
       normal: ({ children }: { children?: React.ReactNode }) => (
-        <p className={cn('font-serif mb-4', body)}>{children}</p>
+        <p className={cn('font-sans mb-4', body)}>{children}</p>
       ),
       blockquote: ({ children }: { children?: React.ReactNode }) => (
         <blockquote
@@ -80,10 +80,10 @@ function portableTextComponents(tone: 'default' | 'onDark') {
     },
     listItem: {
       bullet: ({ children }: { children?: React.ReactNode }) => (
-        <li className={cn('font-serif', body)}>{children}</li>
+        <li className={cn('font-sans', body)}>{children}</li>
       ),
       number: ({ children }: { children?: React.ReactNode }) => (
-        <li className={cn('font-serif', body)}>{children}</li>
+        <li className={cn('font-sans', body)}>{children}</li>
       ),
     },
   }

@@ -88,15 +88,11 @@
 
 ## Search Functionality
 
-**Future**: Add search for events and content.
+**Implemented**: OpenSearch unified index in Medusa (`medusa/docs/SEARCH.md`).
 
-### Implementation Options
-
-1. **Client-side Search**: Filter existing data
-2. **Server-side Search**: API endpoint with search
-3. **Third-party Service**: Algolia, Typesense
-
-**Consideration**: Search across both Sanity content and Medusa events.
+- **Ons aanbod / Agenda**: inline `PlpSearchBar` + `?q=` filtered via `GET /store/events` / `GET /store/agenda` (title, onderwerp, docent, plaats, locatie, content; typo-tolerant when OpenSearch is configured).
+- **Header + `/zoeken`**: `GET /store/search` across Medusa events and Sanity pages/persons.
+- **Reindex**: `npm run search:reindex` in `medusa/`.
 
 ## Payment Integration
 

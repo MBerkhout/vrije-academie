@@ -88,7 +88,7 @@ export function PdpEpisodesTable({
           </p>
         )}
 
-        <h2 className="font-serif text-2xl font-bold text-va-black mb-4">{heading}</h2>
+        <h2 className="font-sans text-2xl font-bold text-va-black mb-4">{heading}</h2>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

@@ -14,6 +14,7 @@
     "seed:footer-settings": "node ./scripts/seed-footer-general-settings.mjs",
     "seed:homepage-categories": "node ./scripts/seed-homepage-categories.mjs",
     "seed:homepage-product-columns": "node ./scripts/seed-homepage-product-columns.mjs",
+    "migrate:homepage-product-row": "node ./scripts/migrate-homepage-product-row.mjs",
     "test": "vitest",
     "test:run": "vitest run"
   },

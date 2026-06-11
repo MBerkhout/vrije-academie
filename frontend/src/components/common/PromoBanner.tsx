@@ -57,7 +57,7 @@ export function PromoBanner({
       )}
       <div className="relative max-w-[1240px] mx-auto px-4 md:px-8 py-8 md:py-12 flex flex-col gap-3">
         {title && (
-          <h2 className="font-serif text-xl md:text-3xl font-bold">
+          <h2 className="font-sans text-xl md:text-3xl font-bold">
             {title}
           </h2>
         )}

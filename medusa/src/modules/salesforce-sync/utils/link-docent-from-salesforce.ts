@@ -61,6 +61,28 @@ function fallbackTeacherNameFromGroup(group: SfProductgroupShape): string | null
   return null
 }
 
+/** Per-variant instructor from child `vaProduct__c` (falls back to group highlighted docent). */
+export function resolveInstructorFromChild(
+  group: SfProductgroupShape,
+  child: SfCourseProductShape
+): { salesforceId: string | null; name: string | null } {
+  const accountTeacherRelation = (child as Record<string, unknown>).Account_Teacher__r as
+    | SfTeacherRelation
+    | undefined
+  const salesforceId = child.Account_Teacher__c?.trim() || null
+  const name =
+    accountTeacherRelation?.Name?.trim() ||
+    child.Main_Teacher_Name__c?.trim() ||
+    null
+
+  if (salesforceId || name) {
+    return { salesforceId, name }
+  }
+
+  const fallback = resolveTeacherFromProductgroup(group, child)
+  return { salesforceId: fallback.salesforceId, name: fallback.name }
+}
+
 export function resolveTeacherFromProductgroup(
   group: SfProductgroupShape,
   child?: SfCourseProductShape | null
@@ -226,6 +248,15 @@ export async function linkDocentFromSalesforce(
   )
 
   if (!alreadyLinked) {
+    for (const row of existingLinks ?? []) {
+      const existingDocentId = (row as { docent_id?: string }).docent_id
+      if (existingDocentId && existingDocentId !== docentId) {
+        await link.dismiss({
+          [Modules.PRODUCT]: { product_id: productId },
+          people: { docent_id: existingDocentId },
+        })
+      }
+    }
     await link.create({
       [Modules.PRODUCT]: { product_id: productId },
       people: { docent_id: docentId },

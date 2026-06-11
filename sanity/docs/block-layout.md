@@ -29,15 +29,16 @@ The frontend `blockLayout.ts` supports both flat (GROQ projection) and nested (`
 
 ## Redactionele promotiekaarten — `editorialCardsBlock`
 
-- **Page only** (add via **Page → Content Blocks**), same as Hero and Uitgelichte reis.
+- **Page only** (add via **Page → Content Blocks**), same as Hero and Productkaarten.
 - **Layout defaults:** Full width, 24px vertical margin, 48px vertical padding; block **background** stays none — the visual comes from the **achtergrondbeeld**.
 - **Content:** Sectietitel (with underline style on the frontend), full-bleed **background image** + **overlay** (default **None**; light / medium / dark), **Titelgrootte** (default **None** for body-style text, or H1–H4), **2–4 cards** (grid shows the same number of columns as cards on large breakpoints). Each card: optional label, title, rich text, 16:9 image on top, optional link (label + URL). Cards are **white**, rounded, shadowed; entire card is clickable when a URL is set. Overlay and titelgrootte use the same button-style choices as other blocks (no blank row in a dropdown).
 
-## Uitgelichte reis (magazine) — `featuredTripBlock`
+## Productkaarten — `productRowBlock`
 
 - **Page only:** Add via **Page → Content Blocks** (not inside Tabs), same as Hero.
-- **Layout defaults:** Full width, 24px top/bottom margin (adjust in Style). The **hero image** uses block full width, then an inner wrapper **`max-w-[1920px] mx-auto`** so the photo is edge-to-edge until that cap on very large screens.
-- **Structure:** Hero image with **titel, ondertitel en rich text over het beeld** (donkere gradient onderaan voor leesbaarheid); de overlay staat in de **zelfde contentcontainer** (`max-w-[1240px]`) als andere blokken. **Titelgrootte** default is **H2** voor nieuwe blokken. Optioneel **Knop tonen** met **Knoplabel** + **Knop-URL** (primary-stijl op de site). Optionele witte **infokaart** (reisdata, prijs, **Person**): op desktop overlapt de kaart rechtsonder het beeld, op mobiel staat de kaart uitgelijnd in diezelfde container onder de hero.
+- **Layout defaults:** Full width, 24px top/bottom margin (adjust in Style).
+- **Source:** Handmatig (exact 4 product refs), Automatisch (bestsellers or newest via Medusa), or Persoonlijk (visitor favorites, else recently viewed; hidden when empty).
+- **Structure:** Section title + horizontal carousel of 4 `PlpEventCard`-style product cards. Optional footer CTA (e.g. “Bekijk al onze reizen”).
 
 ## Deprecated blocks
 

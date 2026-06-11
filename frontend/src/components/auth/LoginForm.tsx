@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import clsx from 'clsx'
+import { commerceClient } from '@/lib/commerce'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
+import { OtpCodeInput } from '@/components/auth/OtpCodeInput'
 import type { GeneralSettings } from '@/lib/cms/types'
 import { validateAccountField, type AccountFieldName, type FieldValidity } from '@/lib/auth/account-field-validation'
 import { useCountryToggleManualAddress } from '@/lib/address/useCountryToggleManualAddress'
@@ -41,27 +43,30 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type Mode = 'login' | 'register' | 'forgot'
+type Mode = 'login' | 'register'
 type RegisterStep = 1 | 2 | 3
+type LoginStep = 'email' | 'auth'
+type AuthMode = 'password' | 'otp'
 
 export function LoginForm({ settings }: LoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const returnTo = searchParams?.get('returnTo') ?? '/mijn-account'
-  const showForgot = searchParams?.get('forgot') === '1'
-  const { login, register } = useCustomer()
+  const { login, register, refresh } = useCustomer()
 
-  const [mode, setMode] = useState<Mode>(showForgot ? 'forgot' : 'login')
+  const [mode, setMode] = useState<Mode>('login')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // ── Login state
+  const [loginStep, setLoginStep] = useState<LoginStep>('email')
   const [loginEmail, setLoginEmail] = useState('')
+  const [hasPassword, setHasPassword] = useState(true)
+  const [authMode, setAuthMode] = useState<AuthMode>('password')
   const [loginPassword, setLoginPassword] = useState('')
-
-  // ── Forgot password state
-  const [forgotEmail, setForgotEmail] = useState('')
-  const [forgotSent, setForgotSent] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpResendCooldown, setOtpResendCooldown] = useState(0)
 
   // ── Register state
   const [regStep, setRegStep] = useState<RegisterStep>(1)
@@ -128,10 +133,68 @@ export function LoginForm({ settings }: LoginFormProps) {
 
   useCountryToggleManualAddress(country, setManualAddress)
 
+  useEffect(() => {
+    if (otpResendCooldown <= 0) return
+    const timer = window.setTimeout(() => {
+      setOtpResendCooldown((s) => Math.max(0, s - 1))
+    }, 1000)
+    return () => window.clearTimeout(timer)
+  }, [otpResendCooldown])
+
+  useEffect(() => {
+    if (mode !== 'login' || loginStep !== 'auth' || hasPassword || otpSent || busy) return
+    void sendLoginOtp()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, loginStep, hasPassword, otpSent, busy])
+
   function switchMode(next: 'login' | 'register') {
     setError(null)
     setRegStep(1)
+    setLoginStep('email')
+    setOtpCode('')
+    setOtpSent(false)
     setMode(next)
+  }
+
+  async function sendLoginOtp() {
+    setError(null)
+    setBusy(true)
+    try {
+      await commerceClient.requestOtp(loginEmail, 'login')
+      setAuthMode('otp')
+      setOtpSent(true)
+      setOtpResendCooldown(60)
+    } catch {
+      setError('Kon geen code versturen. Probeer het opnieuw.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleLoginEmailSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    if (!loginEmail.trim()) {
+      setError('Dit veld is verplicht.')
+      return
+    }
+    setBusy(true)
+    try {
+      const lookup = await commerceClient.customerLookup(loginEmail)
+      if (!lookup.exists) {
+        setError('We kennen dit e-mailadres nog niet. Maak een account aan.')
+        return
+      }
+      setHasPassword(lookup.hasPassword)
+      setAuthMode(lookup.hasPassword ? 'password' : 'otp')
+      setOtpSent(false)
+      setOtpCode('')
+      setLoginStep('auth')
+    } catch {
+      setError('Kon je e-mailadres niet controleren. Probeer het opnieuw.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   // ── Handlers
@@ -139,26 +202,35 @@ export function LoginForm({ settings }: LoginFormProps) {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!loginEmail.trim()) { setError('Dit veld is verplicht.'); return }
-    if (!loginPassword) { setError('Dit veld is verplicht.'); return }
     setBusy(true)
     try {
+      if (authMode === 'otp') {
+        if (!/^\d{6}$/.test(otpCode.trim())) {
+          setError('Vul je 6-cijferige verificatiecode in.')
+          return
+        }
+        await commerceClient.verifyOtp(loginEmail, otpCode.trim())
+        await refresh()
+        window.dispatchEvent(new Event('va:customer-updated'))
+        router.push(returnTo)
+        return
+      }
+
+      if (!loginPassword) {
+        setError('Dit veld is verplicht.')
+        return
+      }
       await login(loginEmail, loginPassword)
       router.push(returnTo)
     } catch {
-      setError('E-mailadres of wachtwoord is onjuist.')
+      setError(
+        authMode === 'otp'
+          ? 'De verificatiecode is onjuist of verlopen.'
+          : 'E-mailadres of wachtwoord is onjuist.'
+      )
     } finally {
       setBusy(false)
     }
-  }
-
-  async function handleForgot(e: React.FormEvent) {
-    e.preventDefault()
-    if (!forgotEmail.trim()) return
-    setBusy(true)
-    await new Promise((r) => setTimeout(r, 600))
-    setForgotSent(true)
-    setBusy(false)
   }
 
   function handleStep1Next(e: React.FormEvent) {
@@ -235,45 +307,6 @@ export function LoginForm({ settings }: LoginFormProps) {
     }
   }
 
-  // ── Forgot password view
-
-  if (mode === 'forgot') {
-    return (
-      <div className="max-w-sm space-y-6">
-        <h1 className="font-sans text-2xl font-bold text-va-black">
-          {settings.forgotPasswordHeading ?? 'Wachtwoord vergeten'}
-        </h1>
-        {forgotSent ? (
-          <p className="font-sans text-sm text-va-darkgray p-4 bg-va-lightgray-100">
-            {settings.forgotPasswordSuccess ?? 'Als dit e-mailadres bij ons bekend is, ontvang je een e-mail met een resetlink.'}
-          </p>
-        ) : (
-          <form onSubmit={handleForgot} noValidate className="space-y-4">
-            <div>
-              <label className="block font-sans text-sm font-medium text-va-black mb-1" htmlFor="forgot-email">
-                {settings.forgotPasswordEmailLabel ?? 'E-mailadres'}
-              </label>
-              <input
-                id="forgot-email"
-                type="email"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                className="w-full border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black"
-                disabled={busy}
-              />
-            </div>
-            <button type="submit" disabled={busy} className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60">
-              {busy ? '…' : (settings.forgotPasswordCtaLabel ?? 'Verstuur link')}
-            </button>
-          </form>
-        )}
-        <button type="button" onClick={() => { setError(null); setMode('login') }} className="font-sans text-xs text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors">
-          Terug naar inloggen
-        </button>
-      </div>
-    )
-  }
-
   // ── Login / register view
 
   return (
@@ -298,10 +331,10 @@ export function LoginForm({ settings }: LoginFormProps) {
       </div>
 
       {/* ── Login */}
-      {mode === 'login' && (
+      {mode === 'login' && loginStep === 'email' && (
         <>
           {settings.loginIntro && <p className="font-sans text-sm text-va-darkgray">{settings.loginIntro}</p>}
-          <form onSubmit={handleLogin} noValidate className="space-y-4">
+          <form onSubmit={handleLoginEmailSubmit} noValidate className="space-y-4">
             <div>
               <label className="block font-sans text-sm font-medium text-va-black mb-1" htmlFor="login-email">
                 {settings.emailLabel ?? 'E-mailadres'}
@@ -312,26 +345,91 @@ export function LoginForm({ settings }: LoginFormProps) {
                 className="w-full border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black"
                 disabled={busy}
               />
-            </div>
-            <div>
-              <label className="block font-sans text-sm font-medium text-va-black mb-1" htmlFor="login-password">
-                {settings.passwordLabel ?? 'Wachtwoord'}
-              </label>
-              <input
-                id="login-password" type="password" autoComplete="current-password"
-                value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black"
-                disabled={busy}
-              />
               {error && <p className="font-sans text-xs text-red-600 mt-1">{error}</p>}
             </div>
+            <button type="submit" disabled={busy} className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60">
+              {busy ? '…' : 'Volgende'}
+            </button>
+          </form>
+        </>
+      )}
+
+      {mode === 'login' && loginStep === 'auth' && (
+        <>
+          <p className="font-sans text-sm text-va-darkgray">{loginEmail}</p>
+          {authMode === 'otp' && otpSent && (
+            <p className="font-sans text-sm text-va-darkgray">
+              Er is een eenmalig wachtwoord verstuurd naar je e-mailadres.
+            </p>
+          )}
+          <form onSubmit={handleLogin} noValidate className="space-y-4">
+            {authMode === 'password' && (
+              <div>
+                <label className="block font-sans text-sm font-medium text-va-black mb-1" htmlFor="login-password">
+                  {settings.passwordLabel ?? 'Wachtwoord'}
+                </label>
+                <input
+                  id="login-password" type="password" autoComplete="current-password"
+                  value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black"
+                  disabled={busy}
+                />
+              </div>
+            )}
+            {authMode === 'otp' && (
+              <OtpCodeInput
+                label="Verificatiecode"
+                value={otpCode}
+                onChange={setOtpCode}
+                disabled={busy}
+                onResend={() => void sendLoginOtp()}
+                resendDisabled={busy || otpResendCooldown > 0}
+                resendCooldownSeconds={otpResendCooldown}
+              />
+            )}
+            {error && <p className="font-sans text-xs text-red-600">{error}</p>}
             <button type="submit" disabled={busy} className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60">
               {busy ? '…' : (settings.loginCtaLabel ?? 'Inloggen')}
             </button>
           </form>
-          <button type="button" onClick={() => { setError(null); setMode('forgot') }} className="font-sans text-xs text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors">
-            {settings.forgotPasswordLabel ?? 'Wachtwoord vergeten?'}
-          </button>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 font-sans text-xs">
+            {hasPassword && authMode === 'password' && (
+              <button
+                type="button"
+                onClick={() => void sendLoginOtp()}
+                disabled={busy}
+                className="text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors disabled:opacity-60"
+              >
+                Eenmalig wachtwoord sturen
+              </button>
+            )}
+            {hasPassword && authMode === 'otp' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('password')
+                  setOtpCode('')
+                  setError(null)
+                }}
+                disabled={busy}
+                className="text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors disabled:opacity-60"
+              >
+                Wachtwoord gebruiken
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setLoginStep('email')
+                setError(null)
+                setOtpCode('')
+                setOtpSent(false)
+              }}
+              className="text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors"
+            >
+              Terug
+            </button>
+          </div>
         </>
       )}
 

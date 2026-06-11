@@ -29,11 +29,11 @@ export function ReviewBlock({ block }: { block: ReviewBlockType }) {
         'relative rounded-none border border-va-lightgray-300 border-b-[6px] border-b-va-yellow bg-va-yellow-50',
         'shadow-md',
         'px-6 py-6 md:px-8 md:py-8',
-        'before:pointer-events-none before:absolute before:left-4 before:top-4 before:font-serif before:text-5xl before:leading-none before:text-va-yellow/35 before:content-["“"] md:before:left-6 md:before:top-5 md:before:text-6xl',
+        'before:pointer-events-none before:absolute before:left-4 before:top-4 before:font-sans before:text-5xl before:leading-none before:text-va-yellow/35 before:content-["“"] md:before:left-6 md:before:top-5 md:before:text-6xl',
         'pt-10 md:pt-12'
       )}
     >
-      <p className="font-serif text-va-darkgray mb-4 text-pretty relative z-[1]">&ldquo;{review.quote}&rdquo;</p>
+      <p className="font-sans text-va-darkgray mb-4 text-pretty relative z-[1]">&ldquo;{review.quote}&rdquo;</p>
       <footer className="flex flex-wrap items-center gap-3 gap-y-1 relative z-[1]">
         {review.starRating != null && (
           <span className="flex gap-0.5 text-va-yellow" aria-hidden>
@@ -115,7 +115,7 @@ export function ReviewBlock({ block }: { block: ReviewBlockType }) {
             >
               <p className="text-4xl md:text-5xl font-bold text-va-yellow leading-none tabular-nums">{block.ratingValue}</p>
               {block.ratingLabel && (
-                <p className="mt-2 font-serif text-va-black text-sm md:text-base leading-snug">{block.ratingLabel}</p>
+                <p className="mt-2 font-sans text-va-black text-sm md:text-base leading-snug">{block.ratingLabel}</p>
               )}
             </div>
           )}

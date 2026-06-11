@@ -86,7 +86,7 @@ export function UspBlock({ block }: { block: UspBlockType }) {
                   aria-hidden
                 />
                 {description && description.length > 0 && (
-                  <div className="font-serif text-va-darkgray mb-2 [&_p:last-child]:!mb-0">
+                  <div className="font-sans text-va-darkgray mb-2 [&_p:last-child]:!mb-0">
                     <PortableText value={description} />
                   </div>
                 )}

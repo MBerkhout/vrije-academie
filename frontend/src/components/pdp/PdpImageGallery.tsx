@@ -12,7 +12,7 @@ interface PdpImageGalleryProps {
 }
 
 const TILE_CLASS =
-  'relative aspect-[3/2] w-[calc(50%-3px)] overflow-hidden rounded-none bg-va-lightgray sm:w-[calc(25%-5px)] md:h-[180px] md:w-[270px] md:flex-none md:aspect-auto'
+  'relative aspect-[3/2] w-full overflow-hidden rounded-none bg-va-lightgray'
 
 /** Compact artwork gallery for the PDP — side-by-side thumbnails with optional info captions. */
 export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
@@ -39,7 +39,7 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
   if (images.length === 0) return null
 
   return (
-    <div ref={galleryRef} className="flex flex-wrap gap-1.5">
+    <div ref={galleryRef} className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 md:gap-5">
       {images.map((image, i) => {
         const hasCaption = Boolean(image.caption?.trim())
         const isOpen = openIndex === i
@@ -51,7 +51,7 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
               alt={`${title} ${i + 1}`}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 50vw, 270px"
+              sizes="(max-width: 640px) 50vw, 25vw"
               priority={i === 0}
             />
 
@@ -62,7 +62,7 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
                   aria-label={`Informatie bij afbeelding ${i + 1}`}
                   aria-expanded={isOpen}
                   onClick={() => setOpenIndex(isOpen ? null : i)}
-                  className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] font-serif font-bold leading-none text-va-black shadow-sm transition-colors hover:bg-va-yellow"
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] font-sans font-bold leading-none text-va-black shadow-sm transition-colors hover:bg-va-yellow"
                 >
                   i
                 </button>

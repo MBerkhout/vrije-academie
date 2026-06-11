@@ -9,6 +9,7 @@ import { DELIVERY_TYPES } from "../types"
  * `start_at` / `end_at` — session datetime (timestamptz, nullable).
  * `city`                 — city display label for offline sessions (nullable).
  * `city_slug`            — canonical catalog_city slug (nullable).
+ * `location_name`        — venue / location label from Salesforce `Product_Location_Name__c` (nullable).
  * `day_part`             — ochtend / middag / avond, derived in the API from start_at hour.
  */
 export const EventItem = model.define("event_item", {
@@ -19,6 +20,7 @@ export const EventItem = model.define("event_item", {
   end_at: model.dateTime().nullable(),
   city: model.text().nullable(),
   city_slug: model.text().nullable(),
+  location_name: model.text().nullable(),
   registration_deadline_at: model.dateTime().nullable(),
   is_free_trial: model.boolean().default(false),
   /** Display name from Salesforce child `Account_Teacher__c` / `Main_Teacher_Name__c` (per variant). */

@@ -55,8 +55,17 @@ const SECTION_LABELS: Record<SearchSuggestion['kind'], string> = {
 }
 
 function flatSuggestions(result: SearchSuggestionsResult): SearchSuggestion[] {
-  return [...result.products, ...result.categories, ...result.places, ...result.pages]
+  return [...result.categories, ...result.products, ...result.places, ...result.pages]
 }
+
+const SUGGEST_SECTION_ORDER = [
+  ['category', 'categories'],
+  ['product', 'products'],
+  ['place', 'places'],
+  ['page', 'pages'],
+] as const satisfies ReadonlyArray<
+  [SearchSuggestion['kind'], keyof SearchSuggestionsResult]
+>
 
 function SuggestionRow({
   item,
@@ -113,7 +122,7 @@ function SuggestionRow({
 export function QuickSearch({
   open,
   onClose,
-  placeholder = 'Zoek',
+  placeholder = 'Waar ben je naar op zoek?',
   popularSearches: popularSearchesProp,
   submitBasePath = '/zoeken',
   initialQuery = '',
@@ -224,7 +233,7 @@ export function QuickSearch({
             <label htmlFor={fieldId} className="sr-only">
               Zoeken
             </label>
-            <div className="relative flex min-w-0 flex-1 items-center border border-va-yellow border-r-0 bg-white">
+            <div className="relative flex min-w-0 flex-1 items-center rounded-l-lg border border-va-yellow border-r-0 bg-white">
               <IconSearch className="pointer-events-none absolute left-4 h-5 w-5 text-va-gray sm:left-5 sm:h-6 sm:w-6" />
               <input
                 ref={inputRef}
@@ -237,7 +246,7 @@ export function QuickSearch({
                 placeholder={placeholder}
                 autoComplete="off"
                 className={clsx(
-                  'min-w-0 flex-1 rounded-none border-0 bg-transparent py-3 pl-12 pr-4 sm:py-4 sm:pl-14',
+                  'min-w-0 flex-1 rounded-l-lg border-0 bg-transparent py-3 pl-12 pr-4 sm:py-4 sm:pl-14',
                   'font-sans text-base text-va-black placeholder:text-va-gray',
                   'outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-va-yellow'
                 )}
@@ -246,7 +255,7 @@ export function QuickSearch({
             <button
               type="submit"
               className={clsx(
-                'shrink-0 border border-va-yellow bg-va-yellow px-4 sm:px-6 py-3 sm:py-4',
+                'shrink-0 rounded-r-lg border border-va-yellow bg-va-yellow px-4 sm:px-6 py-3 sm:py-4',
                 'font-sans text-sm font-semibold text-va-black',
                 'transition-[background-color] hover:bg-va-yellow-600 active:bg-va-yellow-700',
                 'outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2'
@@ -280,14 +289,8 @@ export function QuickSearch({
 
           {showSuggestions ? (
             <div className="space-y-8">
-              {(
-                [
-                  ['product', suggestions.products],
-                  ['category', suggestions.categories],
-                  ['place', suggestions.places],
-                  ['page', suggestions.pages],
-                ] as const
-              ).map(([kind, items]) => {
+              {SUGGEST_SECTION_ORDER.map(([kind, key]) => {
+                const items = suggestions[key]
                 if (!items.length) return null
                 const startIndex = rowOffset
                 rowOffset += items.length

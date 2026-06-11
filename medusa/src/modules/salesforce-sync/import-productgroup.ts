@@ -43,7 +43,7 @@ import { shouldImportProductgroup } from "./utils/future-import-guard"
 import { syncProductById } from "../sanity-sync/sync-product-by-id"
 import {
   linkDocentFromSalesforce,
-  resolveTeacherFromProductgroup,
+  resolveInstructorFromChild,
 } from "./utils/link-docent-from-salesforce"
 import { buildVathuisMetadata } from "./utils/vathuis-metadata"
 
@@ -196,10 +196,11 @@ async function upsertEventItemForVariant(
     ? await applyCityToEventItemPatch(catalog, child.Product_City__c)
     : { city: null, city_slug: null }
 
-  const teacher = resolveTeacherFromProductgroup(group, child)
+  const instructor = resolveInstructorFromChild(group, child)
+  const locationName = child.Product_Location_Name__c?.trim() || null
   const instructorPatch = {
-    instructor_name: teacher.name,
-    instructor_salesforce_id: teacher.salesforceId,
+    instructor_name: instructor.name,
+    instructor_salesforce_id: instructor.salesforceId,
   }
 
   const { data: existing } = await query.graph({
@@ -218,6 +219,7 @@ async function upsertEventItemForVariant(
       end_at: endAt,
       city: cityFields.city,
       city_slug: cityFields.city_slug,
+      location_name: locationName,
       is_free_trial: !!child.Free_Product__c,
       ...instructorPatch,
     })
@@ -229,6 +231,7 @@ async function upsertEventItemForVariant(
       end_at: endAt,
       city: cityFields.city,
       city_slug: cityFields.city_slug,
+      location_name: locationName,
       is_free_trial: !!child.Free_Product__c,
       ...instructorPatch,
     })
@@ -536,6 +539,11 @@ export async function importProductgroupFromSalesforce(
   }
 
   await syncProductById(productId, container).catch(() => undefined)
+
+  const search = container.resolve("search") as import("../search/service").default
+  if (search.isEnabled()) {
+    await search.reindexProductById(container, productId).catch(() => undefined)
+  }
 
   return { medusaId: productId, created, updated, variantIds }
 }

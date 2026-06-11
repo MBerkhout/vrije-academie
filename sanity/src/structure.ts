@@ -14,7 +14,7 @@ const CONTENT_BLOCK_TYPES = [
   "formBlock",
   "demandNearbyBlock",
   "heroBlock",
-  "featuredTripBlock",
+  "productRowBlock",
   "categoriesBlock",
   "uspBlock",
   "reviewBlock",

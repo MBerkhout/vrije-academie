@@ -27,7 +27,7 @@ export function PlpBanner({ banner }: { banner: BannerData }) {
       )}
       <div className="relative max-w-[1240px] mx-auto px-4 md:px-8 py-12 flex flex-col gap-3">
         {banner.title && (
-          <h2 className="font-serif text-2xl md:text-3xl text-va-black font-bold">
+          <h2 className="font-sans text-2xl md:text-3xl text-va-black font-bold">
             {banner.title}
           </h2>
         )}

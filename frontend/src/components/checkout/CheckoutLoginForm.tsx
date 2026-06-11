@@ -41,6 +41,7 @@ import { CheckoutGuestDetailsStep } from '@/components/checkout/login/CheckoutGu
 type CheckoutSettings = NonNullable<GeneralSettings['checkout']>
 
 type State = 'email' | 'known' | 'unknown' | 'loading' | 'logged_in_details'
+type AuthMode = 'password' | 'otp'
 
 interface CheckoutLoginFormProps {
   settings: CheckoutSettings
@@ -53,7 +54,12 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   const { customer, refresh, logout, loading: customerLoading } = useCustomer()
   const [state, setState] = useState<State>('email')
   const [email, setEmail] = useState('')
+  const [hasPassword, setHasPassword] = useState(true)
+  const [authMode, setAuthMode] = useState<AuthMode>('password')
   const [password, setPassword] = useState('')
+  const [otpCode, setOtpCode] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpResendCooldown, setOtpResendCooldown] = useState(0)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
@@ -62,15 +68,39 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   const [postalCode, setPostalCode] = useState('')
   const [city, setCity] = useState('')
   const [country, setCountry] = useState('NL')
-  const [createAccount, setCreateAccount] = useState(false)
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [newsletterOptIn, setNewsletterOptIn] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [manualAddress, setManualAddress] = useState(false)
   const [validity, setValidity] = useState<CheckoutGuestValidity>(() => initialCheckoutGuestValidity())
   const [bootstrapping, setBootstrapping] = useState(true)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = sessionStorage.getItem('va_checkout_newsletter')
+      if (!raw) return
+      const parsed = JSON.parse(raw) as { optIn?: boolean }
+      if (typeof parsed?.optIn === 'boolean') setNewsletterOptIn(parsed.optIn)
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  useEffect(() => {
+    if (otpResendCooldown <= 0) return
+    const timer = window.setTimeout(() => {
+      setOtpResendCooldown((s) => Math.max(0, s - 1))
+    }, 1000)
+    return () => window.clearTimeout(timer)
+  }, [otpResendCooldown])
+
+  useEffect(() => {
+    if (state !== 'known' || hasPassword || otpSent || busy) return
+    void sendOtp()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-send once when passwordless known email
+  }, [state, hasPassword, otpSent, busy])
 
   const { addressLookup } = usePdokAddressLookup({
     postalCode,
@@ -101,8 +131,6 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     const opts =
       name === 'password'
         ? { ...extra, passwordRequirement: 'login' as const }
-        : name === 'confirmPassword'
-          ? { password: extra?.password ?? newPassword }
           : extra
     setValidity((prev) => ({ ...prev, [name]: validateAccountField(name, value, opts) }))
   }
@@ -233,10 +261,18 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
 
         setEmail(cart.email)
         try {
-          const exists = await commerceClient.customerExists(cart.email)
+          const lookup = await commerceClient.customerLookup(cart.email)
           if (cancelled) return
           prefillFromCart(cart)
-          setState(exists ? 'known' : 'unknown')
+          if (lookup.exists) {
+            setHasPassword(lookup.hasPassword)
+            setAuthMode(lookup.hasPassword ? 'password' : 'otp')
+            setOtpSent(false)
+            setOtpCode('')
+            setState('known')
+          } else {
+            setState('unknown')
+          }
         } catch {
           if (!cancelled) {
             prefillFromCart(cart)
@@ -272,9 +308,12 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
       setCity('')
       setCountry('NL')
       setManualAddress(false)
-      setCreateAccount(false)
-      setNewPassword('')
-      setConfirmPassword('')
+      setNewsletterOptIn(true)
+      setHasPassword(true)
+      setAuthMode('password')
+      setOtpCode('')
+      setOtpSent(false)
+      setOtpResendCooldown(0)
       setValidity(initialCheckoutGuestValidity())
     } catch {
       showToast('Uitloggen mislukt. Probeer het opnieuw.')
@@ -304,8 +343,16 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     setBusy(true)
     setState('loading')
     try {
-      const exists = await commerceClient.customerExists(email)
-      setState(exists ? 'known' : 'unknown')
+      const lookup = await commerceClient.customerLookup(email)
+      if (lookup.exists) {
+        setHasPassword(lookup.hasPassword)
+        setAuthMode(lookup.hasPassword ? 'password' : 'otp')
+        setOtpSent(false)
+        setOtpCode('')
+        setState('known')
+      } else {
+        setState('unknown')
+      }
     } catch {
       setState('email')
       showToast(
@@ -316,35 +363,72 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     }
   }
 
+  async function sendOtp() {
+    setError(null)
+    setBusy(true)
+    try {
+      await commerceClient.requestOtp(email, 'login')
+      setAuthMode('otp')
+      setOtpSent(true)
+      setOtpResendCooldown(60)
+    } catch (err) {
+      if (err instanceof Error && err.message === 'OTP_RATE_LIMIT') {
+        showToast('Te veel codes aangevraagd. Probeer het later opnieuw.')
+      } else {
+        showToast('Kon geen code versturen. Probeer het opnieuw.')
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function continueAfterAuth() {
+    await refresh()
+    await associateCart(email)
+    window.dispatchEvent(new Event('va:customer-updated'))
+    const fresh = await commerceClient.getCustomer()
+    if (!fresh) {
+      setError('Kon je account niet laden. Probeer het opnieuw.')
+      return
+    }
+    if (isCustomerProfileComplete(fresh)) {
+      const cartId = await ensureCart()
+      await commerceClient.syncCartFromCustomer(fresh, cartId)
+      router.push('/checkout/betaling')
+    } else {
+      prefillFromCustomer(fresh)
+      setEmail(fresh.email)
+      setState('logged_in_details')
+    }
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!password) {
-      setError('Vul je wachtwoord in.')
-      return
-    }
     setBusy(true)
     try {
-      await commerceClient.login(email, password)
-      await refresh()
-      await associateCart(email)
-      window.dispatchEvent(new Event('va:customer-updated'))
-      const fresh = await commerceClient.getCustomer()
-      if (!fresh) {
-        setError('Kon je account niet laden. Probeer het opnieuw.')
+      if (authMode === 'otp') {
+        if (!/^\d{6}$/.test(otpCode.trim())) {
+          setError('Vul je 6-cijferige verificatiecode in.')
+          return
+        }
+        await commerceClient.verifyOtp(email, otpCode.trim())
+        await continueAfterAuth()
         return
       }
-      if (isCustomerProfileComplete(fresh)) {
-        const cartId = await ensureCart()
-        await commerceClient.syncCartFromCustomer(fresh, cartId)
-        router.push('/checkout/betaling')
-      } else {
-        prefillFromCustomer(fresh)
-        setEmail(fresh.email)
-        setState('logged_in_details')
+
+      if (!password) {
+        setError('Vul je wachtwoord in.')
+        return
       }
+      await commerceClient.login(email, password)
+      await continueAfterAuth()
     } catch {
-      setError('Wachtwoord is onjuist. Probeer het opnieuw of kies een andere optie.')
+      setError(
+        authMode === 'otp'
+          ? 'De verificatiecode is onjuist of verlopen. Probeer het opnieuw.'
+          : 'Wachtwoord is onjuist. Probeer het opnieuw of gebruik een eenmalig wachtwoord.'
+      )
     } finally {
       setBusy(false)
     }
@@ -373,58 +457,29 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
       setError('Stad kon niet worden bepaald. Vul het handmatig in.')
       return
     }
-    if (createAccount) {
-      if (newPassword.length < 8) {
-        setError('Wachtwoord moet minimaal 8 tekens bevatten.')
-        return
-      }
-      if (newPassword !== confirmPassword) {
-        setError('Wachtwoorden komen niet overeen.')
-        return
-      }
-    }
     setBusy(true)
     try {
-      const cartId = await ensureCart()
-      const updated = await commerceClient.updateCart(cartId, {
+      sessionStorage.setItem(
+        'va_checkout_newsletter',
+        JSON.stringify({ optIn: newsletterOptIn })
+      )
+      sessionStorage.removeItem('va_checkout_register')
+
+      await commerceClient.registerPasswordless({
         email,
-        shipping_address: {
-          first_name: firstName,
-          last_name: lastName,
-          phone: phone || undefined,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone: phone.trim() || undefined,
+        address: {
           address_1: `${street} ${houseNumber}`.trim(),
           postal_code: postalCode,
           city,
           country_code: country.toLowerCase(),
+          phone: phone.trim() || undefined,
         },
       })
-      const draft =
-        draftFromCart(updated) ??
-        buildCheckoutDraft({
-          email,
-          firstName,
-          lastName,
-          phone,
-          street,
-          houseNumber,
-          postalCode,
-          city,
-          country,
-        })
-      saveCheckoutDraft(draft)
-      if (createAccount) {
-        sessionStorage.setItem(
-          'va_checkout_register',
-          JSON.stringify({
-            email,
-            password: newPassword,
-            first_name: firstName,
-            last_name: lastName,
-            phone: phone || undefined,
-          })
-        )
-      }
-      router.push('/checkout/betaling')
+      await refresh()
+      await continueAfterAuth()
     } catch {
       setError('Er is iets misgegaan. Probeer het opnieuw.')
     } finally {
@@ -554,27 +609,57 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           settings={settings}
           knownHeading={knownHeading}
           email={email}
+          hasPassword={hasPassword}
+          authMode={authMode}
           password={password}
+          otpCode={otpCode}
+          otpSent={otpSent}
+          otpResendCooldown={otpResendCooldown}
           onPasswordChange={(v) => {
             setPassword(v)
             resetValidity('password')
             setError(null)
           }}
+          onOtpCodeChange={(v) => {
+            setOtpCode(v)
+            setError(null)
+          }}
           onBlurPassword={() => blurField('password', password)}
+          onBlurOtp={() =>
+            setValidity((prev) => ({
+              ...prev,
+              password:
+                /^\d{6}$/.test(otpCode.trim())
+                  ? { state: 'valid' }
+                  : otpCode.trim()
+                    ? { state: 'invalid', message: 'Code moet 6 cijfers zijn' }
+                    : { state: 'idle' },
+            }))
+          }
           passwordValidity={validity.password}
+          otpValidity={validity.password}
           error={error}
           busy={busy}
           onSubmit={handleLogin}
           onEditEmail={() => {
             setState('email')
             setError(null)
+            setOtpCode('')
+            setOtpSent(false)
           }}
           onBackToEmail={() => {
             setState('email')
             setError(null)
+            setOtpCode('')
+            setOtpSent(false)
           }}
-          onGuestContinue={() => setState('unknown')}
-          showToast={showToast}
+          onSendOtp={() => void sendOtp()}
+          onResendOtp={() => void sendOtp()}
+          onSwitchToPassword={() => {
+            setAuthMode('password')
+            setOtpCode('')
+            setError(null)
+          }}
         />
       )}
 
@@ -582,7 +667,6 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
         <CheckoutGuestDetailsStep
           settings={settings}
           unknownHeading={unknownHeading}
-          showCreateAccountOption={state !== 'logged_in_details'}
           email={email}
           firstName={firstName}
           lastName={lastName}
@@ -592,9 +676,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           postalCode={postalCode}
           city={city}
           country={country}
-          createAccount={createAccount}
-          newPassword={newPassword}
-          confirmPassword={confirmPassword}
+          newsletterOptIn={newsletterOptIn}
           busy={busy}
           error={error}
           addressLookup={addressLookup}
@@ -616,9 +698,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           onStreetChange={setStreet}
           onCityChange={setCity}
           onCountryChange={setCountry}
-          onCreateAccountChange={setCreateAccount}
-          onNewPasswordChange={setNewPassword}
-          onConfirmPasswordChange={setConfirmPassword}
+          onNewsletterOptInChange={setNewsletterOptIn}
           onManualAddress={setManualAddress}
           blur={blurField}
           reset={resetValidity}

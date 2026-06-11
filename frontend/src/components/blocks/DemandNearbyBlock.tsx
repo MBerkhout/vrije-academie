@@ -57,7 +57,7 @@ export function DemandNearbyBlock({ block }: { block: DemandNearbyBlockType }) {
             {headingText}
           </TitleTag>
           {block.introText && block.introText.length > 0 && (
-            <div className="mb-6 text-center font-serif text-va-darkgray md:mb-8 [&_p]:text-pretty">
+            <div className="mb-6 text-center font-sans text-va-darkgray md:mb-8 [&_p]:text-pretty">
               <PortableText value={block.introText} />
             </div>
           )}

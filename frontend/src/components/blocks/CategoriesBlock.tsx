@@ -119,9 +119,9 @@ export function CategoriesBlock({ block }: { block: CategoriesBlockType }) {
                 key={i}
                 href={url}
                 className={cn(
-                  'group flex min-h-[90px] flex-row items-stretch rounded-none',
+                  'group flex min-h-[90px] flex-row items-stretch rounded-lg',
                   'border border-va-lightgray bg-white',
-                  'shadow-sm hover:shadow-md hover:border-va-black/25',
+                  'shadow hover:shadow-md hover:border-va-black/25',
                   'transition-[box-shadow,border-color] duration-200',
                   'outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2',
                 )}
@@ -153,7 +153,7 @@ export function CategoriesBlock({ block }: { block: CategoriesBlockType }) {
                   </span>
                 </div>
                 {image ? (
-                  <div className="relative w-[75px] shrink-0 self-stretch overflow-hidden bg-va-lightgray">
+                  <div className="relative w-[75px] shrink-0 self-stretch overflow-hidden rounded-r-lg bg-va-lightgray">
                     <SanityImage
                       source={image}
                       fill

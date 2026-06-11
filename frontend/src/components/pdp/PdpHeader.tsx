@@ -63,7 +63,7 @@ export function PdpHeader({ title, onlineBadge, recordType, categories, shareLab
       </div>
 
       <div className="flex items-start justify-between gap-4">
-        <h1 className="font-serif text-2xl md:text-4xl font-bold text-va-black leading-tight">
+        <h1 className="font-sans text-2xl md:text-4xl font-bold text-va-black leading-tight">
           {title}
         </h1>
         <button

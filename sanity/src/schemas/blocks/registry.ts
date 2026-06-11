@@ -5,7 +5,7 @@ import { columnsBlock, surfaces as columnsSurfaces } from "./columns"
 import { demandNearbyBlock, surfaces as demandNearbySurfaces } from "./demandNearby"
 import { editorialCardsBlock, surfaces as editorialCardsSurfaces } from "./editorialCards"
 import { eventList, surfaces as eventListSurfaces } from "./eventList"
-import { featuredTripBlock, surfaces as featuredTripSurfaces } from "./featuredTrip"
+import { productRowBlock, surfaces as productRowSurfaces } from "./productRow"
 import { giftCardBlock, surfaces as giftCardSurfaces } from "./giftCard"
 import { formBlock, surfaces as formSurfaces } from "./form"
 import { heroBlock, surfaces as heroSurfaces } from "./hero"
@@ -29,7 +29,7 @@ const BLOCK_MODULES: { schema: { name: string }; surfaces: readonly string[] }[]
   { schema: formBlock, surfaces: formSurfaces },
   { schema: demandNearbyBlock, surfaces: demandNearbySurfaces },
   { schema: heroBlock, surfaces: heroSurfaces },
-  { schema: featuredTripBlock, surfaces: featuredTripSurfaces },
+  { schema: productRowBlock, surfaces: productRowSurfaces },
   { schema: categoriesBlock, surfaces: categoriesSurfaces },
   { schema: uspBlock, surfaces: uspSurfaces },
   { schema: reviewBlock, surfaces: reviewSurfaces },

@@ -48,12 +48,9 @@ function sessionCityLabel(ei: EventVariant['event_item']): string {
   return ei?.city ?? (ei?.delivery_type === 'online' ? 'Online' : '—')
 }
 
-/** Variant title when it adds detail beyond the city label (e.g. venue name). */
-function sessionVenueLine(variant: EventVariant): string | null {
-  const city = sessionCityLabel(variant.event_item)
-  const title = variant.title?.trim()
-  if (!title || title === city) return null
-  return title
+/** Venue / location line from Salesforce `Product_Location_Name__c`. */
+function sessionVenueLine(ei: EventVariant['event_item']): string | null {
+  return ei?.location_name?.trim() || null
 }
 
 function minVariantPrice(variant: EventVariant): number | null {
@@ -112,7 +109,7 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
   if (cities.length === 0) {
     return (
       <section id="sessies" className="py-8">
-        <h2 className="font-serif text-2xl font-bold text-va-black mb-4">{sessionsHeading}</h2>
+        <h2 className="font-sans text-2xl font-bold text-va-black mb-4">{sessionsHeading}</h2>
         <p className="text-va-gray">{noSessionsMessage}</p>
       </section>
     )
@@ -166,7 +163,7 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
 
   return (
     <section id="sessies" className="py-8" ref={sessionsRef}>
-      <h2 className="font-serif text-2xl font-bold text-va-black mb-4">{sessionsHeading}</h2>
+      <h2 className="font-sans text-2xl font-bold text-va-black mb-4">{sessionsHeading}</h2>
 
       {/* City tabs */}
       {cities.length > 1 && (
@@ -201,7 +198,7 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
           const availability = sessionTableAvailabilityPresentation(qty, threshold)
           const price = minVariantPrice(variant)
           const city = sessionCityLabel(ei)
-          const venue = sessionVenueLine(variant)
+          const venue = sessionVenueLine(ei)
           const instructor =
             ei?.instructor_name?.trim() || instructors[0]?.name?.trim() || null
 
@@ -283,7 +280,12 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
                   key={variant.id}
                   className="border-b border-va-lightgray/60 hover:bg-va-lightgray/20 transition-colors"
                 >
-                  <td className="py-4 pr-4 align-middle text-va-gray">{sessionCityLabel(ei)}</td>
+                  <td className="py-4 pr-4 align-middle text-va-gray">
+                    <div>{sessionCityLabel(ei)}</div>
+                    {sessionVenueLine(ei) ? (
+                      <div className="text-xs mt-0.5">{sessionVenueLine(ei)}</div>
+                    ) : null}
+                  </td>
                   {showDate && (
                     <td className="py-4 pr-4 align-middle">
                       {ei?.start_at ? formatDateWeekdayLong(ei.start_at) : '—'}

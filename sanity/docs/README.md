@@ -136,7 +136,7 @@ The `generalSettings` document contains:
   - **Main menu**: Full navigation (desktop row + mobile drawer), e.g. Home, Ons aanbod, Agenda, VAthuis, Over ons, Vragen?, Cadeaubon. Use internal paths (e.g. `/agenda`) or **External Link** for outbound URLs.
   - **Top utility menu (desktop)**: Text links top-right, e.g. Huis Vasari, Login, Winkelwagen. The cart item count badge appears next to the link whose URL matches **Cart URL**.
   - **Mobile quick bar (3 items)**: Yellow bar on small screens only, e.g. Ons aanbod, VA Thuis, Login.
-  - **Search placeholder**: Desktop search field and mobile search overlay (default “Zoek”).
+  - **Search placeholder**: Desktop search field and mobile search overlay (default “Waar ben je naar op zoek?”).
   - **Vaak gezocht**: Optional shortcuts (label + internal or external link) listed under the search field in the search overlay; submit runs on **Enter** (no separate Zoek button).
   - **Cart URL**: Path for cart icon + badge matching (default `/winkelwagen`).
   - **Sticky header**: Optional `position: sticky` behavior.

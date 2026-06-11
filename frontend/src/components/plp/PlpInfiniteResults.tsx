@@ -125,19 +125,12 @@ export function PlpInfiniteResultsCount({ className }: { className?: string }) {
   )
 }
 
-export function PlpInfiniteResultsGrid({
-  stockThreshold,
-  filterState,
-}: {
-  stockThreshold: number
-  filterState?: PlpFilterState
-}) {
+export function PlpInfiniteResultsGrid({ stockThreshold }: { stockThreshold: number }) {
   const { events } = usePlpInfiniteResults()
   return (
     <PlpResultsGrid
       events={events}
       stockThreshold={stockThreshold}
-      filterState={filterState}
     />
   )
 }

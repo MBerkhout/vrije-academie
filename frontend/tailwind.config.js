@@ -14,7 +14,6 @@ export default {
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'sans-serif'],
-        serif: ['var(--font-serif)', 'Georgia', 'serif'],
       },
       keyframes: {
         'va-header-drawer': {

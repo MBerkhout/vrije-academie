@@ -35,7 +35,7 @@ export default async function SlugPage({ params }: PageProps) {
         })
       ) : (
         <div className={CONTAINER_CLASS}>
-          <p className="font-serif text-va-darkgray">
+          <p className="font-sans text-va-darkgray">
             Geen inhoud op deze pagina. Voeg blokken toe in Sanity en publiceer de pagina.
           </p>
         </div>

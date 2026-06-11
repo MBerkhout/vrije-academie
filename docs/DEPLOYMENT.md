@@ -99,6 +99,22 @@ Medusa requires PostgreSQL and (recommended) Redis on the server or reachable fr
 
 - `DATABASE_URL` — PostgreSQL connection string
 - `REDIS_URL` — Redis connection string (enables workflow engine)
+- **OpenSearch** (unified site + PLP search) — self-hosted or managed node reachable from Medusa
+
+| Variable | Description |
+|----------|-------------|
+| `OPENSEARCH_NODE` | OpenSearch URL, e.g. `https://search.internal:9200` |
+| `OPENSEARCH_USERNAME` / `OPENSEARCH_PASSWORD` | Optional basic auth |
+| `SEARCH_INDEX` | Index name (default `va-search`) |
+| `SANITY_SEARCH_WEBHOOK_SECRET` | Secret for `POST /hooks/sanity-search` (Sanity page/person indexing) |
+
+After first deploy with OpenSearch configured, run a full index build on the server:
+
+```bash
+cd ~/app/medusa && npm run search:reindex
+```
+
+See [`medusa/docs/SEARCH.md`](../medusa/docs/SEARCH.md). Local stack: `medusa/start-db.sh` (Postgres) + `medusa/docker-compose.yml` (Redis + OpenSearch).
 
 Run migrations on first deploy or manually:
 

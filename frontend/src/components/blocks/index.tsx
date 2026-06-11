@@ -11,7 +11,8 @@ import { TabsBlock } from './TabsBlock'
 import { FormBlock } from './FormBlock'
 import { DemandNearbyBlock } from './DemandNearbyBlock'
 import { HeroBlock } from './HeroBlock'
-import { FeaturedTripBlock } from './FeaturedTripBlock'
+import { ProductRowBlock } from './ProductRowBlock'
+import { ProductRowBlockPersonalized } from './ProductRowBlockPersonalized'
 import { CategoriesBlock } from './CategoriesBlock'
 import { UspBlock } from './UspBlock'
 import { ReviewBlock } from './ReviewBlock'
@@ -19,7 +20,7 @@ import { PersonsBlock } from './PersonsBlock'
 import { ColumnsBlock } from './ColumnsBlock'
 import { EditorialCardsBlock } from './EditorialCardsBlock'
 import { GiftCardBlock } from './GiftCardBlock'
-import type { Block } from '@/lib/cms'
+import { cleanBlockValue, type Block } from '@/lib/cms'
 
 interface BlockRendererProps {
   block: Block
@@ -45,8 +46,13 @@ export function BlockRenderer({ block }: BlockRendererProps) {
       return <DemandNearbyBlock block={block as any} />
     case 'heroBlock':
       return <HeroBlock block={block as any} />
-    case 'featuredTripBlock':
-      return <FeaturedTripBlock block={block as any} />
+    case 'productRowBlock': {
+      const sourceType = cleanBlockValue((block as { sourceType?: string }).sourceType)
+      if (sourceType === 'personalized') {
+        return <ProductRowBlockPersonalized block={block as any} />
+      }
+      return <ProductRowBlock block={block as any} />
+    }
     case 'categoriesBlock':
       return <CategoriesBlock block={block as any} />
     case 'uspBlock':

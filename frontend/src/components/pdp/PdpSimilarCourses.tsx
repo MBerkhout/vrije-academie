@@ -13,10 +13,10 @@ export function PdpSimilarCourses({ similar, heading = 'Gerelateerde activiteite
 
   return (
     <section className="py-10">
-      <h2 className="font-serif text-2xl font-bold text-va-black mb-6">{heading}</h2>
+      <h2 className="font-sans text-2xl font-bold text-va-black mb-6">{heading}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {similar.map((event) => (
-          <PlpEventCard key={event.id} event={event} stockThreshold={stockThreshold} squareCorners />
+          <PlpEventCard key={event.id} event={event} stockThreshold={stockThreshold} />
         ))}
       </div>
     </section>

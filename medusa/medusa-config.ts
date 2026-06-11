@@ -56,6 +56,32 @@ export default defineConfig({
     salesforceSync: {
       resolve: "./src/modules/salesforce-sync",
     },
+    search: {
+      resolve: "./src/modules/search",
+    },
+    customerOtp: {
+      resolve: "./src/modules/customer-otp",
+    },
+    ...(process.env.SENDGRID_API_KEY
+      ? {
+          notification: {
+            resolve: "@medusajs/medusa/notification",
+            options: {
+              providers: [
+                {
+                  resolve: "@medusajs/medusa/notification-sendgrid",
+                  id: "sendgrid",
+                  options: {
+                    channels: ["email"],
+                    api_key: process.env.SENDGRID_API_KEY,
+                    from: process.env.SENDGRID_FROM ?? "noreply@vrijeacademie.nl",
+                  },
+                },
+              ],
+            },
+          },
+        }
+      : {}),
     payment: {
       resolve: "@medusajs/medusa/payment",
       options: {

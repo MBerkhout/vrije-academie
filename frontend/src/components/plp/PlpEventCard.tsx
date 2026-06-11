@@ -1,54 +1,36 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
-import { plpFilterHrefWithProductType } from '@/app/(main)/ons-aanbod/_state/redirects'
 import { plpProductPath } from '@/lib/routes'
 import type { EventCard } from '@/lib/commerce/types'
 import { DeliveryTypeIcon } from '@/components/ui/DeliveryTypeIcon'
 import {
-  classNameForPlpProductTypeBadge,
-  classNameForProductBadge,
-  plpEventLocationLabel,
+  plpEventHasMultipleDates,
+  plpEventLocationLines,
   plpListingStockPresentation,
-  plpProductTypeBadgeLabel,
   shouldShowEventDates,
-  shouldShowOnlineDeliveryIcon,
 } from '@/lib/event-status-presentation'
-import { productTypeToSlug } from '@/lib/plp-product-types'
 import { formatDateShort, formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
+import { PlpEventCardWishlistButton } from './PlpEventCardWishlistButton'
 
 interface PlpEventCardProps {
   event: EventCard
   stockThreshold: number
-  /** PDP: square corners (no border radius) */
-  squareCorners?: boolean
-  /** When set, record-type badges link to a filtered PLP preserving these filters. */
-  filterState?: PlpFilterState
+  className?: string
+  /** Stretch card + reserve space for variable meta/title (carousel rows). */
+  equalizeHeight?: boolean
 }
 
 export function PlpEventCard({
   event,
   stockThreshold,
-  squareCorners = false,
-  filterState,
+  className,
+  equalizeHeight = false,
 }: PlpEventCardProps) {
   const href = plpProductPath(event.handle)
-  const locationLabel = plpEventLocationLabel(event)
-  const isOnline = shouldShowOnlineDeliveryIcon({
-    locationLabel,
-    deliveryTypes: event.delivery_types,
-  })
+  const locationLines = plpEventLocationLines(event)
   const showDate = shouldShowEventDates(event)
-
-  const statusBadgeClassName = classNameForProductBadge(event.badge)
-  const recordTypeBadge = plpProductTypeBadgeLabel(event.product_type)
-  const recordTypeSlug = productTypeToSlug(event.product_type)
-  const recordTypeBadgeClass = classNameForPlpProductTypeBadge(event.product_type)
-  const imageBadgeLabel = recordTypeBadge ?? event.badge
-  const imageBadgeClassName = recordTypeBadgeClass ?? statusBadgeClassName
-  const recordTypeBadgeHref =
-    recordTypeSlug != null ? plpFilterHrefWithProductType(filterState, recordTypeSlug) : null
+  const multipleDates = plpEventHasMultipleDates(event)
 
   const { soldOut } = plpListingStockPresentation(
     event.min_available_quantity,
@@ -57,21 +39,16 @@ export function PlpEventCard({
 
   const priceFrom = event.price_from
 
-  const badgeClasses = cn(
-    'absolute top-2 left-2 text-xs font-bold px-2 py-0.5 z-10',
-    squareCorners ? 'rounded-none' : 'rounded',
-    imageBadgeClassName,
-    recordTypeBadgeHref && 'hover:opacity-90 transition-opacity',
-  )
-
   return (
     <article
       className={cn(
-        'relative group border border-va-lightgray overflow-hidden flex flex-col bg-white hover:shadow-md transition-shadow',
+        'relative group rounded-lg border border-va-lightgray overflow-hidden flex flex-col bg-white hover:shadow-md transition-shadow',
+        equalizeHeight && 'h-full',
         soldOut && 'opacity-70',
+        className,
       )}
     >
-      <div className="relative aspect-[4/3] bg-va-lightgray overflow-hidden">
+      <div className="relative aspect-[4/3] rounded-t-lg bg-va-lightgray overflow-hidden">
         {event.thumbnail ? (
           <Image
             src={event.thumbnail}
@@ -91,18 +68,16 @@ export function PlpEventCard({
             />
           </div>
         )}
-        {imageBadgeLabel &&
-          (recordTypeBadgeHref ? (
-            <Link href={recordTypeBadgeHref} className={badgeClasses}>
-              {imageBadgeLabel}
-            </Link>
-          ) : (
-            <span className={badgeClasses}>{imageBadgeLabel}</span>
-          ))}
+        <PlpEventCardWishlistButton handle={event.handle} />
       </div>
 
       <div className="p-3 md:p-4 flex flex-col gap-1.5 flex-1">
-        <h3 className="font-serif font-bold text-va-black text-sm leading-snug line-clamp-3 md:text-base md:line-clamp-2">
+        <h3
+          className={cn(
+            'font-sans font-bold text-va-black text-sm leading-snug line-clamp-3 md:text-base md:line-clamp-2',
+            equalizeHeight && 'min-h-[3.75rem] md:min-h-[2.5rem]',
+          )}
+        >
           <Link
             href={href}
             className="transition-colors hover:text-va-yellow group-hover:text-va-yellow after:absolute after:inset-0 after:content-['']"
@@ -111,19 +86,37 @@ export function PlpEventCard({
           </Link>
         </h3>
 
-        {(locationLabel || (showDate && event.earliest_start_at)) && (
-          <div className="flex items-center gap-3 text-xs text-va-gray">
-            {locationLabel && (
+        {(locationLines.length > 0 || (showDate && event.earliest_start_at)) ? (
+          <div
+            className={cn(
+              'text-xs text-va-gray',
+              equalizeHeight && 'min-h-[2.75rem]',
+              locationLines.length > 1 ? 'flex flex-col gap-1' : 'flex items-center gap-3',
+            )}
+          >
+            {locationLines.length > 1 ? (
+              locationLines.map((line) => (
+                <span key={line.label} className="flex items-center gap-1">
+                  <DeliveryTypeIcon isOnline={line.isOnline} />
+                  {line.label}
+                </span>
+              ))
+            ) : locationLines.length === 1 ? (
               <span className="flex items-center gap-1">
-                <DeliveryTypeIcon isOnline={isOnline} />
-                {locationLabel}
+                <DeliveryTypeIcon isOnline={locationLines[0].isOnline} />
+                {locationLines[0].label}
+              </span>
+            ) : null}
+            {showDate && event.earliest_start_at && (
+              <span>
+                {multipleDates ? 'Vanaf ' : ''}
+                {formatDateShort(event.earliest_start_at)}
               </span>
             )}
-            {showDate && event.earliest_start_at && (
-              <span>{formatDateShort(event.earliest_start_at)}</span>
-            )}
           </div>
-        )}
+        ) : equalizeHeight ? (
+          <div className="min-h-[2.75rem]" aria-hidden />
+        ) : null}
 
         <div className="mt-auto pt-2 flex items-end justify-between gap-2">
           <div className="flex flex-col gap-0.5 min-w-0">

@@ -9,7 +9,7 @@ Medusa 2 backend for commerce around events (lectures, series, excursions) model
 - Optional **properties** (key/value) on the group or each variant for storefront filters.
 - Cart, checkout, promotions: default Medusa (no custom cart/discount interceptors). Line item quantity &gt; 1 is allowed.
 
-See [EVENTS.md](./EVENTS.md) for the domain model and API details.
+See [EVENTS.md](./EVENTS.md) for the domain model and API details. Unified typo-tolerant search: [SEARCH.md](./SEARCH.md). Customer OTP / passwordless checkout: [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md).
 
 ## Architecture
 
@@ -41,7 +41,11 @@ JWT_SECRET=your-secret-key
 COOKIE_SECRET=your-cookie-secret
 ADMIN_CORS=http://localhost:7001,http://localhost:9000
 STORE_CORS=http://localhost:8000
+OPENSEARCH_NODE=http://localhost:9200
+SEARCH_INDEX=va-search
 ```
+
+Local stack: `./start-db.sh` (Postgres), then `docker compose up -d` (Redis + OpenSearch), then `npm run search:reindex`.
 
 ### Database
 

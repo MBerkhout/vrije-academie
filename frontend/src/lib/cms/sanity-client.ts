@@ -334,6 +334,7 @@ export const sanityClient: CMSClient = {
           cityLabel,
           countryLabel,
           createAccountLabel,
+          newsletterOptInLabel,
           passwordLabel,
           confirmPasswordLabel,
           continueLabel

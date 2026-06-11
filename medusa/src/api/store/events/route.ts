@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
-import { getPlpListingSnapshot } from "../../../lib/store-listing-snapshot"
+import { getPlpListingSnapshot, getRegistrationCountsByProduct } from "../../../lib/store-listing-snapshot"
+import { filterProductsBySearchQuery, sortByRelevanceRank } from "../../../lib/search-query"
 import {
   incrementCityFacetCounts,
   sortCityFacetsByCount,
@@ -81,20 +82,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     })
   }
 
+  let relevanceRank: Map<string, number> | null = null
   if (searchQ) {
-    const lq = searchQ.toLowerCase()
-    list = list.filter(
-      (p) =>
-        String(p.title ?? "")
-          .toLowerCase()
-          .includes(lq) ||
-        String(p.handle ?? "")
-          .toLowerCase()
-          .includes(lq) ||
-        String(p.description ?? "")
-          .toLowerCase()
-          .includes(lq)
-    )
+    const searchResult = await filterProductsBySearchQuery(req.scope, list, searchQ)
+    list = searchResult.list
+    relevanceRank = searchResult.rankByProductId
   }
 
   if (productTypes.length) {
@@ -144,7 +136,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     snapshot.eventGroupLinks
   )
   const count = list.length
-  list = sortList(list, sort)
+  const registrationCounts =
+    sort === "popularity" ? await getRegistrationCountsByProduct(req.scope) : null
+  list = sortList(list, sort, relevanceRank, registrationCounts)
   list = list.slice(offset, offset + limit)
 
   setListingCacheHeaders(res)
@@ -172,9 +166,31 @@ function matchesPropertyFilters(
   return true
 }
 
-function sortList(list: Record<string, unknown>[], sort: string): Record<string, unknown>[] {
+function sortList(
+  list: Record<string, unknown>[],
+  sort: string,
+  relevanceRank: Map<string, number> | null = null,
+  registrationCounts: Record<string, number> | null = null
+): Record<string, unknown>[] {
+  if (sort === "relevance" && relevanceRank?.size) {
+    return sortByRelevanceRank(list, relevanceRank)
+  }
+
   const sorted = [...list]
   switch (sort) {
+    case "popularity": {
+      const counts = registrationCounts ?? {}
+      sorted.sort((a, b) => {
+        const countDiff =
+          (counts[b.id as string] ?? 0) - (counts[a.id as string] ?? 0)
+        if (countDiff !== 0) return countDiff
+        return (
+          new Date((b.created_at as string) ?? 0).getTime() -
+          new Date((a.created_at as string) ?? 0).getTime()
+        )
+      })
+      break
+    }
     case "newest":
       sorted.sort(
         (a, b) =>

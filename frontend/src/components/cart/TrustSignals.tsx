@@ -8,7 +8,7 @@ interface TrustSignalsProps {
 export function TrustSignals({ secure, cancellation, support, cancellationDays = 14 }: TrustSignalsProps) {
   const signals = [
     secure ?? 'Veilig betalen via Mollie.',
-    (cancellation ?? 'Annulering mogelijk tot {days} dagen voor aanvang.').replace('{days}', String(cancellationDays)),
+    (cancellation ?? 'Unieke colleges sinds 1990').replace('{days}', String(cancellationDays)),
     support ?? 'Vragen? Bel ons op 088-518 5000 (ma-vr 9:30-11:30).',
   ].filter(Boolean)
 

@@ -12,7 +12,7 @@ import { defaultMessages, interpolate } from '@/lib/i18n'
  * - PLP / card image badge styles from free-text CMS values (`classNameForProductBadge`)
  * - PLP tile low-stock footnote vs sold-out (`plpListingStockPresentation`)
  * - PDP session table availability cell (`sessionTableAvailabilityPresentation`)
- * - PLP card location + date visibility (`plpEventLocationLabel`, `shouldShowEventDates`)
+ * - PLP card location + date visibility (`plpEventLocationLines`, `shouldShowEventDates`, `plpEventHasMultipleDates`)
  *
  * Add new keyword → style mappings for product badges here; keep order in
  * `PRODUCT_BADGE_RULES` meaningful (first matching rule wins).
@@ -36,20 +36,37 @@ export function shouldShowOnlineDeliveryIcon(input: {
   return input.locationLabel?.trim().toLowerCase() === 'online'
 }
 
-/** Location line on PLP tiles and similar product cards. */
-export function plpEventLocationLabel(event: EventCardLocationInput): string {
+export interface PlpEventLocationLine {
+  label: string
+  isOnline: boolean
+}
+
+/** Location lines on PLP tiles and similar product cards. Hybrid products return two lines. */
+export function plpEventLocationLines(event: EventCardLocationInput): PlpEventLocationLine[] {
   const isOnlineOnly = isOnlineOnlyEvent(event)
   const hasOnsite = event.delivery_types?.includes('offline')
   const hasOnline = event.delivery_types?.includes('online')
 
-  if (isOnlineOnly) return 'Online'
-  if (hasOnsite && hasOnline) return 'Op locatie + online'
+  if (isOnlineOnly) return [{ label: 'Online', isOnline: true }]
+  if (hasOnsite && hasOnline) {
+    return [
+      { label: 'Op locatie', isOnline: false },
+      { label: 'Online', isOnline: true },
+    ]
+  }
 
   const cities = event.cities ?? []
-  if (cities.length > 1) return 'Op locatie'
-  if (cities.length === 1) return cities[0]
-  if (hasOnsite) return 'Op locatie'
-  return ''
+  if (cities.length > 1) return [{ label: 'Op locatie', isOnline: false }]
+  if (cities.length === 1) return [{ label: cities[0], isOnline: false }]
+  if (hasOnsite) return [{ label: 'Op locatie', isOnline: false }]
+  return []
+}
+
+/** @deprecated Use `plpEventLocationLines` for PLP cards. Kept for single-line consumers. */
+export function plpEventLocationLabel(event: EventCardLocationInput): string {
+  const lines = plpEventLocationLines(event)
+  if (lines.length === 2) return 'Op locatie + online'
+  return lines[0]?.label ?? ''
 }
 
 /** Session variant is shown when start_at is absent (on-demand) or in the future. */
@@ -97,6 +114,22 @@ export function shouldShowEventDates({ delivery_types, variants }: EventDateInpu
   }
 
   return true
+}
+
+/** True when a PLP card should prefix the date with "Vanaf" (multiple future on-site session dates). */
+export function plpEventHasMultipleDates({ delivery_types, variants }: EventDateInput): boolean {
+  if (!shouldShowEventDates({ delivery_types, variants })) return false
+
+  const dates = new Set<string>()
+  for (const v of variants ?? []) {
+    const ei = v.event_item
+    if (!ei || ei.delivery_type !== 'offline') continue
+    if (!isFutureEventVariant(v)) continue
+    const start = ei.start_at
+    if (!start) continue
+    dates.add(start.slice(0, 10))
+  }
+  return dates.size > 1
 }
 
 export type EventAvailabilityStatus = AgendaItem['status']

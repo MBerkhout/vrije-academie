@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { cmsClient } from '@/lib/cms/server'
+import { commerceClient } from '@/lib/commerce'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     })
   }
 
-  const result = await cmsClient.searchSuggestions(q)
+  const result = await commerceClient.searchSuggestions(q)
   return NextResponse.json(result, {
     headers: {
       'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',

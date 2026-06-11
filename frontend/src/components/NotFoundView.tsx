@@ -5,7 +5,7 @@ export function NotFoundView() {
   return (
     <section className="py-12 md:py-16 border-b border-va-lightgray/80">
       <div className={CONTAINER_CLASS}>
-        <h1 className="font-serif text-3xl md:text-4xl font-bold text-va-black leading-tight mb-4">
+        <h1 className="font-sans text-3xl md:text-4xl font-bold text-va-black leading-tight mb-4">
           404: Deze pagina kan niet gevonden worden
         </h1>
         <p className="font-sans text-sm text-va-darkgray leading-relaxed max-w-2xl mb-10">

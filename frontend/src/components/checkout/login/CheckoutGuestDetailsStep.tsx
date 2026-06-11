@@ -4,7 +4,6 @@ import Link from 'next/link'
 import type { GeneralSettings } from '@/lib/cms/types'
 import { NlAddressFields } from '@/components/address/NlAddressFields'
 import { ValidatedInput } from '@/components/auth/ValidatedInput'
-import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
 import type { AccountFieldName, CheckoutGuestValidity } from '@/lib/auth/account-field-validation'
 import { EmailRow } from './EmailRow'
 
@@ -15,8 +14,6 @@ type CheckoutSettings = NonNullable<GeneralSettings['checkout']>
 interface CheckoutGuestDetailsStepProps {
   settings: CheckoutSettings
   unknownHeading: string
-  /** When false (logged-in checkout), hides optional account creation and passwords. */
-  showCreateAccountOption?: boolean
   email: string
   firstName: string
   lastName: string
@@ -26,15 +23,12 @@ interface CheckoutGuestDetailsStepProps {
   postalCode: string
   city: string
   country: string
-  createAccount: boolean
-  newPassword: string
-  confirmPassword: string
+  newsletterOptIn: boolean
   busy: boolean
   error: string | null
   addressLookup: 'idle' | 'loading' | 'found' | 'error'
   manualAddress: boolean
   validity: CheckoutGuestValidity
-  /** When omitted, e-mail is not editable from this step (logged-in checkout). */
   onEditEmail?: () => void
   onFirstNameChange: (v: string) => void
   onLastNameChange: (v: string) => void
@@ -44,9 +38,7 @@ interface CheckoutGuestDetailsStepProps {
   onStreetChange: (v: string) => void
   onCityChange: (v: string) => void
   onCountryChange: (v: string) => void
-  onCreateAccountChange: (v: boolean) => void
-  onNewPasswordChange: (v: string) => void
-  onConfirmPasswordChange: (v: string) => void
+  onNewsletterOptInChange: (v: boolean) => void
   onManualAddress: (v: boolean) => void
   blur: (name: AccountFieldName, value: string, extra?: { password?: string }) => void
   reset: (name: AccountFieldName) => void
@@ -59,7 +51,6 @@ interface CheckoutGuestDetailsStepProps {
 export function CheckoutGuestDetailsStep({
   settings,
   unknownHeading,
-  showCreateAccountOption = true,
   email,
   firstName,
   lastName,
@@ -69,9 +60,7 @@ export function CheckoutGuestDetailsStep({
   postalCode,
   city,
   country,
-  createAccount,
-  newPassword,
-  confirmPassword,
+  newsletterOptIn,
   busy,
   error,
   addressLookup,
@@ -86,9 +75,7 @@ export function CheckoutGuestDetailsStep({
   onStreetChange,
   onCityChange,
   onCountryChange,
-  onCreateAccountChange,
-  onNewPasswordChange,
-  onConfirmPasswordChange,
+  onNewsletterOptInChange,
   onManualAddress,
   blur,
   reset,
@@ -182,59 +169,19 @@ export function CheckoutGuestDetailsStep({
         reset={reset}
       />
 
-      {showCreateAccountOption && (
-        <div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={createAccount}
-              onChange={(e) => onCreateAccountChange(e.target.checked)}
-              className="w-4 h-4 accent-va-yellow"
-              disabled={busy}
-            />
-            <span className="font-sans text-sm text-va-black">
-              {settings.unknownEmail?.createAccountLabel ?? 'Account aanmaken (optioneel)'}
-            </span>
-          </label>
-        </div>
-      )}
-
-      {showCreateAccountOption && createAccount && (
-        <div className="space-y-3 pl-6 border-l-2 border-va-yellow">
-          <div>
-            <ValidatedInput
-              name="newPassword"
-              label={settings.unknownEmail?.passwordLabel ?? 'Wachtwoord'}
-              type="password"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(v) => {
-                onNewPasswordChange(v)
-                reset('newPassword')
-                if (confirmPassword) reset('confirmPassword')
-              }}
-              onBlur={() => blur('newPassword', newPassword)}
-              validity={validity.newPassword}
-              disabled={busy}
-            />
-            <PasswordStrengthMeter password={newPassword} />
-          </div>
-          <ValidatedInput
-            name="confirmPassword"
-            label={settings.unknownEmail?.confirmPasswordLabel ?? 'Wachtwoord bevestigen'}
-            type="password"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(v) => {
-              onConfirmPasswordChange(v)
-              reset('confirmPassword')
-            }}
-            onBlur={() => blur('confirmPassword', confirmPassword, { password: newPassword })}
-            validity={validity.confirmPassword}
-            disabled={busy}
-          />
-        </div>
-      )}
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={newsletterOptIn}
+          onChange={(e) => onNewsletterOptInChange(e.target.checked)}
+          className="w-4 h-4 accent-va-yellow"
+          disabled={busy}
+        />
+        <span className="font-sans text-sm text-va-black">
+          {settings.unknownEmail?.newsletterOptInLabel ??
+            'Blijf op de hoogte van de laatste cursussen'}
+        </span>
+      </label>
 
       <button
         type="submit"

@@ -38,7 +38,16 @@ export function AccountGegevensForm() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [busy, setBusy] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState(false)
+  const [hasPassword, setHasPassword] = useState(true)
   const [validity, setValidity] = useState<CheckoutGuestValidity>(() => initialCheckoutGuestValidity())
+
+  useEffect(() => {
+    if (!customer?.id) return
+    commerceClient
+      .getAuthStatus()
+      .then((status) => setHasPassword(status.hasPassword))
+      .catch(() => setHasPassword(true))
+  }, [customer?.id])
 
   const { addressLookup } = usePdokAddressLookup({
     postalCode,
@@ -179,7 +188,7 @@ export function AccountGegevensForm() {
 
   if (loading || !customer) {
     return (
-      <p className="font-serif text-va-darkgray" aria-busy="true">
+      <p className="font-sans text-va-darkgray" aria-busy="true">
         {common.loadingEllipsis}
       </p>
     )
@@ -303,7 +312,7 @@ export function AccountGegevensForm() {
               onClick={() => setPasswordOpen(true)}
               disabled={busy}
             >
-              {t.passwordChange}
+              {hasPassword ? t.passwordChange : t.passwordSet}
             </Button>
           </div>
         </form>

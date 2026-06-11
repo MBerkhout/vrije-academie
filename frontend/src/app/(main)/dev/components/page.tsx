@@ -43,7 +43,7 @@ export default function DevComponentsPage() {
         <h1 className="text-3xl font-sans font-bold text-va-black mb-8">
           Component Library
         </h1>
-        <p className="font-serif text-va-darkgray mb-12">
+        <p className="font-sans text-va-darkgray mb-12">
           Dev-only page. Not available in production.
         </p>
 
@@ -257,6 +257,25 @@ export default function DevComponentsPage() {
                 price_from: 2500,
                 min_available_quantity: 0,
                 badge: 'ON DEMAND',
+              }}
+              stockThreshold={5}
+            />
+          </div>
+          <div className="max-w-xs">
+            <PlpEventCard
+              event={{
+                id: 'demo-3',
+                handle: 'demo-hybrid',
+                title: 'Filosofie — op locatie én online',
+                thumbnail: null,
+                record_type: 'collegereeks',
+                categories: [{ id: 'c3', slug: 'filosofie', label: 'Filosofie' }],
+                cities: ['Utrecht'],
+                delivery_types: ['offline', 'online'],
+                earliest_start_at: new Date(Date.now() + 14 * 86400000).toISOString(),
+                price_from: 4500,
+                min_available_quantity: 12,
+                badge: null,
               }}
               stockThreshold={5}
             />

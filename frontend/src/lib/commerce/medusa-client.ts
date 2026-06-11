@@ -19,6 +19,7 @@ import type {
   Order,
   OrderItem,
   RegisterInput,
+  RegisterPasswordlessInput,
   Variant,
   ProductFilters,
   EventFilters,
@@ -28,6 +29,9 @@ import type {
   AgendaListResult,
   EventFacets,
   AgendaItem,
+  SiteSearchHit,
+  SearchSuggestionsResult,
+  SearchSuggestion,
 } from './types'
 import { customerToShippingPayload } from './checkout-profile'
 import {
@@ -40,6 +44,7 @@ import {
 import {
   WISHLIST_METADATA_KEY,
   addHandleToList,
+  mergeWishlistHandles,
   normalizeHandle,
   parseWishlistHandles,
   removeHandleFromList,
@@ -81,6 +86,69 @@ function normalizeDocentenRow(row: Record<string, unknown>): Record<string, unkn
   return out
 }
 
+function mapSearchHit(hit: {
+  kind: string
+  title: string
+  href: string
+  subtitle?: string
+  excerpt?: string
+  thumbnailUrl?: string
+}): SiteSearchHit | null {
+  const title = hit.title?.trim()
+  const href = hit.href?.trim()
+  if (!title || !href) return null
+
+  const kind =
+    hit.kind === 'city'
+      ? 'place'
+      : (hit.kind as SiteSearchHit['kind'])
+
+  if (
+    kind !== 'page' &&
+    kind !== 'product' &&
+    kind !== 'docent' &&
+    kind !== 'category' &&
+    kind !== 'place' &&
+    kind !== 'person'
+  ) {
+    return null
+  }
+
+  return {
+    kind,
+    title,
+    href,
+    subtitle: hit.subtitle,
+    excerpt: hit.excerpt,
+    thumbnailUrl: hit.thumbnailUrl,
+  }
+}
+
+function mapSearchSuggestion(hit: {
+  kind: string
+  title: string
+  href: string
+  subtitle?: string
+  thumbnailUrl?: string
+}): SearchSuggestion | null {
+  const title = hit.title?.trim()
+  const href = hit.href?.trim()
+  if (!title || !href) return null
+
+  const kind = hit.kind === 'city' ? 'place' : hit.kind
+  if (kind !== 'product' && kind !== 'category' && kind !== 'place' && kind !== 'page') {
+    return null
+  }
+
+  return {
+    kind,
+    title,
+    href,
+    subtitle: hit.subtitle,
+    thumbnailUrl: hit.thumbnailUrl,
+  }
+}
+
 function normalizeEventFacets(raw: unknown): EventFacets {
   const f = (raw ?? {}) as Partial<EventFacets> & {
     docenten?: EventFacets['teachers']
@@ -105,6 +173,11 @@ const MEDUSA_JWT_STORAGE_KEY = 'medusa_auth_token'
 function getStoredJwt(): string | null {
   if (typeof window === 'undefined') return null
   return window.localStorage.getItem(MEDUSA_JWT_STORAGE_KEY)
+}
+
+function setStoredJwt(token: string): void {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(MEDUSA_JWT_STORAGE_KEY, token)
 }
 
 function mapStoreOrderItem(raw: unknown): OrderItem {
@@ -200,6 +273,36 @@ async function storeFetch(path: string, init?: RequestInit): Promise<Response> {
 }
 
 const CUSTOMER_RETRIEVE_FIELDS = '*addresses' as const
+
+async function customerAfterToken(email?: string): Promise<Customer> {
+  const retrieveCustomer = async (): Promise<Customer> => {
+    const { customer } = await medusa.store.customer.retrieve({
+      fields: CUSTOMER_RETRIEVE_FIELDS,
+    })
+    return customer as Customer
+  }
+
+  try {
+    return await retrieveCustomer()
+  } catch (e) {
+    if (getFetchStatus(e) !== 401) throw e
+  }
+
+  try {
+    await medusa.auth.refresh()
+    return await retrieveCustomer()
+  } catch (e) {
+    if (getFetchStatus(e) !== 401) throw e
+  }
+
+  if (email) {
+    await medusa.store.customer.create({ email })
+    await medusa.auth.refresh()
+    return await retrieveCustomer()
+  }
+
+  throw new Error('Could not load customer after authentication')
+}
 
 async function retrieveAuthenticatedCustomer(): Promise<Customer | null> {
   try {
@@ -562,16 +665,81 @@ export const medusaClient: CommerceClient = {
   // Auth / customer
 
   async customerExists(email: string): Promise<boolean> {
-    try {
-      const res = await storeFetch(
-        `/store/customer/exists?email=${encodeURIComponent(email)}`
-      )
-      if (!res.ok) return false
-      const data = await res.json()
-      return data.exists === true
-    } catch {
-      return false
+    const lookup = await this.customerLookup(email)
+    return lookup.exists
+  },
+
+  async customerLookup(email: string): Promise<{ exists: boolean; hasPassword: boolean }> {
+    const res = await storeFetch(
+      `/store/customer/lookup?email=${encodeURIComponent(email)}`
+    )
+    if (!res.ok) {
+      throw new Error('CUSTOMER_LOOKUP_FAILED')
     }
+    const data = await res.json()
+    return {
+      exists: data.exists === true,
+      hasPassword: data.hasPassword === true,
+    }
+  },
+
+  async requestOtp(email: string, purpose: 'login' | 'set_password' = 'login'): Promise<void> {
+    const res = await storeFetch('/store/auth/otp/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, purpose }),
+    })
+    if (res.status === 429) {
+      throw new Error('OTP_RATE_LIMIT')
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error((data as { message?: string }).message ?? 'OTP_REQUEST_FAILED')
+    }
+  },
+
+  async verifyOtp(email: string, code: string): Promise<Customer> {
+    const res = await storeFetch('/store/auth/otp/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, purpose: 'login' }),
+    })
+    if (!res.ok) {
+      throw new Error('OTP_VERIFY_FAILED')
+    }
+    const data = await res.json()
+    if (!data.token || typeof data.token !== 'string') {
+      throw new Error('OTP_VERIFY_NO_TOKEN')
+    }
+    setStoredJwt(data.token)
+    return customerAfterToken(email)
+  },
+
+  async registerPasswordless(input: RegisterPasswordlessInput): Promise<Customer> {
+    const res = await storeFetch('/store/customer/register-passwordless', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error((data as { message?: string }).message ?? 'REGISTER_FAILED')
+    }
+    const data = await res.json()
+    if (!data.token || typeof data.token !== 'string') {
+      throw new Error('REGISTER_NO_TOKEN')
+    }
+    setStoredJwt(data.token)
+    return customerAfterToken(input.email)
+  },
+
+  async getAuthStatus(): Promise<{ hasPassword: boolean }> {
+    const res = await storeFetch('/store/customer/me/auth-status')
+    if (!res.ok) {
+      throw new Error('AUTH_STATUS_FAILED')
+    }
+    const data = await res.json()
+    return { hasPassword: data.hasPassword === true }
   },
 
   async login(email: string, password: string): Promise<Customer> {
@@ -730,6 +898,15 @@ export const medusaClient: CommerceClient = {
     return customer as Customer
   },
 
+  async syncWishlistHandles(handles: string[]): Promise<Customer | null> {
+    const c = await retrieveAuthenticatedCustomer()
+    if (!c) return null
+    const next = mergeWishlistHandles(handles, [])
+    const metadata = { ...(c.metadata ?? {}), [WISHLIST_METADATA_KEY]: next }
+    const { customer } = await medusa.store.customer.update({ metadata })
+    return customer as Customer
+  },
+
   async recordRecentViewedHandle(handle: string): Promise<void> {
     const h = normalizeHandle(handle)
     if (!h) return
@@ -841,27 +1018,92 @@ export const medusaClient: CommerceClient = {
     return { orders, count: typeof count === 'number' ? count : orders.length }
   },
 
+  async searchSite(query: string): Promise<SiteSearchHit[]> {
+    const q = query.trim()
+    if (!q) return []
+
+    const res = await fetch(
+      `${BACKEND_URL}/store/search?${new URLSearchParams({ q, mode: 'full' })}`,
+      {
+        headers: PUBLISHABLE_KEY ? { 'x-publishable-api-key': PUBLISHABLE_KEY } : {},
+        next: { revalidate: 30 },
+      }
+    )
+
+    if (!res.ok) return []
+
+    const data = (await res.json()) as {
+      hits?: Array<{
+        kind: string
+        title: string
+        href: string
+        subtitle?: string
+        excerpt?: string
+        thumbnailUrl?: string
+      }>
+    }
+
+    return (data.hits ?? [])
+      .map((hit) => mapSearchHit(hit))
+      .filter((hit): hit is SiteSearchHit => hit !== null)
+  },
+
+  async searchSuggestions(query: string): Promise<SearchSuggestionsResult> {
+    const q = query.trim()
+    if (!q) {
+      return { products: [], categories: [], places: [], pages: [] }
+    }
+
+    const res = await fetch(
+      `${BACKEND_URL}/store/search?${new URLSearchParams({ q, mode: 'suggest' })}`,
+      {
+        headers: PUBLISHABLE_KEY ? { 'x-publishable-api-key': PUBLISHABLE_KEY } : {},
+        cache: 'no-store',
+      }
+    )
+
+    if (!res.ok) {
+      return { products: [], categories: [], places: [], pages: [] }
+    }
+
+    const data = (await res.json()) as {
+      products?: SearchSuggestion[]
+      categories?: SearchSuggestion[]
+      places?: SearchSuggestion[]
+      pages?: SearchSuggestion[]
+    }
+
+    return {
+      products: (data.products ?? []).map(mapSearchSuggestion).filter(Boolean) as SearchSuggestion[],
+      categories: (data.categories ?? []).map(mapSearchSuggestion).filter(Boolean) as SearchSuggestion[],
+      places: (data.places ?? []).map(mapSearchSuggestion).filter(Boolean) as SearchSuggestion[],
+      pages: (data.pages ?? []).map(mapSearchSuggestion).filter(Boolean) as SearchSuggestion[],
+    }
+  },
+
+  async setPassword(input: {
+    newPassword: string
+    oldPassword?: string
+    otpCode?: string
+  }): Promise<void> {
+    const res = await storeFetch('/store/auth/set-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    if (!res.ok) {
+      throw new Error('SET_PASSWORD_FAILED')
+    }
+  },
+
   async changePassword(input: {
     email: string
     oldPassword: string
     newPassword: string
   }): Promise<void> {
-    const result = await medusa.auth.login('customer', 'emailpass', {
-      email: input.email,
-      password: input.oldPassword,
+    await this.setPassword({
+      newPassword: input.newPassword,
+      oldPassword: input.oldPassword,
     })
-    if (!result || (typeof result === 'object' && 'location' in result)) {
-      throw new Error('CHANGE_PASSWORD_LOGIN_FAILED')
-    }
-    const token = getStoredJwt()
-    if (!token) {
-      throw new Error('CHANGE_PASSWORD_NO_TOKEN')
-    }
-    await medusa.auth.updateProvider(
-      'customer',
-      'emailpass',
-      { password: input.newPassword },
-      token,
-    )
   },
 }

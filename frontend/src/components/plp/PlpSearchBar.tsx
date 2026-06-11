@@ -5,34 +5,61 @@ import { cn } from '@/lib/utils'
 import { PLP_BASE_PATH } from '@/lib/routes'
 
 interface PlpSearchBarProps {
-  defaultValue: string
+  /** Uncontrolled initial value (omit when using `value` + `onChange`). */
+  defaultValue?: string
+  /** Controlled value for live search. */
+  value?: string
+  onChange?: (value: string) => void
   placeholder?: string
   submitLabel?: string
   className?: string
   basePath?: string
+  /** When true, typing updates results via parent; submit only syncs the URL. */
+  live?: boolean
 }
 
 export function PlpSearchBar({
-  defaultValue,
+  defaultValue = '',
+  value,
+  onChange,
   placeholder = 'Zoek naar een cursus, onderwerp of docent…',
   submitLabel = 'Zoek',
   className,
   basePath = PLP_BASE_PATH,
+  live = false,
 }: PlpSearchBarProps) {
   const router = useRouter()
+  const controlled = value !== undefined && onChange !== undefined
+  const displayValue = controlled ? value : undefined
+
+  function navigateWithQuery(q: string) {
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    router.push(params.toString() ? `${basePath}?${params.toString()}` : basePath)
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
     const q = (form.elements.namedItem('q') as HTMLInputElement).value.trim()
-    const params = new URLSearchParams()
-    if (q) params.set('q', q)
-    router.push(`${basePath}?${params.toString()}`)
+    if (live && controlled) {
+      onChange(q)
+      navigateWithQuery(q)
+      return
+    }
+    navigateWithQuery(q)
   }
 
   function handleClear() {
-    router.push(basePath)
+    if (controlled) {
+      onChange('')
+    }
+    if (!live) {
+      router.push(basePath)
+    }
   }
+
+  const showClear = controlled ? Boolean(value) : Boolean(defaultValue)
 
   return (
     <form onSubmit={handleSubmit} className={cn('flex gap-2', className)} role="search">
@@ -40,12 +67,15 @@ export function PlpSearchBar({
         <input
           type="search"
           name="q"
-          defaultValue={defaultValue}
+          value={displayValue}
+          defaultValue={controlled ? undefined : defaultValue}
+          onChange={controlled ? (e) => onChange(e.target.value) : undefined}
           placeholder={placeholder}
           aria-label="Zoek activiteiten"
+          autoComplete="off"
           className="w-full border border-va-lightgray px-4 py-2.5 text-sm text-va-black placeholder:text-va-gray focus:outline-none focus:ring-2 focus:ring-va-yellow pr-8"
         />
-        {defaultValue && (
+        {showClear && (
           <button
             type="button"
             onClick={handleClear}

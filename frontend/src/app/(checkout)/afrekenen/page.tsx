@@ -5,7 +5,7 @@ export default function AfrekenenPage() {
         <h1 className="font-sans text-2xl font-bold text-va-black mb-4">
           Afrekenen
         </h1>
-        <p className="font-serif text-va-darkgray">
+        <p className="font-sans text-va-darkgray">
           Checkout-pagina (geen header/footer).
         </p>
       </div>

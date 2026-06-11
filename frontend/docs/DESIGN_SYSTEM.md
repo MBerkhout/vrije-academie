@@ -40,28 +40,27 @@ Tokens live in **`src/lib/va-colors.js`** and are wired into Tailwind as `va-*`.
 
 ## Typography
 
-Fonts load via **`next/font/google`** in `src/app/layout.tsx` (self-hosted at build time). CSS variables `--font-sans` and `--font-serif` are set on `<html>`.
+Fonts load via **`next/font/google`** in `src/app/layout.tsx` (self-hosted at build time). CSS variable `--font-sans` is set on `<html>`; `body` uses `font-sans` by default.
 
 ### Font Families
 
 | Tailwind | Font | Weights |
 |----------|------|---------|
 | `font-sans` | Source Sans 3 | 400, 600, 700 |
-| `font-serif` | Merriweather | 400, 700 |
 | `font-mono` | (not loaded) — Tailwind default `ui-monospace` stack | — |
 
 ### Type Scale
 
 #### Page / Section Title
 ```tsx
-<h1 className="font-serif text-3xl font-bold text-va-black leading-tight">
+<h1 className="font-sans text-3xl font-bold text-va-black leading-tight">
   Page Title
 </h1>
 ```
 
 #### Section Heading
 ```tsx
-<h2 className="font-serif text-2xl font-semibold text-va-black">
+<h2 className="font-sans text-2xl font-semibold text-va-black">
   Section Heading
 </h2>
 ```
@@ -218,7 +217,7 @@ Use `@/components/ui/Badge` everywhere so colors and spacing stay consistent.
 
 ```tsx
 <div className="flex items-center justify-between mb-6">
-  <h2 className="font-serif text-xl font-bold text-va-black">
+  <h2 className="font-sans text-xl font-bold text-va-black">
     Collegereeksen
   </h2>
   <a className="text-xs font-semibold text-va-gold hover:underline tracking-wide uppercase">

@@ -115,16 +115,21 @@ Authenticated via `useCustomer()` (same Medusa JWT session as the header). Guest
 | `/mijn-account/aankopen` | Order list (`commerceClient.listCustomerOrders`) |
 | `/mijn-account/collectie` | Placeholder for future “online” content |
 
-**Commerce**: `listCustomerOrders` wraps `medusa.store.order.list`. `changePassword` re-authenticates with the current password, then `medusa.auth.updateProvider('customer', 'emailpass', { password }, jwt)` using the JWT in `localStorage` (`medusa_auth_token`).
+**Commerce**: `listCustomerOrders` wraps `medusa.store.order.list`. Password management uses `commerceClient.setPassword` → `POST /store/auth/set-password` (current password, or OTP verification when the account has no password). `getAuthStatus` drives “Wachtwoord instellen” vs “Wachtwoord wijzigen” in account gegevens. Checkout/login OTP: `customerLookup`, `requestOtp`, `verifyOtp`, `registerPasswordless` — see `medusa/docs/CUSTOMER_AUTH.md`.
 
 Storefront copy for the account area lives in `src/locales/nl.json` (`accountPage`).
 
 ### Wishlist
 
-For logged-in customers, saved courses are stored on the Medusa **customer** row as **`metadata.va_wishlist`**: a JSON array of **product handles** (same handles as PLP/PDP URLs under `/ons-aanbod/[handle]`). The commerce client implements `getWishlistHandles`, `addWishlistHandle`, and `removeWishlistHandle` using read–merge–write on `metadata` so other metadata keys are preserved.
+Saved courses are stored as **product handles** (same handles as PLP/PDP URLs under `/ons-aanbod/[handle]`).
 
-- **PDP**: `PdpBookingPanel` toggles membership (guests are sent to `/login` with `returnTo`).
-- **Account** (`/mijn-account/bewaard`): `WishlistList` loads titles/thumbnails via `commerceClient.getEvent(handle)` per saved handle.
+- **Guests**: `localStorage` key `va-wishlist` (via `useWishlist` / `getWishlistHandlesLocal`).
+- **Logged-in customers**: Medusa **customer** row **`metadata.va_wishlist`** (JSON array). On login, local and account lists are merged and synced with `commerceClient.syncWishlistHandles`.
+
+The commerce client also exposes `getWishlistHandles`, `addWishlistHandle`, and `removeWishlistHandle`; toggles in the UI use full-list sync so guest and account state stay aligned.
+
+- **PLP / PDP**: `PlpEventCardWishlistButton` and `PdpBookingPanel` toggle membership without requiring login.
+- **Account** (`/mijn-account/bewaard`, login required): `WishlistList` loads titles/thumbnails via `commerceClient.getEvent(handle)` per saved handle.
 
 Labels: **Sanity → General settings → PDP → UI labels** (`wishlist`, `wishlistSaved`, `inviteSomeone`); the header share control still uses `share`. Defaults and account copy live in `src/locales/nl.json` (`pdp`, `accountPage`).
 
@@ -160,7 +165,7 @@ See [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) for complete design token reference a
 ### Key Design Tokens
 
 - **Colors**: VA palette with Tailwind shades `50–950` + `DEFAULT`; source `src/lib/va-colors.js` (see DESIGN_SYSTEM.md)
-- **Typography**: `next/font` — Source Sans 3 (`font-sans`), Merriweather (`font-serif`); `font-mono` uses Tailwind’s default system stack if needed
+- **Typography**: `next/font` — Source Sans 3 (`font-sans`) site-wide; `font-mono` uses Tailwind’s default system stack if needed
 - **Spacing**: Tailwind default scale with custom margins
 - **Components**: Modular, reusable components following VA design principles
 

@@ -268,11 +268,12 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Occurrence start / end | `Start_date_time__c`, `End_date_time__c` | `EventItem.start_at` / `end_at` |
 | Occurrence price | `Price__c` | variant EUR price → Sanity `priceFrom` |
 | Occurrence city | `Product_City__c` | `EventItem.city` (+ city slug via catalog) |
+| Occurrence location / venue | `Product_Location_Name__c` | `EventItem.location_name` (PDP session table) |
 | Capacity / free trial | `Capacity__c`, `Free_Product__c` | `EventItem.available_quantity`, `is_free_trial` |
 | Latest start (group) | `Latest_Product_Start_Date__c` | future-only auto-import guard |
 | VAthuis episodes label | `Audience_Player_Episodes__c` | `metadata.vathuis.episode_count_label` |
 | VAthuis play time | `Audience_Player_Play_Time__c` | `metadata.vathuis.play_time` |
 | Audience Player article / product | `Audience_Player_Article_Id__c`, `Audience_Player_Product_Id__c` on child | chapter/episode fetch + `metadata.vathuis.audience_player` |
 | Highlighted docent | `Highlighted_Teacher__c`, `Highlighted_Teacher__r.Name`, `Highlighted_Teacher_Teaser__c`, `Highlighted_Teacher_Image__c` | `Docent` + `product-docenten` link (name fallback from `Samenvatting__c` / `Productgroup_Description__c`). When the linked **Account** is readable, also maps `Description` → `bio`, `PhotoUrl` → `photo_url`, `PersonTitle` → `role` (`utils/fetch-teacher-account.ts`). Mirrored to Sanity `docent` on `people.docent.*` events. |
-| Variant instructor | Child `Account_Teacher__c`, `Account_Teacher__r.Name`, `Main_Teacher_Name__c` | `EventItem.instructor_name` + `instructor_salesforce_id` (PDP session table; same name resolution as product docent link) |
+| Variant instructor | Child `Account_Teacher__c`, `Account_Teacher__r.Name`, `Main_Teacher_Name__c` | `EventItem.instructor_name` + `instructor_salesforce_id` (child teacher first; falls back to group highlighted docent) |
 | Preview / iframe | `Audience_Preview_Url__c`, `IFrame_URL_1__c` on group | first-episode `embed_url` in `metadata.vathuis.episodes[]` |

@@ -43,7 +43,7 @@ function ColumnMedia({ col }: { col: ColumnItem }) {
     const match = col.mediaYoutubeUrl.match(/(?:watch\?v=|youtu\.be\/|embed\/)([\w-]+)/)
     const id = match ? match[1] : ''
     return (
-      <div className="aspect-video overflow-hidden rounded">
+      <div className="aspect-video overflow-hidden rounded-lg">
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${id}`}
           title="YouTube"
@@ -56,7 +56,7 @@ function ColumnMedia({ col }: { col: ColumnItem }) {
   if (col.mediaImage) {
     return (
       <figure>
-        <div className="aspect-video overflow-hidden rounded">
+        <div className="aspect-video overflow-hidden rounded-lg">
           <SanityImage
             source={{ ...col.mediaImage, alt: col.mediaImageAlt ?? col.mediaImage?.alt }}
             fill
@@ -77,7 +77,7 @@ function ColumnHighlight({ col }: { col: ColumnItem }) {
   if (columnType !== 'highlightCard' || !col.highlightImage || !col.highlightTitle) return null
   const Tag = getTitleTag(col.highlightTitleSize)
   return (
-    <div className="rounded overflow-hidden border border-va-lightgray">
+    <div className="rounded-lg overflow-hidden border border-va-lightgray">
       <div className="aspect-video relative">
         <SanityImage source={col.highlightImage} fill aspectRatio="aspect-video" />
       </div>
@@ -224,12 +224,12 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
               <Link
                 href={href}
                 className={cn(
-                  'group flex overflow-hidden rounded-sm border border-va-lightgray bg-white shadow-sm',
+                  'group flex overflow-hidden rounded-lg border border-va-lightgray bg-white shadow-sm',
                   'transition-[box-shadow,border-color] hover:border-va-black/25 hover:shadow-md',
                   'outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2',
                 )}
               >
-                <div className="relative h-[88px] w-[88px] shrink-0 bg-va-lightgray">
+                <div className="relative h-[88px] w-[88px] shrink-0 rounded-l-lg bg-va-lightgray overflow-hidden">
                   {thumbnailUrl ? (
                     <Image
                       src={thumbnailUrl}

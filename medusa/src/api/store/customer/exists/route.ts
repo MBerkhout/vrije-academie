@@ -1,12 +1,11 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { Modules } from "@medusajs/framework/utils"
-import type { ICustomerModuleService } from "@medusajs/framework/types"
+
+import { lookupCustomerAuth } from "../../../../lib/customer-auth/helpers"
 
 /**
  * GET /store/customer/exists?email=...
  *
- * Returns { exists: boolean } — whether a customer account exists for the given email.
- * No PII beyond the boolean is returned to prevent account enumeration attacks.
+ * Returns { exists: boolean, hasPassword?: boolean } — backward-compatible alias for lookup.
  */
 export async function GET(
   req: MedusaRequest,
@@ -19,12 +18,11 @@ export async function GET(
     return
   }
 
-  const customerService: ICustomerModuleService = req.scope.resolve(Modules.CUSTOMER)
-
-  const [customers] = await customerService.listAndCountCustomers(
-    { email: email.toLowerCase().trim() },
-    { take: 1, select: ["id"] }
-  )
-
-  res.json({ exists: customers.length > 0 })
+  try {
+    const result = await lookupCustomerAuth(req.scope, email)
+    res.json(result)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Lookup failed"
+    res.status(400).json({ message })
+  }
 }

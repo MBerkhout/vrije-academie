@@ -222,7 +222,7 @@ function RecentSavedPanel() {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <span className="font-serif text-sm text-va-black group-hover:underline line-clamp-2">
+              <span className="font-sans text-sm text-va-black group-hover:underline line-clamp-2">
                 {event?.title ?? latestHandle}
               </span>
             </div>

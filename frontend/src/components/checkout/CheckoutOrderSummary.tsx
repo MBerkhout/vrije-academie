@@ -120,7 +120,7 @@ export function resolveLineItemThumbnail(
 
 export function OrderSummaryThumbnail({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="w-14 h-14 shrink-0 bg-white overflow-hidden relative border border-va-lightgray-200">
+    <div className="w-14 h-14 shrink-0 rounded-lg bg-white overflow-hidden relative border border-va-lightgray-200">
       <Image src={src} alt={alt} fill className="object-cover" sizes="56px" />
     </div>
   )

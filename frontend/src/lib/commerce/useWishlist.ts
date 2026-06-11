@@ -1,16 +1,69 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
-import { commerceClient, normalizeHandle, parseWishlistHandles } from '@/lib/commerce'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { medusaClient as commerceClient } from './medusa-client'
+import {
+  addHandleToList,
+  getWishlistHandlesLocal,
+  mergeWishlistHandles,
+  normalizeHandle,
+  parseWishlistHandles,
+  removeHandleFromList,
+  setWishlistHandlesLocal,
+  wishlistHandlesEqual,
+} from './wishlist'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 
 export function useWishlist() {
-  const { customer, loading, refresh } = useCustomer()
-  const handles = useMemo(
+  const { customer, loading: customerLoading, refresh } = useCustomer()
+  const [localHandles, setLocalHandles] = useState<string[]>([])
+  const [localReady, setLocalReady] = useState(false)
+  const [pendingHandle, setPendingHandle] = useState<string | null>(null)
+  const syncedCustomerIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    setLocalHandles(getWishlistHandlesLocal())
+    setLocalReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (customer) return
+    syncedCustomerIdRef.current = null
+  }, [customer])
+
+  const serverHandles = useMemo(
     () => parseWishlistHandles(customer?.metadata),
     [customer?.metadata],
   )
-  const [pendingHandle, setPendingHandle] = useState<string | null>(null)
+
+  const handles = useMemo(
+    () => (customer ? mergeWishlistHandles(localHandles, serverHandles) : localHandles),
+    [customer, localHandles, serverHandles],
+  )
+
+  useEffect(() => {
+    if (!customer?.id || !localReady) return
+    if (syncedCustomerIdRef.current === customer.id) return
+
+    syncedCustomerIdRef.current = customer.id
+    const local = getWishlistHandlesLocal()
+    const remote = parseWishlistHandles(customer.metadata)
+    const merged = mergeWishlistHandles(local, remote)
+
+    setLocalHandles(merged)
+    setWishlistHandlesLocal(merged)
+
+    if (wishlistHandlesEqual(merged, remote)) return
+
+    void (async () => {
+      try {
+        await commerceClient.syncWishlistHandles(merged)
+        await refresh()
+      } catch {
+        /* best-effort merge on login */
+      }
+    })()
+  }, [customer?.id, customer?.metadata, localReady, refresh])
 
   const isInWishlist = useCallback(
     (handle: string) => {
@@ -21,6 +74,18 @@ export function useWishlist() {
     [handles],
   )
 
+  const persistHandles = useCallback(
+    async (next: string[]) => {
+      setLocalHandles(next)
+      setWishlistHandlesLocal(next)
+      if (customer) {
+        await commerceClient.syncWishlistHandles(next)
+        await refresh()
+      }
+    },
+    [customer, refresh],
+  )
+
   const toggle = useCallback(
     async (handle: string) => {
       const h = normalizeHandle(handle)
@@ -28,17 +93,13 @@ export function useWishlist() {
       setPendingHandle(h)
       try {
         const inList = handles.includes(h)
-        if (inList) {
-          await commerceClient.removeWishlistHandle(h)
-        } else {
-          await commerceClient.addWishlistHandle(h)
-        }
-        await refresh()
+        const next = inList ? removeHandleFromList(handles, h) : addHandleToList(handles, h)
+        await persistHandles(next)
       } finally {
         setPendingHandle(null)
       }
     },
-    [handles, refresh],
+    [handles, persistHandles],
   )
 
   const remove = useCallback(
@@ -47,18 +108,17 @@ export function useWishlist() {
       if (!h) return
       setPendingHandle(h)
       try {
-        await commerceClient.removeWishlistHandle(h)
-        await refresh()
+        await persistHandles(removeHandleFromList(handles, h))
       } finally {
         setPendingHandle(null)
       }
     },
-    [refresh],
+    [handles, persistHandles],
   )
 
   return {
     handles,
-    loading,
+    loading: customerLoading || !localReady,
     pendingHandle,
     isInWishlist,
     toggle,

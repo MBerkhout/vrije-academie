@@ -107,7 +107,7 @@ export function DiscountCodeForm({
         </ul>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex max-w-sm gap-2">
         <input
           type="text"
           value={input}

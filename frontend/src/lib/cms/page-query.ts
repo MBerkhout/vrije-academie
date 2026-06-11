@@ -401,20 +401,14 @@ const BLOCK_PROJECTION = `{
         topPanelCtaUrl,
         newsletterSignupUrl
       },
-      _type == "featuredTripBlock" => {
-        heroImage { asset->, alt, caption },
-        overlayOpacity,
-        heroHeight,
-        showInfoCard,
-        infoCard {
-          travelDates,
-          price,
-          guide-> { ${PERSON_PUBLIC_FIELDS} }
-        },
+      _type == "productRowBlock" => {
         title,
         titleSize,
-        subtitle,
-        body[] ${PT_BLOCK},
+        sourceType,
+        products[]-> { _id, handle, title },
+        automatedFeed,
+        titleFavorites,
+        titleRecent,
         ctaEnabled,
         ctaLabel,
         ctaUrl
@@ -551,16 +545,10 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
         ${INLINE_PAGE_BLOCK_LAYOUT},
         ${INLINE_COLUMNS_BLOCK_COLUMNS}
       },
-      @._type == "featuredTripBlock" => {
+      @._type == "productRowBlock" => {
         ...@,
         ${INLINE_PAGE_BLOCK_LAYOUT},
-        "heroImage": @.heroImage { asset->, alt, caption },
-        "infoCard": @.infoCard {
-          travelDates,
-          price,
-          "guide": guide-> { ${PERSON_PUBLIC_FIELDS} }
-        },
-        "body": @.body[] ${PT_BLOCK}
+        "products": products[]-> { _id, handle, title }
       },
       @._type == "editorialCardsBlock" => {
         ...@,

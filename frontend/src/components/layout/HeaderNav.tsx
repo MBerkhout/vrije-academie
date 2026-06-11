@@ -255,7 +255,7 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
   const { customer } = useCustomer()
   const cartItemCount = useCartItemCount()
 
-  const placeholder = header.searchPlaceholder?.trim() || 'Zoek'
+  const placeholder = header.searchPlaceholder?.trim() || 'Waar ben je naar op zoek?'
   const popularSearches = header.popularSearches ?? []
   const cartUrl = header.cartUrl?.trim() || '/winkelwagen'
   const mainItems = header.mainMenu?.items ?? []
@@ -476,7 +476,7 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
                 aria-expanded={searchOpen}
                 aria-haspopup="dialog"
                 className={clsx(
-                  'shrink-0 w-full max-w-[220px] rounded-none border border-va-gray-300',
+                  'shrink-0 w-full max-w-[220px] rounded-lg border border-va-gray-300',
                   'pl-3 pr-4 py-2 text-sm font-sans text-left',
                   'inline-flex items-center gap-2 text-va-gray bg-white',
                   'outline-none hover:border-va-gray-400 transition-colors',

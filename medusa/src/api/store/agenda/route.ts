@@ -5,6 +5,8 @@ import {
   type AgendaOccurrenceRow,
 } from "../../../lib/store-listing-snapshot"
 import { sortCityFacetsByCount } from "../../../lib/city-refs"
+import SearchModuleService from "../../../modules/search/service"
+import { agendaItemMatchesQuery } from "../../../modules/search/in-memory-search"
 
 function parseArrayParam(val: string | string[] | undefined): string[] {
   if (!val) return []
@@ -62,13 +64,28 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     items = items.filter((it) => it.start_at && new Date(it.start_at).getTime() >= nowMs)
   }
 
+  let productRank: Map<string, number> | null = null
   if (searchQ) {
-    const lq = searchQ.toLowerCase()
-    items = items.filter(
-      (it) =>
-        (it.product_title ?? "").toLowerCase().includes(lq) ||
-        (it.product_handle ?? "").toLowerCase().includes(lq)
-    )
+    const search = req.scope.resolve("search") as InstanceType<typeof SearchModuleService>
+    let rankedIds: string[] = []
+    let openSearchOk = false
+
+    if (search.isEnabled()) {
+      try {
+        rankedIds = await search.searchRankedProductIds(searchQ)
+        openSearchOk = true
+      } catch {
+        openSearchOk = false
+      }
+    }
+
+    if (openSearchOk) {
+      const idSet = new Set(rankedIds)
+      productRank = new Map(rankedIds.map((id, index) => [id, index]))
+      items = items.filter((it) => idSet.has(it.product_id))
+    } else {
+      items = items.filter((it) => agendaItemMatchesQuery(it, searchQ))
+    }
   }
 
   if (deliveryTypes.length) {
@@ -95,7 +112,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   const facets = buildFacets(items)
   items = items.map((it) => ({ ...it, status: deriveStatus(it) }))
   const count = items.length
-  items = sortItems(items, sort)
+  items = sortItems(items, sort, productRank)
   items = items.slice(offset, offset + limit)
 
   setListingCacheHeaders(res)
@@ -122,7 +139,18 @@ function deriveStatus(it: {
   return "open"
 }
 
-function sortItems(list: AgendaOccurrenceRow[], sort: string): AgendaOccurrenceRow[] {
+function sortItems(
+  list: AgendaOccurrenceRow[],
+  sort: string,
+  productRank: Map<string, number> | null = null
+): AgendaOccurrenceRow[] {
+  if (sort === "relevance" && productRank?.size) {
+    return [...list].sort(
+      (a, b) =>
+        (productRank.get(a.product_id) ?? Infinity) - (productRank.get(b.product_id) ?? Infinity)
+    )
+  }
+
   const sorted = [...list]
   switch (sort) {
     case "start_date_desc":

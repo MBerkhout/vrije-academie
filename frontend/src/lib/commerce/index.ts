@@ -8,6 +8,8 @@ export {
   WISHLIST_METADATA_KEY,
   normalizeHandle,
   parseWishlistHandles,
+  getWishlistHandlesLocal,
+  mergeWishlistHandles,
 } from './wishlist'
 export {
   RECENT_VIEWED_METADATA_KEY,
@@ -18,5 +20,11 @@ export {
   parseRecentViewedHandles,
   handlesForRecentDisplay,
 } from './recent-viewed'
+export {
+  resolvePersonalizedProductRowHandles,
+  personalizedProductRowHeading,
+  type PersonalizedProductRowMode,
+  type PersonalizedProductRowBlockTitles,
+} from './product-row-personalized'
 export { medusaClient as commerceClient } from './medusa-client'
 export { useWishlist } from './useWishlist'

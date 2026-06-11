@@ -31,7 +31,7 @@ export function MijnAccountShell({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0 py-12">
-        <p className="font-serif text-va-darkgray" aria-busy="true">
+        <p className="font-sans text-va-darkgray" aria-busy="true">
           {common.loadingEllipsis}
         </p>
       </div>
@@ -41,7 +41,7 @@ export function MijnAccountShell({ children }: { children: React.ReactNode }) {
   if (!customer) {
     return (
       <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0 py-12">
-        <p className="font-serif text-va-darkgray mb-6">{t.loginPrompt}</p>
+        <p className="font-sans text-va-darkgray mb-6">{t.loginPrompt}</p>
         <Link
           href="/login?returnTo=%2Fmijn-account"
           className="inline-flex font-sans text-sm font-medium text-va-black underline underline-offset-2 hover:text-va-darkgray"

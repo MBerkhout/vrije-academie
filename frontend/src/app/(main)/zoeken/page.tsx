@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { stegaClean } from 'next-sanity'
-import { cmsClient } from '@/lib/cms/server'
+import { commerceClient } from '@/lib/commerce'
 import { isExternalHref } from '@/lib/menu-href'
-import type { SiteSearchHit } from '@/lib/cms/types'
+import type { SiteSearchHit } from '@/lib/commerce/types'
 
 type Props = { searchParams: Promise<{ q?: string }> }
 
@@ -42,7 +42,7 @@ function SearchHitRow({ hit }: { hit: SiteSearchHit }) {
           </span>
         ) : null}
         {excerpt ? (
-          <span className="mt-2 block font-serif text-sm text-va-darkgray line-clamp-2">{excerpt}</span>
+          <span className="mt-2 block font-sans text-sm text-va-darkgray line-clamp-2">{excerpt}</span>
         ) : null}
       </div>
     </>
@@ -76,11 +76,11 @@ function groupHits(hits: SiteSearchHit[]): Map<SiteSearchHit['kind'], SiteSearch
 export default async function SearchPage({ searchParams }: Props) {
   const { q } = await searchParams
   const query = (q ?? '').trim()
-  const hits = query ? await cmsClient.searchSiteContent(query) : []
+  const hits = query ? await commerceClient.searchSite(query) : []
   const grouped = groupHits(hits)
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 font-serif text-va-darkgray">
+    <div className="mx-auto max-w-3xl px-4 py-10 font-sans text-va-darkgray">
       <h1 className="mb-4 font-sans text-2xl text-va-black">Zoeken</h1>
       {query ? (
         <>

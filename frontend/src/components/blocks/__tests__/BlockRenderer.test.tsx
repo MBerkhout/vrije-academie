@@ -11,8 +11,11 @@ vi.mock('../TabsBlock', () => ({ TabsBlock: () => <div data-testid="tabs-block">
 vi.mock('../FormBlock', () => ({ FormBlock: () => <div data-testid="form-block">Form</div> }))
 vi.mock('../DemandNearbyBlock', () => ({ DemandNearbyBlock: () => <div data-testid="demand-nearby-block">DemandNearby</div> }))
 vi.mock('../HeroBlock', () => ({ HeroBlock: () => <div data-testid="hero-block">Hero</div> }))
-vi.mock('../FeaturedTripBlock', () => ({
-  FeaturedTripBlock: () => <div data-testid="featured-trip-block">FeaturedTrip</div>,
+vi.mock('../ProductRowBlock', () => ({
+  ProductRowBlock: () => <div data-testid="product-row-block">ProductRow</div>,
+}))
+vi.mock('../ProductRowBlockPersonalized', () => ({
+  ProductRowBlockPersonalized: () => <div data-testid="product-row-personalized">ProductRowPersonalized</div>,
 }))
 vi.mock('../CategoriesBlock', () => ({ CategoriesBlock: () => <div data-testid="categories-block">Categories</div> }))
 vi.mock('../UspBlock', () => ({ UspBlock: () => <div data-testid="usp-block">USP</div> }))
@@ -67,9 +70,18 @@ describe('BlockRenderer', () => {
     expect(screen.getByTestId('hero-block')).toBeInTheDocument()
   })
 
-  it('renders featuredTripBlock', () => {
-    render(<BlockRenderer block={{ ...baseBlock, _type: 'featuredTripBlock' } as Block} />)
-    expect(screen.getByTestId('featured-trip-block')).toBeInTheDocument()
+  it('renders productRowBlock (server)', () => {
+    render(
+      <BlockRenderer block={{ ...baseBlock, _type: 'productRowBlock', sourceType: 'handpicked' } as Block} />,
+    )
+    expect(screen.getByTestId('product-row-block')).toBeInTheDocument()
+  })
+
+  it('renders productRowBlock (personalized)', () => {
+    render(
+      <BlockRenderer block={{ ...baseBlock, _type: 'productRowBlock', sourceType: 'personalized' } as Block} />,
+    )
+    expect(screen.getByTestId('product-row-personalized')).toBeInTheDocument()
   })
 
   it('renders editorialCardsBlock', () => {

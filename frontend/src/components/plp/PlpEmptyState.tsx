@@ -20,7 +20,7 @@ export function PlpEmptyState({
   return (
     <div className={cn('flex flex-col items-center justify-center py-20 text-center gap-4', className)}>
       <div className="text-5xl text-va-lightgray" aria-hidden="true">🔍</div>
-      <h2 className="font-serif text-xl font-bold text-va-black">{heading}</h2>
+      <h2 className="font-sans text-xl font-bold text-va-black">{heading}</h2>
       <p className="text-sm text-va-gray max-w-sm">{subtext}</p>
       <div className="flex gap-3 mt-2">
         {hasFilters && (

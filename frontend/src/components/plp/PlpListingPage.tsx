@@ -1,26 +1,15 @@
-import { Suspense } from 'react'
 import { commerceClient } from '@/lib/commerce'
 import { cmsClient } from '@/lib/cms/server'
 import { getPlpPage, getCategoriesForFilter, getTeachersForFilter } from '@/lib/cms/sanity-refs'
 import { CONTAINER_CLASS } from '@/lib/cms'
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
-import { hasActiveFilters, PAGE_SIZE } from '@/app/(main)/ons-aanbod/_state/url'
+import { PAGE_SIZE } from '@/app/(main)/ons-aanbod/_state/url'
 
 import { PlpBreadcrumbs } from '@/components/plp/PlpBreadcrumbs'
 import { PlpBanner } from '@/components/plp/PlpBanner'
 import { PlpHeader } from '@/components/plp/PlpHeader'
 import { PlpTabs } from '@/components/plp/PlpTabs'
-import { PlpQuickSearchTrigger } from '@/components/plp/PlpQuickSearchTrigger'
-import { PlpFilterSidebar } from '@/components/plp/PlpFilterSidebar'
-import { PlpActiveChips } from '@/components/plp/PlpActiveChips'
-import { PlpSortSelect } from '@/components/plp/PlpSortSelect'
-import {
-  PlpInfiniteResultsCount,
-  PlpInfiniteResultsGrid,
-  PlpInfiniteResultsLoadMore,
-  PlpInfiniteResultsProvider,
-} from '@/components/plp/PlpInfiniteResults'
-import { PlpEmptyState } from '@/components/plp/PlpEmptyState'
+import { PlpLiveListing } from '@/components/plp/PlpLiveListing'
 import { JsonLd } from '@/components/common/JsonLd'
 import { buildBreadcrumbListJsonLd, buildItemListJsonLd } from '@/lib/json-ld'
 import { PLP_BASE_PATH, plpProductPath } from '@/lib/routes'
@@ -72,7 +61,6 @@ export async function PlpListingPage({
 
   const stockThreshold = settings?.pdp?.lowStockThreshold ?? 5
   const plpCopy = settings?.plp
-  const hasFilters = hasActiveFilters(filterState)
   const breadcrumbCrumbs: PlpBreadcrumbCrumb[] = [
     { label: 'Home', href: '/' },
     { label: 'Ons aanbod', href: PLP_BASE_PATH },
@@ -114,125 +102,24 @@ export async function PlpListingPage({
           <PlpTabs tabs={tabs} activePath={activeTabPath} />
         </div>
 
-        <div className={`${CONTAINER_CLASS} mt-6`}>
-          <PlpQuickSearchTrigger
-            defaultValue={filterState.q ?? ''}
-            placeholder={plpCopy?.searchPlaceholder ?? 'Zoek naar een cursus, onderwerp of docent…'}
-            popularSearches={settings?.header?.popularSearches}
+        <div className={CONTAINER_CLASS}>
+          <PlpLiveListing
             basePath={basePath}
+            filterState={filterState}
+            initialEvents={events}
+            initialCount={count}
+            facets={facets}
+            categories={categories}
+            teachers={teachers}
+            stockThreshold={stockThreshold}
+            searchPlaceholder={
+              plpCopy?.searchPlaceholder ?? 'Zoek naar een cursus, onderwerp of docent…'
+            }
+            emptyStateHeading={plpCopy?.emptyStateHeading}
+            emptyStateSubtext={plpCopy?.emptyStateSubtext}
+            loadMoreLabel={plpCopy?.loadMoreLabel}
+            loadError={eventsResult === null}
           />
-        </div>
-
-        <div className={`${CONTAINER_CLASS} mt-8`}>
-          <div className="flex gap-8 items-start">
-            <aside className="hidden lg:block w-72 shrink-0">
-              <PlpFilterSidebar
-                filterState={filterState}
-                categories={categories}
-                teachers={teachers}
-                facets={facets}
-                basePath={basePath}
-              />
-            </aside>
-
-            <div className="flex-1 min-w-0">
-              {eventsResult === null ? (
-                <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  Kon de activiteiten niet laden. Probeer het opnieuw.
-                </div>
-              ) : events.length === 0 ? (
-                <>
-                  <div className="flex flex-col gap-3 mb-6">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-va-darkgray">0 activiteiten gevonden</span>
-                      <PlpSortSelect
-                        currentSort={sort}
-                        hasQuery={!!filterState.q}
-                        basePath={basePath}
-                      />
-                    </div>
-                    {hasFilters && (
-                      <PlpActiveChips
-                        filterState={filterState}
-                        categories={categories}
-                        teachers={teachers}
-                        cityOptions={facets?.cities}
-                        basePath={basePath}
-                      />
-                    )}
-                  </div>
-                  <div className="lg:hidden mb-4">
-                    <PlpFilterSidebar
-                      filterState={filterState}
-                      categories={categories}
-                      teachers={teachers}
-                      facets={facets}
-                      mobileOnly
-                      basePath={basePath}
-                    />
-                  </div>
-                  <PlpEmptyState
-                    heading={plpCopy?.emptyStateHeading ?? 'Geen activiteiten gevonden.'}
-                    subtext={
-                      plpCopy?.emptyStateSubtext ??
-                      'Probeer een andere zoekopdracht of pas je filters aan.'
-                    }
-                    hasFilters={hasFilters}
-                  />
-                </>
-              ) : (
-                <PlpInfiniteResultsProvider
-                  initialEvents={events}
-                  totalCount={count}
-                  filterState={filterState}
-                  sort={sort}
-                  pageSize={PAGE_SIZE}
-                >
-                  <div className="flex flex-col gap-3 mb-6">
-                    <div className="flex items-center justify-between gap-4">
-                      <PlpInfiniteResultsCount className="text-sm text-va-darkgray" />
-                      <PlpSortSelect
-                        currentSort={sort}
-                        hasQuery={!!filterState.q}
-                        basePath={basePath}
-                      />
-                    </div>
-                    {hasFilters && (
-                      <PlpActiveChips
-                        filterState={filterState}
-                        categories={categories}
-                        teachers={teachers}
-                        cityOptions={facets?.cities}
-                        basePath={basePath}
-                      />
-                    )}
-                  </div>
-
-                  <div className="lg:hidden mb-4">
-                    <PlpFilterSidebar
-                      filterState={filterState}
-                      categories={categories}
-                      teachers={teachers}
-                      facets={facets}
-                      mobileOnly
-                      basePath={basePath}
-                    />
-                  </div>
-
-                  <Suspense>
-                    <PlpInfiniteResultsGrid
-                      stockThreshold={stockThreshold}
-                      filterState={filterState}
-                    />
-                  </Suspense>
-
-                  <PlpInfiniteResultsLoadMore
-                    loadMoreLabel={plpCopy?.loadMoreLabel ?? 'Laad meer activiteiten'}
-                  />
-                </PlpInfiniteResultsProvider>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </>

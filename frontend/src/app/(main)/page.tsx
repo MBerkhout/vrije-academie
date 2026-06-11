@@ -14,7 +14,7 @@ export default async function Home() {
         <h1 className="font-sans text-3xl font-bold text-va-black mb-4">
           Vrije Academie
         </h1>
-        <p className="font-serif text-sm text-va-darkgray">
+        <p className="font-sans text-sm text-va-darkgray">
           Welcome to Vrije Academie
         </p>
       </div>

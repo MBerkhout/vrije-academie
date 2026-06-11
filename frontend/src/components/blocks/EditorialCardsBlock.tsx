@@ -63,7 +63,7 @@ function EditorialCard({ card, cardCount }: { card: EditorialCardItem; cardCount
 
   const body = (
     <>
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-va-lightgray">
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-t-lg bg-va-lightgray">
         {card.image?.asset ? (
           <SanityImage
             source={card.image}
@@ -86,7 +86,7 @@ function EditorialCard({ card, cardCount }: { card: EditorialCardItem; cardCount
         {card.description && card.description.length > 0 ? (
           <div
             className={cn(
-              'font-serif text-sm leading-relaxed text-va-darkgray',
+              'font-sans text-sm leading-relaxed text-va-darkgray',
               '[&_p]:mb-2 [&_p:last-child]:mb-0 [&_li]:text-sm'
             )}
           >
@@ -104,7 +104,7 @@ function EditorialCard({ card, cardCount }: { card: EditorialCardItem; cardCount
   )
 
   const cardClass = cn(
-    'group flex min-h-0 flex-col overflow-hidden rounded-none bg-va-white',
+    'group flex min-h-0 flex-col overflow-hidden rounded-lg bg-va-white',
     'shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-[box-shadow,color] duration-300',
     'hover:shadow-[0_12px_40px_rgba(0,0,0,0.16)]',
     'outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2'

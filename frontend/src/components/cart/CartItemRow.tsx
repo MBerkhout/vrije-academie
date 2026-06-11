@@ -44,7 +44,7 @@ export function CartItemRow({
   return (
     <div className={clsx('py-4 flex gap-4', updating && 'opacity-60 pointer-events-none')}>
       {/* Thumbnail */}
-      <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 overflow-hidden bg-va-lightgray-200 rounded">
+      <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 overflow-hidden bg-va-lightgray-200 rounded-lg">
         {thumbnail ? (
           <Image
             src={thumbnail}

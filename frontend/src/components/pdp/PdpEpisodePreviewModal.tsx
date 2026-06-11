@@ -53,7 +53,7 @@ export function PdpEpisodePreviewModal({ episode, open, onClose }: PdpEpisodePre
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-white/10">
-          <h2 id={titleId} className="text-white font-serif text-lg font-semibold truncate">
+          <h2 id={titleId} className="text-white font-sans text-lg font-semibold truncate">
             {episode.number}. {episode.title}
           </h2>
           <button
