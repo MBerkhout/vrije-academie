@@ -180,6 +180,9 @@ export interface VathuisHeroBlock extends Block {
 export interface VathuisCategoriesBlock extends Block {
   _type: 'vathuisCategoriesBlock'
   maxItems?: number
+  items?: {
+    category?: CategoryOption | null
+  }[]
 }
 
 export interface VathuisProductRowBlock extends Block {

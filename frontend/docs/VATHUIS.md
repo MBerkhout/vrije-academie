@@ -41,6 +41,8 @@ VA Thuis content is a normal **`page`** document with **VA Thuis page** enabled.
 
 Landing Page id: `pageVaThuis` (slug `va-thuis`). Dedicated blocks: `vathuisHeroBlock`, `vathuisCategoriesBlock`, `vathuisProductRowBlock`, `vathuisTeachersBlock`, `vathuisPromoTilesBlock`.
 
+`vathuisCategoriesBlock`: optional curated category refs (default migration seeds 4 tiles: kunstgeschiedenis, architectuur, filosofie, geschiedenis). Without items, falls back to categories with VA Thuis products, then top categories by sort order.
+
 Migration from legacy `vathuisBlock`: `cd sanity && npm run migrate:vathuis-landing-to-blocks`
 
 Sanity constants: `sanity/src/constants/storefront-paths.ts` (`VATHUIS_CMS_PAGE_ID`).

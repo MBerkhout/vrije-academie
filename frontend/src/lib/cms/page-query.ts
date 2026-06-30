@@ -505,7 +505,10 @@ const BLOCK_PROJECTION = `{
         image { asset-> { url } }
       },
       _type == "vathuisCategoriesBlock" => {
-        maxItems
+        maxItems,
+        "items": items[] {
+          "category": category-> { _id, slug, label, title, image { asset-> }, linkUrl }
+        }
       },
       _type == "vathuisProductRowBlock" => {
         title,
@@ -622,7 +625,10 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
       },
       @._type == "vathuisCategoriesBlock" => {
         ...@,
-        ${INLINE_PAGE_BLOCK_LAYOUT}
+        ${INLINE_PAGE_BLOCK_LAYOUT},
+        "items": @.items[] {
+          "category": category-> { _id, slug, label, title, image { asset-> }, linkUrl }
+        }
       },
       @._type == "vathuisProductRowBlock" => {
         ...@,

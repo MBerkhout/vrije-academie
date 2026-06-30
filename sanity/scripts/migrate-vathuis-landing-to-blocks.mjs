@@ -17,6 +17,21 @@ loadEnvFromSanityDir()
 const VATHUIS_CMS_PAGE_ID = "pageVaThuis"
 const VATHUIS_SLUG = "va-thuis"
 
+/** Same four tiles as homepage “Populaire vakgebieden” (see seed-homepage-categories.mjs). */
+const VATHUIS_LANDING_CATEGORIES = [
+  { _ref: "medusa-category-01KSZC48G5RKWK4JZ19HWEF2SJ", slug: "kunstgeschiedenis" },
+  { _ref: "medusa-category-01KSZHVB1JYNZ16D2PK2TQFMV0", slug: "architectuur" },
+  { _ref: "medusa-category-01KSZHVXSXZWF9RRXHJJPVM9GQ", slug: "filosofie" },
+  { _ref: "medusa-category-01KSZHVBZTP5X1HDK6C1G3EADY", slug: "geschiedenis" },
+]
+
+function defaultCategoryItems() {
+  return VATHUIS_LANDING_CATEGORIES.map((entry) => ({
+    _key: blockKey(`cat_${entry.slug}`),
+    category: { _type: "reference", _ref: entry._ref },
+  }))
+}
+
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID || process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
 const dataset = process.env.SANITY_STUDIO_DATASET || process.env.NEXT_PUBLIC_SANITY_DATASET || "production"
 const token = process.env.SANITY_API_WRITE_TOKEN || process.env.SANITY_API_TOKEN
@@ -73,7 +88,8 @@ function blocksFromLegacy(legacy) {
   blocks.push({
     _type: "vathuisCategoriesBlock",
     _key: blockKey("vathuisCategoriesBlock"),
-    maxItems: 5,
+    maxItems: 4,
+    items: defaultCategoryItems(),
   })
 
   blocks.push({
@@ -138,7 +154,8 @@ function defaultLandingBlocks() {
     {
       _type: "vathuisCategoriesBlock",
       _key: blockKey("vathuisCategoriesBlock"),
-      maxItems: 5,
+      maxItems: 4,
+      items: defaultCategoryItems(),
     },
     {
       _type: "vathuisHeroBlock",

@@ -5,7 +5,7 @@ import { VATHUIS_CATALOG_PATH } from '@/lib/routes'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { cn } from '@/lib/utils'
 
-const MAX_CATEGORIES_DEFAULT = 5
+const MAX_CATEGORIES_DEFAULT = 4
 
 interface VaThuisCategoryGridProps {
   categories: CategoryOption[]
@@ -22,14 +22,18 @@ export function VaThuisCategoryGrid({
   className,
 }: VaThuisCategoryGridProps) {
   const items = categories
+    .filter((cat) => Boolean(cat.slug))
     .filter((cat) => !facetSlugs || facetSlugs.has(cat.slug))
     .slice(0, maxItems)
 
   if (!items.length) return null
 
+  const desktopCols =
+    items.length <= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-5'
+
   return (
     <section className={cn(CONTAINER_CLASS, 'pt-6 pb-2', className)}>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 lg:gap-3">
+      <div className={cn('grid grid-cols-2 gap-2 sm:grid-cols-3 lg:gap-3', desktopCols)}>
         {items.map((category) => {
           const label = categoryDisplayTitle(category)
           const href = `${VATHUIS_CATALOG_PATH}?category=${encodeURIComponent(category.slug)}`
