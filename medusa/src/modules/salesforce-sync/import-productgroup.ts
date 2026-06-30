@@ -142,17 +142,16 @@ async function ensureProductSessionOptionValues(
     | undefined
   if (!option?.id) return
 
-  const existing = new Set((option.values ?? []).map((v) => v.value).filter(Boolean))
+  const existingValues = (option.values ?? [])
+    .map((v) => v.value)
+    .filter((v): v is string => typeof v === "string" && v.length > 0)
+  const existing = new Set(existingValues)
   const missing = [...new Set(values)].filter((v) => !existing.has(v))
   if (!missing.length) return
 
-  const productModule = container.resolve(Modules.PRODUCT) as {
+  const productModule = container.resolve(Modules.PRODUCT) as unknown as {
     createProductOptionValues?: (
       data: { option_id: string; value: string }[]
-    ) => Promise<unknown>
-    updateProductOptions?: (
-      id: string,
-      data: { values: { value: string }[] }
     ) => Promise<unknown>
   }
 
@@ -170,7 +169,7 @@ async function ensureProductSessionOptionValues(
         options: [
           {
             title: optionName,
-            values: [...existing, ...missing],
+            values: [...existingValues, ...missing],
           },
         ],
       },

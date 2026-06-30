@@ -98,6 +98,7 @@ export async function reportSalesforceFailure(
 
 export type RunResult = {
   hasFailed?: boolean
+  acknowledgement?: { hasFailed?: boolean; transactionId?: string }
   errors?: { error: Error | string }[]
   thrownError?: Error
   result?: unknown

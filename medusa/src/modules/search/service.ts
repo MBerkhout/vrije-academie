@@ -403,7 +403,9 @@ export default class SearchModuleService {
     if (!this.isEnabled()) return
     const client = getSanityReadClient()
     const row = await client.fetch<
-      (SanitySearchRow & { _type?: string; medusaId?: string | null }) | null
+      | (SanitySearchRow & { medusaId?: string | null })
+      | ({ _type: "category"; medusaId?: string | null })
+      | null
     >(
       `*[_id == $id][0] {
         _id,

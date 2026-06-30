@@ -34,7 +34,8 @@ function getItemLabel(item: CategoryItem): string {
   const source = cleanBlockValue(item.source)
   if (source === 'aangepast') return item.label ?? ''
   if (source === 'bibliotheek' && item.category && typeof item.category === 'object' && 'label' in item.category) {
-    return categoryDisplayTitle(item.category as { title?: string; label?: string })
+    const cat = item.category as { title?: string; label?: string }
+    return categoryDisplayTitle({ title: cat.title, label: cat.label ?? '' })
   }
   return ''
 }

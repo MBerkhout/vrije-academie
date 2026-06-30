@@ -31,10 +31,10 @@ export const fetchLinkedOnlineChildrenSalesforceStep = createStep(
     const linkedId = linkedOnlineProductgroupId(group)
 
     if (!linkedId) {
-      return new StepResponse({
+      return new StepResponse<FetchLinkedOnlineChildrenResult>({
         linkedGroupRecord: null,
         linkedChildRecords: [],
-      } satisfies FetchLinkedOnlineChildrenResult)
+      })
     }
 
     const groupFields = productgroupSalesforceFieldsForPull.join(",")
@@ -46,9 +46,9 @@ export const fetchLinkedOnlineChildrenSalesforceStep = createStep(
     const childSoql = `SELECT ${childFields} FROM ${SF_COURSE_PRODUCT_OBJECT} WHERE Productgroup__c = '${linkedId.replace(/'/g, "\\'")}' ORDER BY Start_date_time__c ASC`
     const childResult = await sync.query<Record<string, unknown>>(childSoql)
 
-    return new StepResponse({
+    return new StepResponse<FetchLinkedOnlineChildrenResult>({
       linkedGroupRecord,
       linkedChildRecords: childResult.records ?? [],
-    } satisfies FetchLinkedOnlineChildrenResult)
+    })
   }
 )
