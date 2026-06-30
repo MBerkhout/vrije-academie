@@ -177,12 +177,21 @@ export interface VathuisHeroBlock extends Block {
   image?: { asset?: { url?: string } } | null
 }
 
+export interface VathuisCategoryItem {
+  category?: {
+    _id: string
+    slug: string
+    label: string
+    title?: string | null
+    image?: { asset?: { url?: string } } | null
+    linkUrl?: string | null
+  } | null
+}
+
 export interface VathuisCategoriesBlock extends Block {
   _type: 'vathuisCategoriesBlock'
   maxItems?: number
-  items?: {
-    category?: CategoryOption | null
-  }[]
+  items?: VathuisCategoryItem[]
 }
 
 export interface VathuisProductRowBlock extends Block {
