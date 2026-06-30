@@ -15,7 +15,9 @@ async function resolveHandpickedEvents(block: VathuisProductRowBlockType) {
 
 async function resolveAutomatedEvents(block: VathuisProductRowBlockType) {
   const limit = Math.min(12, Math.max(1, block.limit ?? 8))
-  const result = await commerceClient.getVathuisPaginated({ sort: 'newest', limit, offset: 0 })
+  const result = await commerceClient
+    .getVathuisPaginated({ sort: 'newest', limit, offset: 0 })
+    .catch(() => null)
   return result?.items ?? []
 }
 

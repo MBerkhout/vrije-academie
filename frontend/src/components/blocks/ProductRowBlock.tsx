@@ -19,12 +19,14 @@ async function resolveHandpickedEvents(block: ProductRowBlockType) {
 async function resolveAutomatedEvents(block: ProductRowBlockType) {
   const feed = cleanBlockValue(block.automatedFeed)
   const sort = feed === 'newest' ? 'newest' : 'popularity'
-  const { events } = await commerceClient.getEventsPaginated({
-    limit: 4,
-    offset: 0,
-    sort,
-  })
-  return events
+  const result = await commerceClient
+    .getEventsPaginated({
+      limit: 4,
+      offset: 0,
+      sort,
+    })
+    .catch(() => null)
+  return result?.events ?? []
 }
 
 export async function ProductRowBlock({ block }: ProductRowBlockProps) {

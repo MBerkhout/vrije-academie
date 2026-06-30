@@ -4,7 +4,7 @@ CMS-managed URL redirects for the Next.js storefront.
 
 ## Overview
 
-Editors manage redirects in Studio under **Redirects**. When a **Page** is deleted, Studio prompts for an optional redirect target before removal. The live site enforces redirects via Next.js middleware.
+Editors manage redirects in Studio under **Redirects**. When a **Page** is deleted, Studio prompts for an optional redirect target before removal. The live site enforces redirects via the Next.js proxy.
 
 ## Redirect document
 
@@ -37,9 +37,9 @@ When deleting a **Page**:
 ## Frontend
 
 - Query + cache: `frontend/src/lib/redirects.ts`
-- Enforcement: `frontend/src/middleware.ts`
+- Enforcement: `frontend/src/proxy.ts`
 
-Middleware matches normalized paths (trailing slashes ignored except for `/`) and skips `/_next`, `/api`, `/studio`, and static assets.
+Proxy matches normalized paths (trailing slashes ignored except for `/`) and skips `/_next`, `/api`, `/studio`, and static assets.
 
 ## Notes
 

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { findRedirect } from '@/lib/redirects'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const redirect = await findRedirect(request.nextUrl.pathname)
 
   if (!redirect) {
