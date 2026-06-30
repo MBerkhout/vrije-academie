@@ -1,5 +1,5 @@
 import type { StructureResolver } from "sanity/structure"
-import { LinkIcon } from "@sanity/icons"
+import { LinkIcon, DocumentsIcon } from "@sanity/icons"
 
 /**
  * Content blocks are only used inside Page.blocks.
@@ -24,13 +24,18 @@ const CONTENT_BLOCK_TYPES = [
   "accordionBlock",
   "plpBlock",
   "giftCardBlock",
+  "vathuisHeroBlock",
+  "vathuisCategoriesBlock",
+  "vathuisProductRowBlock",
+  "vathuisTeachersBlock",
+  "vathuisPromoTilesBlock",
 ]
 
 /** Singleton documents — shown as direct links rather than lists. */
 const SINGLETONS = ["generalSettings"]
 
 /** Document types with an explicit desk item (hidden from the auto list). */
-const EXPLICIT_LIST_TYPES = ["redirect"]
+const EXPLICIT_LIST_TYPES = ["redirect", "page"]
 
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -48,6 +53,33 @@ export const structure: StructureResolver = (S) =>
         .title("Redirects")
         .icon(LinkIcon)
         .child(S.documentTypeList("redirect").title("Redirects")),
+
+      S.listItem()
+        .id("pages")
+        .title("Pages")
+        .icon(DocumentsIcon)
+        .child(
+          S.list()
+            .title("Pages")
+            .items([
+              S.listItem()
+                .title("All pages")
+                .child(
+                  S.documentTypeList("page")
+                    .title("Pages")
+                    .filter("_type == $type && isVaThuis != true")
+                    .params({ type: "page" }),
+                ),
+              S.listItem()
+                .title("VA Thuis pages")
+                .child(
+                  S.documentTypeList("page")
+                    .title("VA Thuis pages")
+                    .filter("_type == $type && isVaThuis == true")
+                    .params({ type: "page" }),
+                ),
+            ]),
+        ),
 
       S.divider(),
 

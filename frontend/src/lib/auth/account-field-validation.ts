@@ -1,3 +1,4 @@
+import { postalCodeInvalidMessage, validatePostalCode } from '@/lib/address/postal-code'
 import { defaultMessages } from '@/lib/i18n'
 
 export type FieldValidity = { state: 'idle' } | { state: 'valid' } | { state: 'invalid'; message: string }
@@ -14,6 +15,7 @@ export type AccountFieldName =
   | 'houseNumber'
   | 'street'
   | 'city'
+  | 'birthdate'
 
 /** Full validity map for checkout guest / account profile forms */
 export type CheckoutGuestValidity = Record<AccountFieldName, FieldValidity>
@@ -30,6 +32,7 @@ export function initialCheckoutGuestValidity(): CheckoutGuestValidity {
     houseNumber: { state: 'idle' },
     street: { state: 'idle' },
     city: { state: 'idle' },
+    birthdate: { state: 'idle' },
     newPassword: { state: 'idle' },
     confirmPassword: { state: 'idle' },
   }
@@ -43,6 +46,8 @@ export type ValidateAccountFieldOptions = {
    * `newPassword` always uses registration rules.
    */
   passwordRequirement?: 'login' | 'register'
+  /** ISO country code for address fields (postal code format). Defaults to NL. */
+  countryCode?: string
 }
 
 export function validateAccountField(
@@ -85,11 +90,13 @@ export function validateAccountField(
       if (!/^[+0-9\s\-()]{6,}$/.test(v))
         return { state: 'invalid', message: msg.phoneInvalid }
       return { state: 'valid' }
-    case 'postalCode':
+    case 'postalCode': {
+      const countryCode = extra?.countryCode ?? 'NL'
       if (!v) return { state: 'invalid', message: msg.postalRequired }
-      if (!/^[0-9]{4}\s?[a-zA-Z]{2}$/.test(v))
-        return { state: 'invalid', message: msg.postalInvalid }
+      if (!validatePostalCode(v, countryCode))
+        return { state: 'invalid', message: postalCodeInvalidMessage(countryCode) }
       return { state: 'valid' }
+    }
     case 'houseNumber':
       if (!v) return { state: 'invalid', message: msg.houseRequired }
       return { state: 'valid' }
@@ -99,5 +106,14 @@ export function validateAccountField(
     case 'city':
       if (!v) return { state: 'invalid', message: msg.cityRequired }
       return { state: 'valid' }
+    case 'birthdate': {
+      if (!v) return { state: 'idle' }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v))
+        return { state: 'invalid', message: msg.birthdateInvalid }
+      const d = new Date(`${v}T12:00:00`)
+      if (Number.isNaN(d.getTime()) || d > new Date())
+        return { state: 'invalid', message: msg.birthdateInvalid }
+      return { state: 'valid' }
+    }
   }
 }

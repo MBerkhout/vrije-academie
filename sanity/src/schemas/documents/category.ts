@@ -4,12 +4,16 @@ import { defineCtaUrlField } from "../objects/ctaUrl"
 /**
  * Catalog category — mirrored from Medusa.
  * `medusaId`, `slug`, and `label` are managed by Medusa and must not be edited in the Studio.
- * `image` and `linkUrl` remain editable here for editorial purposes.
+ * Editorial fields (`title`, `description`, `image`, `linkUrl`, `seo`) are preserved on Medusa sync.
  */
 export const category = defineType({
   name: "category",
   title: "Category",
   type: "document",
+  groups: [
+    { name: "content", title: "Content", default: true },
+    { name: "seo", title: "SEO" },
+  ],
   fields: [
     defineField({
       name: "medusaId",
@@ -58,27 +62,51 @@ export const category = defineType({
       readOnly: true,
     }),
     defineField({
+      name: "title",
+      title: "Custom title",
+      type: "string",
+      group: "content",
+      description: "Optional display title for category pages, tiles, and search (defaults to Medusa label).",
+    }),
+    defineField({
+      name: "description",
+      title: "Description",
+      type: "text",
+      group: "content",
+      rows: 4,
+      description: "Optional intro text on the category listing page and search excerpt.",
+    }),
+    defineField({
       name: "image",
-      title: "Image (editorial override)",
+      title: "Image",
       type: "image",
-      description: "Optional editorial image override (e.g. for category tiles).",
+      group: "content",
+      description: "Category tile and search thumbnail (e.g. homepage tiles). Re-seed with npm run seed:homepage-categories.",
       options: { hotspot: true },
     }),
     defineCtaUrlField({
       name: "linkUrl",
       title: "Link URL",
-      description: "Optional link override for category tiles.",
+      group: "content",
+      description: "Optional link override for category tiles and search results.",
+    }),
+    defineField({
+      name: "seo",
+      title: "SEO",
+      type: "seoMetaFields",
+      group: "seo",
     }),
   ],
   orderings: [
     { title: "Sort Order", name: "sortOrderAsc", by: [{ field: "sortOrder", direction: "asc" }] },
   ],
   preview: {
-    select: { label: "label", medusaId: "medusaId" },
-    prepare({ label, medusaId }) {
+    select: { label: "label", title: "title", medusaId: "medusaId", media: "image" },
+    prepare({ label, title, medusaId, media }) {
       return {
-        title: label || "Category",
+        title: title?.trim() || label || "Category",
         subtitle: medusaId ? `medusa:${medusaId.slice(0, 12)}…` : "Not synced",
+        media,
       }
     },
   },

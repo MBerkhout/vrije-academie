@@ -9,7 +9,7 @@ Steps 2–4 of the 4-step booking flow: **Inloggen → Betaling → Bevestiging*
 | 1 | `/winkelwagen` | `CartView` |
 | 2 | `/checkout/inloggen` | `CheckoutLoginForm` |
 | 3 | `/checkout/betaling` | `CheckoutPaymentOrderOverview` + `CheckoutPaymentForm` |
-| 4 | `/checkout/bevestiging` | `bevestiging/page.tsx` |
+| 4 | `/bedankt` (legacy `/checkout/bevestiging` → redirect) | `bedankt/page.tsx` |
 | — | `/login` | `LoginForm` |
 
 ## Architecture
@@ -53,7 +53,7 @@ email  ──(lookup)──► known ──(password or OTP)──► /checkout/
 
 **Data ownership**
 
-- **Logged-in:** `Customer` (name, phone, saved address via Store API) is the **source of truth**. `commerceClient.updateCustomerProfile`, `upsertCheckoutShippingAddress`, then `syncCartFromCustomer` copies that onto the cart for payment (`updateCart` with `shipping_address`).
+- **Logged-in:** `Customer` (name, phone, saved address via Store API) is the **source of truth**. `commerceClient.updateCustomerProfile`, `upsertCheckoutShippingAddress`, then `syncCartFromCustomer` copies that onto the cart for payment (`shipping_address` + `billing_address`, same payload).
 - **New customers:** registered immediately at step 2 via `commerceClient.registerPasswordless`; session JWT links the order to the customer.
 
 Helpers: `src/lib/commerce/checkout-profile.ts` (`isCustomerProfileComplete`, `getDefaultCheckoutAddress`, `customerToShippingPayload`, `isCartShippingComplete`).
@@ -83,8 +83,10 @@ OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `cus
 **When total ≤ €0 (zero-total checkout):** Medusa’s cart completion skips payment when `credit_line_total >= 0` and `total <= 0`. The storefront hides payment tiles, does not require a method, and on submit calls `commerceClient.completeCart(cartId)` (`POST /store/carts/:id/complete`). On success it clears the `va_cart_id` cookie via `clearCartId()` and navigates to `/checkout/bevestiging?order={order.id}`. On `{ type: 'cart', error }` the user sees the error message in the existing toast.
 
 **When there is an amount due:** On submit:
-1. `initiatePaymentSession(cartId, selectedProviderId)` → creates payment collection + session → reads Mollie checkout URL from `session.data._links.checkout.href` (fallback: `session.data.checkoutUrl`)
-2. `window.location.href = checkoutUrl` — redirects to Mollie hosted page
+1. `prepareCheckout(cartId)` — `POST /store/carts/:id/prepare-checkout` clears `requires_shipping` on line items (event registrations are digital; Medusa would otherwise require a shipping method at cart completion when the Mollie webhook fires)
+2. `ensureMollieBillingForPayment` — marks the checkout address as default **billing** on the customer (Mollie reads `customer.billing_address`, not cart shipping) and mirrors it on the cart
+3. `initiatePaymentSession(cartId, selectedProviderId)` → creates payment collection + session → reads Mollie checkout URL from `session.data._links.checkout.href` (fallback: `session.data.checkoutUrl`)
+4. `window.location.href = checkoutUrl` — redirects to Mollie hosted page
 
 `selectedProviderId` is the full provider ID (e.g. `pp_mollie-ideal_mollie`). No separate `methodId` is needed.
 
@@ -92,15 +94,27 @@ OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `cus
 
 ## Step 4 — Bevestiging
 
-Arrival from Mollie success redirect: `?session_id=…`. Zero-total flow passes `?order=…` from the client after `completeCart`. The page also accepts `?order=…` when the order id is already known.
+**URL:** `/bedankt` (legacy `/checkout/bevestiging` redirects here).
 
-Renders success icon, heading, subheading, order number, order items table, and back-to-overview CTA.
+After Mollie payment, Mollie redirects to `{MOLLIE_REDIRECT_URL}` (e.g. `http://localhost:3000/bedankt`) **without** query params. The page reads `va_cart_id` from the cookie and polls `GET /store/checkout/confirmation?cart_id=…` until the webhook has created the order (`status: ready`). Zero-total checkout navigates directly with `?order=…`.
 
-**Guards:** Neither `?order` nor `?session_id` present → redirect `/`.
+Once the order is confirmed the URL is updated to `/bedankt?order={order.id}&token={view_token}` so the page can be bookmarked or revisited. The `view_token` is a 24-char HMAC-SHA256 (`THANK_YOU_SECRET` env → fallback `COOKIE_SECRET`). When visiting with both `?order=` and `?token=`, the backend validates the token before returning data.
+
+**Layout — two columns (lg+):**
+- **Left:** success icon + "Bedankt voor je inschrijving, {firstName}!" + "Je ontvangt een bevestiging op {email}" + bestelnummer + participation notices (zaal vs online, based on `event_item.delivery_type`) + "Vragen? Neem contact op" (phone + email from `generalSettings.footer.contact`).
+- **Right:** order summary card (items + totals).
+
+**Below (full width):** VA Thuis recommendations. Heading: "Duik alvast in {category} met onze online cursussen" (first catalog category of purchased products). CTA: "Alles van {category} online bekijken" → `/va-thuis/ons-aanbod?category={slug}`. Shows up to 4 cards; for VA Thuis orders uses similar-products logic with fallback to top catalog items.
+
+Clears `va_cart_id` when the order is confirmed.
+
+**Guards:** Without cookie / `?order` / `?session_id`, shows a friendly message (no redirect to homepage).
+
+**Failed payments:** When Mollie cancels or the payment fails, the confirmation endpoint checks the live Mollie payment status (Medusa session data is often still `pending`/`open` on browser redirect). It returns `status: "failed"` and the frontend redirects to `/checkout/betaling?betaling=mislukt`. The payment form shows an amber banner: "Je betaling is niet voltooid — je kunt hieronder een andere betaalmethode kiezen." While polling, `/bedankt` shows "We controleren je betaling…" instead of the thank-you heading.
 
 ## Mollie redirect contract
 
-Mollie redirects to: `{MOLLIE_REDIRECT_URL}` (set in `medusa/.env`, e.g. `http://localhost:3000/checkout/bevestiging`).
+Mollie redirects to: `{MOLLIE_REDIRECT_URL}` (set in `medusa/.env`, e.g. `http://localhost:3000/bedankt`).
 
 Mollie also POSTs webhooks to: `{MEDUSA_URL}/hooks/payment/pp_mollie-<method>_mollie` (async, may arrive before or after the browser redirect).
 

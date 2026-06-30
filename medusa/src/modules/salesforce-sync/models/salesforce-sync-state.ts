@@ -9,6 +9,8 @@ export const SalesforceSyncState = model
     entity_type: model.text(),
     medusa_id: model.text(),
     salesforce_id: model.text().nullable(),
+    /** Person Account Id (001…) when entity_type is customer. */
+    salesforce_account_id: model.text().nullable(),
     last_pushed_at: model.dateTime().nullable(),
     last_pulled_at: model.dateTime().nullable(),
     last_status: model.text().nullable(),

@@ -17,6 +17,7 @@ import { useCountryToggleManualAddress } from '@/lib/address/useCountryToggleMan
 import { usePdokAddressLookup } from '@/lib/address/usePdokAddressLookup'
 import { Button } from '@/components/ui/Button'
 import { defaultMessages } from '@/lib/i18n/messages'
+import { readCustomerBirthdate } from '@/lib/commerce/customer-birthdate'
 import { ChangePasswordModal } from '@/components/account/ChangePasswordModal'
 
 export function AccountGegevensForm() {
@@ -28,6 +29,7 @@ export function AccountGegevensForm() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
+  const [birthdate, setBirthdate] = useState('')
   const [street, setStreet] = useState('')
   const [houseNumber, setHouseNumber] = useState('')
   const [postalCode, setPostalCode] = useState('')
@@ -77,6 +79,7 @@ export function AccountGegevensForm() {
     setFirstName(customer.first_name?.trim() ?? '')
     setLastName(customer.last_name?.trim() ?? '')
     setPhone(customer.phone?.trim() ?? '')
+    setBirthdate(readCustomerBirthdate(customer.metadata))
     const addr = getDefaultCheckoutAddress(customer)
     if (!addr) {
       setStreet('')
@@ -127,7 +130,10 @@ export function AccountGegevensForm() {
   }
 
   function blurField(name: AccountFieldName, value: string) {
-    setValidity((prev) => ({ ...prev, [name]: validateAccountField(name, value) }))
+    setValidity((prev) => ({
+      ...prev,
+      [name]: validateAccountField(name, value, { countryCode: country }),
+    }))
   }
 
   function validateForm(): boolean {
@@ -135,6 +141,7 @@ export function AccountGegevensForm() {
       { name: 'firstName', value: firstName },
       { name: 'lastName', value: lastName },
       { name: 'phone', value: phone },
+      { name: 'birthdate', value: birthdate },
       { name: 'postalCode', value: postalCode },
       { name: 'houseNumber', value: houseNumber },
       { name: 'street', value: street },
@@ -143,7 +150,7 @@ export function AccountGegevensForm() {
     const next = { ...validity }
     let ok = true
     for (const { name, value } of checks) {
-      const r = validateAccountField(name, value)
+      const r = validateAccountField(name, value, { countryCode: country })
       next[name] = r
       if (r.state === 'invalid') ok = false
     }
@@ -166,6 +173,7 @@ export function AccountGegevensForm() {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         ...(phone.trim() ? { phone: phone.trim() } : { phone: '' }),
+        birthdate,
       })
       await commerceClient.upsertCheckoutShippingAddress({
         first_name: firstName.trim(),
@@ -251,6 +259,22 @@ export function AccountGegevensForm() {
             validity={validity.phone}
             disabled={busy}
           />
+          <ValidatedInput
+            name="birthdate"
+            label={t.birthdateLabel}
+            type="date"
+            autoComplete="bday"
+            value={birthdate}
+            max={new Date().toISOString().slice(0, 10)}
+            min="1900-01-01"
+            onChange={(v) => {
+              setBirthdate(v)
+              resetValidity('birthdate')
+            }}
+            onBlur={() => blurField('birthdate', birthdate)}
+            validity={validity.birthdate}
+            disabled={busy}
+          />
 
           <div className="pt-2 border-t border-va-lightgray">
             <NlAddressFields
@@ -280,7 +304,10 @@ export function AccountGegevensForm() {
               onHouseNumberChange={setHouseNumber}
               onStreetChange={setStreet}
               onCityChange={setCity}
-              onCountryChange={setCountry}
+              onCountryChange={(v) => {
+                setCountry(v)
+                resetValidity('postalCode')
+              }}
               onManualAddress={setManualAddress}
               blur={(name, value) => blurField(name, value)}
               reset={resetValidity}

@@ -6,12 +6,14 @@ import type { GeneralSettings } from '@/lib/cms/types'
 import { defaultMessages } from '@/lib/i18n/messages'
 import { Button } from '@/components/ui/Button'
 import { PdpEpisodePreviewModal } from '@/components/pdp/PdpEpisodePreviewModal'
+import { cn } from '@/lib/utils'
 
 interface PdpEpisodesTableProps {
   chapters?: VathuisChapter[]
   episodes: VathuisEpisode[]
   chapterTitle?: string | null
   settings?: GeneralSettings | null
+  variant?: 'light' | 'dark'
 }
 
 function scrollToBookingPanel() {
@@ -23,6 +25,7 @@ export function PdpEpisodesTable({
   episodes,
   chapterTitle,
   settings,
+  variant = 'light',
 }: PdpEpisodesTableProps) {
   const labels = settings?.pdp?.labels
   const t = defaultMessages.pdp
@@ -48,7 +51,33 @@ export function PdpEpisodesTable({
     resolvedChapters.find((chapter) => chapter.number === selectedChapterNumber) ??
     resolvedChapters[0]
 
+  const selectedChapterIndex = resolvedChapters.findIndex(
+    (chapter) => chapter.number === selectedChapter?.number
+  )
+  const hasPreviousChapter = selectedChapterIndex > 0
+  const hasNextChapter =
+    selectedChapterIndex >= 0 && selectedChapterIndex < resolvedChapters.length - 1
+
+  function goToPreviousChapter() {
+    if (!hasPreviousChapter) return
+    setSelectedChapterNumber(resolvedChapters[selectedChapterIndex - 1].number)
+  }
+
+  function goToNextChapter() {
+    if (!hasNextChapter) return
+    setSelectedChapterNumber(resolvedChapters[selectedChapterIndex + 1].number)
+  }
+
   if (!selectedChapter?.episodes.length) return null
+
+  const isDark = variant === 'dark'
+  const headingClass = isDark ? 'text-white' : 'text-va-black'
+  const mutedClass = isDark ? 'text-va-gray-300' : 'text-va-gray'
+  const borderClass = isDark ? 'border-va-darkgray-700' : 'border-va-lightgray'
+  const rowBorderClass = isDark ? 'border-va-darkgray-800' : 'border-va-lightgray/60'
+  const cellTitleClass = isDark ? 'text-white' : 'text-va-black'
+  const chapterNavClass =
+    'inline-flex items-center gap-2 text-sm font-semibold text-va-yellow hover:text-va-yellow/80 transition-colors disabled:opacity-40 disabled:pointer-events-none'
 
   const heading = labels?.episodesHeading ?? t.episodesHeading ?? 'Lessen'
   const chapterLabel = labels?.chapterLabel ?? t.episodesChapterLabel ?? 'Hoofdstuk'
@@ -61,11 +90,11 @@ export function PdpEpisodesTable({
   return (
     <>
       <section id="afleveringen" className="py-8">
-        {resolvedChapters.length > 1 ? (
+        {resolvedChapters.length > 1 && (
           <div className="mb-4 max-w-md">
             <label
               htmlFor="pdp-chapter-select"
-              className="block text-sm uppercase tracking-wide text-va-gray mb-2"
+              className={cn('block text-sm uppercase tracking-wide mb-2', mutedClass)}
             >
               {chapterLabel}:
             </label>
@@ -73,7 +102,12 @@ export function PdpEpisodesTable({
               id="pdp-chapter-select"
               value={selectedChapter.number}
               onChange={(e) => setSelectedChapterNumber(Number(e.target.value))}
-              className="w-full border border-va-lightgray bg-va-yellow px-4 py-3 text-sm font-semibold text-va-black uppercase tracking-wide appearance-none cursor-pointer"
+              className={cn(
+                'w-full border px-4 py-3 text-sm font-semibold uppercase tracking-wide appearance-none cursor-pointer',
+                isDark
+                  ? 'border-va-darkgray-600 bg-va-darkgray-900 text-white'
+                  : 'border-va-lightgray bg-va-yellow text-va-black',
+              )}
             >
               {resolvedChapters.map((chapter) => (
                 <option key={chapter.number} value={chapter.number}>
@@ -82,18 +116,27 @@ export function PdpEpisodesTable({
               ))}
             </select>
           </div>
-        ) : (
-          <p className="text-sm uppercase tracking-wide text-va-gray mb-2">
-            {chapterLabel}: {selectedChapter.title}
-          </p>
         )}
 
-        <h2 className="font-sans text-2xl font-bold text-va-black mb-4">{heading}</h2>
+        {resolvedChapters.length > 1 && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={goToPreviousChapter}
+              disabled={!hasPreviousChapter}
+              className={chapterNavClass}
+            >
+              ← Vorig hoofdstuk bekijken
+            </button>
+          </div>
+        )}
+
+        <h2 className={cn('font-sans text-2xl font-bold mb-4', headingClass)}>{heading}</h2>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-va-lightgray text-va-gray text-xs uppercase tracking-wide">
+              <tr className={cn('border-b text-xs uppercase tracking-wide', borderClass, mutedClass)}>
                 <th className="text-left py-3 pr-4 font-medium">{episodeCol}</th>
                 <th className="text-left py-3 pr-4 font-medium">{durationCol}</th>
                 <th className="text-left py-3 pr-4 font-medium hidden md:table-cell">
@@ -106,17 +149,17 @@ export function PdpEpisodesTable({
               {selectedChapter.episodes.map((episode) => (
                 <tr
                   key={`${selectedChapter.number}-${episode.number}-${episode.audience_article_id ?? episode.title}`}
-                  className="border-b border-va-lightgray/60"
+                  className={cn('border-b', rowBorderClass)}
                 >
                   <td className="py-4 pr-4 align-top">
-                    <span className="font-semibold text-va-black">
+                    <span className={cn('font-semibold', cellTitleClass)}>
                       {episode.number}. {episode.title}
                     </span>
                   </td>
-                  <td className="py-4 pr-4 align-top text-va-gray whitespace-nowrap">
+                  <td className={cn('py-4 pr-4 align-top whitespace-nowrap', mutedClass)}>
                     {episode.duration_label ? `${episode.duration_label} minuten` : '—'}
                   </td>
-                  <td className="py-4 pr-4 align-top text-va-gray hidden md:table-cell">
+                  <td className={cn('py-4 pr-4 align-top hidden md:table-cell', mutedClass)}>
                     {episode.description ?? '—'}
                   </td>
                   <td className="py-4 align-top text-right whitespace-nowrap">
@@ -148,7 +191,20 @@ export function PdpEpisodesTable({
           </table>
         </div>
 
-        <p className="mt-4 text-sm text-va-gray md:hidden">
+        {resolvedChapters.length > 1 && (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={goToNextChapter}
+              disabled={!hasNextChapter}
+              className={chapterNavClass}
+            >
+              Volgend hoofdstuk bekijken →
+            </button>
+          </div>
+        )}
+
+        <p className={cn('mt-4 text-sm md:hidden', mutedClass)}>
           {t.episodesBundleNote ?? 'Alle afleveringen zijn inbegrepen bij aankoop van de reeks.'}
         </p>
       </section>

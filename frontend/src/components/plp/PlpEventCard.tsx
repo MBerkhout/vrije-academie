@@ -7,11 +7,14 @@ import {
   plpEventHasMultipleDates,
   plpEventLocationLines,
   plpListingStockPresentation,
+  eventPricePrefixLabel,
   shouldShowEventDates,
 } from '@/lib/event-status-presentation'
+import { defaultMessages } from '@/lib/i18n/messages'
 import { formatDateShort, formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
 import { PlpEventCardWishlistButton } from './PlpEventCardWishlistButton'
+import { ProductCardCtaBar } from './ProductCardCtaBar'
 
 interface PlpEventCardProps {
   event: EventCard
@@ -38,6 +41,10 @@ export function PlpEventCard({
   )
 
   const priceFrom = event.price_from
+  const pricePrefix = eventPricePrefixLabel(event, {
+    from: defaultMessages.plp.cardPriceFrom,
+    for: defaultMessages.plp.cardPriceFor,
+  })
 
   return (
     <article
@@ -122,7 +129,7 @@ export function PlpEventCard({
           <div className="flex flex-col gap-0.5 min-w-0">
             {priceFrom ? (
               <span className="text-sm font-semibold text-va-black">
-                Vanaf {formatPriceEur(priceFrom)}
+                {pricePrefix} {formatPriceEur(priceFrom)}
               </span>
             ) : null}
             {soldOut && (
@@ -135,6 +142,8 @@ export function PlpEventCard({
           </span>
         </div>
       </div>
+
+      <ProductCardCtaBar event={event} />
     </article>
   )
 }

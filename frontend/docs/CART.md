@@ -96,4 +96,6 @@ Nieuwe regeltypen: breid het type **`LineItemDetailBlock`** uit in `src/lib/comm
 
 - **Logged-in customers:** Medusa **customer** profile (naam, adres) is authoritative. If it is complete, checkout skips step 2 (cart CTA → betaling; direct visit to inloggen still syncs the cart and redirects). If not, they stay on `/checkout/inloggen` in state `logged_in_details` until gegevens are saved to the account and the cart is synced. From betaling, **Gegevens aanpassen** (or the stepper back link) uses `?bewerken=1` so the login step is not skipped.
 - **Guest / new users** complete the email-first progressive form at `/checkout/inloggen`; shipping lives on the **cart** (and a 7-day **session draft** backup). After that, **Doorgaan met afrekenen** goes straight to betaling until the cart is cleared or the draft expires.
-- After the session ends, the `va_cart_id` cookie persists for 30 days; carts do not automatically expire from Medusa during that window.
+After a successful order, `clearCartId()` removes the cookie (also on `/bedankt` when the order is confirmed). Completed Medusa carts (`completed_at` set) are treated as inactive: `getActiveCart()` clears the stale cookie so checkout cannot reuse an old cart id.
+
+- After the session ends, the `va_cart_id` cookie persists for 30 days for **open** carts only; completed carts are discarded automatically.

@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const filterState = parseFilterState(searchParams)
   const offset = Math.max(0, Number(searchParams.get('offset') ?? '0'))
   const limit = Math.min(48, Math.max(1, Number(searchParams.get('limit') ?? PAGE_SIZE)))
-  const sort = filterState.sort ?? (filterState.q ? 'relevance' : 'start_date')
+  const sort = filterState.sort ?? (filterState.q ? 'relevance' : 'order')
 
   try {
     const result = await commerceClient.getEventsPaginated({

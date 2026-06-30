@@ -1,9 +1,14 @@
 import { sanityPreviewClient } from './sanity-preview-client'
+import { SEO_FIELD } from './seo-fragment'
+import type { SEO } from './types'
 
 /**
  * Fixed Page id for `/ons-aanbod` in Sanity. Must match `PLP_CMS_PAGE_ID` in `sanity/src/constants/storefront-paths.ts`.
  */
 export const PLP_CMS_PAGE_ID = 'pageOnsAanbod' as const
+
+/** Fixed Page id for `/va-thuis` in Sanity. Used by migration script. Must match `VATHUIS_CMS_PAGE_ID` in `sanity/src/constants/storefront-paths.ts`. */
+export const VATHUIS_CMS_PAGE_ID = 'pageVaThuis' as const
 
 /** Plain (non-live) client for stable server-side queries that don't need streaming. */
 const staticClient = sanityPreviewClient.withConfig({ useCdn: true, stega: { enabled: false } })
@@ -51,7 +56,7 @@ export const PLP_PAGE_QUERY = `coalesce(
     banner ${PLP_BANNER},
     intro,
     tabs[] { label, href },
-    seo { title, description, image { asset-> { url } } }
+    ${SEO_FIELD}
   }
 )`
 
@@ -60,11 +65,14 @@ export const CATEGORIES_QUERY = `*[_type == "category"] | order(sortOrder asc) {
   _id,
   slug,
   label,
+  title,
+  description,
   sortOrder,
   color,
   imageUrl,
   image { asset-> { url } },
-  linkUrl
+  linkUrl,
+  ${SEO_FIELD}
 }`
 
 /** Sanity `docent` documents, ordered by name (filter sidebar teacher list). */
@@ -89,11 +97,14 @@ export const CATEGORY_BY_SLUG_QUERY = `*[_type == "category" && slug == $slug][0
   _id,
   slug,
   label,
+  title,
+  description,
   sortOrder,
   color,
   imageUrl,
   image { asset-> { url } },
-  linkUrl
+  linkUrl,
+  ${SEO_FIELD}
 }`
 
 export type PlpPageData = {
@@ -107,18 +118,26 @@ export type PlpPageData = {
   }
   intro?: unknown[]
   tabs?: { label: string; href: string }[]
-  seo?: { title?: string; description?: string; image?: { asset?: { url: string } } }
+  seo?: SEO
 }
 
 export type CategoryOption = {
   _id: string
   slug: string
   label: string
+  title?: string | null
+  description?: string | null
   sortOrder?: number
   color?: string | null
   imageUrl?: string | null
   image?: { asset?: { url: string } } | null
   linkUrl?: string | null
+  seo?: SEO | null
+}
+
+/** Editorial display title; falls back to Medusa label. */
+export function categoryDisplayTitle(category: Pick<CategoryOption, 'title' | 'label'>): string {
+  return category.title?.trim() || category.label
 }
 
 export type TeacherOption = {
@@ -248,12 +267,14 @@ export type SanityProductExtras = {
   onlineBadge?: { enabled: boolean; text?: string } | null
   customUrgencyMessage?: string | null
   relatedProducts?: RelatedProductCard[]
+  seo?: SEO | null
 }
 
 const PRODUCT_EXTRAS_QUERY = `*[_type == "product" && medusaId == $medusaId][0] {
   ${PDP_BODY_BLOCKS_PROJECTION},
   onlineBadge { enabled, text },
   customUrgencyMessage,
+  ${SEO_FIELD},
   "relatedProducts": relatedProducts[]-> {
     _id,
     medusaId,
@@ -271,4 +292,13 @@ const PRODUCT_EXTRAS_QUERY = `*[_type == "product" && medusaId == $medusaId][0] 
 
 export async function getSanityProductExtras(medusaId: string): Promise<SanityProductExtras | null> {
   return staticFetch<SanityProductExtras>(PRODUCT_EXTRAS_QUERY, { medusaId })
+}
+
+const PRODUCT_SEO_BY_HANDLE_QUERY = `*[_type == "product" && handle == $handle][0] {
+  ${SEO_FIELD}
+}`
+
+export async function getProductSeoByHandle(handle: string): Promise<SEO | null> {
+  const row = await staticFetch<{ seo?: SEO | null }>(PRODUCT_SEO_BY_HANDLE_QUERY, { handle })
+  return row?.seo ?? null
 }

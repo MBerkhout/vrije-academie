@@ -7,31 +7,35 @@ import {
 
 import { markPushSuccessStep } from "./steps/mark-push-success-step"
 import { preparePushCustomerStep } from "./steps/prepare-push-customer-step"
-import { upsertSalesforceStep } from "./steps/upsert-salesforce-step"
+import { pushCustomerToSalesforceStep } from "./steps/push-customer-to-salesforce-step"
 
 export const pushCustomerToSalesforceWorkflowId = "push-customer-salesforce"
 
+export type PushCustomerToSalesforceWorkflowInput = {
+  customerId: string
+  isCreate?: boolean
+}
+
 export const pushCustomerToSalesforceWorkflow = createWorkflow(
   pushCustomerToSalesforceWorkflowId,
-  function (input: WorkflowData<{ customerId: string }>) {
-    const prep = preparePushCustomerStep({ customerId: input.customerId })
-
-    const upserted = upsertSalesforceStep(
-      transform({ prep }, ({ prep }) => ({
-        skipped: prep.skipped,
-        salesforceObject: prep.salesforceObject,
-        externalIdField: prep.externalIdField,
-        externalId: prep.externalId,
-        fields: prep.fields,
+  function (input: WorkflowData<PushCustomerToSalesforceWorkflowInput>) {
+    const prep = preparePushCustomerStep(
+      transform({ input }, ({ input }) => ({
+        customerId: input.customerId,
+        isCreate: input.isCreate,
       }))
     )
 
+    const pushed = pushCustomerToSalesforceStep(prep)
+
     const marked = markPushSuccessStep(
-      transform({ prep, upserted }, ({ prep, upserted }) => ({
+      transform({ prep, pushed }, ({ prep, pushed }) => ({
         skipped: prep.skipped,
         entityType: prep.entityType,
         medusaId: prep.medusaId,
-        salesforceId: upserted.salesforceId,
+        salesforceId: pushed.salesforceContactId,
+        salesforceAccountId: pushed.salesforceAccountId,
+        payloadFingerprint: prep.payloadFingerprint,
       }))
     )
 

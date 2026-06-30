@@ -20,6 +20,8 @@ import {
   productEligibleForEventsListing,
 } from "./event-session-eligibility"
 import { minPriceCentsFromVariants, medusaMajorToCents } from "./medusa-price-to-cents"
+import { ctaBarFieldsFromMetadata } from "./product-cta-bar"
+import { salesforceOrderFromMetadata } from "./listing-sort"
 import {
   listProductCatalogCategoryLinks,
   type ProductCatalogCategoryLink,
@@ -36,6 +38,7 @@ import {
   REDIS_KEY_AGENDA,
   REDIS_KEY_PLP,
   REDIS_KEY_REGISTRATIONS,
+  REDIS_KEY_VATHUIS,
 } from "./store-listing-redis"
 
 export type PlpListingSnapshot = {
@@ -74,6 +77,11 @@ export type AgendaOccurrenceRow = {
 
 export type AgendaListingSnapshot = {
   items: AgendaOccurrenceRow[]
+  builtAt: number
+}
+
+export type VathuisListingSnapshot = {
+  list: Record<string, unknown>[]
   builtAt: number
 }
 
@@ -154,6 +162,7 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
       "status",
       "created_at",
       "type.value",
+      "metadata",
       "tags.*",
       "variants.*",
       "variants.prices.*",
@@ -221,8 +230,12 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
       : null
 
     const id = p.id as string
+    const { metadata, ...productFields } = p
+    const ctaFields = ctaBarFieldsFromMetadata(metadata as Record<string, unknown> | undefined)
     return {
-      ...p,
+      ...productFields,
+      ...ctaFields,
+      salesforce_order: salesforceOrderFromMetadata(metadata as Record<string, unknown> | undefined),
       record_type: eventGroupByProduct[id]?.record_type ?? null,
       product_type: (p.type as { value?: string } | null | undefined)?.value ?? null,
       categories: categoryByProduct[id] ?? [],
@@ -386,7 +399,7 @@ async function buildRegistrationCounts(scope: MedusaContainer): Promise<Record<s
 
 async function loadCached<T>(
   redisKey: string,
-  memorySlot: "plp" | "agenda" | "registrations",
+  memorySlot: "plp" | "agenda" | "vathuis" | "registrations",
   build: () => Promise<T>,
   inflightRef: { current: Promise<T> | null }
 ): Promise<T> {
@@ -410,6 +423,7 @@ async function loadCached<T>(
 
 const plpInflight = { current: null as Promise<PlpListingSnapshot> | null }
 const agendaInflight = { current: null as Promise<AgendaListingSnapshot> | null }
+const vathuisInflight = { current: null as Promise<VathuisListingSnapshot> | null }
 const regInflight = { current: null as Promise<Record<string, number>> | null }
 
 export async function getPlpListingSnapshot(scope: MedusaContainer): Promise<PlpListingSnapshot> {
@@ -428,5 +442,115 @@ export async function getRegistrationCountsByProduct(
     "registrations",
     () => buildRegistrationCounts(scope),
     regInflight
+  )
+}
+
+async function buildVathuisSnapshot(scope: MedusaContainer): Promise<VathuisListingSnapshot> {
+  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+
+  const { data: eventGroupLinks } = await query.graph({
+    entity: productEventGroupLink.entryPoint,
+    fields: ["product_id", "event_group.record_type"],
+  })
+
+  const vathuisProductIds = (eventGroupLinks ?? [])
+    .filter((r) => {
+      const row = r as { product_id?: string; event_group?: { record_type?: string } | null }
+      return row.event_group?.record_type === "vathuis" && row.product_id
+    })
+    .map((r) => (r as { product_id: string }).product_id)
+
+  if (!vathuisProductIds.length) {
+    return { list: [], builtAt: Date.now() }
+  }
+
+  const { data: products } = await query.graph({
+    entity: "product",
+    fields: [
+      "id",
+      "title",
+      "handle",
+      "description",
+      "thumbnail",
+      "status",
+      "created_at",
+      "metadata",
+      "type.value",
+      "variants.*",
+      "variants.prices.*",
+    ],
+    filters: { id: vathuisProductIds, status: "published" },
+  })
+
+  const [catLinksAll, { data: docLinksAll }] = await Promise.all([
+    listProductCatalogCategoryLinks(scope, { product_id: vathuisProductIds }),
+    query.graph({
+      entity: productDocentenLink.entryPoint,
+      fields: ["product_id", "docent.*"],
+      filters: { product_id: vathuisProductIds },
+    }),
+  ])
+
+  const categoryByProduct: Record<string, unknown[]> = {}
+  for (const row of catLinksAll) {
+    if (!row.product_id || !row.catalog_category) continue
+    ;(categoryByProduct[row.product_id] ??= []).push(row.catalog_category)
+  }
+  const docentByProduct: Record<string, unknown[]> = {}
+  for (const row of docLinksAll ?? []) {
+    const r = row as { product_id?: string; docent?: unknown }
+    if (!r.product_id || !r.docent) continue
+    ;(docentByProduct[r.product_id] ??= []).push(r.docent)
+  }
+
+  const list = (products ?? []).map((p) => {
+    const row = p as Record<string, unknown>
+    const id = row.id as string
+    const metadata = (row.metadata ?? {}) as Record<string, unknown>
+    const vathuisRaw = metadata.vathuis
+    const vathuis =
+      vathuisRaw && typeof vathuisRaw === "object"
+        ? (vathuisRaw as Record<string, unknown>)
+        : null
+    const variants = (row.variants ?? []) as Record<string, unknown>[]
+    const ctaFields = ctaBarFieldsFromMetadata(metadata)
+    const { metadata: _metadata, ...productFields } = row
+
+    return {
+      ...productFields,
+      ...ctaFields,
+      salesforce_order: salesforceOrderFromMetadata(metadata),
+      record_type: "vathuis",
+      product_type: (row.type as { value?: string } | null | undefined)?.value ?? null,
+      categories: categoryByProduct[id] ?? [],
+      docenten: docentByProduct[id] ?? [],
+      price_from: minPriceCentsFromVariants(
+        variants as Parameters<typeof minPriceCentsFromVariants>[0]
+      ),
+      vathuis: vathuis
+        ? {
+            episode_count_label:
+              typeof vathuis.episode_count_label === "string"
+                ? vathuis.episode_count_label
+                : null,
+            play_time: typeof vathuis.play_time === "string" ? vathuis.play_time : null,
+            purchase_mode:
+              typeof vathuis.purchase_mode === "string" ? vathuis.purchase_mode : null,
+          }
+        : null,
+    }
+  })
+
+  return { list, builtAt: Date.now() }
+}
+
+export async function getVathuisListingSnapshot(
+  scope: MedusaContainer
+): Promise<VathuisListingSnapshot> {
+  return loadCached(
+    REDIS_KEY_VATHUIS,
+    "vathuis",
+    () => buildVathuisSnapshot(scope),
+    vathuisInflight
   )
 }

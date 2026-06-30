@@ -6,6 +6,7 @@ export type MarkPullSuccessInput = {
   entityType: string
   medusaId: string
   salesforceId: string
+  salesforceAccountId?: string | null
 }
 
 export const markPullSuccessStep = createStep(
@@ -19,6 +20,7 @@ export const markPullSuccessStep = createStep(
           entity_type: input.entityType,
           medusa_id: input.medusaId,
           salesforce_id: input.salesforceId,
+          salesforce_account_id: input.salesforceAccountId ?? null,
           last_pulled_at: new Date(),
           last_status: "success",
         },
@@ -28,6 +30,7 @@ export const markPullSuccessStep = createStep(
       await svc.updateSalesforceSyncStates({
         id: row.id,
         salesforce_id: input.salesforceId,
+        salesforce_account_id: input.salesforceAccountId ?? row.salesforce_account_id,
         last_pulled_at: new Date(),
         last_status: "success",
         last_error: null,

@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getCartId } from '@/lib/commerce/cart'
-import { commerceClient } from '@/lib/commerce'
+import { getActiveCart } from '@/lib/commerce/cart'
 import type { Cart } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
 import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
@@ -39,13 +38,14 @@ export function CheckoutPaymentOrderOverview({ labels }: CheckoutPaymentOrderOve
   const [extras, setExtras] = useState<CartItemExtras[]>([])
 
   const load = useCallback(async () => {
-    const cartId = getCartId()
-    if (!cartId) return
     try {
-      const [cartData, extrasList] = await Promise.all([
-        commerceClient.getCart(cartId),
-        fetchCartExtras(cartId),
-      ])
+      const cartData = await getActiveCart()
+      if (!cartData) {
+        setCart(null)
+        setExtras([])
+        return
+      }
+      const extrasList = await fetchCartExtras(cartData.id)
       setCart(cartData)
       setExtras(extrasList)
     } catch {

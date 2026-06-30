@@ -1,4 +1,5 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
+import { createClient } from "@sanity/client"
 
 import CatalogModuleService from "../catalog/service"
 import PeopleModuleService from "../people/service"
@@ -111,6 +112,139 @@ export function buildProductSearchDoc(row: Record<string, unknown>): SearchDocum
   }
 }
 
+export type SanityCategoryEditorial = {
+  medusaId: string
+  slug: string
+  label: string
+  title?: string | null
+  description?: string | null
+  linkUrl?: string | null
+  thumbnailUrl?: string | null
+  seoTitle?: string | null
+  seoDescription?: string | null
+}
+
+function normalizeCategoryHref(slug: string, linkUrl?: string | null): string {
+  const raw = linkUrl?.trim()
+  if (!raw) return `/ons-aanbod/${slug}`
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("mailto:")) return raw
+  return raw.startsWith("/") ? raw : `/${raw.replace(/^\//, "")}`
+}
+
+export function buildCategorySearchDoc(
+  cat: { id: string; slug: string; label: string },
+  editorial?: SanityCategoryEditorial | null
+): SearchDocument | null {
+  const slug = cat.slug?.trim()
+  const label = cat.label?.trim()
+  if (!slug || !label) return null
+
+  const displayTitle = editorial?.title?.trim() || label
+  const description = editorial?.description?.trim() || ""
+  const seoTitle = editorial?.seoTitle?.trim() || ""
+  const seoDescription = editorial?.seoDescription?.trim() || ""
+  const body = [label, displayTitle, description, seoTitle, seoDescription].filter(Boolean).join("\n")
+
+  return {
+    id: `category-${cat.id}`,
+    kind: "category",
+    title: displayTitle,
+    handle: slug,
+    subtitle: "Categorie",
+    url: normalizeCategoryHref(slug, editorial?.linkUrl),
+    body: body || label,
+    excerpt: truncateExcerpt(description || seoDescription || label),
+    thumbnail_url: editorial?.thumbnailUrl ?? null,
+  }
+}
+
+function getSanitySearchReadClient() {
+  const projectId = process.env.SANITY_PROJECT_ID?.trim()
+  const dataset = process.env.SANITY_DATASET?.trim() || "production"
+  const token = process.env.SANITY_WRITE_TOKEN?.trim()
+
+  if (!projectId || !token) return null
+
+  return createClient({
+    projectId,
+    dataset,
+    token,
+    apiVersion: "2024-01-01",
+    useCdn: false,
+  })
+}
+
+export async function fetchSanityCategoryEditorialMap(): Promise<Map<string, SanityCategoryEditorial>> {
+  const client = getSanitySearchReadClient()
+  const map = new Map<string, SanityCategoryEditorial>()
+  if (!client) return map
+
+  const rows = await client.fetch<SanityCategoryEditorial[]>(`
+    *[_type == "category" && defined(medusaId) && defined(slug)] {
+      "medusaId": medusaId,
+      slug,
+      label,
+      title,
+      description,
+      linkUrl,
+      "thumbnailUrl": coalesce(image.asset->url, imageUrl),
+      "seoTitle": seo.metaTitle,
+      "seoDescription": seo.metaDescription
+    }
+  `)
+
+  for (const row of rows ?? []) {
+    const medusaId = row.medusaId?.trim()
+    if (medusaId) map.set(medusaId, row)
+  }
+
+  return map
+}
+
+export async function fetchSanityCategoryEditorialByMedusaId(
+  medusaId: string
+): Promise<SanityCategoryEditorial | null> {
+  const client = getSanitySearchReadClient()
+  if (!client) return null
+
+  return client.fetch<SanityCategoryEditorial | null>(
+    `*[_type == "category" && medusaId == $medusaId][0] {
+      "medusaId": medusaId,
+      slug,
+      label,
+      title,
+      description,
+      linkUrl,
+      "thumbnailUrl": coalesce(image.asset->url, imageUrl),
+      "seoTitle": seo.metaTitle,
+      "seoDescription": seo.metaDescription
+    }`,
+    { medusaId }
+  )
+}
+
+export async function fetchSanityCategoryEditorialBySanityId(
+  sanityId: string
+): Promise<SanityCategoryEditorial | null> {
+  const client = getSanitySearchReadClient()
+  if (!client) return null
+
+  return client.fetch<SanityCategoryEditorial | null>(
+    `*[_id == $id][0] {
+      "medusaId": medusaId,
+      slug,
+      label,
+      title,
+      description,
+      linkUrl,
+      "thumbnailUrl": coalesce(image.asset->url, imageUrl),
+      "seoTitle": seo.metaTitle,
+      "seoDescription": seo.metaDescription
+    }`,
+    { id: sanityId }
+  )
+}
+
 export async function buildCommerceSearchDocs(
   scope: MedusaContainer
 ): Promise<SearchDocument[]> {
@@ -125,25 +259,22 @@ export async function buildCommerceSearchDocs(
     if (doc) docs.push(doc)
   }
 
-  const [categories, cities, docenten] = await Promise.all([
+  const [categories, cities, docenten, categoryEditorial] = await Promise.all([
     catalog.listCategories({}, { take: 1000, order: { sort_order: "ASC" } }),
     catalog.listCities({}, { take: 1000, order: { sort_order: "ASC" } }),
     people.listDocents({}, { take: 1000 }),
+    fetchSanityCategoryEditorialMap(),
   ])
 
   for (const cat of categories) {
     const slug = cat.slug?.trim()
     const label = cat.label?.trim()
     if (!slug || !label) continue
-    docs.push({
-      id: `category-${cat.id}`,
-      kind: "category",
-      title: label,
-      handle: slug,
-      subtitle: "Categorie",
-      url: `/ons-aanbod/${slug}`,
-      body: label,
-    })
+    const doc = buildCategorySearchDoc(
+      { id: cat.id, slug, label },
+      categoryEditorial.get(cat.id) ?? null
+    )
+    if (doc) docs.push(doc)
   }
 
   for (const city of cities) {

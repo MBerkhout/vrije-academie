@@ -83,9 +83,19 @@ export async function PATCH(
     } = {
       id: row.event_group.id,
     }
+    const currentRecordType = (
+      existing?.[0] as { event_group?: { record_type?: string } } | undefined
+    )?.event_group?.record_type
+    const nextRecordType = (body.record_type ?? currentRecordType) as string | undefined
+
     if (body.record_type !== undefined) patch.record_type = body.record_type as RecordType
     if (body.has_free_trial !== undefined) patch.has_free_trial = body.has_free_trial
-    if (body.show_in_plp !== undefined) patch.show_in_plp = body.show_in_plp
+    if (body.show_in_plp !== undefined) {
+      patch.show_in_plp =
+        nextRecordType === "vathuis" ? false : body.show_in_plp
+    } else if (body.record_type === "vathuis") {
+      patch.show_in_plp = false
+    }
     const updated = await events.updateEventGroups(patch)
     res.json({ event_group: updated })
     return

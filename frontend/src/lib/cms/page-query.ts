@@ -7,6 +7,8 @@
  * Page-only blocks (e.g. editorialCardsBlock): projected in `BLOCK_PROJECTION` + PAGE_QUERY inline branch; not in tab panel arrays.
  */
 
+import { SEO_FRAGMENT } from './seo-fragment'
+
 const LAYOUT_FIELDS = `"marginTop": coalesce(layout.marginTop, "0"),
         "marginTopCustom": layout.marginTopCustom,
         "marginBottom": coalesce(layout.marginBottom, "0"),
@@ -87,7 +89,7 @@ const COLUMNS_BLOCK_COLUMN_FIELDS = `
           highlightLabel,
           productCardsTitle,
           productCardsItemCtaLabel,
-          productCardsManualItems[]-> { _id, title, handle, thumbnailUrl, badge, recordType },
+          productCardsManualItems[]-> { _id, title, handle, thumbnailUrl, badge, ctaColor, ctaColorHover, recordType },
           productCardsFooterCtaEnabled,
           productCardsFooterCtaLabel,
           productCardsFooterCtaUrl,
@@ -174,7 +176,7 @@ const TAB_CONTENT_BLOCK_PROJECTION = `{
         introText[] { _type, _key, children, markDefs, listItem, style },
         items[] {
           source,
-          category-> { _id, slug, label, image { asset-> }, linkUrl },
+          category-> { _id, slug, label, title, image { asset-> }, linkUrl },
           label,
           image { asset-> },
           url
@@ -251,7 +253,7 @@ const TAB_PANEL_NESTED_BLOCKS_INNER = `            ...select(
                 ${INLINE_PAGE_BLOCK_LAYOUT},
                 "items": @.items[] {
                   source,
-                  "category": category-> { _id, slug, label, image { asset-> }, linkUrl },
+                  "category": category-> { _id, slug, label, title, image { asset-> }, linkUrl },
                   label,
                   "image": image { asset-> },
                   url
@@ -419,7 +421,7 @@ const BLOCK_PROJECTION = `{
         introText[] { _type, _key, children, markDefs, listItem, style },
         items[] {
           source,
-          category-> { _id, slug, label, image { asset-> }, linkUrl },
+          category-> { _id, slug, label, title, image { asset-> }, linkUrl },
           label,
           image { asset-> },
           url
@@ -497,6 +499,33 @@ const BLOCK_PROJECTION = `{
         senderNameLabel,
         orderButtonLabel
       },
+      _type == "vathuisHeroBlock" => {
+        title,
+        intro,
+        image { asset-> { url } }
+      },
+      _type == "vathuisCategoriesBlock" => {
+        maxItems
+      },
+      _type == "vathuisProductRowBlock" => {
+        title,
+        sourceType,
+        limit,
+        catalogCtaLabel,
+        products[]-> { _id, handle, title }
+      },
+      _type == "vathuisTeachersBlock" => {
+        title,
+        intro
+      },
+      _type == "vathuisPromoTilesBlock" => {
+        tiles[] {
+          title,
+          description,
+          href,
+          image { asset-> { url } }
+        }
+      },
       {}
     )
   }`
@@ -505,6 +534,7 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
   _id,
   title,
   "slug": slug.current,
+  isVaThuis,
   "blocks": blocks[] {
     ...select(
       defined(@._ref) => coalesce(
@@ -516,7 +546,7 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
         ${INLINE_PAGE_BLOCK_LAYOUT},
         "items": @.items[] {
           source,
-          "category": category-> { _id, slug, label, image { asset-> }, linkUrl },
+          "category": category-> { _id, slug, label, title, image { asset-> }, linkUrl },
           label,
           "image": image { asset-> },
           url
@@ -585,15 +615,39 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
         ${INLINE_PAGE_BLOCK_LAYOUT},
         "intro": @.intro[] ${PT_BLOCK}
       },
+      @._type == "vathuisHeroBlock" => {
+        ...@,
+        ${INLINE_PAGE_BLOCK_LAYOUT},
+        "image": @.image { asset-> { url } }
+      },
+      @._type == "vathuisCategoriesBlock" => {
+        ...@,
+        ${INLINE_PAGE_BLOCK_LAYOUT}
+      },
+      @._type == "vathuisProductRowBlock" => {
+        ...@,
+        ${INLINE_PAGE_BLOCK_LAYOUT},
+        "products": products[]-> { _id, handle, title }
+      },
+      @._type == "vathuisTeachersBlock" => {
+        ...@,
+        ${INLINE_PAGE_BLOCK_LAYOUT}
+      },
+      @._type == "vathuisPromoTilesBlock" => {
+        ...@,
+        ${INLINE_PAGE_BLOCK_LAYOUT},
+        "tiles": @.tiles[] {
+          title,
+          description,
+          href,
+          image { asset-> { url } }
+        }
+      },
       {
         ...@,
         ${INLINE_PAGE_BLOCK_LAYOUT}
       }
     )
   },
-  seo {
-    title,
-    description,
-    image
-  }
+  seo ${SEO_FRAGMENT}
 }`

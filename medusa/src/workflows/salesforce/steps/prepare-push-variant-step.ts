@@ -5,11 +5,11 @@ import { variantMapping } from "../../../modules/salesforce-sync/mappings/varian
 import type { MedusaVariantShape } from "../../../modules/salesforce-sync/mappings/variant"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 
-import type { PreparePushCustomerOutput } from "./prepare-push-customer-step"
+import type { UpsertSalesforceInput } from "./upsert-salesforce-step"
 
 export type PreparePushVariantInput = { variantId: string }
 
-export type PreparePushVariantOutput = Omit<PreparePushCustomerOutput, "entityType" | "medusaId"> & {
+export type PreparePushVariantOutput = UpsertSalesforceInput & {
   entityType: "variant"
   medusaId: string
   /** Product group id for Sanity mirror after Salesforce. */

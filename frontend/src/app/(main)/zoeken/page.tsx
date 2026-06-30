@@ -25,7 +25,7 @@ function SearchHitRow({ hit }: { hit: SiteSearchHit }) {
 
   const inner = (
     <>
-      {hit.kind === 'product' && hit.thumbnailUrl ? (
+      {hit.thumbnailUrl ? (
         <div className="relative h-16 w-16 shrink-0 overflow-hidden bg-va-lightgray-200">
           <Image src={hit.thumbnailUrl} alt="" fill className="object-cover" sizes="64px" />
         </div>

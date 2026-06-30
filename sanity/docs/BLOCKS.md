@@ -152,9 +152,9 @@ Image Block
 
 **Studio**: Each item in **Items** shows a list preview title (referenced category **Label** or custom **Label**), not “Untitled”.
 
-**Frontend**: Blocks stored **inline** on a page (no `_ref` on the block) still need GROQ to expand `items[].category->` (including `slug`); see `INLINE_PAGE_BLOCK_LAYOUT` / inline branches in `frontend/src/lib/cms/page-query.ts`. Bibliotheek tiles link to `/ons-aanbod/{slug}` by default, or to **`linkUrl`** when set on the mirrored category.
+**Frontend**: Blocks stored **inline** on a page (no `_ref` on the block) still need GROQ to expand `items[].category->` (including `slug`, optional **Custom title**, `image`); see `INLINE_PAGE_BLOCK_LAYOUT` / inline branches in `frontend/src/lib/cms/page-query.ts`. Bibliotheek tiles link to `/ons-aanbod/{slug}` by default, or to **`linkUrl`** when set on the mirrored category. Tile label uses the category **Custom title** when set, otherwise Medusa **Label**.
 
-**Homepage seed**: To wire the eight “Populaire vakgebieden” tiles (library refs + editorial images from [vrijeacademie.nl](https://www.vrijeacademie.nl/)), run `npm run seed:homepage-categories --prefix sanity` (requires `SANITY_API_WRITE_TOKEN`). Images are stored on mirrored `category` documents (`image` override), not on block items.
+**Homepage seed**: To wire the eight “Populaire vakgebieden” tiles (library refs + editorial images from [vrijeacademie.nl](https://www.vrijeacademie.nl/)), run `npm run seed:homepage-categories --prefix sanity` (requires `SANITY_API_WRITE_TOKEN`). Images are stored on mirrored `category` documents (`image`), not on block items. After changing category images or SEO in Studio, run `npm run search:reindex --prefix medusa` (or rely on the Sanity search webhook) so header search picks up thumbnails.
 
 ---
 

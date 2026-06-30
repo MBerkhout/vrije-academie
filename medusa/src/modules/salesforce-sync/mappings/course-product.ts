@@ -53,6 +53,10 @@ export function courseProductPriceAmount(sf: SfCourseProductShape): number {
   return Number(sf.Price__c ?? 0)
 }
 
+export function isOnlineCityLabel(city: string | null | undefined): boolean {
+  return (city ?? "").trim().toLowerCase() === "online"
+}
+
 export function inferDeliveryType(
   sf: SfCourseProductShape,
   groupRecordType?: string | null
@@ -61,8 +65,9 @@ export function inferDeliveryType(
     return "pre_recorded"
   }
   const city = sf.Product_City__c?.trim()
-  if (city) return "offline"
-  return "online"
+  if (!city) return "online"
+  if (isOnlineCityLabel(city)) return "online"
+  return "offline"
 }
 
 export function courseProductAvailableQuantity(sf: SfCourseProductShape): number {

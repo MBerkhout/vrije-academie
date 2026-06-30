@@ -8,7 +8,9 @@ import { useWishlist } from '@/lib/commerce/useWishlist'
 import { defaultMessages, interpolate } from '@/lib/i18n/messages'
 import { absolutizeUrl } from '@/lib/json-ld'
 import { plpProductPath } from '@/lib/routes'
+import { eventPricePrefixLabel } from '@/lib/event-status-presentation'
 import { formatPriceEur } from '@/lib/locale-format'
+import { cn } from '@/lib/utils'
 import type { GeneralSettings } from '@/lib/cms/types'
 import type { EventCard } from '@/lib/commerce/types'
 
@@ -18,6 +20,7 @@ interface PdpBookingPanelProps {
   customUrgencyMessage?: string | null
   onlineBadge?: { enabled: boolean; text?: string } | null
   onScrollToSessions?: () => void
+  variant?: 'light' | 'dark'
 }
 
 function computeSignal(event: EventCard, settings: GeneralSettings | null): string | null {
@@ -55,7 +58,7 @@ function computeSignal(event: EventCard, settings: GeneralSettings | null): stri
   return null
 }
 
-export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineBadge, onScrollToSessions }: PdpBookingPanelProps) {
+export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineBadge, onScrollToSessions, variant = 'light' }: PdpBookingPanelProps) {
   const defaultScrollToSessions = () => {
     document.getElementById('sessies')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -76,6 +79,10 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
   const soldOutLabel = labels?.soldOutLabel ?? 'Volgeboekt'
 
   const priceFrom = event.price_from
+  const pricePrefix = eventPricePrefixLabel(event, {
+    from: t.bookingFrom,
+    for: t.bookingFor,
+  })
   const isSoldOut = event.min_available_quantity === 0
   const isBundleOnly = event.purchase_mode === 'bundle_only'
 
@@ -130,7 +137,21 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
   const inviteLabel = labels?.inviteSomeone ?? t.bookingInviteSomeone
 
   const iconBtnClass =
-    'inline-flex h-9 w-9 items-center justify-center border border-va-lightgray text-va-black transition-colors hover:bg-va-lightgray'
+    variant === 'dark'
+      ? 'inline-flex h-9 w-9 items-center justify-center border border-va-darkgray-600 text-white transition-colors hover:bg-va-darkgray-800'
+      : 'inline-flex h-9 w-9 items-center justify-center border border-va-lightgray text-va-black transition-colors hover:bg-va-lightgray'
+
+  const panelClass =
+    variant === 'dark'
+      ? 'rounded-none border border-va-darkgray-700 bg-va-darkgray-950 p-5 flex flex-col gap-4 lg:sticky lg:top-24 text-white'
+      : 'rounded-none border border-va-lightgray bg-white p-5 flex flex-col gap-4 lg:sticky lg:top-24'
+
+  const mutedText = variant === 'dark' ? 'text-va-gray-300' : 'text-va-gray'
+  const primaryText = variant === 'dark' ? 'text-white' : 'text-va-black'
+  const secondaryBtnClass =
+    variant === 'dark'
+      ? 'w-full border border-va-darkgray-600 text-white font-medium py-3 px-4 rounded-none hover:bg-va-darkgray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
+      : 'w-full border border-va-lightgray text-va-black font-medium py-3 px-4 rounded-none hover:bg-va-lightgray transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
 
   const externalRegistrationUrl = event.external_registration_url?.trim() || null
   const usesExternalRegistration = Boolean(externalRegistrationUrl)
@@ -138,17 +159,17 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
     'w-full bg-va-yellow text-va-black font-bold py-3 px-4 rounded-none hover:bg-va-yellow/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'
 
   return (
-    <div id="booking-panel" className="rounded-none border border-va-lightgray bg-white p-5 flex flex-col gap-4 lg:sticky lg:top-24">
+    <div id="booking-panel" className={panelClass}>
       {/* Price */}
       {priceFrom ? (
         <div>
-          {!isBundleOnly ? <span className="text-xs text-va-gray">Vanaf</span> : null}
-          <div className="text-2xl font-bold text-va-black">{formatPriceEur(priceFrom, 'whole')}</div>
+          {pricePrefix ? <span className={cn('text-xs', mutedText)}>{pricePrefix}</span> : null}
+          <div className={cn('text-2xl font-bold', primaryText)}>{formatPriceEur(priceFrom)}</div>
           {isBundleOnly && event.vathuis?.episode_count_label ? (
-            <p className="text-sm text-va-gray mt-1">{event.vathuis.episode_count_label}</p>
+            <p className={cn('text-sm mt-1', mutedText)}>{event.vathuis.episode_count_label}</p>
           ) : null}
           {isBundleOnly && event.vathuis?.play_time ? (
-            <p className="text-sm text-va-gray">{event.vathuis.play_time}</p>
+            <p className={cn('text-sm', mutedText)}>{event.vathuis.play_time}</p>
           ) : null}
         </div>
       ) : null}
@@ -203,7 +224,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
         disabled={wishlistBusy}
         aria-pressed={saved}
         aria-label={wishlistAria}
-        className="w-full border border-va-lightgray text-va-black font-medium py-3 px-4 rounded-none hover:bg-va-lightgray transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className={secondaryBtnClass}
       >
         <svg
           className="w-4 h-4 shrink-0"
@@ -224,7 +245,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
 
       <a
         href={inviteHref}
-        className="w-full border border-va-lightgray text-va-black font-medium py-3 px-4 rounded-none hover:bg-va-lightgray transition-colors flex items-center justify-center gap-2 text-center"
+        className={cn(secondaryBtnClass, 'text-center')}
       >
         <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
           <path
@@ -238,7 +259,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
       </a>
 
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-sm font-medium text-va-black shrink-0">{t.bookingShare}</span>
+        <span className={cn('text-sm font-medium shrink-0', primaryText)}>{t.bookingShare}</span>
         <div className="flex flex-wrap items-center gap-2">
           <a
             href={facebookShareHref}

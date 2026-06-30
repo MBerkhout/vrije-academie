@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { commerceClient } from '@/lib/commerce'
-import { dispatchCartUpdated, getCartId } from '@/lib/commerce/cart'
+import { dispatchCartUpdated, getActiveCart } from '@/lib/commerce/cart'
 import { withSortedCartItems } from '@/lib/commerce/cart-sort'
 import type { Cart } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
@@ -43,16 +43,15 @@ export function CartView({ settings }: CartViewProps) {
   }, [])
 
   const loadCart = useCallback(async () => {
-    const cartId = getCartId()
-    if (!cartId) {
-      setLoading(false)
-      return
-    }
     try {
-      const [cartData, extrasList] = await Promise.all([
-        commerceClient.getCart(cartId),
-        fetchCartExtras(cartId),
-      ])
+      const cartData = await getActiveCart()
+      if (!cartData) {
+        setCart(null)
+        setExtras([])
+        setLoading(false)
+        return
+      }
+      const extrasList = await fetchCartExtras(cartData.id)
       setCart(withSortedCartItems(cartData))
       setExtras(extrasList)
     } catch {

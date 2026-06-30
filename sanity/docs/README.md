@@ -1,6 +1,6 @@
 # Vrije Academie Sanity CMS
 
-Sanity Studio for managing content for the Vrije Academie website.
+Sanity Studio v6 for managing content for the Vrije Academie website.
 
 ## Overview
 
@@ -25,7 +25,7 @@ Pages are composed of **blocks** - reusable content components that can be arran
 
 ### Document Types
 
-- **Page**: Main page documents with an array of content blocks. The PLP route (`/ons-aanbod`) is edited as Page `pageOnsAanbod` with a [PLP block](./PLP.md) (`plpBlock`). The gift card purchase page uses Page `pageCadeaubon` with a [Cadeaubon block](./CADEAUBON.md) (`giftCardBlock`); URL = Page slug.
+- **Page**: Main page documents with an array of content blocks. The PLP route (`/ons-aanbod`) is edited as Page `pageOnsAanbod` with a [PLP block](./PLP.md) (`plpBlock`). The gift card purchase page uses Page `pageCadeaubon` with a [Cadeaubon block](./CADEAUBON.md) (`giftCardBlock`); URL = Page slug. **VA Thuis** pages use the same `page` type with **VA Thuis page** enabled (`isVaThuis`); slug must start with `va-thuis` (landing: `va-thuis`, sub-pages: `va-thuis/…`). Studio: **Pages → VA Thuis pages**. Landing blocks: `vathuisHeroBlock`, `vathuisCategoriesBlock`, `vathuisProductRowBlock`, `vathuisTeachersBlock`, `vathuisPromoTilesBlock` (plus generic blocks). Migrate legacy `vathuisBlock`: `npm run migrate:vathuis-landing-to-blocks`.
 - **Redirect**: URL redirect rules for the storefront. See [REDIRECTS.md](./REDIRECTS.md).
 - **General Settings**: Site-wide settings (header, footer, menus)
 - **Menu**: Reusable menu structures
@@ -42,6 +42,26 @@ Default menu IDs match MCP-created drafts that were published on dataset `produc
 - **Blocks**: Individual content blocks (hero, richText, imageBlock, etc.)
 - **Person**: Teamleden / docenten / gastsprekers. Veld **Type** (`personType`) is verplicht en kiest één waarde: Docent, Team of Gastspreker (niet combineerbaar). Bestaande inhoud met het oude `typeTags`-veld: `npm run migrate:person-type` in de `sanity`-map (zie script voor benodigde env-vars).
 
+### SEO (`sanity-plugin-seo`)
+
+Pages, categories, and products use the **`seoMetaFields`** type from [`sanity-plugin-seo`](https://www.npmjs.com/package/sanity-plugin-seo) (configured in `sanity.config.ts`). Editors get meta title/description, Open Graph, robots meta, and a live SEO score.
+
+| Document | Field | Notes |
+|---|---|---|
+| `page` | `seo` | Used by CMS pages, homepage, PLP wrapper, VA Thuis landing |
+| `category` | `seo` (SEO tab) | Preserved on Medusa sync |
+| `product` | `seo` (Editorial group) | Optional PDP override; mirror `seoTitle` / `seoDescription` from Salesforce remain read-only |
+
+**Migration** from legacy `seo { title, description, image }` to plugin field names:
+
+```bash
+SANITY_API_WRITE_TOKEN=… npm run migrate:seo-fields --prefix sanity
+```
+
+Dry run: `DRY_RUN=1 npm run migrate:seo-fields --prefix sanity`
+
+Storefront GROQ uses `metaTitle`, `metaDescription`, `metaImage` (see `frontend/src/lib/cms/seo-fragment.ts`).
+
 ## Setup
 
 ### Prerequisites
@@ -54,6 +74,8 @@ Default menu IDs match MCP-created drafts that were published on dataset `produc
 ```bash
 npm install
 ```
+
+`@sanity/form-toolkit` has not declared Sanity v6 peer support yet; `sanity/.npmrc` sets `legacy-peer-deps=true` so install/CI succeed until that package is updated.
 
 ### Environment Variables
 
@@ -167,7 +189,7 @@ Menu items support:
 
 The Studio includes the Presentation tool for visual editing with the Next.js frontend. Content creators can see live previews and edit content directly in context.
 
-**CORS for live preview (Sanity v5 Presentation):** Studio connects to the Live Content API from its own origin (`http://localhost:3333` in dev). In [sanity.io/manage](https://sanity.io/manage) → API → CORS origins, add **both** Studio and frontend origins with **Allow credentials** enabled:
+**CORS for live preview (Sanity v6 Presentation):** Studio connects to the Live Content API from its own origin (`http://localhost:3333` in dev). In [sanity.io/manage](https://sanity.io/manage) → API → CORS origins, add **both** Studio and frontend origins with **Allow credentials** enabled:
 
 - `http://localhost:3333`, `http://localhost:3000` (and `http://127.0.0.1:*` if you open Studio via IP)
 - Hosted: `https://<project-id>.sanity.studio`, `https://frontend-va.thedigitalimprover.nl`

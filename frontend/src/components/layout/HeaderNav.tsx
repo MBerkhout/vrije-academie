@@ -17,7 +17,7 @@ import { isExternalHref, resolveMenuItemHref } from '@/lib/menu-href'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { QuickSearch } from '@/components/search/QuickSearch'
 import { commerceClient } from '@/lib/commerce'
-import { getCartId } from '@/lib/commerce/cart'
+import { getActiveCart } from '@/lib/commerce/cart'
 import type { Cart } from '@/lib/commerce/types'
 
 export type HeaderConfig = GeneralSettings['header']
@@ -101,13 +101,8 @@ function useCartItemCount(): number | null {
   const [count, setCount] = useState<number | null>(null)
 
   const refresh = useCallback(async () => {
-    const cartId = getCartId()
-    if (!cartId) {
-      setCount(0)
-      return
-    }
     try {
-      const cart = await commerceClient.getCart(cartId)
+      const cart = await getActiveCart()
       setCount(cartLineItemCount(cart))
     } catch {
       setCount(0)
@@ -173,10 +168,17 @@ function IconClose({ className }: { className?: string }) {
 }
 
 /** Mobile / small-screen branding row (bundled monogram + wordmark, or CMS image). */
-function HeaderLogoMobile({ header }: { header: HeaderConfig }) {
+function HeaderLogoMobile({
+  header,
+  lightWordmark = false,
+}: {
+  header: HeaderConfig
+  lightWordmark?: boolean
+}) {
   const cmsUrl = header.logo?.asset?.url
   const w = header.logo?.asset?.metadata?.dimensions?.width ?? 160
   const h = header.logo?.asset?.metadata?.dimensions?.height ?? 48
+  const wordmarkClass = lightWordmark ? 'brightness-0 invert' : undefined
 
   return (
     <Link
@@ -206,7 +208,7 @@ function HeaderLogoMobile({ header }: { header: HeaderConfig }) {
             alt="Vrije Academie"
             width={490}
             height={68}
-            className="hidden sm:block h-8 w-auto"
+            className={clsx('hidden sm:block h-8 w-auto', wordmarkClass)}
           />
         </>
       )}
@@ -250,6 +252,7 @@ function MenuLink({
 
 export function HeaderNav({ header }: { header: HeaderConfig }) {
   const pathname = usePathname() || '/'
+  const isVaThuis = pathname.startsWith('/va-thuis')
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const { customer } = useCustomer()
@@ -311,9 +314,10 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
   const cmsUrl = header.logo?.asset?.url
   const cmsLogoW = header.logo?.asset?.metadata?.dimensions?.width ?? 160
   const cmsLogoH = header.logo?.asset?.metadata?.dimensions?.height ?? 48
+  const wordmarkClass = isVaThuis ? 'brightness-0 invert' : undefined
 
   const utilityLinksDesktop = (
-    <div className="flex items-center gap-5 lg:gap-7 text-sm font-sans text-va-darkgray">
+    <div className={clsx('flex items-center gap-5 lg:gap-7 text-sm font-sans', isVaThuis ? 'text-white/90' : 'text-va-darkgray')}>
       {utilityItems.map((item, i) => {
         const href = resolveMenuItemHref(item)
         const isCartLink = pathsMatch(cartUrl, href)
@@ -328,7 +332,10 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
             key={i}
             item={item}
             pathname={pathname}
-            className="whitespace-nowrap underline-offset-4 decoration-va-yellow transition-[color] hover:text-va-black hover:underline"
+            className={clsx(
+              'whitespace-nowrap underline-offset-4 decoration-va-yellow transition-[color] hover:underline',
+              isVaThuis ? 'hover:text-va-yellow' : 'hover:text-va-black',
+            )}
           >
             {linkLabel}
           </MenuLink>
@@ -351,7 +358,7 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
     <>
     <header
       className={clsx(
-        'bg-va-white text-va-black',
+        isVaThuis ? 'bg-va-black text-white' : 'bg-va-white text-va-black',
         sticky && 'sticky top-0 z-50'
       )}
     >
@@ -359,9 +366,9 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
         {/* Mobile: stacked branding row + yellow rule (desktop main nav lives in column layout below) */}
         <div className="md:hidden">
           <div className="flex items-center justify-between gap-3 py-3">
-            <HeaderLogoMobile header={header} />
+            <HeaderLogoMobile header={header} lightWordmark={isVaThuis} />
 
-            <div className="flex items-end justify-end gap-5 font-sans text-[11px] text-va-black">
+            <div className={clsx('flex items-end justify-end gap-5 font-sans text-[11px]', isVaThuis ? 'text-white' : 'text-va-black')}>
               <button
                 type="button"
                 className="flex flex-col items-center gap-1 min-w-[3rem] outline-none focus-visible:ring-2 focus-visible:ring-va-yellow"
@@ -448,7 +455,10 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
                     alt="Vrije Academie"
                     width={490}
                     height={84}
-                    className="lg:ml-[-24px] h-10 w-auto max-w-[min(420px,40vw)]"
+                    className={clsx(
+                      'lg:ml-[-24px] h-10 w-auto max-w-[min(420px,40vw)]',
+                      wordmarkClass,
+                    )}
                   />
                 </Link>
               ) : null}
@@ -460,13 +470,16 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
        
 
             <div className="flex items-center justify-between gap-6 py-3">
-              <nav className="lg:ml-[-4px] flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-2 text-sm font-sans text-va-darkgray">
+              <nav className={clsx('lg:ml-[-4px] flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-2 text-sm font-sans', isVaThuis ? 'text-white/90' : 'text-va-darkgray')}>
                 {mainItems.map((item, i) => (
                   <MenuLink
                     key={i}
                     item={item}
                     pathname={pathname}
-                    className="whitespace-nowrap underline-offset-4 decoration-va-yellow transition-[color] hover:text-va-black hover:underline"
+                    className={clsx(
+                      'whitespace-nowrap underline-offset-4 decoration-va-yellow transition-[color] hover:underline',
+                      isVaThuis ? 'hover:text-va-yellow' : 'hover:text-va-black',
+                    )}
                   />
                 ))}
               </nav>
@@ -476,14 +489,15 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
                 aria-expanded={searchOpen}
                 aria-haspopup="dialog"
                 className={clsx(
-                  'shrink-0 w-full max-w-[220px] rounded-lg border border-va-gray-300',
-                  'pl-3 pr-4 py-2 text-sm font-sans text-left',
-                  'inline-flex items-center gap-2 text-va-gray bg-white',
-                  'outline-none hover:border-va-gray-400 transition-colors',
-                  'focus-visible:ring-2 focus-visible:ring-va-yellow'
+                  'shrink-0 w-full max-w-[220px] rounded-lg border pl-3 pr-4 py-2 text-sm font-sans text-left',
+                  'inline-flex items-center gap-2 outline-none transition-colors',
+                  'focus-visible:ring-2 focus-visible:ring-va-yellow',
+                  isVaThuis
+                    ? 'border-va-darkgray-600 text-va-gray-300 bg-va-darkgray-900 hover:border-va-darkgray-500'
+                    : 'border-va-gray-300 text-va-gray bg-white hover:border-va-gray-400',
                 )}
               >
-                <IconSearch className="w-4 h-4 shrink-0 text-va-darkgray" aria-hidden />
+                <IconSearch className={clsx('w-4 h-4 shrink-0', isVaThuis ? 'text-va-gray-300' : 'text-va-darkgray')} aria-hidden />
                 <span className="truncate">{placeholder}</span>
               </button>
             </div>

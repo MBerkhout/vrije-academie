@@ -75,6 +75,10 @@ export interface EventCard {
   min_available_quantity?: number | null
   has_free_trial?: boolean
   badge?: string | null
+  /** Hex background for the product card promo bar (Salesforce `CTA_Color__c`). */
+  cta_color?: string | null
+  /** Hex background on hover (Salesforce `CTA_Color_Hover__c`). */
+  cta_color_hover?: string | null
   /** When set (e.g. reizen), Direct inschrijven opens this external purchase URL instead of cart. */
   external_registration_url?: string | null
   /** When `bundle_only`, only `bundle_variant_id` may be added to cart (VAthuis). */
@@ -140,6 +144,21 @@ export interface EventVariant {
 
 export interface EventListResult {
   events: EventCard[]
+  count: number
+  facets: EventFacets
+}
+
+export interface VathuisFilters {
+  q?: string
+  categories?: string[]
+  teachers?: string[]
+  sort?: 'order' | 'newest' | 'relevance' | 'price_asc' | 'price_desc'
+  limit?: number
+  offset?: number
+}
+
+export interface VathuisListResult {
+  items: EventCard[]
   count: number
   facets: EventFacets
 }
@@ -222,6 +241,8 @@ export interface Cart {
   metadata?: Record<string, unknown> | null
   /** Amount covered by cart credit lines (e.g. gift cards), minor units */
   credit_line_total?: number
+  /** Set when the cart was completed (converted to an order). */
+  completed_at?: string | null
   shipping_address?: Address | null
   billing_address?: Address | null
   payment_collection?: {
@@ -276,6 +297,8 @@ export interface CustomerProfileUpdateInput {
   first_name: string
   last_name: string
   phone?: string
+  /** ISO date YYYY-MM-DD; stored as metadata.sf_birthdate */
+  birthdate?: string
 }
 
 /** Logged-in checkout: create/update one canonical customer address. */
@@ -369,6 +392,8 @@ export interface CommerceClient {
   getEvent(handle: string): Promise<EventCard | null>
   getSimilarEvents(handle: string): Promise<EventCard[]>
   getEventsPaginated(filters?: PaginatedEventFilters): Promise<EventListResult>
+  getVathuisPaginated(filters?: VathuisFilters): Promise<VathuisListResult>
+  getSimilarVathuis(handle: string): Promise<EventCard[]>
   getAgendaPaginated(filters?: AgendaFilters): Promise<AgendaListResult>
   getCart(id: string): Promise<Cart | null>
   createCart(): Promise<Cart>
@@ -481,7 +506,7 @@ export interface PaginatedEventFilters {
   dayParts?: string[]
   periodStart?: string
   periodEnd?: string
-  sort?: 'start_date' | 'newest' | 'relevance' | 'price_asc' | 'price_desc' | 'popularity'
+  sort?: 'order' | 'start_date' | 'newest' | 'relevance' | 'price_asc' | 'price_desc' | 'popularity'
   limit?: number
   offset?: number
 }
@@ -492,6 +517,8 @@ export interface RegisterInput {
   first_name: string
   last_name: string
   phone?: string
+  /** ISO date YYYY-MM-DD */
+  birthdate?: string
   address?: {
     address_1: string
     postal_code: string
@@ -505,6 +532,7 @@ export interface RegisterPasswordlessInput {
   first_name: string
   last_name: string
   phone?: string
+  birthdate?: string
   address: {
     address_1: string
     postal_code: string

@@ -110,6 +110,21 @@ export default async function syncSalesforceScript({ container }: ExecArgs) {
       return
     }
 
+    if (type === "customer" && !id) {
+      const ret = await runSalesforceWorkflow(
+        container,
+        wf,
+        { salesforceId },
+        { eventGroupId: salesforceId, entityType: type, medusaId: salesforceId }
+      )
+      const result = ret.result as { medusaId?: string; created?: boolean } | undefined
+      logger.info(
+        `[sync-salesforce] import customer ${result?.medusaId ?? "?"} from SF ${salesforceId} ` +
+          `(created=${result?.created === true})`
+      )
+      return
+    }
+
     if (type === "productgroup" && !id) {
       const ret = await runSalesforceWorkflow(
         container,
@@ -134,7 +149,9 @@ export default async function syncSalesforceScript({ container }: ExecArgs) {
     }
 
     if (!id) {
-      logger.info("[sync-salesforce] Provide --id for pull (except product import: --salesforce-id only)")
+      logger.info(
+        "[sync-salesforce] Provide --id for pull (except product/customer import: --salesforce-id only)"
+      )
       return
     }
 

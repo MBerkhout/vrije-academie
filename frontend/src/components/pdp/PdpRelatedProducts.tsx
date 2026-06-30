@@ -45,7 +45,7 @@ export function PdpRelatedProducts({ products, heading = 'Gerelateerd', stockThr
                 </Link>
                 {product.priceFrom ? (
                   <span className="text-sm font-semibold text-va-black mt-auto pt-2">
-                    Vanaf {formatPriceEur(product.priceFrom, 'whole')}
+                    Vanaf {formatPriceEur(product.priceFrom)}
                   </span>
                 ) : null}
               </div>

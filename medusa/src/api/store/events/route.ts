@@ -8,6 +8,11 @@ import {
   type CityRef,
 } from "../../../lib/city-refs"
 import { productTypeMatchesFilter, productTypeToSlug } from "../../../lib/plp-product-types"
+import {
+  sortListingBySalesforceOrder,
+  tieBreakEventsByStartThenTitle,
+  tieBreakByTitle,
+} from "../../../lib/listing-sort"
 
 function parseArrayParam(val: string | string[] | undefined): string[] {
   if (!val) return []
@@ -34,7 +39,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   const dayParts = parseArrayParam(q.day_part as string | string[])
   const periodStart = typeof q.period_start === "string" ? q.period_start : null
   const periodEnd = typeof q.period_end === "string" ? q.period_end : null
-  const sort = typeof q.sort === "string" ? q.sort : "start_date"
+  const sort = typeof q.sort === "string" ? q.sort : "order"
   const limit = Math.min(Math.max(1, Number(q.limit) || 24), 100)
   const offset = Math.max(0, Number(q.offset) || 0)
 
@@ -178,6 +183,8 @@ function sortList(
 
   const sorted = [...list]
   switch (sort) {
+    case "order":
+      return sortListingBySalesforceOrder(list, tieBreakEventsByStartThenTitle)
     case "popularity": {
       const counts = registrationCounts ?? {}
       sorted.sort((a, b) => {

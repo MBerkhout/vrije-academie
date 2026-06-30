@@ -6,6 +6,7 @@ declare const __MEDUSA_ADMIN_SALESFORCE_INSTANCE_BASE__: string
 type StatusJson = {
   configured?: boolean
   salesforceId?: string | null
+  salesforceAccountId?: string | null
   lastPushedAt?: string | null
   lastPulledAt?: string | null
   lastStatus?: string | null
@@ -13,15 +14,28 @@ type StatusJson = {
   failureCount?: number
   openInSalesforceUrl?: string | null
   salesforceObject?: string
+  instanceUrl?: string | null
 }
 
-function fallbackSfUrl(sobject: string | undefined, sfId: string | undefined): string | null {
+function fallbackSfUrl(
+  sobject: string | undefined,
+  sfId: string | undefined,
+  instanceUrl?: string | null,
+  salesforceAccountId?: string | null
+): string | null {
   const raw =
-    typeof __MEDUSA_ADMIN_SALESFORCE_INSTANCE_BASE__ !== "undefined"
+    instanceUrl?.trim() ||
+    (typeof __MEDUSA_ADMIN_SALESFORCE_INSTANCE_BASE__ !== "undefined"
       ? __MEDUSA_ADMIN_SALESFORCE_INSTANCE_BASE__
-      : ""
+      : "")
   const base = raw.replace(/\/$/, "")
-  if (!base || !sobject || !sfId) return null
+  if (!base) return null
+
+  if (salesforceAccountId) {
+    return `${base}/lightning/r/Account/${salesforceAccountId}/view`
+  }
+
+  if (!sobject || !sfId) return null
   return `${base}/lightning/r/${sobject}/${sfId}/view`
 }
 
@@ -79,7 +93,12 @@ export function SalesforceEntityPanel(props: {
 
   const openUrl =
     status?.openInSalesforceUrl ||
-    fallbackSfUrl(status?.salesforceObject ?? undefined, status?.salesforceId ?? undefined)
+    fallbackSfUrl(
+      status?.salesforceObject ?? undefined,
+      status?.salesforceId ?? undefined,
+      status?.instanceUrl,
+      status?.salesforceAccountId
+    )
 
   if (status?.configured === false) {
     return (

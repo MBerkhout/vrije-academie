@@ -24,6 +24,8 @@ export type PlpListingPageProps = {
   scopedCrumb?: PlpBreadcrumbCrumb
   /** Tab highlight path; defaults to `PLP_BASE_PATH`. */
   activeTabPath?: string
+  /** Plain-text intro below the page title (e.g. category description). */
+  introText?: string
 }
 
 export async function PlpListingPage({
@@ -32,8 +34,9 @@ export async function PlpListingPage({
   filterState,
   scopedCrumb,
   activeTabPath = PLP_BASE_PATH,
+  introText,
 }: PlpListingPageProps) {
-  const sort = filterState.sort ?? (filterState.q ? 'relevance' : 'start_date')
+  const sort = filterState.sort ?? (filterState.q ? 'relevance' : 'order')
 
   const [plpData, settings, categories, teachers, eventsResult] = await Promise.all([
     getPlpPage(),
@@ -95,7 +98,7 @@ export async function PlpListingPage({
         {plpData?.banner?.enabled && <PlpBanner banner={plpData.banner} />}
 
         <div className={`${CONTAINER_CLASS} mt-6`}>
-          <PlpHeader title={pageTitle} intro={plpData?.intro} />
+          <PlpHeader title={pageTitle} intro={plpData?.intro} introText={introText} />
         </div>
 
         <div className={`${CONTAINER_CLASS} mt-4`}>

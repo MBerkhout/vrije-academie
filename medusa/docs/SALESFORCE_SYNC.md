@@ -45,19 +45,24 @@ Shared:
 ```env
 SALESFORCE_WEBHOOK_SECRET=<random_long_string>
 SALESFORCE_SYNC_ALERT_WEBHOOK_URL=
+# Person Account record type for website registration (Customer, not Teacher)
+SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID=012...
 # OAuth (optional — dev proxy / tunnel)
 # SALESFORCE_OAUTH_CALLBACK_URL=https://your-tunnel.example.com/hooks/salesforce/oauth/callback
 # SALESFORCE_OAUTH_RETURN_URL=https://your-tunnel.example.com/app/salesforce-sync
-# SALESFORCE_DEBUG_HTTP=1
-# SALESFORCE_DEBUG_HTTP_BODY_MAX=8000
+# Optional order sync (defaults match VA sandbox)
+SALESFORCE_DEFAULT_PRICEBOOK2_ID=01s1t000002j19kAAA
+SALESFORCE_DISCOUNT_PRODUCT2_ID=01t1t000001j7i9AAA
+# SALESFORCE_GIFTCARD_PRODUCT2_ID=   # Product2 "Cadeaubon"; auto-resolved if unset
+# SALESFORCE_VOUCHER_PRODUCT2_ID=    # Product2 "Voucher" for redemption lines
 ```
 
-Admin **Open in Salesforce** uses `GET /admin/salesforce/...` or falls back to `SALESFORCE_INSTANCE_URL` via `medusa-config.ts` `admin.vite.define` (`__MEDUSA_ADMIN_SALESFORCE_INSTANCE_BASE__`).
+Admin **Open in Salesforce** (customer/order/product widgets + sync failures page) uses `openInSalesforceUrl` from `GET /admin/salesforce/...`. Instance base comes from `SALESFORCE_INSTANCE_URL`, else the OAuth-stored instance URL after Admin connect. Customers with a linked Person Account open the **Account** record when `salesforce_account_id` is set.
 
 ## Salesforce setup (manual)
 
 1. **Connected App** — **JWT** (digital signature + certificate) *or* **refresh token** (OAuth scopes `api` + `refresh_token` / `offline_access`).
-2. **External Id** custom fields (examples): `Medusa_Customer_Id__c` on `Contact`, `Medusa_Order_Id__c` on `Order`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` on `Product2` — must match `mappings/*.ts` `externalIdField`.
+2. **External Id** custom fields (examples): `Medusa_Order_Id__c` on `Order`, `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` on `Product2` — must match `mappings/*.ts` and `utils/salesforce-config.ts`. **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
 3. **Inbound webhook**: Flow or Apex `POST` to `{MEDUSA_URL}/hooks/salesforce` with body `{ object_type, salesforce_id }` and header `X-Salesforce-Webhook-Secret: <same as env>`.
 
 ## Loop protection
@@ -77,7 +82,7 @@ Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries
 
 | File | Event(s) | Action |
 |------|-----------|--------|
-| `salesforce-sync-customer.ts` | `customer.created`, `customer.updated` | Enqueue push (respects incoming lock) |
+| `salesforce-sync-customer.ts` | `customer.created`, `customer.updated` | Enqueue Person Account push (skips unchanged profile/address; respects incoming lock) |
 | `salesforce-sync-order.ts` | `order.completed` (status `completed`) | Enqueue push order |
 | `salesforce-sync-product.ts` | `product.created` | Enqueue push product (+ Sanity in workflow) |
 | `salesforce-sync-variant.ts` | `product-variant.created` | Enqueue push variant (+ Sanity in workflow) |
@@ -91,6 +96,7 @@ Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries
 | `GET` | `/hooks/salesforce/oauth/callback` | Salesforce redirect; saves refresh token (public, not under `/admin`) |
 | `POST` | `/admin/salesforce/oauth/disconnect` | Clears DB-stored token |
 | `POST` | `/hooks/salesforce` | Webhook; header secret; enqueues pull |
+| `POST` | `/store/customer/me/sync-from-salesforce` | Authenticated; enqueue SF → Medusa pull after password login |
 | `GET` | `/admin/salesforce/customers/:id` | Status JSON |
 | `POST` | `/admin/salesforce/customers/:id/push` \| `/pull` | Manual run |
 | `POST` | `/admin/salesforce/products/import` | Body `{ salesforce_id }` — create Medusa product from Product2 |
@@ -145,12 +151,21 @@ npm run salesforce:pull -- --type=product --action=pull --id=prod_... --salesfor
 npm run salesforce:pull -- --type=product --action=pull --salesforce-id=01t...
 # Import vaProductgroup__c (published, hidden from PLP, variants + event items from vaProduct__c)
 npm run salesforce:pull -- --type=productgroup --action=pull --salesforce-id=a05Mz00000YEMptIAH
-# Bulk import all future product groups + online-only (always available) groups
+# Bulk import all future product groups + VAthuis + linked-online + online-only groups
 npm run salesforce:import-future
+# Bulk import Salesforce Person Account contacts → Medusa (Active__c + email; no passwords)
+npm run salesforce:import-customers -- --dry-run --limit=5
+# Backfill VAthuis + linked-online parents/slaves only (after enabling Linked_Online merge)
+npm run salesforce:import-linked-vathuis
 # Bulk import every product group (past + future) — manual guard bypass, re-syncs VAthuis metadata etc.
 npm run salesforce:import-all
 # Preview without writing: npm run salesforce:import-future -- --dry-run --limit=10
+# npm run salesforce:import-linked-vathuis -- --dry-run
 # npm run salesforce:import-all -- --dry-run --limit=10
+# Faster full re-import (prefetch + parallel imports, no SF push-back):
+npm run salesforce:import-all -- --concurrency=4
+# Defer search reindex until end of batch:
+npm run salesforce:import-all -- --concurrency=4 --skip-search
 # Read-only dump of a product group + children (discover docent / embed fields)
 npm run salesforce:inspect -- --url=art-nouveau
 npm run salesforce:inspect -- --salesforce-id=a052o00001Agr0lAAB --describe --out=./tmp/inspect.json
@@ -173,6 +188,7 @@ Medusa does **not** log third-party HTTP automatically. This connector adds:
 | `npx medusa exec ./src/scripts/sync-salesforce.ts -- --probe --probe-verbose` | After a live probe query, prints the parsed result JSON (truncated at 12k chars). Combine with `SALESFORCE_DEBUG_HTTP=1` to see raw HTTP as well. |
 | `npx medusa exec ./src/scripts/verify-productgroup-import.ts` | Live acceptance test for `a05Mz00000YEMptIAH`: double import (idempotency), future-date guard, categories, prices, event items. Requires Salesforce credentials. |
 | `npm run salesforce:inspect -- --url=<Productgroup_URL__c>` | `FIELDS(ALL)` dump of `vaProductgroup__c` + child `vaProduct__c` records; highlights docent/embed-related fields. Optional `--describe`, `--out=path.json`. Script: `src/scripts/inspect-salesforce-productgroup.ts`. |
+| `npm run salesforce:inspect-order -- --medusa-id=order_...` | Dump Salesforce `Order`, `OrderItem`, `Registration__c`, `Voucher__c` for a synced order. Script: `src/scripts/inspect-salesforce-order.ts`. |
 
 Use debug flags only in **local/staging**; noisy logs may include PII from Salesforce payloads.
 
@@ -184,11 +200,50 @@ Module table `salesforce_sync_state`: generated migration under `src/modules/sal
 npx medusa db:migrate
 ```
 
+## Customers (Person Accounts)
+
+Salesforce **Person Accounts** (`Contact` + `Account`, `IsPersonAccount = true`) sync with Medusa customers. The match key is the Salesforce **Contact Id** (`003…`) stored in `salesforce_sync_state.salesforce_id`; the linked **Account Id** (`001…`) is stored in `salesforce_account_id`.
+
+| Direction | Trigger | Behaviour |
+|-----------|---------|-----------|
+| SF → Medusa | OTP/password login, `POST /store/customer/me/sync-from-salesforce`, webhook, bulk import, admin pull | Pull Contact fields + default shipping address + marketing metadata |
+| Medusa → SF | `customer.created` / `customer.updated`, `POST /store/customer/me/push-to-salesforce` (after registration/address save) | **Create:** `POST Account` (`PersonMailing*`, `PersonBirthdate`, …) + `PATCH Contact` (`Mailing*`, `Birthdate`). **Update:** split `PATCH Account` (profile / address) + `PATCH Contact`. Birthdate stored in Medusa as `metadata.sf_birthdate` (ISO `YYYY-MM-DD`). |
+
+**Field map** (`mappings/customer.ts`): name, email, phone, mailing address (Account `PersonMailing*` + `Billing*` + `Shipping*`, Contact `Mailing*`), `Same_account_address__c` (= true when website uses one address for billing/shipping), salutation/initials/birthdate/IBAN (metadata), newsletter/magazine/editorial/opt-in flags (metadata). Country codes map NL/BE/DE ↔ Salesforce labels via `utils/country-code.ts`.
+
+**Bulk import:** `npm run salesforce:import-customers` — SOQL `Contact WHERE IsPersonAccount = true AND Active__c = true AND Email != null`. Flags: `--dry-run`, `--limit=N`, `--all` (omit Active filter). Creates Medusa customers **without passwords** (OTP login). **Do not run full import until reviewed.**
+
+**Registration push** requires `SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID` (customer Person Account record type, not Teacher).
+
+## Orders (Medusa → Salesforce)
+
+Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push-order-salesforce` — ensure customer Person Account → **Order** (Draft) → **Registration__c** + **OrderItem** lines → **Voucher__c** (gift cards) → activate Order.
+
+| Medusa | Salesforce object | Notes |
+|--------|-------------------|--------|
+| Order header | `Order` | `Website_Order__c`, `Order_Origin__c: Website`, `Payment_Method__c`, `Ideal_Transaction_Id__c` (Mollie) |
+| Event line (per seat) | `Registration__c` + product `OrderItem` | Links `vaProduct__c` via variant sync state; `Status__c: Ingeschreven` |
+| Promotion discount | discount `OrderItem` | `Is_Discount__c: true`, negative `UnitPrice`, same `Registration__c` |
+| Gift card purchase | `OrderItem` + `Voucher__c` | `Is_Voucher__c`, `Giftcard_*` fields; voucher sync state `entity_type: voucher` |
+| Gift card redemption | voucher `OrderItem` | negative amount, `Voucher__c` lookup |
+
+**Requirements:** customer must exist in Medusa (checkout login); event variants must have been imported from Salesforce (`salesforce_sync_state` variant → `vaProduct__c`). Amounts: Medusa cents → SF EUR major units.
+
+**Manual push / inspect:**
+
+```bash
+npm run salesforce:push -- --type=order --action=push --id=order_...
+npm run salesforce:inspect-order -- --medusa-id=order_...
+npm run salesforce:inspect-order -- --salesforce-id=801...
+```
+
+Mappings: `mappings/order.ts`, `order-item.ts`, `registration.ts`. Loader: `load-order-push-data.ts`.
+
 ## Out of scope (current)
 
 - Pull **variant** from Salesforce into Medusa (product-level import only; product groups import variants via `vaProduct__c`).
 - Bidirectional product sync; admin UI for editing mappings.
-- Custom registration object until a field map is agreed.
+- Salesforce → Medusa order pull beyond header email/status stub.
 - Medusa tax-region wiring for Salesforce VAT (stored as metadata only for now).
 
 ## Product group import (`vaProductgroup__c`)
@@ -217,10 +272,22 @@ curl -X POST /admin/salesforce/productgroups/import -d '{"salesforce_id":"a05Mz0
 
 Mappings: `src/modules/salesforce-sync/mappings/productgroup.ts`, `course-product.ts`. Core logic: `import-productgroup.ts`.
 
+### Linked Online Productgroup (`Linked_Online_Productgroup__c`)
+
+Some offline product groups (e.g. studiedag) reference a separate **`vaProductgroup__c`** for Zoom sessions (`Online Lezing` / `Live_College`). On import:
+
+- Direct children (`Productgroup__c` = parent) and linked children (`Productgroup__c` = `Linked_Online_Productgroup__c`) are **merged** onto the parent Medusa product (deduped by child SF `Id`).
+- Linked children use the **linked group’s** record type for `inferDeliveryType` (`Product_City__c` = `"Online"` → `delivery_type: online`, no `EventItem.city`).
+- Parent metadata: `salesforce_linked_online_productgroup_id`.
+- The linked online group is still imported as its **own** hidden product (`show_in_plp=false`, `salesforce_is_linked_online_slave=true` when referenced by a parent). Slave variants use SKU prefix `sf-slave-{childId}` and namespaced sync keys so they do not collide with merged parent variants (`sf-{childId}`).
+- `Productgroup_URL__c` handles are normalized (e.g. `online---studiedag-…` → `online-studiedag-…`) to satisfy Medusa handle rules.
+- Webhooks on the linked group or its `vaProduct__c` rows also re-import parent groups that reference it.
+
 ### VAthuis (`Lezingen_Thuis`, `Thuis_College`)
 
 Salesforce record types **`Lezingen_Thuis`** and **`Thuis_College`** map to on-demand video bundles (one purchasable `vaProduct__c` variant). During import:
 
+- **`EventGroup.record_type`** → `vathuis` (excluded from Ons aanbod / Agenda; listed via **`GET /store/vathuis`**)
 - **`EventItem.delivery_type`** → `pre_recorded` (no session date/city)
 - **`metadata.vathuis`** — chapters + episodes fetched from Audience Player (`Audience_Player_Article_Id__c` on the child product), plus `purchase_mode: bundle_only`
 - **`metadata.vathuis.chapters[]`** — each Audience Player season → `{ number, title, episodes[] }` (e.g. “1. Inleiding”, “2. Engeland”)
@@ -236,9 +303,28 @@ Webhooks enqueue product group pulls with `manual: false`. Import is **skipped**
 - `Latest_Product_Start_Date__c` is in the past, or
 - all child `Start_date_time__c` values are in the past (when latest start is unset).
 
+**Exceptions:** VAthuis record types (`Lezingen_Thuis`, `Thuis_College`) always import (on-demand). Bulk CLI also includes online-only groups (see `shouldBulkImportProductgroup`).
+
 Manual CLI/API imports **ignore** this guard. Logic: `shouldImportProductgroup()` in `src/modules/salesforce-sync/utils/future-import-guard.ts`.
 
 **Bulk historical import:** `npm run salesforce:import-all` (or `import-future-productgroups.ts -- --all`) imports **every** `vaProductgroup__c` with `manual: true` (no date filter). Use `--dry-run` and `--limit=N` first. VAthuis imports call Audience Player per group and can take a long time on a full catalog.
+
+### Bulk import performance
+
+Bulk CLI scripts (`import-future`, `import-linked-vathuis`, `import-all`) prefetch Salesforce data up front (all groups + chunked child queries) and call `importProductgroupFromSalesforce` directly instead of re-fetching per group via the pull workflow.
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--concurrency=N` | `1` | Import up to N product groups in parallel. Start with `3–4`; watch for Salesforce 429s or DB load. |
+| `--skip-search` | off | Skip per-product OpenSearch reindex during import; reindex imported products once at the end. Or run `npm run search:reindex` afterward. |
+| `--limit=N` | unlimited | Stop after N import attempts (after guard filtering). |
+| `--dry-run` | off | List candidates only. |
+
+During bulk import the CLI sets `SALESFORCE_SUPPRESS_PUSH=1` so `product.created` / `product-variant.created` subscribers skip push-back to Salesforce (webhooks and admin single-import are unaffected). VAthuis groups remain slower (Audience Player HTTP per group); concurrency overlaps that I/O.
+
+After deploying `Order__c` → `salesforce_order`, re-import product groups so PLP default sort is populated: `npm run salesforce:import-all -- --skip-search --concurrency=3` (or a narrower import). Products without `salesforce_order` sort last until re-imported.
+
+Utility: `prefetch-productgroups-for-import.ts`, `run-pool.ts`.
 
 The **storefront** also hides past occurrences (`GET /store/events`, `GET /store/agenda` unless `include_past=true`).
 
@@ -254,8 +340,9 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Net price | `Net_Price__c` | — (not imported) |
 | VAT rate | `VAT_Rate__c` | metadata `salesforce_vat_rate` (tax regions not wired) |
 | Onderwerp (categories) | `Productgroup_Subject__c` (`;`-separated) | native `category_ids` + catalog category links → Sanity `categories` |
-| Record type | `Productgroup_Record_Type_Developer_Name__c` | `EventGroup.record_type` + Medusa `product.type` (storefront: `product_type` on `/store/events`) |
-| PLP visibility | — | `EventGroup.show_in_plp=false` |
+| Record type | `Productgroup_Record_Type_Developer_Name__c` | `EventGroup.record_type` + Medusa `product.type` (`Lezingen_Thuis` / `Thuis_College` → `vathuis`) |
+| Linked online catalog | `Linked_Online_Productgroup__c` | merged child variants on parent; metadata `salesforce_linked_online_productgroup_id` |
+| PLP visibility | — | `EventGroup.show_in_plp=false` (linked-online slave groups always hidden) |
 | Sales channel | — | default store sales channel |
 | SEO title | `SEO_Title__c` | metadata → Sanity `seoTitle` |
 | SEO meta description | `SEO_Meta_Description__c` | metadata → Sanity `seoDescription` |
@@ -264,6 +351,8 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Short / PDP description | `Productgroup_Description__c` | `Product.description` (plain text) |
 | Web body / trigger / description HTML | `Productgroup_Web_Body__c`, `Productgroup_Web_Trigger__c`, `Productgroup_Description__c` | metadata → Sanity `body` (quote, section titles, bullet footer) unless `pageBodyOwnedBySanity` |
 | Subtitle | `Productgroup_Subtitle__c` | metadata `salesforce_subtitle` |
+| Product card CTA bar | `CTA_Label__c`, `CTA_Color__c`, `CTA_Color_Hover__c` | metadata `salesforce_cta_*` → store `badge`, `cta_color`, `cta_color_hover`; Sanity `badge`, `ctaColor`, `ctaColorHover`; PLP card bar in `PlpEventCard` |
+| Catalog sort order | `Order__c` | metadata `salesforce_order` → default PLP / VA Thuis sort (`sort=order`, ascending; nulls last) |
 | Child products | `vaProduct__c` (lookup `Productgroup__c`) | `ProductVariant` + linked `EventItem` |
 | Occurrence start / end | `Start_date_time__c`, `End_date_time__c` | `EventItem.start_at` / `end_at` |
 | Occurrence price | `Price__c` | variant EUR price → Sanity `priceFrom` |

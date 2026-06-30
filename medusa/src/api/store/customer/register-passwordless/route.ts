@@ -12,6 +12,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
     first_name?: string
     last_name?: string
     phone?: string
+    birthdate?: string
     address?: {
       address_1?: string
       postal_code?: string
@@ -34,6 +35,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
       first_name: body.first_name,
       last_name: body.last_name,
       phone: body.phone,
+      birthdate: body.birthdate,
       address: {
         address_1: body.address.address_1.trim(),
         postal_code: body.address.postal_code.trim(),

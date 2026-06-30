@@ -20,18 +20,24 @@ import { PersonsBlock } from './PersonsBlock'
 import { ColumnsBlock } from './ColumnsBlock'
 import { EditorialCardsBlock } from './EditorialCardsBlock'
 import { GiftCardBlock } from './GiftCardBlock'
+import { VathuisHeroBlock } from './VathuisHeroBlock'
+import { VathuisCategoriesBlock } from './VathuisCategoriesBlock'
+import { VathuisProductRowBlock } from './VathuisProductRowBlock'
+import { VathuisTeachersBlock } from './VathuisTeachersBlock'
+import { VathuisPromoTilesBlock } from './VathuisPromoTilesBlock'
 import { cleanBlockValue, type Block } from '@/lib/cms'
 
 interface BlockRendererProps {
   block: Block
+  tone?: 'default' | 'onDark'
 }
 
-export function BlockRenderer({ block }: BlockRendererProps) {
+export function BlockRenderer({ block, tone = 'default' }: BlockRendererProps) {
   switch (block._type) {
     case 'eventList':
       return <EventList block={block as any} />
     case 'textBlock':
-      return <TextBlock block={block as any} />
+      return <TextBlock block={block as any} tone={tone} />
     case 'afbeeldingBlock':
       return <AfbeeldingBlock block={block as any} />
     case 'accordionBlock':
@@ -56,7 +62,7 @@ export function BlockRenderer({ block }: BlockRendererProps) {
     case 'categoriesBlock':
       return <CategoriesBlock block={block as any} />
     case 'uspBlock':
-      return <UspBlock block={block as any} />
+      return <UspBlock block={block as any} tone={tone} />
     case 'reviewBlock':
       return <ReviewBlock block={block as any} />
     case 'personsBlock':
@@ -67,6 +73,16 @@ export function BlockRenderer({ block }: BlockRendererProps) {
       return <EditorialCardsBlock block={block as any} />
     case 'giftCardBlock':
       return <GiftCardBlock block={block} />
+    case 'vathuisHeroBlock':
+      return <VathuisHeroBlock block={block as any} />
+    case 'vathuisCategoriesBlock':
+      return <VathuisCategoriesBlock block={block as any} />
+    case 'vathuisProductRowBlock':
+      return <VathuisProductRowBlock block={block as any} />
+    case 'vathuisTeachersBlock':
+      return <VathuisTeachersBlock block={block as any} />
+    case 'vathuisPromoTilesBlock':
+      return <VathuisPromoTilesBlock block={block as any} />
     default:
       console.warn(`Unknown block type: ${block._type}`)
       return null

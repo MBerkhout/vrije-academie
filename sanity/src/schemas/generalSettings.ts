@@ -267,7 +267,57 @@ export const generalSettings = defineType({
             }),
             defineField({ name: "share", title: "Share", type: "string", initialValue: "Delen" }),
             defineField({ name: "freeTrialBadge", title: "Free trial badge", type: "string", initialValue: "Gratis proefles" }),
-            defineField({ name: "sessionsHeading", title: "Sessions heading", type: "string", initialValue: "Sessies" }),
+            defineField({
+              name: "physicalSessionsHeading",
+              title: "Physical sessions heading",
+              type: "string",
+              initialValue: "Fysieke sessies",
+            }),
+            defineField({
+              name: "onlineSessionsHeading",
+              title: "Online sessions heading",
+              type: "string",
+              initialValue: "Bezoek deze lezing online",
+            }),
+            defineField({
+              name: "onlineSessionsZoomInfo",
+              title: "Online sessions Zoom info",
+              type: "text",
+              initialValue:
+                "Je ontvangt 1 uur voor aanvang een link waarmee je de activiteit via het programma Zoom kunt bijwonen.",
+            }),
+            defineField({
+              name: "onlineSessionsReplayInfo",
+              title: "Online sessions replay info",
+              type: "text",
+              initialValue:
+                "Binnen 2 werkdagen ontvang je een link waarmee je de registratie van de lezing nog 7 dagen kunt terugkijken.",
+            }),
+            defineField({
+              name: "sessionsSortLabel",
+              title: "Sessions sort label (aria)",
+              type: "string",
+              initialValue: "Sorteren op",
+            }),
+            defineField({
+              name: "sessionsSortDate",
+              title: "Sessions sort option: date",
+              type: "string",
+              initialValue: "Datum",
+            }),
+            defineField({
+              name: "sessionsSortLocation",
+              title: "Sessions sort option: location",
+              type: "string",
+              initialValue: "Locatie",
+            }),
+            defineField({
+              name: "sessionsHeading",
+              title: "Sessions heading (deprecated)",
+              type: "string",
+              initialValue: "Fysieke sessies",
+              description: "Deprecated — use Physical sessions heading instead.",
+            }),
             defineField({
               name: "allLocationsTab",
               title: "All locations tab",
@@ -653,6 +703,20 @@ export const generalSettings = defineType({
       fields: [
         defineField({ name: "loginHeading", type: "string", title: "Login heading", initialValue: "Inloggen" }),
         defineField({ name: "loginIntro", type: "string", title: "Login intro tekst" }),
+        defineField({
+          name: "loginImage",
+          title: "Login pagina — achtergrondafbeelding",
+          type: "image",
+          description: "Sfeervolle foto die op de linker helft van de inlogpagina verschijnt (aanbevolen: 1200×1600px, portret).",
+          options: { hotspot: true },
+        }),
+        defineField({
+          name: "loginQuote",
+          title: "Login pagina — citaat",
+          type: "string",
+          description: "Inspirerend citaat over de afbeelding (standaard: \"Kennis verandert je blik op de wereld.\").",
+          initialValue: "Kennis verandert je blik op de wereld.",
+        }),
         defineField({ name: "emailLabel", type: "string", title: "E-mail label", initialValue: "E-mailadres" }),
         defineField({ name: "passwordLabel", type: "string", title: "Wachtwoord label", initialValue: "Wachtwoord" }),
         defineField({ name: "loginCtaLabel", type: "string", title: "Inloggen knop", initialValue: "Inloggen" }),

@@ -18,7 +18,8 @@ const TITLE_CLASS = {
   right: 'text-right',
 } as const
 
-export function TextBlock({ block }: { block: TextBlockType }) {
+export function TextBlock({ block, tone = 'default' }: { block: TextBlockType; tone?: 'default' | 'onDark' }) {
+  const isDark = tone === 'onDark'
   const TitleTag = getTitleTag(block.titleSize)
   const cw = cleanBlockValue(block.contentWidth) ?? 'normal'
   const widthClass =
@@ -29,13 +30,20 @@ export function TextBlock({ block }: { block: TextBlockType }) {
     <BlockWrapper block={block}>
       <div className={cn('font-sans w-full mx-auto', widthClass)}>
         {block.title && (
-          <TitleTag className={cn(getTitleSizeClass(block.titleSize), 'font-bold text-va-black mb-4', alignmentClass)}>
+          <TitleTag
+            className={cn(
+              getTitleSizeClass(block.titleSize),
+              'font-bold mb-4',
+              isDark ? 'text-white' : 'text-va-black',
+              alignmentClass,
+            )}
+          >
             {block.title}
           </TitleTag>
         )}
         {block.content && block.content.length > 0 && (
           <div>
-            <PortableText value={block.content} />
+            <PortableText value={block.content} tone={tone} />
           </div>
         )}
       </div>

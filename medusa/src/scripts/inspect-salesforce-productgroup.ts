@@ -77,8 +77,6 @@ export default async function inspectSalesforceProductgroup({ container }: ExecA
     groupRecord = result.records[0] ?? null
     groupId = String(groupRecord?.Id ?? "")
   } else if (salesforceId) {
-    groupRecord = await sync.retrieve(SF_PRODUCTGROUP_OBJECT, salesforceId, [])
-    // retrieve with empty fields may not work - use FIELDS(ALL) query instead
     const soql = `SELECT FIELDS(ALL) FROM ${SF_PRODUCTGROUP_OBJECT} WHERE Id = '${escapeSoql(salesforceId)}' LIMIT 1`
     const result = await sync.query<Record<string, unknown>>(soql)
     groupRecord = result.records[0] ?? null

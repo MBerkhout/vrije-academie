@@ -6,18 +6,24 @@ import { pushCustomerToSalesforceWorkflowId } from "../workflows/salesforce/push
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 
 export default async function salesforceSyncCustomer({
-  event: { data },
+  event: { data, name },
   container,
 }: SubscriberArgs<{ id: string }>) {
   const sync = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
   if (!(await sync.isIntegrationReady())) return
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const id = data.id
-  await runSalesforceWorkflow(container, pushCustomerToSalesforceWorkflowId, { customerId: id }, {
-    eventGroupId: id,
-    entityType: "customer",
-    medusaId: id,
-  })
+  const isCreate = name === "customer.created"
+  await runSalesforceWorkflow(
+    container,
+    pushCustomerToSalesforceWorkflowId,
+    { customerId: id, isCreate },
+    {
+      eventGroupId: id,
+      entityType: "customer",
+      medusaId: id,
+    }
+  )
   logger.info(`[salesforce-sync] enqueued push customer ${id}`)
 }
 

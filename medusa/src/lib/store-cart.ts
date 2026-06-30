@@ -30,6 +30,9 @@ const REFETCH_CART_FIELDS = [
   "credit_lines.reference",
   "credit_lines.reference_id",
   "credit_lines.metadata",
+  "promotions.id",
+  "promotions.code",
+  "promotions.is_automatic",
 ]
 
 export async function refetchStoreCart(scope: any, cartId: string) {

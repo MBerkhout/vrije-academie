@@ -15,6 +15,7 @@ const NON_RETRYABLE_ERROR_CODES = new Set([
   "INVALID_EMAIL_ADDRESS",
   "INSUFFICIENT_ACCESS_OR_READONLY",
   "DUPLICATE_VALUE",
+  "DUPLICATES_DETECTED",
   "INVALID_CROSS_REFERENCE_KEY",
 ])
 
@@ -31,7 +32,7 @@ export type SfErrorBody = Array<{ message?: string; errorCode?: string; statusCo
 export async function sfRequest<T>(
   method: string,
   path: string,
-  options?: { body?: unknown; retryAuth?: boolean }
+  options?: { body?: unknown; retryAuth?: boolean; headers?: Record<string, string> }
 ): Promise<{ data: T; status: number; rawText?: string }> {
   const apiVersion = process.env.SALESFORCE_API_VERSION?.trim() || "60.0"
   let attempt = 0
@@ -44,6 +45,7 @@ export async function sfRequest<T>(
     const headers: Record<string, string> = {
       Authorization: `Bearer ${access_token}`,
       Accept: "application/json",
+      ...(options?.headers ?? {}),
     }
     if (options?.body !== undefined) {
       headers["Content-Type"] = "application/json"
@@ -86,10 +88,17 @@ export async function sfRequest<T>(
         | SfErrorBody
         | undefined
       const firstCode = errors?.[0]?.errorCode
-      const msg =
+      let msg =
         errors?.map((e) => e.message).filter(Boolean).join("; ") ||
         (typeof data === "string" ? data : text) ||
         res.statusText
+
+      if (firstCode === "DUPLICATES_DETECTED") {
+        const duplicateAccountId = text.match(/"Id":"(001[^"]+)"/)?.[1]
+        if (duplicateAccountId) {
+          msg = `${msg}|sfDuplicateAccountId=${duplicateAccountId}`
+        }
+      }
 
       if (firstCode && NON_RETRYABLE_ERROR_CODES.has(firstCode)) {
         throw new MedusaError(MedusaError.Types.NOT_ALLOWED, `[${firstCode}] ${msg}`)

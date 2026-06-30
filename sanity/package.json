@@ -15,6 +15,8 @@
     "seed:homepage-categories": "node ./scripts/seed-homepage-categories.mjs",
     "seed:homepage-product-columns": "node ./scripts/seed-homepage-product-columns.mjs",
     "migrate:homepage-product-row": "node ./scripts/migrate-homepage-product-row.mjs",
+    "migrate:seo-fields": "node ./scripts/migrate-seo-fields.mjs",
+    "migrate:vathuis-landing-to-blocks": "node ./scripts/migrate-vathuis-landing-to-blocks.mjs",
     "test": "vitest",
     "test:run": "vitest run"
   },
@@ -27,10 +29,11 @@
   "license": "ISC",
   "dependencies": {
     "@sanity/form-toolkit": "^2.2.3",
-    "@sanity/vision": "^5.18.0",
+    "@sanity/vision": "^6.0.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "sanity": "^5.18.0",
+    "sanity": "^6.0.0",
+    "sanity-plugin-seo": "^1.4.4",
     "styled-components": "^6.3.12"
   },
   "devDependencies": {

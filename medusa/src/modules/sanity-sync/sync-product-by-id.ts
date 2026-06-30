@@ -7,6 +7,7 @@ import productEventGroupLink from "../../links/product-event-group"
 import CatalogModuleService from "../catalog/service"
 import { minPriceCentsFromVariants } from "../../lib/medusa-price-to-cents"
 import { externalRegistrationUrlFromMetadata } from "../../lib/external-registration-url"
+import { ctaBarFieldsFromMetadata } from "../../lib/product-cta-bar"
 import { mirrorProduct } from "./service"
 import { buildSalesforceImportedBody } from "./html-to-pdp-body"
 
@@ -92,6 +93,7 @@ export async function syncProductById(
     null
   const externalRegistrationUrl = externalRegistrationUrlFromMetadata(metadata)
   const importedBodyBlocks = buildSalesforceImportedBody(metadata, product.description)
+  const ctaFields = ctaBarFieldsFromMetadata(metadata)
 
   await mirrorProduct({
     id: product.id,
@@ -108,6 +110,9 @@ export async function syncProductById(
     price_from: priceFrom,
     cities,
     earliest_start_at: earliestStartAt,
+    badge: ctaFields.badge,
+    cta_color: ctaFields.cta_color,
+    cta_color_hover: ctaFields.cta_color_hover,
     seo_title: seoTitle,
     seo_description: seoDescription,
     external_registration_url: externalRegistrationUrl,

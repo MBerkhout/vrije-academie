@@ -21,7 +21,21 @@ Daarna kan `plpPage` uit de dataset verwijderd worden. De storefront leest tijde
 
 ## Category landing pages
 
-Er is **geen** aparte Sanity Page per categorie. Gemirrorde **`category`**-documenten (`slug`, `label`) sturen de storefront naar `/ons-aanbod/{slug}` met titel “Ons aanbod in {label}”. Optioneel veld **`linkUrl`** op `category` overschrijft die URL (bijv. externe link). Presentation preview opent de category-PLP in de storefront.
+Er is **geen** aparte Sanity Page per categorie. Gemirrorde **`category`**-documenten (`slug`, `label`) sturen de storefront naar `/ons-aanbod/{slug}` met titel “Ons aanbod in {label}” (of **Custom title** indien ingevuld). Optionele velden:
+
+| Veld | Gebruik |
+|------|---------|
+| **Custom title** | Paginatitel, breadcrumbs, homepage-tegels, zoekresultaten |
+| **Description** | Intro op de category-PLP en zoekfragment |
+| **Image** | Homepage-tegels en zoekthumbnail (seed: `npm run seed:homepage-categories --prefix sanity`) |
+| **Link URL** | Overschrijft PLP-URL (bijv. externe link) |
+| **SEO** | `title`, `description`, `image` voor metadata / Open Graph |
+
+Presentation preview opent de category-PLP in de storefront.
+
+## Storefront sort
+
+Product tiles on `/ons-aanbod` and `/va-thuis/ons-aanbod` default to **Aanbevolen** (`sort=order`): ascending Salesforce `Order__c` on `vaProductgroup__c`, imported as Medusa `metadata.salesforce_order`. Re-import product groups after changing order in Salesforce. Agenda and CMS product-row feeds keep their own sort options.
 
 ## Technische constante
 

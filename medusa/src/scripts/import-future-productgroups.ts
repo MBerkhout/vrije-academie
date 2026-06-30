@@ -1,55 +1,45 @@
 /**
  * Bulk-import Salesforce product groups (vaProductgroup__c + children).
  *
- * Default: future / VAthuis / online-only (see shouldBulkImportProductgroup).
+ * Default: future / VAthuis / linked-online / online-only (see shouldBulkImportProductgroup).
+ * --linked-vathuis: VAthuis + linked-online parents and slave catalogs only (fast backfill).
  * --all: every product group since the beginning (manual import, bypasses date guard).
  *
  *   npm run salesforce:import-future
+ *   npm run salesforce:import-linked-vathuis
  *   npm run salesforce:import-all
+ *   npm run salesforce:import-all -- --concurrency=4
  *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --dry-run --limit=5
+ *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --linked-vathuis --dry-run
  *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --all --dry-run --limit=5
+ *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --all --skip-search --concurrency=4
  */
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-import { sfRequest } from "../modules/salesforce-sync/client/rest"
-import type { SfCourseProductShape } from "../modules/salesforce-sync/mappings/course-product"
-import {
-  courseProductSalesforceFieldsForPull,
-  SF_COURSE_PRODUCT_OBJECT,
-} from "../modules/salesforce-sync/mappings/course-product"
+import { importProductgroupFromSalesforce } from "../modules/salesforce-sync/import-productgroup"
 import type { SfProductgroupShape } from "../modules/salesforce-sync/mappings/productgroup"
-import { SF_PRODUCTGROUP_OBJECT } from "../modules/salesforce-sync/mappings/productgroup"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
-import { shouldBulkImportProductgroup } from "../modules/salesforce-sync/utils/future-import-guard"
-import { pullProductgroupFromSalesforceWorkflowId } from "../workflows/salesforce/pull-productgroup-salesforce"
-import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
+import {
+  shouldBulkImportProductgroup,
+  shouldLinkedVathuisBulkImport,
+} from "../modules/salesforce-sync/utils/future-import-guard"
+import {
+  linkedRecordsForGroup,
+  prefetchProductgroupsForImport,
+} from "../modules/salesforce-sync/utils/prefetch-productgroups-for-import"
+import { runPool } from "../modules/salesforce-sync/utils/run-pool"
 
 function arg(name: string): string | undefined {
   const p = process.argv.find((a) => a.startsWith(`${name}=`))
   return p?.split("=").slice(1).join("=")
 }
 
-type SfQueryPage<T> = {
-  records: T[]
-  done: boolean
-  nextRecordsUrl?: string
+type ImportCandidate = {
+  group: SfProductgroupShape
 }
 
-async function queryAll<T>(soql: string): Promise<T[]> {
-  const records: T[] = []
-  let path = `/query?q=${encodeURIComponent(soql)}`
-
-  while (path) {
-    const { data } = await sfRequest<SfQueryPage<T>>("GET", path)
-    records.push(...(data.records ?? []))
-    if (data.done || !data.nextRecordsUrl) break
-    const match = data.nextRecordsUrl.match(/\/services\/data\/v[\d.]+\/(.+)$/)
-    path = match ? `/${match[1]}` : ""
-  }
-
-  return records
-}
+type ImportOutcome = "imported" | "skipped" | "failed"
 
 export default async function importFutureProductgroups({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
@@ -62,70 +52,143 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
 
   const dryRun = process.argv.includes("--dry-run")
   const importAll = process.argv.includes("--all")
+  const linkedVathuisOnly = process.argv.includes("--linked-vathuis")
+  const skipSearch = process.argv.includes("--skip-search")
   const limit = Math.min(5000, Math.max(0, Number(arg("--limit")) || 0))
-  const logTag = importAll ? "import-all-productgroups" : "import-future-productgroups"
+  const concurrency = Math.min(20, Math.max(1, Number(arg("--concurrency")) || 1))
+  const logTag = importAll
+    ? "import-all-productgroups"
+    : linkedVathuisOnly
+      ? "import-linked-vathuis"
+      : "import-future-productgroups"
 
   logger.info(
-    `[${logTag}] Listing ${SF_PRODUCTGROUP_OBJECT}…` +
-      (importAll ? " (all groups)" : " (future / VAthuis / online-only)") +
+    `[${logTag}] Prefetching product groups…` +
+      (importAll
+        ? " (all groups)"
+        : linkedVathuisOnly
+          ? " (VAthuis + linked-online only)"
+          : " (future / VAthuis / linked-online / online-only)") +
       (dryRun ? " (dry-run)" : "") +
-      (limit ? ` (limit=${limit})` : "")
+      (limit ? ` (limit=${limit})` : "") +
+      (concurrency > 1 ? ` (concurrency=${concurrency})` : "") +
+      (skipSearch ? " (skip-search)" : "")
   )
 
-  const groups = await queryAll<SfProductgroupShape>(
-    `SELECT Id, Name, Latest_Product_Start_Date__c FROM ${SF_PRODUCTGROUP_OBJECT} ORDER BY Name`
-  )
-
-  const childFields = courseProductSalesforceFieldsForPull.join(",")
-  let imported = 0
-  let skipped = 0
-  let failed = 0
-
-  for (const group of groups) {
-    if (!group.Id) continue
-    if (limit && imported + skipped + failed >= limit) break
-
-    const childQuery = await sync.query<SfCourseProductShape>(
-      `SELECT ${childFields} FROM ${SF_COURSE_PRODUCT_OBJECT} WHERE Productgroup__c = '${group.Id.replace(/'/g, "\\'")}'`
-    )
-    const children = childQuery.records
-
-    if (!importAll && !shouldBulkImportProductgroup({ group, children })) {
-      skipped++
-      continue
-    }
-
-    const label = group.Name?.trim() || group.Id
-    if (dryRun) {
-      logger.info(`[${logTag}] would import ${label} (${group.Id})`)
-      imported++
-      continue
-    }
-
-    try {
-      const ret = await runSalesforceWorkflow(
-        container,
-        pullProductgroupFromSalesforceWorkflowId,
-        { salesforceId: group.Id, manual: true },
-        { eventGroupId: group.Id, entityType: "productgroup", medusaId: group.Id }
-      )
-      const result = ret.result as { medusaId?: string; skipped?: boolean; skipReason?: string } | undefined
-      if (result?.skipped) {
-        logger.warn(`[${logTag}] skipped ${label} (${group.Id}): ${result.skipReason ?? "skipped"}`)
-        skipped++
-      } else {
-        logger.info(`[${logTag}] imported ${label} (${group.Id}) → ${result?.medusaId ?? "?"}`)
-        imported++
-      }
-    } catch (err) {
-      failed++
-      logger.error(
-        `[${logTag}] failed ${label} (${group.Id}): ${err instanceof Error ? err.message : String(err)}`
-      )
-    }
+  const previousSuppressPush = process.env.SALESFORCE_SUPPRESS_PUSH
+  if (!dryRun) {
+    process.env.SALESFORCE_SUPPRESS_PUSH = "1"
   }
 
-  logger.info(
-    `[${logTag}] Done. imported=${imported} skipped=${skipped} failed=${failed} (scanned ${groups.length} groups)`
-  )
+  try {
+    const prefetch = await prefetchProductgroupsForImport()
+    logger.info(
+      `[${logTag}] Prefetched ${prefetch.groups.length} group(s), ${prefetch.linkedOnlineSlaveIds.size} linked-online slave catalog(s)`
+    )
+
+    let skipped = 0
+    const candidates: ImportCandidate[] = []
+
+    for (const group of prefetch.groups) {
+      if (!group.Id) continue
+
+      const { children } = linkedRecordsForGroup(prefetch, group)
+
+      const guardInput = {
+        group,
+        children,
+        isLinkedOnlineSlave: prefetch.linkedOnlineSlaveIds.has(group.Id),
+      }
+
+      const shouldImport = importAll
+        ? true
+        : linkedVathuisOnly
+          ? shouldLinkedVathuisBulkImport(guardInput)
+          : shouldBulkImportProductgroup(guardInput)
+
+      if (!shouldImport) {
+        skipped++
+        continue
+      }
+
+      if (limit && candidates.length >= limit) break
+      candidates.push({ group })
+    }
+
+    if (dryRun) {
+      for (const { group } of candidates) {
+        const label = group.Name?.trim() || group.Id
+        logger.info(`[${logTag}] would import ${label} (${group.Id})`)
+      }
+      logger.info(
+        `[${logTag}] Done. would import=${candidates.length} skipped=${skipped} (scanned ${prefetch.groups.length} groups)`
+      )
+      return
+    }
+
+    const reindexProductIds: string[] = []
+
+    const outcomes = await runPool(candidates, concurrency, async ({ group }) => {
+      const salesforceId = group.Id!
+      const label = group.Name?.trim() || salesforceId
+      const { children, linkedGroupRecord, linkedChildRecords } = linkedRecordsForGroup(
+        prefetch,
+        group
+      )
+
+      try {
+        const result = await importProductgroupFromSalesforce(container, {
+          salesforceId,
+          groupRecord: group,
+          childRecords: children,
+          linkedGroupRecord,
+          linkedChildRecords,
+          manual: true,
+          skipSearch,
+        })
+
+        if (result.skipped) {
+          logger.warn(
+            `[${logTag}] skipped ${label} (${salesforceId}): ${result.skipReason ?? "skipped"}`
+          )
+          return "skipped" as ImportOutcome
+        }
+
+        if (skipSearch && result.medusaId) {
+          reindexProductIds.push(result.medusaId)
+        }
+        logger.info(`[${logTag}] imported ${label} (${salesforceId}) → ${result.medusaId}`)
+        return "imported" as ImportOutcome
+      } catch (err) {
+        logger.error(
+          `[${logTag}] failed ${label} (${salesforceId}): ${err instanceof Error ? err.message : String(err)}`
+        )
+        return "failed" as ImportOutcome
+      }
+    })
+
+    const imported = outcomes.filter((o) => o === "imported").length
+    const failed = outcomes.filter((o) => o === "failed").length
+    skipped += outcomes.filter((o) => o === "skipped").length
+
+    if (skipSearch && reindexProductIds.length) {
+      const search = container.resolve("search") as import("../modules/search/service").default
+      if (search.isEnabled()) {
+        logger.info(`[${logTag}] Reindexing ${reindexProductIds.length} product(s) in search…`)
+        for (const productId of reindexProductIds) {
+          await search.reindexProductById(container, productId).catch(() => undefined)
+        }
+      }
+    }
+
+    logger.info(
+      `[${logTag}] Done. imported=${imported} skipped=${skipped} failed=${failed} (scanned ${prefetch.groups.length} groups)`
+    )
+  } finally {
+    if (previousSuppressPush === undefined) {
+      delete process.env.SALESFORCE_SUPPRESS_PUSH
+    } else {
+      process.env.SALESFORCE_SUPPRESS_PUSH = previousSuppressPush
+    }
+  }
 }

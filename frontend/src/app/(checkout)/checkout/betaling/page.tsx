@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { cmsClient } from '@/lib/cms/server'
 import { CheckoutPaymentForm } from '@/components/checkout/CheckoutPaymentForm'
 import { CheckoutPaymentOrderOverview } from '@/components/checkout/CheckoutPaymentOrderOverview'
@@ -13,7 +14,9 @@ export default async function BetalingPage() {
   return (
     <div className="space-y-8">
       <CheckoutPaymentOrderOverview labels={checkout?.orderSummary} />
-      <CheckoutPaymentForm settings={checkout} />
+      <Suspense>
+        <CheckoutPaymentForm settings={checkout} />
+      </Suspense>
     </div>
   )
 }

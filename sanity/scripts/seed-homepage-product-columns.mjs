@@ -25,7 +25,7 @@ const COLUMNS = {
     productCardsTitle: "VAthuis: on-demand video's",
     productCardsItemCtaLabel: "VAthuis – ON DEMAND",
     productCardsFooterCtaLabel: "Bekijk alle VAthuis colleges",
-    productCardsFooterCtaUrl: "/ons-aanbod",
+    productCardsFooterCtaUrl: "/va-thuis",
     products: [
       "medusa-product-prod_01KSZJ1DVQ649A1PARSNV17QVM", // Chagall
       "medusa-product-prod_01KSZJYHP4N1B988JH6QAJ2DR5", // Jan Steen

@@ -86,7 +86,7 @@ function SuggestionRow({
 
   const inner = (
     <>
-      {item.kind === 'product' && item.thumbnailUrl ? (
+      {item.thumbnailUrl ? (
         <div className="relative h-12 w-12 shrink-0 overflow-hidden bg-va-lightgray-200">
           <Image src={item.thumbnailUrl} alt="" fill className="object-cover" sizes="48px" />
         </div>

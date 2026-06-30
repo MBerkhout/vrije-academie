@@ -1,10 +1,14 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { createClient } from "@sanity/client"
 
+import { getPlpListingSnapshot } from "../../lib/store-listing-snapshot"
 import {
   buildCommerceSearchDocs,
+  buildCategorySearchDoc,
   buildProductSearchDoc,
   buildSanitySearchDoc,
+  fetchSanityCategoryEditorialByMedusaId,
+  fetchSanityCategoryEditorialBySanityId,
   type SanitySearchRow,
 } from "./document-builders"
 import { getOpenSearchClient, getSearchIndexName, isOpenSearchConfigured } from "./client"
@@ -290,7 +294,6 @@ export default class SearchModuleService {
   async reindexProductById(scope: MedusaContainer, productId: string): Promise<void> {
     if (!this.isEnabled()) return
 
-    const { getPlpListingSnapshot } = await import("../../lib/store-listing-snapshot.js")
     const snapshot = await getPlpListingSnapshot(scope)
     const row = snapshot.list.find((p: Record<string, unknown>) => String(p.id) === productId)
     if (!row) {
@@ -327,15 +330,8 @@ export default class SearchModuleService {
       const slug = entity.slug?.trim()
       const label = entity.label?.trim()
       if (!slug || !label) return
-      doc = {
-        id: `category-${entity.id}`,
-        kind: "category",
-        title: label,
-        handle: slug,
-        subtitle: "Categorie",
-        url: `/ons-aanbod/${slug}`,
-        body: label,
-      }
+      const editorial = await fetchSanityCategoryEditorialByMedusaId(entity.id)
+      doc = buildCategorySearchDoc({ id: entity.id, slug, label }, editorial)
     } else if (kind === "city") {
       const slug = entity.slug?.trim()
       const label = entity.label?.trim()
@@ -383,7 +379,7 @@ export default class SearchModuleService {
         _type,
         "title": select(_type == "page" => title, _type == "person" => name),
         "slug": select(_type == "page" => slug.current),
-        "seoDescription": select(_type == "page" => seo.description),
+        "seoDescription": select(_type == "page" => seo.metaDescription),
         "role": select(_type == "person" => role),
         "bio": select(_type == "person" => bio),
         "subjectTags": select(_type == "person" => subjectTags),
@@ -406,33 +402,63 @@ export default class SearchModuleService {
   async upsertSanityDocById(sanityId: string): Promise<void> {
     if (!this.isEnabled()) return
     const client = getSanityReadClient()
-    const row = await client.fetch<SanitySearchRow | null>(
+    const row = await client.fetch<
+      (SanitySearchRow & { _type?: string; medusaId?: string | null }) | null
+    >(
       `*[_id == $id][0] {
         _id,
         _type,
+        medusaId,
         "title": select(_type == "page" => title, _type == "person" => name),
-        "slug": select(_type == "page" => slug.current),
-        "seoDescription": select(_type == "page" => seo.description),
+        "slug": select(_type == "page" => slug.current, _type == "category" => slug),
+        "seoDescription": select(_type == "page" => seo.metaDescription),
         "role": select(_type == "person" => role),
         "bio": select(_type == "person" => bio),
         "subjectTags": select(_type == "person" => subjectTags),
-        "profileUrl": select(_type == "person" => profileUrl)
+        "profileUrl": select(_type == "person" => profileUrl),
+        label
       }`,
       { id: sanityId }
     )
 
-    if (!row || (row._type !== "page" && row._type !== "person")) {
+    if (!row) return
+
+    if (row._type === "category") {
+      await this.reindexCategoryFromSanityId(sanityId)
+      return
+    }
+
+    if (row._type !== "page" && row._type !== "person") {
       await this.deleteSanityDocById(sanityId)
       return
     }
 
-    const doc = buildSanitySearchDoc(row)
+    const doc = buildSanitySearchDoc(row as SanitySearchRow)
     if (!doc) {
       await this.deleteSanityDocById(sanityId)
       return
     }
 
     await this.bulkUpsert([doc])
+  }
+
+  async reindexCategoryFromSanityId(sanityCategoryId: string): Promise<void> {
+    if (!this.isEnabled()) return
+
+    const editorial = await fetchSanityCategoryEditorialBySanityId(sanityCategoryId)
+    if (!editorial?.medusaId || !editorial.slug?.trim() || !editorial.label?.trim()) {
+      return
+    }
+
+    const doc = buildCategorySearchDoc(
+      {
+        id: editorial.medusaId,
+        slug: editorial.slug.trim(),
+        label: editorial.label.trim(),
+      },
+      editorial
+    )
+    if (doc) await this.bulkUpsert([doc])
   }
 
   async deleteSanityDocById(sanityId: string): Promise<void> {

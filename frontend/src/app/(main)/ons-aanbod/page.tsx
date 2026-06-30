@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { cmsClient } from '@/lib/cms/server'
 import { getPlpPage } from '@/lib/cms/sanity-refs'
+import { buildSeoMetadata } from '@/lib/cms/seo-metadata'
 import { PlpListingPage } from '@/components/plp/PlpListingPage'
 import { PLP_BASE_PATH } from '@/lib/routes'
 import { parseFilterState, serializeFilterState } from './_state/url'
@@ -25,14 +26,10 @@ export async function generateMetadata({ searchParams }: PlpPageProps): Promise<
   const siteName = 'Vrije Academie'
   const baseTitle = settings?.plp?.pageTitle ?? 'Ons aanbod'
 
-  return {
-    title: `${baseTitle} – ${siteName}`,
-    description: plpData?.seo?.description || `Bekijk het volledige aanbod van ${siteName}.`,
-    openGraph: {
-      title: `${baseTitle} – ${siteName}`,
-      images: plpData?.seo?.image?.asset?.url ? [plpData.seo.image.asset.url] : [],
-    },
-  }
+  return buildSeoMetadata(plpData?.seo, {
+    fallbackTitle: `${baseTitle} – ${siteName}`,
+    fallbackDescription: `Bekijk het volledige aanbod van ${siteName}.`,
+  })
 }
 
 export default async function OnsAanbodPage({ searchParams }: PlpPageProps) {

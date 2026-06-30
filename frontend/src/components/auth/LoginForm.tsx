@@ -77,6 +77,7 @@ export function LoginForm({ settings }: LoginFormProps) {
   const [regEmail, setRegEmail] = useState('')
   const [regPassword, setRegPassword] = useState('')
   const [regPasswordConfirm, setRegPasswordConfirm] = useState('')
+  const [birthdate, setBirthdate] = useState('')
 
   // Step 2 — address
   const [phone, setPhone] = useState('')
@@ -98,13 +99,17 @@ export function LoginForm({ settings }: LoginFormProps) {
     houseNumber: { state: 'idle' },
     street: { state: 'idle' },
     city: { state: 'idle' },
+    birthdate: { state: 'idle' },
   }))
 
   function v(name: LoginFormValidityKey) {
     return validity[name]
   }
   function touch(name: LoginFormValidityKey, value: string, extra?: { password?: string }) {
-    setValidity((prev) => ({ ...prev, [name]: validateAccountField(name, value, extra) }))
+    setValidity((prev) => ({
+      ...prev,
+      [name]: validateAccountField(name, value, { ...extra, countryCode: country }),
+    }))
   }
   function reset(name: LoginFormValidityKey) {
     setValidity((prev) => (prev[name].state === 'idle' ? prev : { ...prev, [name]: { state: 'idle' } }))
@@ -236,7 +241,13 @@ export function LoginForm({ settings }: LoginFormProps) {
   function handleStep1Next(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    const fields: LoginFormValidityKey[] = ['firstName', 'lastName', 'email', 'password', 'confirmPassword']
+    const fields: LoginFormValidityKey[] = [
+      'firstName',
+      'lastName',
+      'email',
+      'password',
+      'confirmPassword',
+    ]
     const values: Record<string, string> = {
       firstName,
       lastName,
@@ -259,20 +270,24 @@ export function LoginForm({ settings }: LoginFormProps) {
   async function handleStep2Next(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    const phoneVal = validateAccountField('phone', phone)
-    const pcVal = validateAccountField('postalCode', postalCode)
-    const hnVal = validateAccountField('houseNumber', houseNumber)
-    const stVal = validateAccountField('street', street)
-    const ctVal = validateAccountField('city', city)
+    const phoneVal = validateAccountField('phone', phone, { countryCode: country })
+    const birthdateVal = birthdate.trim()
+      ? validateAccountField('birthdate', birthdate)
+      : { state: 'idle' as const }
+    const pcVal = validateAccountField('postalCode', postalCode, { countryCode: country })
+    const hnVal = validateAccountField('houseNumber', houseNumber, { countryCode: country })
+    const stVal = validateAccountField('street', street, { countryCode: country })
+    const ctVal = validateAccountField('city', city, { countryCode: country })
     setValidity((prev) => ({
       ...prev,
       phone: phoneVal,
+      birthdate: birthdateVal,
       postalCode: pcVal,
       houseNumber: hnVal,
       street: stVal,
       city: ctVal,
     }))
-    if ([phoneVal, pcVal, hnVal, stVal, ctVal].some((v) => v.state === 'invalid')) return
+    if ([phoneVal, birthdateVal, pcVal, hnVal, stVal, ctVal].some((v) => v.state === 'invalid')) return
     setRegStep(3)
   }
 
@@ -287,6 +302,7 @@ export function LoginForm({ settings }: LoginFormProps) {
         first_name: firstName,
         last_name: lastName,
         ...(phone.trim() ? { phone: phone.trim() } : {}),
+        ...(birthdate.trim() ? { birthdate } : {}),
         address: {
           address_1: `${street} ${houseNumber}`.trim(),
           postal_code: postalCode.replace(/\s/g, '').toUpperCase().replace(/^(\d{4})([a-zA-Z]{2})$/, '$1 $2'),
@@ -503,6 +519,15 @@ export function LoginForm({ settings }: LoginFormProps) {
                 onBlur={() => touch('phone', phone)}
                 validity={v('phone')} disabled={busy}
               />
+              <ValidatedInput
+                id="reg-birthdate" name="birthdate" label="Geboortedatum"
+                type="date" autoComplete="bday" value={birthdate}
+                max={new Date().toISOString().slice(0, 10)}
+                min="1900-01-01"
+                onChange={(v) => { setBirthdate(v); reset('birthdate') }}
+                onBlur={() => touch('birthdate', birthdate)}
+                validity={v('birthdate')} disabled={busy}
+              />
               <NlAddressFields
                 labels={{
                   postalCode: 'Postcode',
@@ -529,7 +554,10 @@ export function LoginForm({ settings }: LoginFormProps) {
                 onHouseNumberChange={setHouseNumber}
                 onStreetChange={setStreet}
                 onCityChange={setCity}
-                onCountryChange={setCountry}
+                onCountryChange={(v) => {
+                  setCountry(v)
+                  reset('postalCode')
+                }}
                 onManualAddress={setManualAddress}
                 blur={(name, value) => touch(name, value)}
                 reset={(name) => {
@@ -560,6 +588,7 @@ export function LoginForm({ settings }: LoginFormProps) {
                   <span className="text-va-darkgray">E-mail</span>
                   <span>{regEmail}</span>
                   {phone && <><span className="text-va-darkgray">Telefoon</span><span>{phone}</span></>}
+                  {birthdate && <><span className="text-va-darkgray">Geboortedatum</span><span>{birthdate}</span></>}
                   <span className="text-va-darkgray">Adres</span>
                   <span>
                     {street} {houseNumber},<br />

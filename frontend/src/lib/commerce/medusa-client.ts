@@ -25,6 +25,8 @@ import type {
   EventFilters,
   PaginatedEventFilters,
   EventListResult,
+  VathuisFilters,
+  VathuisListResult,
   AgendaFilters,
   AgendaListResult,
   EventFacets,
@@ -33,7 +35,11 @@ import type {
   SearchSuggestionsResult,
   SearchSuggestion,
 } from './types'
-import { customerToShippingPayload } from './checkout-profile'
+import {
+  customerToShippingPayload,
+  getDefaultCheckoutAddress,
+  isCustomerProfileComplete,
+} from './checkout-profile'
 import {
   addRecentViewedHandle,
   getRecentViewedHandlesLocal,
@@ -49,6 +55,10 @@ import {
   parseWishlistHandles,
   removeHandleFromList,
 } from './wishlist'
+import {
+  normalizeBirthdateInput,
+  SF_BIRTHDATE_METADATA_KEY,
+} from './customer-birthdate'
 import { sortCityFacetsByCount } from './city-facets'
 import { filterFutureEventVariants } from '@/lib/event-status-presentation'
 import { isGiftCardPurchaseLineItem } from './gift-card'
@@ -264,6 +274,29 @@ function storeAuthHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+async function enqueueSalesforceCustomerSync(email: string): Promise<void> {
+  try {
+    await storeFetch('/store/customer/me/sync-from-salesforce', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+  } catch {
+    /* non-blocking refresh from Salesforce */
+  }
+}
+
+async function enqueueSalesforceCustomerPush(): Promise<void> {
+  try {
+    await storeFetch('/store/customer/me/push-to-salesforce', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+  } catch {
+    /* non-blocking push to Salesforce */
+  }
+}
+
 async function storeFetch(path: string, init?: RequestInit): Promise<Response> {
   return fetch(`${BACKEND_URL}${path}`, {
     ...init,
@@ -324,6 +357,64 @@ async function retrieveAuthenticatedCustomer(): Promise<Customer | null> {
       }
     }
     return null
+  }
+}
+
+/** Mollie reads `context.customer.billing_address`, not cart shipping — keep them aligned before pay. */
+async function ensureMollieBillingForPayment(cartId: string): Promise<void> {
+  const customer = await retrieveAuthenticatedCustomer()
+  if (customer && isCustomerProfileComplete(customer)) {
+    const addr = getDefaultCheckoutAddress(customer)!
+    const payload = {
+      first_name: customer.first_name!.trim(),
+      last_name: customer.last_name!.trim(),
+      ...(customer.phone?.trim() ? { phone: customer.phone.trim() } : {}),
+      address_1: addr.address_1!.trim(),
+      postal_code: addr.postal_code!.trim(),
+      city: addr.city!.trim(),
+      country_code: (addr.country_code ?? 'nl').toLowerCase(),
+    }
+    const listRes = await medusa.store.customer.listAddress({ limit: 50 })
+    const addresses = listRes.addresses ?? []
+    const addressPayload = {
+      ...payload,
+      is_default_shipping: true,
+      is_default_billing: true,
+    }
+    const primary =
+      addresses.find((a: Address) => a.is_default_shipping === true) ?? addresses[0]
+    if (primary?.id) {
+      await medusa.store.customer.updateAddress(primary.id, addressPayload)
+    } else {
+      await medusa.store.customer.createAddress(addressPayload)
+    }
+    await medusa.store.cart.update(cartId, {
+      email: customer.email,
+      shipping_address: payload,
+      billing_address: payload,
+    } as any)
+    return
+  }
+
+  try {
+    const { cart: raw } = await medusa.store.cart.retrieve(cartId)
+    const cart = normalizeStoreCart(raw)
+    const shipping = cart.shipping_address
+    if (!shipping?.postal_code?.trim()) return
+    if (cart.billing_address?.postal_code?.trim()) return
+    await medusa.store.cart.update(cartId, { billing_address: shipping } as any)
+  } catch {
+    /* non-blocking */
+  }
+}
+
+async function prepareCheckout(cartId: string): Promise<void> {
+  const res = await storeFetch(`/store/carts/${cartId}/prepare-checkout`, {
+    method: 'POST',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error((err as { message?: string }).message ?? 'Failed to prepare checkout')
   }
 }
 
@@ -390,6 +481,49 @@ export const medusaClient: CommerceClient = {
     try {
       const response = await fetch(
         `${BACKEND_URL}/store/events/${handle}/similar`,
+        { headers: storeHeaders() }
+      )
+      if (!response.ok) return []
+      const data = await response.json()
+      const raw = data.similar ?? []
+      return raw.map((e: Record<string, unknown>) => normalizeDocentenRow(e)) as unknown as EventCard[]
+    } catch {
+      return []
+    }
+  },
+
+  async getVathuisPaginated(filters?: VathuisFilters): Promise<VathuisListResult> {
+    const params = new URLSearchParams()
+
+    if (filters?.q) params.set('q', filters.q)
+    if (filters?.sort) params.set('sort', filters.sort)
+    if (filters?.limit) params.set('limit', String(filters.limit))
+    if (filters?.offset) params.set('offset', String(filters.offset))
+
+    for (const v of filters?.categories ?? []) params.append('category', v)
+    for (const v of filters?.teachers ?? []) params.append('docent', v)
+
+    const response = await fetch(`${BACKEND_URL}/store/vathuis?${params.toString()}`, {
+      headers: storeHeaders(),
+    })
+    if (!response.ok) {
+      throw new Error(`Failed to fetch vathuis catalog: ${response.status}`)
+    }
+    const data = await response.json()
+    const items = (data.items ?? []).map((e: Record<string, unknown>) =>
+      normalizeDocentenRow(e)
+    ) as unknown as EventCard[]
+    return {
+      items,
+      count: data.count ?? 0,
+      facets: normalizeEventFacets(data.facets),
+    }
+  },
+
+  async getSimilarVathuis(handle: string): Promise<EventCard[]> {
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/store/vathuis/${encodeURIComponent(handle)}/similar`,
         { headers: storeHeaders() }
       )
       if (!response.ok) return []
@@ -753,7 +887,9 @@ export const medusaClient: CommerceClient = {
     }
 
     try {
-      return await retrieveCustomer()
+      const customer = await retrieveCustomer()
+      void enqueueSalesforceCustomerSync(email)
+      return customer
     } catch (e) {
       if (getFetchStatus(e) !== 401) throw e
     }
@@ -761,14 +897,18 @@ export const medusaClient: CommerceClient = {
     // Stale JWT or missing customer_id on auth identity — see Medusa generateJwtTokenForAuthIdentity (empty actor_id → 401 on /customers/me).
     try {
       await medusa.auth.refresh()
-      return await retrieveCustomer()
+      const customer = await retrieveCustomer()
+      void enqueueSalesforceCustomerSync(email)
+      return customer
     } catch (e) {
       if (getFetchStatus(e) !== 401) throw e
     }
 
     await medusa.store.customer.create({ email })
     await medusa.auth.refresh()
-    return await retrieveCustomer()
+    const customer = await retrieveCustomer()
+    void enqueueSalesforceCustomerSync(email)
+    return customer
   },
 
   async logout(): Promise<void> {
@@ -797,33 +937,51 @@ export const medusaClient: CommerceClient = {
       last_name: input.last_name,
       ...(input.phone ? { phone: input.phone } : {}),
     })
-    if (input.address) {
-      await storeFetch('/store/customers/me/addresses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: {
-            first_name: input.first_name,
-            last_name: input.last_name,
-            ...(input.phone ? { phone: input.phone } : {}),
-            address_1: input.address.address_1,
-            postal_code: input.address.postal_code,
-            city: input.address.city,
-            country_code: input.address.country_code,
-          },
-        }),
+    // Login JWT is issued before the customer row exists — refresh so actor_id is linked (same as login()).
+    await medusa.auth.refresh()
+    const birthdate = input.birthdate?.trim()
+      ? normalizeBirthdateInput(input.birthdate)
+      : ''
+    if (birthdate) {
+      await medusa.store.customer.update({
+        metadata: { [SF_BIRTHDATE_METADATA_KEY]: birthdate },
       })
     }
-    const { customer } = await medusa.store.customer.retrieve()
-    return customer as Customer
+    if (input.address) {
+      await medusa.store.customer.createAddress({
+        first_name: input.first_name,
+        last_name: input.last_name,
+        ...(input.phone ? { phone: input.phone } : {}),
+        address_1: input.address.address_1,
+        postal_code: input.address.postal_code,
+        city: input.address.city,
+        country_code: input.address.country_code.toLowerCase(),
+        is_default_shipping: true,
+      })
+      void enqueueSalesforceCustomerPush()
+    } else if (birthdate) {
+      void enqueueSalesforceCustomerPush()
+    }
+    const customer = await customerAfterToken(input.email)
+    void enqueueSalesforceCustomerSync(input.email)
+    return customer
   },
 
   async updateCustomerProfile(input: CustomerProfileUpdateInput): Promise<Customer> {
+    const current = await retrieveAuthenticatedCustomer()
+    const metadata = { ...(current?.metadata ?? {}) }
+    if (input.birthdate !== undefined) {
+      const normalized = normalizeBirthdateInput(input.birthdate)
+      if (normalized) metadata[SF_BIRTHDATE_METADATA_KEY] = normalized
+      else delete metadata[SF_BIRTHDATE_METADATA_KEY]
+    }
     const { customer } = await medusa.store.customer.update({
       first_name: input.first_name,
       last_name: input.last_name,
       ...(input.phone !== undefined ? { phone: input.phone || undefined } : {}),
+      metadata,
     })
+    void enqueueSalesforceCustomerPush()
     return customer as Customer
   },
 
@@ -841,14 +999,17 @@ export const medusaClient: CommerceClient = {
       city: input.city,
       country_code: input.country_code.toLowerCase(),
       is_default_shipping: true,
+      is_default_billing: true,
     }
     const primary =
       addresses.find((a: Address) => a.is_default_shipping === true) ?? addresses[0]
     if (primary?.id) {
       const { customer } = await medusa.store.customer.updateAddress(primary.id, payload)
+      void enqueueSalesforceCustomerPush()
       return customer as Customer
     }
     const { customer } = await medusa.store.customer.createAddress(payload)
+    void enqueueSalesforceCustomerPush()
     return customer as Customer
   },
 
@@ -860,6 +1021,7 @@ export const medusaClient: CommerceClient = {
     const response = await medusa.store.cart.update(cartId, {
       email: customer.email,
       shipping_address: shipping,
+      billing_address: shipping,
     } as any)
     return normalizeStoreCart(response.cart)
   },
@@ -945,6 +1107,9 @@ export const medusaClient: CommerceClient = {
     cartId: string,
     providerId: string
   ): Promise<PaymentSession> {
+    await prepareCheckout(cartId)
+    await ensureMollieBillingForPayment(cartId)
+
     // Step 1: Create a payment collection for the cart
     const collectionRes = await storeFetch('/store/payment-collections', {
       method: 'POST',
@@ -977,6 +1142,7 @@ export const medusaClient: CommerceClient = {
   },
 
   async completeCart(cartId: string): Promise<{ type: 'order'; order: Order } | { type: 'cart'; cart: Cart }> {
+    await prepareCheckout(cartId)
     const res = await storeFetch(`/store/carts/${cartId}/complete`, { method: 'POST' })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))

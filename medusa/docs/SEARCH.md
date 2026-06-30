@@ -51,7 +51,7 @@ Rebuilds all commerce docs (products, categories, cities, docenten) and Sanity p
 - **Products:** subscriber on `product.*`, `product-variant.*`
 - **Catalog / people:** subscriber on `catalog.category.*`, `catalog.city.*`, `people.docent.*`
 - **Salesforce import:** re-indexes product after `importProductgroupFromSalesforce`
-- **Sanity pages/persons:** `POST /hooks/sanity-search` (configure Sanity publish webhook)
+- **Sanity pages/persons/categories:** `POST /hooks/sanity-search` (configure Sanity publish webhook). Category updates re-index the matching OpenSearch `category-{medusaId}` doc (title, description, image, SEO).
 
 ## Document fields (products)
 

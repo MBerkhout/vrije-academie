@@ -57,17 +57,19 @@ export function draftFromCart(cart: Cart): Omit<CheckoutDraft, 'savedAt'> | null
 }
 
 export function draftToCartUpdate(draft: Omit<CheckoutDraft, 'savedAt'>): CartUpdateInput {
+  const address = {
+    first_name: draft.first_name,
+    last_name: draft.last_name,
+    ...(draft.phone ? { phone: draft.phone } : {}),
+    address_1: draft.address_1,
+    postal_code: draft.postal_code,
+    city: draft.city,
+    country_code: draft.country_code,
+  }
   return {
     email: draft.email,
-    shipping_address: {
-      first_name: draft.first_name,
-      last_name: draft.last_name,
-      ...(draft.phone ? { phone: draft.phone } : {}),
-      address_1: draft.address_1,
-      postal_code: draft.postal_code,
-      city: draft.city,
-      country_code: draft.country_code,
-    },
+    shipping_address: address,
+    billing_address: address,
   }
 }
 

@@ -132,6 +132,64 @@ export function plpEventHasMultipleDates({ delivery_types, variants }: EventDate
   return dates.size > 1
 }
 
+/** Lowest positive variant price in cents (store API / Sanity mirror scale). */
+export function minVariantPriceCents(variant: Pick<EventVariant, 'prices'>): number | null {
+  const amounts = (variant.prices ?? [])
+    .map((p) => p.amount)
+    .filter((n): n is number => Number.isFinite(n) && n > 0)
+  return amounts.length ? Math.min(...amounts) : null
+}
+
+function pricingVariantsForEvent(
+  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id'>,
+): EventVariant[] {
+  const variants = event.variants ?? []
+  if (event.purchase_mode === 'bundle_only' && event.bundle_variant_id) {
+    const bundle = variants.find((v) => v.id === event.bundle_variant_id)
+    return bundle ? [bundle] : variants.filter((v) => v.purchasable !== false)
+  }
+  return variants.filter((v) => v.purchasable !== false)
+}
+
+/** Positive per-variant prices (cents) used for “Vanaf” vs “Voor” on cards and PDP. */
+export function positiveVariantPricesCents(
+  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id'>,
+): number[] {
+  return pricingVariantsForEvent(event)
+    .map(minVariantPriceCents)
+    .filter((p): p is number => p != null)
+}
+
+/** True when every priced variant shares the same amount (or there is at most one price). */
+export function eventHasUniformPrice(
+  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id' | 'price_from'>,
+): boolean {
+  const prices = positiveVariantPricesCents(event)
+  if (prices.length <= 1) return true
+  return Math.min(...prices) === Math.max(...prices)
+}
+
+export interface EventPricePrefixOptions {
+  from?: string
+  for?: string
+}
+
+/**
+ * Price label before the amount: “Voor” when all sessions share one price, “Vanaf” when they differ.
+ * Returns `null` for bundle-only products (no prefix in the booking panel).
+ */
+export function eventPricePrefixLabel(
+  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id' | 'price_from'>,
+  options?: EventPricePrefixOptions,
+): string | null {
+  if (event.purchase_mode === 'bundle_only') return null
+
+  const from = options?.from ?? defaultMessages.plp.cardPriceFrom
+  const forLabel = options?.for ?? defaultMessages.plp.cardPriceFor
+
+  return eventHasUniformPrice(event) ? forLabel : from
+}
+
 export type EventAvailabilityStatus = AgendaItem['status']
 
 /** Keyword substrings (lowercase) → badge container classes. First match wins. */

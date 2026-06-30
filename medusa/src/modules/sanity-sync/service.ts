@@ -66,6 +66,8 @@ type MirrorProductInput = {
   cities?: string[]
   earliest_start_at?: string | null
   badge?: string | null
+  cta_color?: string | null
+  cta_color_hover?: string | null
   seo_title?: string | null
   seo_description?: string | null
   external_registration_url?: string | null
@@ -114,6 +116,8 @@ export async function mirrorProduct(product: MirrorProductInput): Promise<void> 
     cities: product.cities ?? [],
     startAt: product.earliest_start_at ?? null,
     badge: product.badge ?? null,
+    ctaColor: product.cta_color ?? null,
+    ctaColorHover: product.cta_color_hover ?? null,
     seoTitle: product.seo_title ?? null,
     seoDescription: product.seo_description ?? null,
     externalRegistrationUrl: product.external_registration_url ?? null,
@@ -151,6 +155,9 @@ type MirrorCategoryInput = {
 type ExistingCategoryEditorial = {
   image?: unknown
   linkUrl?: string | null
+  title?: string | null
+  description?: string | null
+  seo?: unknown
 }
 
 export async function mirrorCategory(category: MirrorCategoryInput): Promise<void> {
@@ -158,7 +165,7 @@ export async function mirrorCategory(category: MirrorCategoryInput): Promise<voi
   const id = `medusa-category-${category.id}`
 
   const existing = await client.fetch<ExistingCategoryEditorial | null>(
-    `*[_id == $id][0]{ image, linkUrl }`,
+    `*[_id == $id][0]{ image, linkUrl, title, description, seo }`,
     { id }
   )
 
@@ -178,6 +185,15 @@ export async function mirrorCategory(category: MirrorCategoryInput): Promise<voi
   }
   if (existing?.linkUrl) {
     doc.linkUrl = existing.linkUrl
+  }
+  if (existing?.title) {
+    doc.title = existing.title
+  }
+  if (existing?.description) {
+    doc.description = existing.description
+  }
+  if (existing?.seo) {
+    doc.seo = existing.seo
   }
 
   await upsertDoc(doc)

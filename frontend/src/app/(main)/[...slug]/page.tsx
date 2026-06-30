@@ -1,5 +1,7 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { cmsClient } from '@/lib/cms/server'
+import { buildSeoMetadata } from '@/lib/cms/seo-metadata'
 import { CONTAINER_CLASS } from '@/lib/cms'
 import { BlockRenderer } from '@/components/blocks'
 
@@ -10,12 +12,27 @@ interface PageProps {
   params: Promise<{ slug: string[] }>
 }
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug: slugParts } = await params
+  const slug = slugParts.join('/')
+  const page = await cmsClient.getPage(slug)
+  if (!page) return {}
+
+  return buildSeoMetadata(page.seo, {
+    fallbackTitle: page.title ? `${page.title} | Vrije Academie` : undefined,
+  })
+}
+
 export default async function SlugPage({ params }: PageProps) {
   const { slug: slugParts } = await params
   const slug = slugParts.join('/')
   const page = await cmsClient.getPage(slug)
 
   if (!page) {
+    notFound()
+  }
+
+  if (page.isVaThuis) {
     notFound()
   }
 

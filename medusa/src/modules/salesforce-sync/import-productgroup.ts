@@ -32,6 +32,7 @@ import {
   parseProductgroupSubjects,
   productgroupGalleryUrls,
   productgroupMetadataFromSalesforce,
+  sanitizeProductHandle,
   stripHtmlToPlainText,
 } from "./mappings/productgroup"
 import SalesforceSyncModuleService from "./service"
@@ -40,6 +41,12 @@ import { resolveDefaultSalesChannelId } from "./utils/resolve-default-sales-chan
 import { linkNativeProductCategoriesByLabels } from "./utils/resolve-native-categories-by-label"
 import { resolveProductTypeId } from "./utils/resolve-product-type-id"
 import { shouldImportProductgroup } from "./utils/future-import-guard"
+import {
+  findParentProductgroupIdsForLinkedOnlineSlave,
+  mergeProductgroupChildRows,
+  variantSkuForChild,
+  variantSyncSalesforceId,
+} from "./utils/linked-online-productgroup"
 import { syncProductById } from "../sanity-sync/sync-product-by-id"
 import {
   linkDocentFromSalesforce,
@@ -55,7 +62,11 @@ export type ImportProductgroupInput = {
   salesforceId: string
   groupRecord: Record<string, unknown>
   childRecords: Record<string, unknown>[]
+  linkedGroupRecord?: Record<string, unknown> | null
+  linkedChildRecords?: Record<string, unknown>[]
   manual?: boolean
+  /** Bulk CLI: defer search reindex until after the batch. */
+  skipSearch?: boolean
 }
 
 export type ImportProductgroupResult = {
@@ -103,6 +114,67 @@ async function upsertIncomingLockBySalesforceId(
     salesforce_id: salesforceId,
     incoming_lock_until: until,
     last_status: "retrying",
+  })
+}
+
+async function ensureProductSessionOptionValues(
+  container: MedusaContainer,
+  productId: string,
+  optionName: string,
+  values: string[]
+): Promise<void> {
+  if (!values.length) return
+  const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
+    graph: (opts: {
+      entity: string
+      fields: string[]
+      filters?: Record<string, unknown>
+    }) => Promise<{ data?: Record<string, unknown>[] }>
+  }
+
+  const { data: optionRows } = await query.graph({
+    entity: "product_option",
+    fields: ["id", "title", "values.id", "values.value"],
+    filters: { product_id: productId, title: optionName },
+  })
+  const option = optionRows?.[0] as
+    | { id?: string; values?: { value?: string }[] }
+    | undefined
+  if (!option?.id) return
+
+  const existing = new Set((option.values ?? []).map((v) => v.value).filter(Boolean))
+  const missing = [...new Set(values)].filter((v) => !existing.has(v))
+  if (!missing.length) return
+
+  const productModule = container.resolve(Modules.PRODUCT) as {
+    createProductOptionValues?: (
+      data: { option_id: string; value: string }[]
+    ) => Promise<unknown>
+    updateProductOptions?: (
+      id: string,
+      data: { values: { value: string }[] }
+    ) => Promise<unknown>
+  }
+
+  if (typeof productModule.createProductOptionValues === "function") {
+    await productModule.createProductOptionValues(
+      missing.map((value) => ({ option_id: option.id!, value }))
+    )
+    return
+  }
+
+  await updateProductsWorkflow(container).run({
+    input: {
+      selector: { id: [productId] },
+      update: {
+        options: [
+          {
+            title: optionName,
+            values: [...existing, ...missing],
+          },
+        ],
+      },
+    },
   })
 }
 
@@ -192,9 +264,10 @@ async function upsertEventItemForVariant(
     isVathuis || !child.Start_date_time__c ? null : new Date(child.Start_date_time__c)
   const endAt =
     isVathuis || !child.End_date_time__c ? null : new Date(child.End_date_time__c)
-  const cityFields = child.Product_City__c
-    ? await applyCityToEventItemPatch(catalog, child.Product_City__c)
-    : { city: null, city_slug: null }
+  const cityFields =
+    delivery === "offline" && child.Product_City__c
+      ? await applyCityToEventItemPatch(catalog, child.Product_City__c)
+      : { city: null, city_slug: null }
 
   const instructor = resolveInstructorFromChild(group, child)
   const locationName = child.Product_Location_Name__c?.trim() || null
@@ -269,29 +342,56 @@ async function upsertVariantSyncState(
   })
 }
 
+async function resolveVariantForChildOnProduct(
+  container: MedusaContainer,
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  productId: string,
+  variantSyncKey: string
+): Promise<{ medusaId: string } | null> {
+  const existing = await sync.getStateBySalesforceId(ENTITY_VARIANT, variantSyncKey)
+  if (!existing?.medusa_id) return null
+
+  const productModule = container.resolve(Modules.PRODUCT)
+  try {
+    const variant = await productModule.retrieveProductVariant(existing.medusa_id, {
+      select: ["id", "product_id"],
+    })
+    if (variant.product_id === productId) {
+      return { medusaId: existing.medusa_id }
+    }
+  } catch {
+    /* variant removed — recreate below */
+  }
+  return null
+}
+
 async function syncChildVariant(
   container: MedusaContainer,
   sync: InstanceType<typeof SalesforceSyncModuleService>,
   productId: string,
+  productgroupSfId: string,
   child: SfCourseProductShape,
   group: SfProductgroupShape,
   optionName: string,
-  groupRecordType?: string | null
+  groupRecordType: string | null | undefined,
+  isLinkedOnlineSlave: boolean
 ): Promise<string> {
   const sfId = child.Id!
-  const existing = await sync.getStateBySalesforceId(ENTITY_VARIANT, sfId)
+  const variantSyncKey = variantSyncSalesforceId(sfId, productgroupSfId, { isLinkedOnlineSlave })
+  const resolved = await resolveVariantForChildOnProduct(container, sync, productId, variantSyncKey)
   const priceAmount = courseProductPriceAmount(child)
   const optionLabel = courseProductOptionLabel(child)
   const title = courseProductVariantTitle(child)
-  const sku = `sf-${sfId}`
+  const sku = variantSkuForChild(sfId, { isLinkedOnlineSlave })
 
-  if (existing?.medusa_id) {
-    await upsertIncomingLockBySalesforceId(sync, ENTITY_VARIANT, existing.medusa_id, sfId)
+  if (resolved?.medusaId) {
+    const existingMedusaId = resolved.medusaId
+    await upsertIncomingLockBySalesforceId(sync, ENTITY_VARIANT, existingMedusaId, variantSyncKey)
     await updateProductVariantsWorkflow(container).run({
       input: {
         product_variants: [
           {
-            id: existing.medusa_id,
+            id: existingMedusaId,
             title,
             sku,
             prices: [{ amount: priceAmount, currency_code: "eur" }],
@@ -301,12 +401,12 @@ async function syncChildVariant(
         ],
       },
     })
-    await upsertEventItemForVariant(container, existing.medusa_id, child, group, groupRecordType)
-    return existing.medusa_id
+    await upsertEventItemForVariant(container, existingMedusaId, child, group, groupRecordType)
+    return existingMedusaId
   }
 
   const variantId = generateEntityId(undefined, "variant")
-  await upsertIncomingLockBySalesforceId(sync, ENTITY_VARIANT, variantId, sfId)
+  await upsertIncomingLockBySalesforceId(sync, ENTITY_VARIANT, variantId, variantSyncKey)
 
   const { result } = await createProductVariantsWorkflow(container).run({
     input: {
@@ -325,7 +425,7 @@ async function syncChildVariant(
 
   const createdVariantId = result?.[0]?.id ?? variantId
   await upsertEventItemForVariant(container, createdVariantId, child, group, groupRecordType)
-  await upsertVariantSyncState(sync, createdVariantId, sfId)
+  await upsertVariantSyncState(sync, createdVariantId, variantSyncKey)
   return createdVariantId
 }
 
@@ -338,7 +438,17 @@ export async function importProductgroupFromSalesforce(
   >
 
   const group = input.groupRecord as SfProductgroupShape
-  const children = input.childRecords as SfCourseProductShape[]
+  const directChildren = input.childRecords as SfCourseProductShape[]
+  const linkedGroup = (input.linkedGroupRecord ?? null) as SfProductgroupShape | null
+  const linkedChildren = (input.linkedChildRecords ?? []) as SfCourseProductShape[]
+
+  const childRows = mergeProductgroupChildRows(
+    directChildren,
+    group.Productgroup_Record_Type_Developer_Name__c,
+    linkedChildren,
+    linkedGroup?.Productgroup_Record_Type_Developer_Name__c
+  )
+  const children = childRows.map((row) => row.child)
 
   if (!shouldImportProductgroup({ group, children, manual: input.manual })) {
     return {
@@ -352,22 +462,36 @@ export async function importProductgroupFromSalesforce(
   }
 
   const title = group.Name?.trim() || `Product group ${input.salesforceId}`
-  const handle = group.Productgroup_URL__c?.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+  const handle = sanitizeProductHandle(
+    group.Productgroup_URL__c,
+    title.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+  )
   const description = stripHtmlToPlainText(group.Productgroup_Description__c) || undefined
   const thumbnail = group.Primary_1_Url__c?.trim() || undefined
   const images = productgroupGalleryUrls(group).map((url) => ({ url }))
   const recordType = mapSalesforceRecordType(group.Productgroup_Record_Type_Developer_Name__c)
   const subjects = parseProductgroupSubjects(group)
-  const baseMetadata = productgroupMetadataFromSalesforce(group, null)
+  const parentIdsForSlave = await findParentProductgroupIdsForLinkedOnlineSlave(
+    sync,
+    input.salesforceId
+  )
+  const isLinkedOnlineSlave = parentIdsForSlave.length > 0
   const bundleChild = children[0]
   const vathuisMetadata =
     bundleChild != null
       ? await buildVathuisMetadata({ group, bundleChild })
       : null
+  const metadataExtra: Record<string, unknown> = {}
+  if (isLinkedOnlineSlave) {
+    metadataExtra.salesforce_is_linked_online_slave = true
+    metadataExtra.salesforce_linked_online_parent_ids = parentIdsForSlave
+  }
+  const baseMetadata = productgroupMetadataFromSalesforce(group, null, metadataExtra)
   const metadata = {
     ...baseMetadata,
     ...(vathuisMetadata ? { vathuis: vathuisMetadata } : {}),
   }
+  /** SF imports default hidden; VAthuis and linked-online slave catalogs stay off Ons aanbod. */
   const showInPlp = false
 
   const linked = await sync.getStateBySalesforceId(ENTITY_PRODUCTGROUP, input.salesforceId)
@@ -384,7 +508,7 @@ export async function importProductgroupFromSalesforce(
 
   const shippingProfileId = await resolveDefaultShippingProfileId(container)
   const optionName = "Sessie"
-  const optionValues = children.map((c) => courseProductOptionLabel(c))
+  const optionValues = childRows.map(({ child }) => courseProductOptionLabel(child))
   const typeId = await resolveProductTypeId(
     container,
     group.Productgroup_Record_Type_Developer_Name__c
@@ -421,7 +545,7 @@ export async function importProductgroupFromSalesforce(
       children.length > 0
         ? children.map((child) => ({
             title: courseProductVariantTitle(child),
-            sku: `sf-${child.Id}`,
+            sku: variantSkuForChild(child.Id!, { isLinkedOnlineSlave }),
             manage_inventory: false,
             prices: [{ amount: courseProductPriceAmount(child), currency_code: "eur" as const }],
             options: { [optionName]: courseProductOptionLabel(child) },
@@ -469,6 +593,10 @@ export async function importProductgroupFromSalesforce(
     created = true
   }
 
+  if (!created && optionValues.length > 0) {
+    await ensureProductSessionOptionValues(container, productId, optionName, optionValues)
+  }
+
   await ensureEventGroup(container, productId, recordType, showInPlp)
   await ensureProductInDefaultSalesChannel(container, productId)
   await linkNativeProductCategoriesByLabels(container, productId, subjects)
@@ -482,35 +610,42 @@ export async function importProductgroupFromSalesforce(
     const product = await productModule.retrieveProduct(productId, { relations: ["variants"] })
     const variants = product.variants ?? []
 
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i]
+    for (let i = 0; i < childRows.length; i++) {
+      const { child, groupRecordType } = childRows[i]
       if (!child.Id) continue
       const variant =
-        variants.find((v) => v.sku === `sf-${child.Id}`) ??
-        variants[i]
+        variants.find((v) =>
+          v.sku === variantSkuForChild(child.Id!, { isLinkedOnlineSlave })
+        ) ?? variants[i]
       if (!variant?.id) continue
 
-      await upsertVariantSyncState(sync, variant.id, child.Id)
+      await upsertVariantSyncState(
+        sync,
+        variant.id,
+        variantSyncSalesforceId(child.Id!, input.salesforceId, { isLinkedOnlineSlave })
+      )
       await upsertEventItemForVariant(
         container,
         variant.id,
         child,
         group,
-        group.Productgroup_Record_Type_Developer_Name__c
+        groupRecordType
       )
       variantIds.push(variant.id)
     }
   } else {
-    for (const child of children) {
+    for (const { child, groupRecordType } of childRows) {
       if (!child.Id) continue
       const variantId = await syncChildVariant(
         container,
         sync,
         productId,
+        input.salesforceId,
         child,
         group,
         optionName,
-        group.Productgroup_Record_Type_Developer_Name__c
+        groupRecordType,
+        isLinkedOnlineSlave
       )
       variantIds.push(variantId)
     }
@@ -540,9 +675,11 @@ export async function importProductgroupFromSalesforce(
 
   await syncProductById(productId, container).catch(() => undefined)
 
-  const search = container.resolve("search") as import("../search/service").default
-  if (search.isEnabled()) {
-    await search.reindexProductById(container, productId).catch(() => undefined)
+  if (!input.skipSearch) {
+    const search = container.resolve("search") as import("../search/service").default
+    if (search.isEnabled()) {
+      await search.reindexProductById(container, productId).catch(() => undefined)
+    }
   }
 
   return { medusaId: productId, created, updated, variantIds }

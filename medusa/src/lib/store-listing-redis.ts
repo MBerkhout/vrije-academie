@@ -2,6 +2,7 @@ import { createClient } from "redis"
 
 export const REDIS_KEY_PLP = "store:listing:plp"
 export const REDIS_KEY_AGENDA = "store:listing:agenda"
+export const REDIS_KEY_VATHUIS = "store:listing:vathuis"
 export const REDIS_KEY_REGISTRATIONS = "store:listing:registrations"
 
 export const LISTING_CACHE_TTL_SEC = 60
@@ -63,7 +64,12 @@ export async function invalidateStoreListingCache(): Promise<void> {
   const client = await getRedisClient()
   if (client) {
     try {
-      await client.del([REDIS_KEY_PLP, REDIS_KEY_AGENDA, REDIS_KEY_REGISTRATIONS])
+      await client.del([
+        REDIS_KEY_PLP,
+        REDIS_KEY_AGENDA,
+        REDIS_KEY_VATHUIS,
+        REDIS_KEY_REGISTRATIONS,
+      ])
     } catch {
       /* ignore */
     }
@@ -75,6 +81,7 @@ export async function invalidateStoreListingCache(): Promise<void> {
 const memoryCaches = {
   plp: null as { value: unknown; expiresAt: number } | null,
   agenda: null as { value: unknown; expiresAt: number } | null,
+  vathuis: null as { value: unknown; expiresAt: number } | null,
   registrations: null as { value: unknown; expiresAt: number } | null,
 }
 
@@ -94,5 +101,6 @@ export function memorySet(slot: keyof typeof memoryCaches, value: unknown): void
 export function invalidateMemoryListingCaches(): void {
   memoryCaches.plp = null
   memoryCaches.agenda = null
+  memoryCaches.vathuis = null
   memoryCaches.registrations = null
 }

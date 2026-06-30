@@ -73,7 +73,7 @@ export function PlpSearchBar({
           placeholder={placeholder}
           aria-label="Zoek activiteiten"
           autoComplete="off"
-          className="w-full border border-va-lightgray px-4 py-2.5 text-sm text-va-black placeholder:text-va-gray focus:outline-none focus:ring-2 focus:ring-va-yellow pr-8"
+          className="w-full border border-va-lightgray px-4 py-2.5 text-sm text-va-black placeholder:text-va-gray focus:outline-none focus:ring-2 focus:ring-va-yellow pr-8 [&::-webkit-search-cancel-button]:hidden"
         />
         {showClear && (
           <button

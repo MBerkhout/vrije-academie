@@ -117,5 +117,6 @@ export function normalizeStoreCart(raw: unknown): Cart {
     tax_total,
     total,
     credit_line_total,
+    completed_at: (o.completed_at as string | null | undefined) ?? null,
   }
 }

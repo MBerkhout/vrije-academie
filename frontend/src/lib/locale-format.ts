@@ -29,7 +29,7 @@ function applyNlWholeEuroDash(formatted: string): string {
 
 /**
  * Format minor currency units (cents) as EUR.
- * - `whole` — no fraction digits (e.g. booking panel “Vanaf € 50”)
+ * - `whole` — no fraction digits (rounds e.g. € 19,50 → € 20; avoid for “Vanaf” prices)
  * - `standard` — two decimals when needed; whole euros end with “,-” (not “,00”)
  */
 export function formatPriceEur(cents: number, mode: PriceEurMode = 'standard'): string {

@@ -1,12 +1,32 @@
-export default function BedanktPage() {
+import { Suspense } from 'react'
+import { cmsClient } from '@/lib/cms/server'
+import { ThankYouPageContent } from '@/components/thank-you/ThankYouPageContent'
+import type { ThankYouContactInfo } from '@/components/thank-you/ThankYouPageContent'
+
+export const metadata = {
+  title: 'Bedankt voor je inschrijving – Vrije Academie',
+}
+
+function ThankYouFallback() {
   return (
-    <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0 py-12">
-      <h1 className="font-sans text-2xl font-bold text-va-black mb-4">
-        Bedankt
-      </h1>
-      <p className="font-sans text-va-darkgray">
-        Je bestelling is ontvangen. Bedankt voor je aankoop.
-      </p>
+    <div className="max-w-[1200px] mx-auto px-4 py-14 text-center font-sans text-sm text-va-darkgray animate-pulse">
+      We laden je bestelling…
     </div>
+  )
+}
+
+export default async function BedanktPage() {
+  const settings = await cmsClient.getGeneralSettings()
+  const rawContact = settings?.footer?.contact
+
+  const contact: ThankYouContactInfo = {
+    phone: rawContact?.phone ?? null,
+    email: rawContact?.email ?? null,
+  }
+
+  return (
+    <Suspense fallback={<ThankYouFallback />}>
+      <ThankYouPageContent contact={contact} />
+    </Suspense>
   )
 }

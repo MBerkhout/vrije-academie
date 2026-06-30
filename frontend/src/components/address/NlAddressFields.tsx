@@ -2,6 +2,7 @@
 
 import { ValidatedInput } from '@/components/auth/ValidatedInput'
 import type { AccountFieldName, CheckoutGuestValidity } from '@/lib/auth/account-field-validation'
+import { isNlCountry, postalCodeHint, postalCodePlaceholder } from '@/lib/address/postal-code'
 import { cn } from '@/lib/utils'
 
 export type NlAddressFieldLabels = {
@@ -64,6 +65,9 @@ export function NlAddressFields({
   sectionTitle,
   className,
 }: NlAddressFieldsProps) {
+  const nlAddress = isNlCountry(country)
+  const hint = postalCodeHint(country)
+
   return (
     <div className={cn('space-y-2', className)}>
       {sectionTitle ? (
@@ -91,11 +95,11 @@ export function NlAddressFields({
           label={labels.postalCode}
           required
           autoComplete="postal-code"
-          placeholder="1234 AB"
+          placeholder={postalCodePlaceholder(country)}
           value={postalCode}
           onChange={(v) => {
             onPostalCodeChange(v)
-            onManualAddress(false)
+            if (nlAddress) onManualAddress(false)
             reset('postalCode')
           }}
           onBlur={() => blur('postalCode', postalCode)}
@@ -110,7 +114,7 @@ export function NlAddressFields({
           value={houseNumber}
           onChange={(v) => {
             onHouseNumberChange(v)
-            onManualAddress(false)
+            if (nlAddress) onManualAddress(false)
             reset('houseNumber')
           }}
           onBlur={() => blur('houseNumber', houseNumber)}
@@ -118,12 +122,13 @@ export function NlAddressFields({
           disabled={busy}
         />
       </div>
+      {hint ? <p className="font-sans text-xs text-va-gray">{hint}</p> : null}
 
-      {!manualAddress && addressLookup === 'loading' && (
+      {nlAddress && !manualAddress && addressLookup === 'loading' && (
         <p className="font-sans text-xs text-va-gray">Adres opzoeken…</p>
       )}
 
-      {!manualAddress && addressLookup === 'found' && (
+      {nlAddress && !manualAddress && addressLookup === 'found' && (
         <div className="flex items-center gap-2.5 px-3 py-2.5 bg-va-lightgray-100 border border-va-lightgray-300">
           <svg
             width="14"
@@ -156,7 +161,7 @@ export function NlAddressFields({
         </div>
       )}
 
-      {!manualAddress && addressLookup === 'error' && (
+      {nlAddress && !manualAddress && addressLookup === 'error' && (
         <div className="space-y-1">
           <p className="font-sans text-xs text-va-gray">
             Adres niet gevonden voor deze postcode en huisnummer.

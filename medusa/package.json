@@ -16,9 +16,13 @@
     "salesforce:push": "medusa exec ./src/scripts/sync-salesforce.ts --",
     "salesforce:pull": "medusa exec ./src/scripts/sync-salesforce.ts --",
     "salesforce:import-future": "medusa exec ./src/scripts/import-future-productgroups.ts --",
+    "salesforce:import-linked-vathuis": "medusa exec ./src/scripts/import-future-productgroups.ts -- --linked-vathuis",
     "salesforce:import-all": "medusa exec ./src/scripts/import-future-productgroups.ts -- --all",
+    "salesforce:import-customers": "medusa exec ./src/scripts/import-salesforce-customers.ts --",
     "salesforce:inspect": "medusa exec ./src/scripts/inspect-salesforce-productgroup.ts --",
-    "search:reindex": "medusa exec ./src/scripts/reindex-search.ts"
+    "salesforce:inspect-order": "medusa exec ./src/scripts/inspect-salesforce-order.ts --",
+    "search:reindex": "medusa exec ./src/scripts/reindex-search.ts",
+    "tunnel": "node scripts/cloudflare-tunnel.mjs"
   },
   "keywords": [
     "medusa",

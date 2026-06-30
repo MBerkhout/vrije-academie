@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import * as crypto from "node:crypto"
 
@@ -8,6 +9,7 @@ import {
   SF_PRODUCTGROUP_OBJECT,
 } from "../../../modules/salesforce-sync/mappings/index"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
+import { findParentProductgroupIdsForLinkedOnlineSlave } from "../../../modules/salesforce-sync/utils/linked-online-productgroup"
 import { runSalesforceWorkflow } from "../../../workflows/salesforce/report-failure"
 import { pullWorkflowIdForEntity } from "../../../workflows/salesforce/registry"
 
@@ -27,6 +29,29 @@ type WebhookBody = {
   salesforce_id?: string
   /** When Salesforce sends Product2, disambiguate `product` vs `variant` using sync state row. */
   entity_type?: string
+}
+
+async function enqueueLinkedOnlineParentProductgroupPulls(
+  scope: MedusaContainer,
+  linkedOnlineSlaveGroupId: string
+): Promise<string[]> {
+  const sync = scope.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
+  const pullId = pullWorkflowIdForEntity("productgroup")
+  if (!pullId) return []
+
+  const parentIds = await findParentProductgroupIdsForLinkedOnlineSlave(
+    sync,
+    linkedOnlineSlaveGroupId
+  )
+  for (const parentId of parentIds) {
+    await runSalesforceWorkflow(
+      scope,
+      pullId,
+      { salesforceId: parentId, manual: false },
+      { eventGroupId: parentId, entityType: "productgroup", medusaId: parentId }
+    )
+  }
+  return parentIds
 }
 
 async function resolveProductgroupSalesforceId(
@@ -97,11 +122,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
       { salesforceId: parentId, manual: false },
       { eventGroupId: parentId, entityType: "productgroup", medusaId: parentId }
     )
+    const linkedParents = await enqueueLinkedOnlineParentProductgroupPulls(req.scope, parentId)
     res.status(202).json({
       queued: true,
       entity_type: "productgroup",
       salesforce_id: parentId,
       triggered_by: salesforceId,
+      linked_online_parents_reimported: linkedParents,
     })
     return
   }
@@ -118,7 +145,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
       { salesforceId, manual: false },
       { eventGroupId: salesforceId, entityType: "productgroup", medusaId: salesforceId }
     )
-    res.status(202).json({ queued: true, entity_type: "productgroup", salesforce_id: salesforceId })
+    const linkedParents = await enqueueLinkedOnlineParentProductgroupPulls(req.scope, salesforceId)
+    res.status(202).json({
+      queued: true,
+      entity_type: "productgroup",
+      salesforce_id: salesforceId,
+      linked_online_parents_reimported: linkedParents,
+    })
     return
   }
 
@@ -150,6 +183,26 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
         }
       )
       res.status(202).json({ queued: true, entity_type: entityType, import: true, salesforce_id: salesforceId })
+      return
+    }
+
+    if (entityType === "customer") {
+      await runSalesforceWorkflow(
+        req.scope,
+        pullId,
+        { salesforceId },
+        {
+          eventGroupId: salesforceId,
+          entityType,
+          medusaId: salesforceId,
+        }
+      )
+      res.status(202).json({
+        queued: true,
+        entity_type: entityType,
+        import: true,
+        salesforce_id: salesforceId,
+      })
       return
     }
 

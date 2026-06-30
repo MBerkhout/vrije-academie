@@ -11,6 +11,11 @@ import { formBlock, surfaces as formSurfaces } from "./form"
 import { heroBlock, surfaces as heroSurfaces } from "./hero"
 import { personsBlock, surfaces as personsSurfaces } from "./persons"
 import { plpBlock, surfaces as plpSurfaces } from "./plp"
+import { vathuisHeroBlock, surfaces as vathuisHeroSurfaces } from "./vathuisHero"
+import { vathuisCategoriesBlock, surfaces as vathuisCategoriesSurfaces } from "./vathuisCategories"
+import { vathuisProductRowBlock, surfaces as vathuisProductRowSurfaces } from "./vathuisProductRow"
+import { vathuisTeachersBlock, surfaces as vathuisTeachersSurfaces } from "./vathuisTeachers"
+import { vathuisPromoTilesBlock, surfaces as vathuisPromoTilesSurfaces } from "./vathuisPromoTiles"
 import { reviewBlock, surfaces as reviewSurfaces } from "./review"
 import { tabsBlock, surfaces as tabsSurfaces } from "./tabs"
 import { textBlock, surfaces as textSurfaces } from "./text"
@@ -37,6 +42,11 @@ const BLOCK_MODULES: { schema: { name: string }; surfaces: readonly string[] }[]
   { schema: columnsBlock, surfaces: columnsSurfaces },
   { schema: editorialCardsBlock, surfaces: editorialCardsSurfaces },
   { schema: plpBlock, surfaces: plpSurfaces },
+  { schema: vathuisHeroBlock, surfaces: vathuisHeroSurfaces },
+  { schema: vathuisCategoriesBlock, surfaces: vathuisCategoriesSurfaces },
+  { schema: vathuisProductRowBlock, surfaces: vathuisProductRowSurfaces },
+  { schema: vathuisTeachersBlock, surfaces: vathuisTeachersSurfaces },
+  { schema: vathuisPromoTilesBlock, surfaces: vathuisPromoTilesSurfaces },
   { schema: giftCardBlock, surfaces: giftCardSurfaces },
 ]
 

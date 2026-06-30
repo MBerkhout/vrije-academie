@@ -106,6 +106,9 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | `imageUrl` | `ProductCategory.metadata.image_url` or `imageUrl` | No |
 | `color` | `ProductCategory.metadata.color` | No |
 | `image` | — | **Yes** (editorial override; preserved on Medusa/Salesforce sync — not cleared when mirror fields update) |
+| `title` | — | **Yes** (custom display title; preserved on sync) |
+| `description` | — | **Yes** (category PLP intro / search excerpt; preserved on sync) |
+| `seo` | — | **Yes** (`title`, `description`, `image`; preserved on sync) |
 | `linkUrl` | — | **Yes** (preserved on sync) |
 
 Legacy `catalog_category` rows use the same Sanity `category` type and `sync-category-to-sanity.ts`; prefer native categories for new work.

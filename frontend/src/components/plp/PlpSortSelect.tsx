@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { PLP_BASE_PATH } from '@/lib/routes'
 
 const DEFAULT_SORT_OPTIONS = [
+  { value: 'order', label: 'Aanbevolen' },
   { value: 'start_date', label: 'Vroegste startdatum' },
   { value: 'newest', label: 'Nieuwste eerst' },
   { value: 'relevance', label: 'Meest relevant' },
@@ -37,7 +38,7 @@ export function PlpSortSelect({
     router.push(`${basePath}?${params.toString()}`)
   }
 
-  const defaultSort = hasQuery ? 'relevance' : 'start_date'
+  const defaultSort = hasQuery ? 'relevance' : 'order'
   const active = currentSort || defaultSort
 
   return (

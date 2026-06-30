@@ -25,7 +25,7 @@ type SanityWebhookBody = {
   operation?: "create" | "update" | "delete"
 }
 
-/** POST /hooks/sanity-search — index Sanity page/person docs into OpenSearch. */
+/** POST /hooks/sanity-search — index Sanity page/person docs and refresh category search docs. */
 export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<void> {
   const secret = process.env.SANITY_SEARCH_WEBHOOK_SECRET?.trim()
   if (!secret) {

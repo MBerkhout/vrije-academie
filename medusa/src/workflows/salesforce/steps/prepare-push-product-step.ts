@@ -5,11 +5,11 @@ import { productMapping } from "../../../modules/salesforce-sync/mappings/produc
 import type { MedusaProductShape } from "../../../modules/salesforce-sync/mappings/product"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 
-import type { PreparePushCustomerOutput } from "./prepare-push-customer-step"
+import type { UpsertSalesforceInput } from "./upsert-salesforce-step"
 
 export type PreparePushProductInput = { productId: string }
 
-export type PreparePushProductOutput = Omit<PreparePushCustomerOutput, "entityType" | "medusaId"> & {
+export type PreparePushProductOutput = UpsertSalesforceInput & {
   entityType: "product"
   medusaId: string
 }

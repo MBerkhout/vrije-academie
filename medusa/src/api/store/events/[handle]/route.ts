@@ -9,6 +9,7 @@ import {
 } from "../../../../lib/medusa-price-to-cents"
 import { listCategoriesForProductIds } from "../../../../lib/product-catalog-category-links"
 import { externalRegistrationUrlFromMetadata } from "../../../../lib/external-registration-url"
+import { ctaBarFieldsFromMetadata } from "../../../../lib/product-cta-bar"
 import { filterVariantsWithFutureSessions } from "../../../../lib/event-session-eligibility"
 
 /** day_part derived from start_at hour: ochtend <12, middag 12–17, avond >=17 */
@@ -115,9 +116,11 @@ export async function GET(
       : []),
   ]
 
-  const vathuis = (product.metadata as Record<string, unknown> | null | undefined)?.vathuis as
-    | Record<string, unknown>
-    | undefined
+  const { metadata, ...productFields } = product
+  const productMetadata = metadata as Record<string, unknown> | null | undefined
+  const ctaFields = ctaBarFieldsFromMetadata(productMetadata)
+
+  const vathuis = productMetadata?.vathuis as Record<string, unknown> | undefined
   const purchaseMode = vathuis?.purchase_mode ?? null
   const episodes = Array.isArray(vathuis?.episodes) ? vathuis.episodes : []
   const chapters = Array.isArray(vathuis?.chapters) ? vathuis.chapters : []
@@ -137,7 +140,8 @@ export async function GET(
         : null
 
   const enriched = {
-    ...product,
+    ...productFields,
+    ...ctaFields,
     variants: variants.map((v) => ({
       ...v,
       prices: normalizeVariantPricesForStorefront(v.prices),
@@ -159,9 +163,7 @@ export async function GET(
     min_available_quantity: minAvailableQuantity,
     has_free_trial: hasFreeTrial || (eventGroup?.has_free_trial ?? false),
     image_urls: imageUrls,
-    external_registration_url: externalRegistrationUrlFromMetadata(
-      product.metadata as Record<string, unknown> | null | undefined
-    ),
+    external_registration_url: externalRegistrationUrlFromMetadata(productMetadata),
     purchase_mode: purchaseMode,
     bundle_variant_id: bundleVariant?.id ?? null,
     vathuis: vathuis

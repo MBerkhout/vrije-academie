@@ -137,6 +137,133 @@ class SalesforceSyncModuleService extends MedusaService({
     throw new Error("Salesforce upsert: could not resolve Id from response")
   }
 
+  /** POST /sobjects/{sobject} */
+  async createRecord(
+    sobject: string,
+    fields: Record<string, unknown>,
+    options?: { allowDuplicateSave?: boolean }
+  ): Promise<{ id: string }> {
+    this.ensureOAuthLoaderRegistered()
+    const path = `/sobjects/${encodeURIComponent(sobject)}`
+    const headers: Record<string, string> = {}
+    if (options?.allowDuplicateSave) {
+      headers["Sforce-Duplicate-Rule-Header"] = "allowSave=true"
+    }
+    const { data } = await sfRequest<{ id: string }>("POST", path, {
+      body: fields,
+      headers,
+    })
+    if (!data?.id) throw new Error(`Salesforce create ${sobject}: missing id in response`)
+    return { id: data.id }
+  }
+
+  normalizeSalesforceEmail(email: string | null | undefined): string {
+    return email?.trim().toLowerCase() ?? ""
+  }
+
+  async getPersonAccountEmail(accountId: string): Promise<string> {
+    const row = await this.retrieve("Account", accountId, ["PersonEmail"])
+    return this.normalizeSalesforceEmail(String(row.PersonEmail ?? ""))
+  }
+
+  /**
+   * Create a Person Account, or link an existing one only when PersonEmail matches.
+   * When Salesforce duplicate rules match another person (e.g. same name), allowSave
+   * is used to create a new account for a different email.
+   */
+  async createPersonAccount(
+    accountFields: Record<string, unknown>,
+    expectedEmail: string
+  ): Promise<{ accountId: string; contactId: string; linkedExisting: boolean }> {
+    const normalizedExpected = this.normalizeSalesforceEmail(expectedEmail)
+    if (!normalizedExpected) {
+      throw new Error("Person Account create requires an email address")
+    }
+
+    try {
+      const { id: accountId } = await this.createRecord("Account", accountFields)
+      const contactId = await this.retrievePersonContactId(accountId)
+      if (!contactId) {
+        throw new Error(`Salesforce Person Account ${accountId} has no PersonContactId`)
+      }
+      return { accountId, contactId, linkedExisting: false }
+    } catch (err) {
+      const duplicateAccountId = this.parseDuplicateAccountId(err)
+      if (!duplicateAccountId) throw err
+
+      const duplicateEmail = await this.getPersonAccountEmail(duplicateAccountId)
+      if (duplicateEmail === normalizedExpected) {
+        const contactId = await this.retrievePersonContactId(duplicateAccountId)
+        if (!contactId) {
+          throw new Error(`Salesforce Person Account ${duplicateAccountId} has no PersonContactId`)
+        }
+        return { accountId: duplicateAccountId, contactId, linkedExisting: true }
+      }
+
+      const { id: accountId } = await this.createRecord("Account", accountFields, {
+        allowDuplicateSave: true,
+      })
+      const contactId = await this.retrievePersonContactId(accountId)
+      if (!contactId) {
+        throw new Error(`Salesforce Person Account ${accountId} has no PersonContactId`)
+      }
+      return { accountId, contactId, linkedExisting: false }
+    }
+  }
+
+  /** PATCH /sobjects/{sobject}/{id} */
+  async updateRecord(
+    sobject: string,
+    id: string,
+    fields: Record<string, unknown>,
+    options?: { allowDuplicateSave?: boolean }
+  ): Promise<{ id: string }> {
+    this.ensureOAuthLoaderRegistered()
+    const path = `/sobjects/${encodeURIComponent(sobject)}/${encodeURIComponent(id)}`
+    const headers: Record<string, string> = {}
+    if (options?.allowDuplicateSave) {
+      headers["Sforce-Duplicate-Rule-Header"] = "allowSave=true"
+    }
+    await sfRequest("PATCH", path, { body: fields, headers })
+    return { id }
+  }
+
+  async findContactIdByEmail(email: string): Promise<string | null> {
+    const escaped = email.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
+    const q = await this.query<{ Id: string }>(
+      `SELECT Id FROM Contact WHERE IsPersonAccount = true AND Email = '${escaped}' LIMIT 1`
+    )
+    return q.records[0]?.Id ?? null
+  }
+
+  async findPersonAccountByEmail(
+    email: string
+  ): Promise<{ accountId: string; contactId: string } | null> {
+    const escaped = email.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
+    const q = await this.query<{ Id: string; PersonContactId?: string }>(
+      `SELECT Id, PersonContactId FROM Account WHERE IsPersonAccount = true AND PersonEmail = '${escaped}' LIMIT 1`
+    )
+    const row = q.records[0]
+    const accountId = row?.Id?.trim()
+    const contactId = row?.PersonContactId?.trim()
+    if (!accountId || !contactId) return null
+    return { accountId, contactId }
+  }
+
+  /** Extract matched Account Id from Salesforce DUPLICATES_DETECTED error payload. */
+  parseDuplicateAccountId(error: unknown): string | null {
+    const message = error instanceof Error ? error.message : String(error)
+    const tagged = message.match(/sfDuplicateAccountId=(001[^|\s]+)/)
+    if (tagged?.[1]) return tagged[1]
+    return message.match(/"Id":"(001[^"]+)"/)?.[1] ?? null
+  }
+
+  async retrievePersonContactId(accountId: string): Promise<string | null> {
+    const row = await this.retrieve("Account", accountId, ["PersonContactId"])
+    const id = row.PersonContactId
+    return typeof id === "string" && id.trim() ? id.trim() : null
+  }
+
   async retrieve(sobject: string, id: string, fields: string[]): Promise<Record<string, unknown>> {
     this.ensureOAuthLoaderRegistered()
     const fieldList = fields.join(",")

@@ -10,6 +10,7 @@ export const RECORD_TYPES = [
   "lezing",
   "excursie",
   "studiedag",
+  "vathuis",
 ] as const
 
 export type RecordType = (typeof RECORD_TYPES)[number]

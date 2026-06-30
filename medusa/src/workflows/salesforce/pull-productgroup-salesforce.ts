@@ -7,8 +7,8 @@ import {
 
 import { applyProductgroupFromSalesforceStep } from "./steps/apply-productgroup-from-salesforce-step"
 import { fetchCourseProductsSalesforceStep } from "./steps/fetch-course-products-salesforce-step"
+import { fetchLinkedOnlineChildrenSalesforceStep } from "./steps/fetch-linked-online-children-step"
 import { fetchSalesforceRecordStep } from "./steps/fetch-salesforce-record-step"
-import { syncSanityAfterProductgroupImportStep } from "./steps/sync-sanity-after-productgroup-import-step"
 import {
   productgroupSalesforceFieldsForPull,
   SF_PRODUCTGROUP_OBJECT,
@@ -39,20 +39,24 @@ export const pullProductgroupFromSalesforceWorkflow = createWorkflow(
       }))
     )
 
-    const applied = applyProductgroupFromSalesforceStep(
-      transform({ input, groupRecord, childRecords }, ({ input, groupRecord, childRecords }) => ({
-        salesforceId: input.salesforceId,
+    const linkedOnline = fetchLinkedOnlineChildrenSalesforceStep(
+      transform({ groupRecord }, ({ groupRecord }) => ({
         groupRecord,
-        childRecords,
-        manual: input.manual ?? true,
       }))
     )
 
-    syncSanityAfterProductgroupImportStep(
-      transform({ applied }, ({ applied }) => ({
-        skipped: applied.skipped,
-        medusaId: applied.medusaId,
-      }))
+    const applied = applyProductgroupFromSalesforceStep(
+      transform(
+        { input, groupRecord, childRecords, linkedOnline },
+        ({ input, groupRecord, childRecords, linkedOnline }) => ({
+          salesforceId: input.salesforceId,
+          groupRecord,
+          childRecords,
+          linkedGroupRecord: linkedOnline.linkedGroupRecord,
+          linkedChildRecords: linkedOnline.linkedChildRecords,
+          manual: input.manual ?? true,
+        })
+      )
     )
 
     return new WorkflowResponse(applied)

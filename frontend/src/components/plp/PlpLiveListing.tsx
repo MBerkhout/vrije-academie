@@ -41,7 +41,7 @@ type PlpLiveListingProps = {
 
 function plpSortForQuery(query: string, filterState: PlpFilterState): string {
   if (query.trim()) return 'relevance'
-  return filterState.sort ?? 'start_date'
+  return filterState.sort ?? 'order'
 }
 
 function mergePlpQuery(filterState: PlpFilterState, q: string | undefined): PlpFilterState {

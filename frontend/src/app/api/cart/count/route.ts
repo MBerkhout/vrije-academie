@@ -2,6 +2,10 @@ import { cookies } from 'next/headers'
 import { commerceClient } from '@/lib/commerce'
 import { CART_COOKIE } from '@/lib/commerce/cart-cookie-name'
 
+function isCartCompleted(cart: { completed_at?: string | null } | null): boolean {
+  return Boolean(cart?.completed_at?.trim())
+}
+
 function lineItemCount(
   cart: { items?: { quantity?: number }[]; line_items?: { quantity?: number }[] } | null
 ): number {
@@ -17,6 +21,9 @@ export async function GET() {
   }
   try {
     const cart = await commerceClient.getCart(cartId)
+    if (!cart || isCartCompleted(cart)) {
+      return Response.json({ count: 0 })
+    }
     return Response.json({ count: lineItemCount(cart) })
   } catch {
     return Response.json({ count: 0 })

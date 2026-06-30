@@ -1,5 +1,7 @@
 import { defineType, defineField } from "sanity"
 import { blocksForSurface } from "./blocks/registry"
+import { VATHUIS_PATH_SEGMENT } from "../constants/storefront-paths"
+import { pageSlugValidationMessage } from "../lib/page-slug-validation"
 
 export const page = defineType({
   name: "page",
@@ -13,6 +15,13 @@ export const page = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
+      name: "isVaThuis",
+      title: "VA Thuis page",
+      type: "boolean",
+      description: `When enabled, the slug must start with "${VATHUIS_PATH_SEGMENT}" and the page is shown under /${VATHUIS_PATH_SEGMENT}/….`,
+      initialValue: false,
+    }),
+    defineField({
       name: "slug",
       title: "Slug",
       type: "slug",
@@ -20,7 +29,13 @@ export const page = defineType({
         source: "title",
         maxLength: 96,
       },
-      validation: (Rule) => Rule.required(),
+      description: `VA Thuis pages: use "${VATHUIS_PATH_SEGMENT}" for the landing or "${VATHUIS_PATH_SEGMENT}/…" for sub-pages.`,
+      validation: (Rule) =>
+        Rule.required().custom((slug, context) => {
+          const current = slug?.current
+          const isVaThuis = (context.document as { isVaThuis?: boolean } | undefined)?.isVaThuis
+          return pageSlugValidationMessage(current, isVaThuis)
+        }),
     }),
     defineField({
       name: "blocks",
@@ -31,37 +46,21 @@ export const page = defineType({
     defineField({
       name: "seo",
       title: "SEO",
-      type: "object",
-      fields: [
-        defineField({
-          name: "title",
-          title: "SEO Title",
-          type: "string",
-        }),
-        defineField({
-          name: "description",
-          title: "SEO Description",
-          type: "text",
-        }),
-        defineField({
-          name: "image",
-          title: "SEO Image",
-          type: "image",
-        }),
-      ],
+      type: "seoMetaFields",
     }),
   ],
   preview: {
     select: {
       title: "title",
       slug: "slug.current",
+      isVaThuis: "isVaThuis",
     },
-    prepare({ title, slug }) {
+    prepare({ title, slug, isVaThuis }) {
       const pathLabel =
         !slug ? "No slug" : slug === "/" ? "/" : `/${slug}`
       return {
         title: title || "Untitled",
-        subtitle: pathLabel,
+        subtitle: isVaThuis ? `VA Thuis · ${pathLabel}` : pathLabel,
       }
     },
   },

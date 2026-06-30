@@ -18,7 +18,7 @@ const SEARCH_MATCHERS = `
     (_type == "page" && defined(slug.current) && (
       lower(title) match $pat ||
       lower(slug.current) match $pat ||
-      (defined(seo.description) && lower(seo.description) match $pat)
+      (defined(seo.metaDescription) && lower(seo.metaDescription) match $pat)
     )) ||
     (_type == "product" && defined(handle) && handle != "" && (
       lower(title) match $pat ||
@@ -36,7 +36,11 @@ const SEARCH_MATCHERS = `
     )) ||
     (_type == "category" && defined(slug) && (
       lower(label) match $pat ||
-      lower(slug) match $pat
+      lower(slug) match $pat ||
+      (defined(title) && lower(title) match $pat) ||
+      (defined(description) && lower(description) match $pat) ||
+      (defined(seo.metaTitle) && lower(seo.metaTitle) match $pat) ||
+      (defined(seo.metaDescription) && lower(seo.metaDescription) match $pat)
     )) ||
     (_type == "city" && defined(slug) && (
       lower(label) match $pat ||
@@ -58,7 +62,7 @@ const SEARCH_PROJECTION = `{
     _type == "page" => title,
     _type == "product" => title,
     _type == "docent" => name,
-    _type == "category" => label,
+    _type == "category" => coalesce(title, label),
     _type == "city" => label,
     _type == "person" => name
   ),
@@ -67,10 +71,12 @@ const SEARCH_PROJECTION = `{
   "docentSlug": select(_type == "docent" => slug),
   "categorySlug": select(_type == "category" => slug),
   "citySlug": select(_type == "city" => slug),
-  "seoDescription": select(_type == "page" => seo.description),
+  "seoDescription": select(_type == "page" => seo.metaDescription),
   "description": select(_type == "product" => description),
   "role": select((_type == "docent" || _type == "person") => role),
   "linkUrl": select(_type == "category" => linkUrl),
+  "categoryDescription": select(_type == "category" => description),
+  "categoryThumbnailUrl": select(_type == "category" => coalesce(image.asset->url, imageUrl)),
   "profileUrl": select(_type == "person" => profileUrl),
   "recordType": select(_type == "product" => recordType),
   "thumbnailUrl": select(_type == "product" => thumbnailUrl)
@@ -104,6 +110,8 @@ export type SiteSearchRow = {
   description?: string | null
   role?: string | null
   linkUrl?: string | null
+  categoryDescription?: string | null
+  categoryThumbnailUrl?: string | null
   profileUrl?: string | null
   recordType?: string | null
   thumbnailUrl?: string | null
@@ -158,6 +166,7 @@ export function groupSuggestRows(rows: SiteSearchRow[]): SearchSuggestionsResult
         title: row.title.trim(),
         href: plpCategoryHref(slug),
         subtitle: 'Categorie',
+        thumbnailUrl: row.categoryThumbnailUrl ?? undefined,
       })
     } else if (row._type === 'city' && out.places.length < SUGGEST_LIMITS.places) {
       const slug = row.citySlug?.trim()

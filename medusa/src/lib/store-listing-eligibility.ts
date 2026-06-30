@@ -7,7 +7,8 @@ export type EventGroupListingRow = {
 
 /**
  * Product ids eligible for public storefront listings (Ons aanbod + Agenda).
- * Excludes gift card and products with EventGroup.show_in_plp === false.
+ * Excludes gift card and vathuis products.
+ * `show_in_plp` is ignored for now (still stored; re-enable before production).
  */
 export function filterStoreListingProductIds(
   productIds: string[],
@@ -20,6 +21,7 @@ export function filterStoreListingProductIds(
     if (handle === giftCardHandle) return false
     const eg = eventGroupByProduct[id]
     if (!eg) return true
-    return eg.show_in_plp !== false
+    if (eg.record_type === "vathuis") return false
+    return true
   })
 }

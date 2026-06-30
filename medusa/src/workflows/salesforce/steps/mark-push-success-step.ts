@@ -8,6 +8,8 @@ export type MarkPushSuccessInput = {
   entityType: SalesforceEntityType
   medusaId: string
   salesforceId: string | null
+  salesforceAccountId?: string | null
+  payloadFingerprint?: string
 }
 
 export const markPushSuccessStep = createStep(
@@ -21,31 +23,26 @@ export const markPushSuccessStep = createStep(
     }
     const svc = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
     let row = await svc.getStateByMedusaId(input.entityType, input.medusaId)
+    const payload = {
+      entity_type: input.entityType,
+      medusa_id: input.medusaId,
+      salesforce_id: input.salesforceId,
+      salesforce_account_id: input.salesforceAccountId ?? null,
+      last_pushed_at: new Date(),
+      last_status: "success",
+      last_error: null,
+      failure_count: 0,
+      severity: null,
+      next_retry_at: null,
+      mapping_version: input.payloadFingerprint ?? null,
+    }
     if (!row) {
-      const [created] = await svc.createSalesforceSyncStates([
-        {
-          entity_type: input.entityType,
-          medusa_id: input.medusaId,
-          salesforce_id: input.salesforceId,
-          last_pushed_at: new Date(),
-          last_status: "success",
-          last_error: null,
-          failure_count: 0,
-          severity: null,
-          next_retry_at: null,
-        },
-      ])
+      const [created] = await svc.createSalesforceSyncStates([payload])
       row = created
     } else {
       await svc.updateSalesforceSyncStates({
         id: row.id,
-        salesforce_id: input.salesforceId,
-        last_pushed_at: new Date(),
-        last_status: "success",
-        last_error: null,
-        failure_count: 0,
-        severity: null,
-        next_retry_at: null,
+        ...payload,
       })
     }
     return new StepResponse<{ ok: boolean; skipped?: boolean; id?: string }>({

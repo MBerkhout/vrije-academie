@@ -85,6 +85,8 @@ function searchRowToHit(row: SiteSearchRow): SiteSearchHit | null {
         title,
         href,
         subtitle: 'Categorie',
+        excerpt: truncateExcerpt(row.categoryDescription, 200),
+        thumbnailUrl: row.categoryThumbnailUrl ?? undefined,
       }
     }
     case 'city': {
@@ -259,6 +261,13 @@ export const sanityClient: CMSClient = {
           share,
           freeTrialBadge,
           sessionsHeading,
+          physicalSessionsHeading,
+          onlineSessionsHeading,
+          onlineSessionsZoomInfo,
+          onlineSessionsReplayInfo,
+          sessionsSortLabel,
+          sessionsSortDate,
+          sessionsSortLocation,
           allLocationsTab,
           similarHeading,
           relatedHeading,
@@ -373,6 +382,8 @@ export const sanityClient: CMSClient = {
       account {
         loginHeading,
         loginIntro,
+        loginImage { asset-> { _id, url } },
+        loginQuote,
         emailLabel,
         passwordLabel,
         loginCtaLabel,

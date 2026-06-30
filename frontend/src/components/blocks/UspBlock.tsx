@@ -47,21 +47,37 @@ function getUspLink(item: UspItem): { label?: string; url?: string } | null {
   return null
 }
 
-export function UspBlock({ block }: { block: UspBlockType }) {
+export function UspBlock({
+  block,
+  tone = 'default',
+}: {
+  block: UspBlockType
+  tone?: 'default' | 'onDark'
+}) {
   const items = block.items ?? []
   const Tag = getTitleTag(block.titleSize)
+  const isDark = tone === 'onDark'
 
   return (
     <BlockWrapper block={block}>
       <div className="space-y-6">
         {block.title && (
-          <Tag className={cn(getTitleSizeClass(block.titleSize), 'font-sans font-bold text-va-black')}>{block.title}</Tag>
+          <Tag
+            className={cn(
+              getTitleSizeClass(block.titleSize),
+              'font-sans font-bold',
+              isDark ? 'text-white' : 'text-va-black',
+            )}
+          >
+            {block.title}
+          </Tag>
         )}
         <div
           className={cn(
             'flex flex-col items-center gap-8',
             block.itemsLayout === 'horizontal' &&
-              'md:flex-row md:flex-wrap md:justify-center md:gap-16 lg:gap-20'
+              'md:flex-row md:flex-wrap md:justify-center md:gap-16 lg:gap-20',
+            isDark && 'border-y border-va-darkgray-800 py-8',
           )}
         >
           {items.map((item, i) => {
@@ -71,12 +87,16 @@ export function UspBlock({ block }: { block: UspBlockType }) {
             return (
               <div
                 key={i}
-                className="flex w-full max-w-[240px] flex-none flex-col items-center text-center md:w-auto"
+                className={cn(
+                  'flex w-full max-w-[240px] flex-none flex-col items-center text-center md:w-auto',
+                  isDark && 'max-w-none text-center',
+                )}
               >
                 <h3
                   className={cn(
                     getTitleSizeClass('h2'),
-                    'font-sans font-semibold text-va-black'
+                    'font-sans font-semibold',
+                    isDark ? 'text-white' : 'text-va-black',
                   )}
                 >
                   {title}
@@ -86,12 +106,23 @@ export function UspBlock({ block }: { block: UspBlockType }) {
                   aria-hidden
                 />
                 {description && description.length > 0 && (
-                  <div className="font-sans text-va-darkgray mb-2 [&_p:last-child]:!mb-0">
-                    <PortableText value={description} />
+                  <div
+                    className={cn(
+                      'font-sans mb-2 [&_p:last-child]:!mb-0',
+                      isDark ? 'text-va-gray-300' : 'text-va-darkgray',
+                    )}
+                  >
+                    <PortableText value={description} tone={tone} />
                   </div>
                 )}
                 {link?.url && link?.label && (
-                  <Link href={link.url} className="text-va-orange underline font-sans">
+                  <Link
+                    href={link.url}
+                    className={cn(
+                      'underline font-sans',
+                      isDark ? 'text-va-yellow' : 'text-va-orange',
+                    )}
+                  >
                     {link.label}
                   </Link>
                 )}

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { Button } from '@/components/ui/Button'
 import { defaultMessages } from '@/lib/i18n/messages'
@@ -25,8 +25,14 @@ function isNavActive(pathname: string, href: string): boolean {
 export function MijnAccountShell({ children }: { children: React.ReactNode }) {
   const { customer, loading, logout } = useCustomer()
   const pathname = usePathname() ?? ''
+  const router = useRouter()
   const t = defaultMessages.accountPage
   const common = defaultMessages.common
+
+  async function handleLogout() {
+    await logout()
+    router.replace('/login')
+  }
 
   if (loading) {
     return (
@@ -88,7 +94,7 @@ export function MijnAccountShell({ children }: { children: React.ReactNode }) {
               variant="outline"
               size="md"
               className="w-full"
-              onClick={() => void logout()}
+              onClick={() => void handleLogout()}
             >
               {t.logout}
             </Button>

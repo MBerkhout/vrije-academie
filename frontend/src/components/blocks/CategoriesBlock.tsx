@@ -13,6 +13,7 @@ import {
   type CategoryItem,
 } from '@/lib/cms'
 import { plpCategoryHref } from '@/lib/routes'
+import { categoryDisplayTitle } from '@/lib/cms/sanity-refs'
 import { cn } from '@/lib/utils'
 
 function getItemUrl(item: CategoryItem): string {
@@ -33,7 +34,7 @@ function getItemLabel(item: CategoryItem): string {
   const source = cleanBlockValue(item.source)
   if (source === 'aangepast') return item.label ?? ''
   if (source === 'bibliotheek' && item.category && typeof item.category === 'object' && 'label' in item.category) {
-    return (item.category as { label?: string }).label ?? ''
+    return categoryDisplayTitle(item.category as { title?: string; label?: string })
   }
   return ''
 }

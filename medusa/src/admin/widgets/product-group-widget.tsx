@@ -271,14 +271,21 @@ const ProductGroupWidget = ({
                 />
                 <span className="txt-compact-small">Has free trial lesson</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label
+                className={`flex items-center gap-2 ${recordType === "vathuis" ? "opacity-60" : "cursor-pointer"}`}
+              >
                 <input
                   type="checkbox"
                   checked={showInPlp}
                   onChange={(e) => setShowInPlp(e.target.checked)}
+                  disabled={recordType === "vathuis"}
                   className="h-4 w-4 rounded border-ui-border-base accent-ui-button-inverted"
                 />
-                <span className="txt-compact-small">Show on Ons aanbod (storefront listing)</span>
+                <span className="txt-compact-small">
+                  {recordType === "vathuis"
+                    ? "VAthuis — listed via GET /store/vathuis only"
+                    : "Show on Ons aanbod (storefront listing)"}
+                </span>
               </label>
               <Button size="small" variant="primary" onClick={() => void saveGroup()} disabled={saving}>
                 Save record type

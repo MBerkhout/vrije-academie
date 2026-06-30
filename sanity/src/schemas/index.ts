@@ -20,6 +20,11 @@ import { personsBlock } from "./blocks/persons"
 import { columnsBlock } from "./blocks/columns"
 import { editorialCardsBlock } from "./blocks/editorialCards"
 import { plpBlock } from "./blocks/plp"
+import { vathuisHeroBlock } from "./blocks/vathuisHero"
+import { vathuisCategoriesBlock } from "./blocks/vathuisCategories"
+import { vathuisProductRowBlock } from "./blocks/vathuisProductRow"
+import { vathuisTeachersBlock } from "./blocks/vathuisTeachers"
+import { vathuisPromoTilesBlock } from "./blocks/vathuisPromoTiles"
 import { giftCardBlock } from "./blocks/giftCard"
 import {
   buttonAnnotation,
@@ -69,5 +74,10 @@ export const schemaTypes = [
   columnsBlock,
   editorialCardsBlock,
   plpBlock,
+  vathuisHeroBlock,
+  vathuisCategoriesBlock,
+  vathuisProductRowBlock,
+  vathuisTeachersBlock,
+  vathuisPromoTilesBlock,
   giftCardBlock,
 ]

@@ -22,7 +22,7 @@ Medusa v2 heeft geen ingebouwd gift-card domein zoals v1. Deze shop gebruikt een
 | GET | `/store/gift-cards/:code` | Publieke check: `balance`, `status`, `currency_code` (geen PII) |
 | POST | `/store/cart/gift-cards` | Code toepassen: credit line + reservering op saldo |
 | DELETE | `/store/cart/gift-cards` | Body `{ cart_id, code }` — credit line verwijderen + reservering vrijgeven |
-| POST | `/store/cart/gift-cards/sync` | Opnieuw toepassen na wijziging winkelwagen (metadata `gift_card_redemptions`) |
+| POST | `/store/cart/gift-cards/sync` | Opnieuw toepassen na wijziging winkelwagen (metadata `gift_card_redemptions`); response via `refetchStoreCart` (inclusief `promotions`, zodat kortingscodes in de UI behouden blijven) |
 
 Alle routes gebruiken de normale **publishable API key** header (`x-publishable-api-key`).
 

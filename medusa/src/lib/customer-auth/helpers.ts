@@ -9,6 +9,8 @@ import type { ICustomerModuleService } from "@medusajs/framework/types"
 
 import { CUSTOMER_OTP_MODULE } from "../../modules/customer-otp"
 import type CustomerOtpModuleService from "../../modules/customer-otp/service"
+import { enqueueCustomerPullFromSalesforce } from "../../modules/salesforce-sync/utils/enqueue-customer-pull"
+import { enqueueCustomerPushToSalesforce } from "../../modules/salesforce-sync/utils/enqueue-customer-push"
 
 const EMAILPASS_PROVIDER = "emailpass"
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -225,6 +227,9 @@ export async function verifyOtpAndIssueToken(
   }
 
   const token = await issueCustomerJwt(container, authIdentity)
+  void enqueueCustomerPullFromSalesforce(container, customer.id, normalized).catch(() => {
+    /* logged by workflow failure reporter */
+  })
   return { token }
 }
 
@@ -233,6 +238,7 @@ export type PasswordlessRegisterInput = {
   first_name: string
   last_name: string
   phone?: string
+  birthdate?: string
   address?: {
     address_1: string
     postal_code: string
@@ -267,6 +273,7 @@ export async function registerPasswordlessCustomer(
     }
 
     const token = await issueCustomerJwt(container, authIdentity)
+    void enqueueCustomerPullFromSalesforce(container, existing.id, normalized).catch(() => {})
     return { token, customerId: existing.id }
   }
 
@@ -280,6 +287,9 @@ export async function registerPasswordlessCustomer(
         first_name: input.first_name.trim(),
         last_name: input.last_name.trim(),
         ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
+        ...(input.birthdate?.trim()
+          ? { metadata: { sf_birthdate: input.birthdate.trim() } }
+          : {}),
       },
     },
   })
@@ -300,6 +310,9 @@ export async function registerPasswordlessCustomer(
         is_default_billing: true,
       },
     ])
+    void enqueueCustomerPushToSalesforce(container, customer.id, { isCreate: true }).catch(
+      () => {}
+    )
   }
 
   const linked = (await findAuthIdentityByEmail(container, normalized))!

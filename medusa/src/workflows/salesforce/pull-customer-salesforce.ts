@@ -10,18 +10,18 @@ import { applyCustomerFromSalesforceStep } from "./steps/apply-customer-from-sal
 import { fetchSalesforceRecordStep } from "./steps/fetch-salesforce-record-step"
 import { customerMapping } from "../../modules/salesforce-sync/mappings/customer"
 import { salesforceObjectForEntity } from "../../modules/salesforce-sync/mappings/index"
-import { setIncomingLockStep } from "./steps/set-incoming-lock-step"
 
 export const pullCustomerFromSalesforceWorkflowId = "pull-customer-salesforce"
 
+export type PullCustomerFromSalesforceInput = {
+  salesforceId: string
+  /** When omitted, import-create mode (bulk import / webhook). */
+  medusaId?: string
+}
+
 export const pullCustomerFromSalesforceWorkflow = createWorkflow(
   pullCustomerFromSalesforceWorkflowId,
-  function (input: WorkflowData<{ medusaId: string; salesforceId: string }>) {
-    setIncomingLockStep({
-      entityType: "customer",
-      medusaId: input.medusaId,
-    })
-
+  function (input: WorkflowData<PullCustomerFromSalesforceInput>) {
     const record = fetchSalesforceRecordStep(
       transform({ input }, ({ input }) => ({
         salesforceObject: salesforceObjectForEntity("customer"),
@@ -30,21 +30,31 @@ export const pullCustomerFromSalesforceWorkflow = createWorkflow(
       }))
     )
 
-    applyCustomerFromSalesforceStep(
+    const applied = applyCustomerFromSalesforceStep(
       transform({ input, record }, ({ input, record }) => ({
-        medusaId: input.medusaId,
+        medusaId: input.medusaId ?? null,
+        salesforceId: input.salesforceId,
         record,
       }))
     )
 
     const done = markPullSuccessStep(
-      transform({ input }, ({ input }) => ({
+      transform({ input, applied }, ({ input, applied }) => ({
         entityType: "customer",
-        medusaId: input.medusaId,
+        medusaId: applied.medusaId,
         salesforceId: input.salesforceId,
+        salesforceAccountId: applied.salesforceAccountId,
       }))
     )
 
-    return new WorkflowResponse(done)
+    return new WorkflowResponse(
+      transform({ applied, done }, ({ applied, done }) => ({
+        ...done,
+        medusaId: applied.medusaId,
+        salesforceAccountId: applied.salesforceAccountId,
+        created: applied.created,
+        updated: applied.updated,
+      }))
+    )
   }
 )

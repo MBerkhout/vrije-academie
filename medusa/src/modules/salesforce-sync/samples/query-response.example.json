@@ -10,7 +10,7 @@
       "Id": "003XX0000000123YAA",
       "FirstName": "Sample",
       "LastName": "Contact",
-      "Medusa_Customer_Id__c": "cus_test_001"
+      "Email": "sample@example.com"
     }
   ]
 }

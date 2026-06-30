@@ -72,6 +72,14 @@ export const product = defineType({
       of: [{ type: "reference", to: [{ type: "product" }] }],
       validation: (Rule) => Rule.max(4),
     }),
+    defineField({
+      name: "seo",
+      title: "SEO",
+      type: "seoMetaFields",
+      group: "editorial",
+      description:
+        "Optional editorial SEO overrides for the product detail page. When empty, the storefront uses Medusa catalog data.",
+    }),
 
     // ── Medusa mirror fields (read-only) ────────────────────────────────────
     defineField({
@@ -208,6 +216,21 @@ export const product = defineType({
     defineField({
       name: "badge",
       title: "Status badge",
+      type: "string",
+      group: "mirror",
+      readOnly: true,
+      description: "Mirrored from Salesforce CTA Label (product card bar text).",
+    }),
+    defineField({
+      name: "ctaColor",
+      title: "CTA color",
+      type: "string",
+      group: "mirror",
+      readOnly: true,
+    }),
+    defineField({
+      name: "ctaColorHover",
+      title: "CTA color hover",
       type: "string",
       group: "mirror",
       readOnly: true,

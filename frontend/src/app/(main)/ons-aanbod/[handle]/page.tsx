@@ -1,11 +1,16 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { commerceClient } from '@/lib/commerce'
-import { getCategoryBySlug } from '@/lib/cms/sanity-refs'
+import {
+  getCategoryBySlug,
+  categoryDisplayTitle,
+  getProductSeoByHandle,
+} from '@/lib/cms/sanity-refs'
+import { buildProductPdpMetadata, buildSeoMetadata } from '@/lib/cms/seo-metadata'
 import { PlpListingPage } from '@/components/plp/PlpListingPage'
 import { parseFilterState, serializeFilterState } from '../_state/url'
 import { resolvePlpFilterHref, singleProductTypeRedirectTarget } from '../_state/redirects'
-import { plpCategoryHref, plpProductTypeHref } from '@/lib/routes'
+import { plpCategoryHref, plpProductTypeHref, vathuisProductPath } from '@/lib/routes'
 import { isPlpProductTypeSlug, productTypeLabelFromSlug } from '@/lib/plp-product-types'
 import { PdpPageContent } from './PdpPageContent'
 
@@ -22,10 +27,15 @@ export async function generateMetadata({ params }: HandlePageProps): Promise<Met
   const siteName = 'Vrije Academie'
 
   if (category) {
-    return {
-      title: `Ons aanbod in ${category.label} – ${siteName}`,
-      description: `Bekijk het aanbod van ${siteName} in ${category.label}.`,
-    }
+    const displayTitle = categoryDisplayTitle(category)
+
+    return buildSeoMetadata(category.seo, {
+      fallbackTitle: `Ons aanbod in ${displayTitle} – ${siteName}`,
+      fallbackDescription:
+        category.description?.trim() ||
+        `Bekijk het aanbod van ${siteName} in ${displayTitle}.`,
+      fallbackImage: category.image?.asset?.url,
+    })
   }
 
   if (isPlpProductTypeSlug(handle)) {
@@ -36,22 +46,13 @@ export async function generateMetadata({ params }: HandlePageProps): Promise<Met
     }
   }
 
-  const event = await commerceClient.getEvent(handle)
+  const [event, productSeo] = await Promise.all([
+    commerceClient.getEvent(handle),
+    getProductSeoByHandle(handle),
+  ])
   if (!event) return {}
 
-  const title = `${event.title} | Vrije Academie`
-  const description = event.description?.slice(0, 160) ?? undefined
-  const image = event.image_urls?.[0] ?? event.thumbnail ?? undefined
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      images: image ? [image] : [],
-    },
-  }
+  return buildProductPdpMetadata(productSeo, event, 'Vrije Academie')
 }
 
 export default async function HandlePage({ params, searchParams }: HandlePageProps) {
@@ -88,14 +89,16 @@ export default async function HandlePage({ params, searchParams }: HandlePagePro
       const query = serializeFilterState(filterState).toString()
       redirect(query ? `${basePath}?${query}` : basePath)
     }
-    const pageTitle = `Ons aanbod in ${category.label}`
+    const displayTitle = categoryDisplayTitle(category)
+    const pageTitle = `Ons aanbod in ${displayTitle}`
 
     return (
       <PlpListingPage
         pageTitle={pageTitle}
         basePath={basePath}
         filterState={filterState}
-        scopedCrumb={{ label: category.label, href: basePath }}
+        scopedCrumb={{ label: displayTitle, href: basePath }}
+        introText={category.description?.trim() || undefined}
       />
     )
   }
@@ -141,6 +144,11 @@ export default async function HandlePage({ params, searchParams }: HandlePagePro
         scopedCrumb={{ label, href: basePath }}
       />
     )
+  }
+
+  const event = await commerceClient.getEvent(handle)
+  if (event?.purchase_mode === 'bundle_only') {
+    redirect(vathuisProductPath(handle))
   }
 
   return <PdpPageContent handle={handle} />

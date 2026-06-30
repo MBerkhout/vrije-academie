@@ -33,6 +33,12 @@ export type SfProductgroupShape = {
   IFrame_URL_1__c?: string | null
   Samenvatting__c?: string | null
   External_Registration_URL__c?: string | null
+  Linked_Online_Productgroup__c?: string | null
+  CTA_Label__c?: string | null
+  CTA_Color__c?: string | null
+  CTA_Color_Hover__c?: string | null
+  /** Editorial catalog sort order (PLP default). */
+  Order__c?: number | null
 }
 
 export const SF_PRODUCTGROUP_OBJECT = "vaProductgroup__c"
@@ -70,6 +76,11 @@ export const productgroupSalesforceFieldsForPull = [
   "IFrame_URL_1__c",
   "Samenvatting__c",
   "External_Registration_URL__c",
+  "Linked_Online_Productgroup__c",
+  "CTA_Label__c",
+  "CTA_Color__c",
+  "CTA_Color_Hover__c",
+  "Order__c",
 ] as const
 
 export function parseProductgroupSubjects(sf: SfProductgroupShape): string[] {
@@ -88,6 +99,7 @@ export function mapSalesforceRecordType(
   if (d === "lezing") return "lezing"
   if (d === "excursie") return "excursie"
   if (d === "studiedag") return "studiedag"
+  if (d === "lezingen_thuis" || d === "thuis_college") return "vathuis"
   return "lezing"
 }
 
@@ -111,7 +123,8 @@ export function productgroupGalleryUrls(sf: SfProductgroupShape): string[] {
 
 export function productgroupMetadataFromSalesforce(
   sf: SfProductgroupShape,
-  vatRateLabel?: string | null
+  vatRateLabel?: string | null,
+  extra?: Record<string, unknown>
 ): Record<string, unknown> {
   return {
     salesforce_productgroup_id: sf.Id ?? null,
@@ -124,7 +137,24 @@ export function productgroupMetadataFromSalesforce(
     salesforce_vat_rate: vatRateLabel ?? null,
     salesforce_group_price: sf.Productgroup_Price__c ?? null,
     salesforce_external_registration_url: sf.External_Registration_URL__c?.trim() || null,
+    salesforce_linked_online_productgroup_id:
+      sf.Linked_Online_Productgroup__c?.trim() || null,
+    salesforce_cta_label: sf.CTA_Label__c?.trim() || null,
+    salesforce_cta_color: sf.CTA_Color__c?.trim() || null,
+    salesforce_cta_color_hover: sf.CTA_Color_Hover__c?.trim() || null,
+    salesforce_order: sf.Order__c ?? null,
+    ...extra,
   }
+}
+
+/** Normalize Salesforce slug to a Medusa-safe product handle. */
+export function sanitizeProductHandle(raw: string | null | undefined, fallback: string): string {
+  const base = (raw?.trim() || fallback).toLowerCase()
+  const slug = base
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+  return slug || fallback.toLowerCase().replace(/[^a-z0-9]+/g, "-")
 }
 
 export function stripHtmlToPlainText(html: string | null | undefined): string {

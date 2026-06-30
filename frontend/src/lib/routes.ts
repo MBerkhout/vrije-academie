@@ -26,3 +26,33 @@ export function plpCityHref(citySlug: string): string {
 export function plpProductTypeHref(typeSlug: string): string {
   return `${PLP_BASE_PATH}/${encodeURIComponent(typeSlug)}`
 }
+
+/** Thank-you page after checkout / Mollie redirect. */
+export const THANK_YOU_PATH = '/bedankt' as const
+
+export const VATHUIS_PATH_SEGMENT = 'va-thuis' as const
+
+/** VA Thuis base path, e.g. `/va-thuis`. */
+export const VATHUIS_BASE_PATH = `/${VATHUIS_PATH_SEGMENT}` as const
+export const VATHUIS_CATALOG_PATH = `${VATHUIS_BASE_PATH}/ons-aanbod` as const
+
+/** VA Thuis PDP URL path for a product handle. */
+export function vathuisProductPath(handle: string): string {
+  return `${VATHUIS_BASE_PATH}/${encodeURIComponent(handle)}`
+}
+
+/** VA Thuis catalog with docent filter. */
+export function vathuisTeacherHref(teacherSlug: string): string {
+  return `${VATHUIS_CATALOG_PATH}?docent=${encodeURIComponent(teacherSlug)}`
+}
+
+/** Resolve product link: VA Thuis bundle → `/va-thuis/{handle}`, else Ons aanbod PDP. */
+export function productDetailPath(
+  handle: string,
+  opts?: { purchaseMode?: string | null; recordType?: string | null }
+): string {
+  if (opts?.purchaseMode === 'bundle_only' || opts?.recordType === 'vathuis') {
+    return vathuisProductPath(handle)
+  }
+  return plpProductPath(handle)
+}

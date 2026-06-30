@@ -24,6 +24,51 @@ interface PlpFilterSidebarProps {
   mobileOnly?: boolean
   /** Route to push to when filters change. Defaults to `PLP_BASE_PATH`. */
   basePath?: string
+  /** Light (default) or dark styling for VA Thuis. */
+  variant?: 'light' | 'dark'
+  /** Category + docent filters only (VA Thuis catalog). */
+  catalogOnly?: boolean
+}
+
+type FilterVariant = 'light' | 'dark'
+
+function filterTheme(variant: FilterVariant) {
+  if (variant === 'dark') {
+    return {
+      groupBorder: 'border-va-darkgray-700',
+      title: 'text-white',
+      chevron: 'text-va-gray-400',
+      label: 'text-white/90 hover:text-white',
+      count: 'text-va-gray-500',
+      resetBtn: 'text-va-gray-400 border-va-darkgray-600 hover:bg-va-darkgray-800',
+      mobileTrigger:
+        'border-va-darkgray-600 text-white bg-va-darkgray-950 hover:bg-va-darkgray-900',
+      drawer: 'bg-va-darkgray-950',
+      drawerBorder: 'border-va-darkgray-700',
+      drawerTitle: 'text-white',
+      drawerClear: 'text-va-gray-400 hover:text-white',
+      gradientFrom: 'from-va-darkgray-950',
+      expandBtn: 'text-white hover:text-va-yellow',
+      expandIcon: 'text-white',
+    }
+  }
+  return {
+    groupBorder: 'border-va-lightgray',
+    title: 'text-va-black',
+    chevron: 'text-va-gray',
+    label: 'text-va-black hover:text-va-darkgray',
+    count: 'text-va-gray',
+    resetBtn: 'text-va-gray border-va-lightgray hover:bg-va-lightgray',
+    mobileTrigger:
+      'border-va-black text-va-black bg-white hover:bg-va-lightgray-300 active:bg-va-lightgray',
+    drawer: 'bg-white',
+    drawerBorder: 'border-va-lightgray',
+    drawerTitle: 'text-va-black',
+    drawerClear: 'text-va-gray hover:text-va-black',
+    gradientFrom: 'from-white',
+    expandBtn: 'text-va-black hover:text-va-darkgray',
+    expandIcon: 'text-va-black',
+  }
 }
 
 function FilterGroupCollapsible({
@@ -33,6 +78,7 @@ function FilterGroupCollapsible({
   activeCount = 0,
   showActiveCount = false,
   largeTitle = false,
+  variant = 'light',
 }: {
   title: string
   children: React.ReactNode
@@ -40,15 +86,18 @@ function FilterGroupCollapsible({
   activeCount?: number
   showActiveCount?: boolean
   largeTitle?: boolean
+  variant?: FilterVariant
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  const theme = filterTheme(variant)
   return (
-    <div className="border-b border-va-lightgray py-4">
+    <div className={cn('border-b py-4', theme.groupBorder)}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex w-full items-center justify-between font-semibold text-va-black',
+          'flex w-full items-center justify-between font-semibold',
+          theme.title,
           largeTitle ? 'text-base' : 'text-sm',
         )}
         aria-expanded={open}
@@ -61,7 +110,7 @@ function FilterGroupCollapsible({
             </span>
           )}
         </span>
-        <span className="text-va-gray">{open ? '−' : '+'}</span>
+        <span className={theme.chevron}>{open ? '−' : '+'}</span>
       </button>
       {open && <div className="mt-3 space-y-2">{children}</div>}
     </div>
@@ -234,17 +283,20 @@ function MultiSelectChecklist({
   options,
   selected,
   onToggle,
+  variant = 'light',
 }: {
   options: { value: string; label: string; count?: number }[]
   selected: string[]
   onToggle: (v: string) => void
+  variant?: FilterVariant
 }) {
+  const theme = filterTheme(variant)
   return (
     <div className="space-y-2">
       {options.map((opt) => (
         <label
           key={opt.value}
-          className="flex items-center justify-between gap-2 cursor-pointer text-sm text-va-black hover:text-va-darkgray"
+          className={cn('flex items-center justify-between gap-2 cursor-pointer text-sm', theme.label)}
         >
           <span className="flex items-center gap-2">
             <input
@@ -256,7 +308,7 @@ function MultiSelectChecklist({
             {opt.label}
           </span>
           {opt.count !== undefined && (
-            <span className="text-xs text-va-gray">{opt.count}</span>
+            <span className={cn('text-xs', theme.count)}>{opt.count}</span>
           )}
         </label>
       ))}
@@ -270,13 +322,16 @@ function CollapsibleMultiSelectChecklist({
   onToggle,
   collapsedCount,
   expandLabel = 'Meer tonen',
+  variant = 'light',
 }: {
   options: { value: string; label: string; count?: number }[]
   selected: string[]
   onToggle: (v: string) => void
   collapsedCount: number
   expandLabel?: string
+  variant?: FilterVariant
 }) {
+  const theme = filterTheme(variant)
   const needsCollapse = options.length > collapsedCount
   const [expanded, setExpanded] = useState(() => {
     if (!needsCollapse) return true
@@ -297,16 +352,17 @@ function CollapsibleMultiSelectChecklist({
         options={visibleOptions}
         selected={selected}
         onToggle={onToggle}
+        variant={variant}
       />
       {needsCollapse && !expanded && (
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-8">
+        <div className={cn('absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent pt-8', variant === 'dark' ? 'from-va-darkgray-950 via-va-darkgray-950/95' : 'from-white via-white/95')}>
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="flex w-full items-center justify-center gap-1.5 pb-0.5 text-sm font-medium text-va-black hover:text-va-darkgray transition-colors"
+            className={cn('flex w-full items-center justify-center gap-1.5 pb-0.5 text-sm font-medium transition-colors', theme.expandBtn)}
           >
             {expandLabel}
-            <ChevronDownIcon className="w-4 h-4 shrink-0 text-va-black" />
+            <ChevronDownIcon className={cn('w-4 h-4 shrink-0', theme.expandIcon)} />
           </button>
         </div>
       )}
@@ -454,9 +510,12 @@ export function PlpFilterSidebar({
   facets,
   mobileOnly = false,
   basePath = PLP_BASE_PATH,
+  variant = 'light',
+  catalogOnly = false,
 }: PlpFilterSidebarProps) {
   const router = useRouter()
   const serialize = resolveFilterSerialize(basePath)
+  const theme = filterTheme(variant)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerSession, setDrawerSession] = useState(0)
 
@@ -474,14 +533,15 @@ export function PlpFilterSidebar({
     setDrawerOpen(true)
   }
 
-  const activeCount =
-    (filterState.categories?.length ?? 0) +
-    (filterState.productTypes?.length ?? 0) +
-    (filterState.teachers?.length ?? 0) +
-    (filterState.cities?.length ?? 0) +
-    (filterState.deliveryTypes?.length ?? 0) +
-    (filterState.dayParts?.length ?? 0) +
-    (filterState.periodStart || filterState.periodEnd ? 1 : 0)
+  const activeCount = catalogOnly
+    ? (filterState.categories?.length ?? 0) + (filterState.teachers?.length ?? 0)
+    : (filterState.categories?.length ?? 0) +
+      (filterState.productTypes?.length ?? 0) +
+      (filterState.teachers?.length ?? 0) +
+      (filterState.cities?.length ?? 0) +
+      (filterState.deliveryTypes?.length ?? 0) +
+      (filterState.dayParts?.length ?? 0) +
+      (filterState.periodStart || filterState.periodEnd ? 1 : 0)
 
   function applyFilter(newState: PlpFilterState) {
     if (usesPlpCanonicalFilterHref(basePath)) {
@@ -502,6 +562,10 @@ export function PlpFilterSidebar({
   }
 
   function clearAll() {
+    if (catalogOnly) {
+      router.push(basePath)
+      return
+    }
     if (isCategoryScopedPlpPath(basePath) || isProductTypeScopedPlpPath(basePath)) {
       router.push(basePath)
       return
@@ -556,34 +620,38 @@ export function PlpFilterSidebar({
 
     return (
       <div className="space-y-0">
-        {deliveryOptions.length > 0 && (
+        {!catalogOnly && deliveryOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Beschikbaarheid"
             defaultOpen={groupDefaultOpen(true, collapseGroups)}
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.deliveryTypes?.length ?? 0}
+            variant={variant}
           >
             <MultiSelectChecklist
               options={deliveryOptions}
               selected={filterState.deliveryTypes ?? []}
               onToggle={(v) => toggleArray('deliveryTypes', v)}
+              variant={variant}
             />
           </FilterGroupCollapsible>
         )}
 
-        {productTypeOptions.length > 0 && (
+        {!catalogOnly && productTypeOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Soort activiteit"
             defaultOpen={groupDefaultOpen(true, collapseGroups)}
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.productTypes?.length ?? 0}
+            variant={variant}
           >
             <MultiSelectChecklist
               options={productTypeOptions}
               selected={filterState.productTypes ?? []}
               onToggle={(v) => toggleArray('productTypes', v)}
+              variant={variant}
             />
           </FilterGroupCollapsible>
         )}
@@ -591,16 +659,18 @@ export function PlpFilterSidebar({
         {categoryOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Categorie"
-            defaultOpen={groupDefaultOpen(undefined, collapseGroups)}
+            defaultOpen={catalogOnly ? true : groupDefaultOpen(undefined, collapseGroups)}
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.categories?.length ?? 0}
+            variant={variant}
           >
             <CollapsibleMultiSelectChecklist
               options={categoryOptions}
               selected={filterState.categories ?? []}
               onToggle={(v) => toggleArray('categories', v)}
               collapsedCount={CATEGORY_COLLAPSED_COUNT}
+              variant={variant}
             />
           </FilterGroupCollapsible>
         )}
@@ -608,20 +678,22 @@ export function PlpFilterSidebar({
         {teacherOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Docent"
-            defaultOpen={groupDefaultOpen(false, collapseGroups)}
+            defaultOpen={catalogOnly ? true : groupDefaultOpen(false, collapseGroups)}
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.teachers?.length ?? 0}
+            variant={variant}
           >
             <MultiSelectChecklist
               options={teacherOptions}
               selected={filterState.teachers ?? []}
               onToggle={(v) => toggleArray('teachers', v)}
+              variant={variant}
             />
           </FilterGroupCollapsible>
         )}
 
-        {citiesFromFacets.length > 0 && (
+        {!catalogOnly && citiesFromFacets.length > 0 && (
           <FilterGroupCollapsible
             title="Plaats"
             defaultOpen={groupDefaultOpen(true, collapseGroups)}
@@ -638,28 +710,32 @@ export function PlpFilterSidebar({
           </FilterGroupCollapsible>
         )}
 
-        {dayPartOptions.length > 0 && (
+        {!catalogOnly && dayPartOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Dagdeel"
             defaultOpen={groupDefaultOpen(false, collapseGroups)}
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.dayParts?.length ?? 0}
+            variant={variant}
           >
             <MultiSelectChecklist
               options={dayPartOptions}
               selected={filterState.dayParts ?? []}
               onToggle={(v) => toggleArray('dayParts', v)}
+              variant={variant}
             />
           </FilterGroupCollapsible>
         )}
 
+        {!catalogOnly && (
         <FilterGroupCollapsible
           title="Periode"
           defaultOpen={groupDefaultOpen(false, collapseGroups)}
           showActiveCount={groupBadge}
           largeTitle={largeTitle}
           activeCount={filterState.periodStart || filterState.periodEnd ? 1 : 0}
+          variant={variant}
         >
           <PeriodeFilter
             periodStart={filterState.periodStart}
@@ -669,15 +745,16 @@ export function PlpFilterSidebar({
             }
           />
         </FilterGroupCollapsible>
+        )}
 
         {showDesktopReset && (
           <div className="pt-4">
             <button
               type="button"
               onClick={clearAll}
-              className="w-full text-sm text-va-gray border border-va-lightgray py-2 hover:bg-va-lightgray transition-colors"
+              className={cn('w-full text-sm border py-2 transition-colors', theme.resetBtn)}
             >
-              Reset
+              {catalogOnly ? 'Wis filters' : 'Reset'}
             </button>
           </div>
         )}
@@ -691,7 +768,7 @@ export function PlpFilterSidebar({
         <button
           type="button"
           onClick={openMobileDrawer}
-          className="flex items-center gap-2 border-2 border-va-black px-4 py-2.5 text-sm font-semibold text-va-black bg-white shadow-sm hover:bg-va-lightgray-300 active:bg-va-lightgray transition-colors"
+          className={cn('flex items-center gap-2 border-2 px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors', theme.mobileTrigger)}
         >
           <FilterSlidersIcon className="h-4 w-4 shrink-0" />
           Filter
@@ -704,19 +781,19 @@ export function PlpFilterSidebar({
 
         {drawerOpen && (
           <div
-            className="fixed inset-0 z-50 flex flex-col bg-white"
+            className={cn('fixed inset-0 z-50 flex flex-col', theme.drawer)}
             role="dialog"
             aria-modal="true"
             aria-labelledby="plp-mobile-filters-title"
           >
-            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-va-lightgray px-4 py-4">
-              <span id="plp-mobile-filters-title" className="font-semibold text-va-black">
+            <div className={cn('flex shrink-0 items-center justify-between gap-4 border-b px-4 py-4', theme.drawerBorder)}>
+              <span id="plp-mobile-filters-title" className={cn('font-semibold', theme.drawerTitle)}>
                 Filters
               </span>
               <button
                 type="button"
                 onClick={clearAll}
-                className="shrink-0 text-sm text-va-gray underline hover:text-va-black transition-colors"
+                className={cn('shrink-0 text-sm underline transition-colors', theme.drawerClear)}
               >
                 Wis alle filters
               </button>
@@ -726,7 +803,7 @@ export function PlpFilterSidebar({
               {renderFilterGroups(true, false)}
             </div>
 
-            <div className="shrink-0 border-t border-va-lightgray bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className={cn('shrink-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]', theme.drawerBorder, theme.drawer)}>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
@@ -741,5 +818,9 @@ export function PlpFilterSidebar({
     )
   }
 
-  return <div>{renderFilterGroups(false, true)}</div>
+  return (
+    <div className={cn(variant === 'dark' && 'rounded-lg bg-va-darkgray-950 p-4')}>
+      {renderFilterGroups(false, true)}
+    </div>
+  )
 }

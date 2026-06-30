@@ -11,10 +11,12 @@ interface Crumb {
 interface BreadcrumbsProps {
   crumbs: Crumb[]
   className?: string
+  /** Light text on dark backgrounds (VA Thuis). */
+  dark?: boolean
 }
 
 /** Generic breadcrumb trail. Also emits BreadcrumbList JSON-LD. */
-export function Breadcrumbs({ crumbs, className }: BreadcrumbsProps) {
+export function Breadcrumbs({ crumbs, className, dark = false }: BreadcrumbsProps) {
   return (
     <>
       <JsonLd data={buildBreadcrumbListFromCrumbs(crumbs)} />
@@ -25,16 +27,27 @@ export function Breadcrumbs({ crumbs, className }: BreadcrumbsProps) {
             return (
               <li key={crumb.href ?? crumb.label} className="flex items-center gap-1.5">
                 {i > 0 && (
-                  <span className="text-va-gray" aria-hidden="true">›</span>
+                  <span className={cn(dark ? 'text-va-gray-500' : 'text-va-gray')} aria-hidden="true">›</span>
                 )}
                 {isLast ? (
-                  <span className="text-va-darkgray font-medium" aria-current="page">
+                  <span
+                    className={cn(
+                      'font-medium',
+                      dark ? 'text-white' : 'text-va-darkgray',
+                    )}
+                    aria-current="page"
+                  >
                     {crumb.label}
                   </span>
                 ) : (
                   <Link
                     href={crumb.href ?? '#'}
-                    className="text-va-gray hover:text-va-black transition-colors"
+                    className={cn(
+                      'transition-colors',
+                      dark
+                        ? 'text-va-gray-300 hover:text-va-yellow'
+                        : 'text-va-gray hover:text-va-black',
+                    )}
                   >
                     {crumb.label}
                   </Link>

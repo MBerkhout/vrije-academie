@@ -7,14 +7,26 @@ export interface Page {
   _id: string
   title: string
   slug: string
+  isVaThuis?: boolean
   blocks: Block[]
   seo?: SEO
 }
 
+export interface SeoImage {
+  asset?: { url?: string }
+}
+
 export interface SEO {
-  title?: string
-  description?: string
-  image?: string
+  metaTitle?: string
+  metaDescription?: string
+  metaImage?: SeoImage
+  openGraph?: {
+    title?: string
+    description?: string
+    image?: SeoImage
+  }
+  robotsMeta?: string[]
+  nofollowAttributes?: boolean
 }
 
 export interface BlockLayout {
@@ -156,6 +168,43 @@ export interface ProductRowBlock extends Block {
   ctaEnabled?: boolean
   ctaLabel?: string
   ctaUrl?: string
+}
+
+export interface VathuisHeroBlock extends Block {
+  _type: 'vathuisHeroBlock'
+  title?: string
+  intro?: string
+  image?: { asset?: { url?: string } } | null
+}
+
+export interface VathuisCategoriesBlock extends Block {
+  _type: 'vathuisCategoriesBlock'
+  maxItems?: number
+}
+
+export interface VathuisProductRowBlock extends Block {
+  _type: 'vathuisProductRowBlock'
+  title?: string
+  sourceType?: 'handpicked' | 'automated'
+  products?: ProductRowProductRef[]
+  limit?: number
+  catalogCtaLabel?: string
+}
+
+export interface VathuisTeachersBlock extends Block {
+  _type: 'vathuisTeachersBlock'
+  title?: string
+  intro?: string
+}
+
+export interface VathuisPromoTilesBlock extends Block {
+  _type: 'vathuisPromoTilesBlock'
+  tiles?: {
+    title: string
+    description?: string | null
+    href?: string | null
+    image?: { asset?: { url?: string } } | null
+  }[]
 }
 
 export interface ProductRowProductRef {
@@ -312,6 +361,8 @@ export interface ColumnItem {
     handle?: string
     thumbnailUrl?: string | null
     badge?: string | null
+    ctaColor?: string | null
+    ctaColorHover?: string | null
     recordType?: string | null
   }[]
   productCardsFooterCtaEnabled?: boolean
@@ -448,6 +499,13 @@ export interface GeneralSettings {
       share?: string
       freeTrialBadge?: string
       sessionsHeading?: string
+      physicalSessionsHeading?: string
+      onlineSessionsHeading?: string
+      onlineSessionsZoomInfo?: string
+      onlineSessionsReplayInfo?: string
+      sessionsSortLabel?: string
+      sessionsSortDate?: string
+      sessionsSortLocation?: string
       /** Tab label for “all locations” on PDP session table (default: Alle locaties) */
       allLocationsTab?: string
       similarHeading?: string
@@ -562,6 +620,8 @@ export interface GeneralSettings {
   account?: {
     loginHeading?: string
     loginIntro?: string
+    loginImage?: { asset?: { _id: string; url: string } }
+    loginQuote?: string
     emailLabel?: string
     passwordLabel?: string
     loginCtaLabel?: string

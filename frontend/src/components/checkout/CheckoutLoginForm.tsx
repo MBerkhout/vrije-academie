@@ -7,7 +7,6 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { commerceClient } from '@/lib/commerce'
 import {
   buildCheckoutDraft,
   clearCheckoutDraft,
@@ -22,8 +21,9 @@ import {
   splitAddressLine,
 } from '@/lib/commerce/checkout-profile'
 import type { Cart } from '@/lib/commerce/types'
+import { commerceClient } from '@/lib/commerce'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
-import { getCartId, setCartId } from '@/lib/commerce/cart'
+import { getActiveCart, setCartId, dispatchCartUpdated } from '@/lib/commerce/cart'
 import type { Customer } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
 import {
@@ -130,8 +130,8 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   function blurField(name: AccountFieldName, value: string, extra?: { password?: string }) {
     const opts =
       name === 'password'
-        ? { ...extra, passwordRequirement: 'login' as const }
-          : extra
+        ? { ...extra, passwordRequirement: 'login' as const, countryCode: country }
+        : { ...extra, countryCode: country }
     setValidity((prev) => ({ ...prev, [name]: validateAccountField(name, value, opts) }))
   }
 
@@ -544,19 +544,18 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   }
 
   async function ensureCart(): Promise<string> {
-    let cartId = getCartId()
-    if (!cartId) {
-      const cart = await commerceClient.createCart()
-      setCartId(cart.id)
-      cartId = cart.id
-    }
-    return cartId
+    const active = await getActiveCart()
+    if (active?.id) return active.id
+    const cart = await commerceClient.createCart()
+    setCartId(cart.id)
+    dispatchCartUpdated()
+    return cart.id
   }
 
   async function associateCart(emailAddr: string) {
-    const cartId = getCartId()
-    if (!cartId) return
-    await commerceClient.updateCart(cartId, { email: emailAddr }).catch(() => {})
+    const cart = await getActiveCart()
+    if (!cart) return
+    await commerceClient.updateCart(cart.id, { email: emailAddr }).catch(() => {})
   }
 
   const heading = settings.emailStep?.heading ?? 'Inloggen of doorgaan als gast'
@@ -697,7 +696,10 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           onHouseNumberChange={setHouseNumber}
           onStreetChange={setStreet}
           onCityChange={setCity}
-          onCountryChange={setCountry}
+          onCountryChange={(v) => {
+            setCountry(v)
+            resetValidity('postalCode')
+          }}
           onNewsletterOptInChange={setNewsletterOptIn}
           onManualAddress={setManualAddress}
           blur={blurField}

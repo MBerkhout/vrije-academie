@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { commerceClient } from '@/lib/commerce'
-import { clearCartId, dispatchCartUpdated, getCartId } from '@/lib/commerce/cart'
+import { clearCartId, dispatchCartUpdated, getActiveCart, getCartId } from '@/lib/commerce/cart'
 import {
   getDefaultCheckoutAddress,
   isCartShippingComplete,
@@ -26,6 +26,8 @@ interface CheckoutPaymentFormProps {
 
 export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const paymentFailed = searchParams.get('betaling') === 'mislukt'
   const { customer, loading: customerLoading } = useCustomer()
   const [cart, setCart] = useState<Cart | null>(null)
   const [providers, setProviders] = useState<PaymentProvider[]>([])
@@ -66,7 +68,7 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
         return
       }
 
-      let c = await commerceClient.getCart(cartId)
+      let c = await getActiveCart()
       if (cancelled) return
 
       if (!c) {
@@ -88,7 +90,7 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
           return
         }
         try {
-          c = await commerceClient.syncCartFromCustomer(customer, cartId)
+          c = await commerceClient.syncCartFromCustomer(customer, c.id)
         } catch {
           router.replace('/checkout/inloggen')
           setLoading(false)
@@ -226,7 +228,7 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
         const result = await commerceClient.completeCart(cartId)
         if (result.type === 'order') {
           clearCartId()
-          router.replace(`/checkout/bevestiging?order=${encodeURIComponent(result.order.id)}`)
+          router.replace(`/bedankt?order=${encodeURIComponent(result.order.id)}`)
           return
         }
         const errBody = result as { type: 'cart'; cart: Cart; error?: { message?: string } }
@@ -270,6 +272,13 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-8">
+      {paymentFailed && (
+        <div className="px-4 py-4 bg-amber-50 border border-amber-300 font-sans text-sm text-amber-900 space-y-1" role="alert">
+          <p className="font-semibold">Je betaling is niet voltooid</p>
+          <p>Je kunt hieronder een andere betaalmethode kiezen en het opnieuw proberen.</p>
+        </div>
+      )}
+
       {toast && (
         <div className="px-4 py-3 bg-red-50 border border-red-200 font-sans text-sm text-red-700" role="alert">
           {toast}

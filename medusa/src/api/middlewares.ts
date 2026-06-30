@@ -7,6 +7,14 @@ export default defineMiddlewares({
       middlewares: [authenticate("customer", ["session", "bearer"])],
     },
     {
+      matcher: "/store/customer/me/sync-from-salesforce",
+      middlewares: [authenticate("customer", ["session", "bearer"])],
+    },
+    {
+      matcher: "/store/customer/me/push-to-salesforce",
+      middlewares: [authenticate("customer", ["session", "bearer"])],
+    },
+    {
       matcher: "/store/auth/set-password",
       middlewares: [authenticate("customer", ["session", "bearer"])],
     },

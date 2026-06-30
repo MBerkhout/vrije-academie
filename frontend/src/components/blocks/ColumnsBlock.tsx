@@ -12,7 +12,8 @@ import {
   classNameForProductBadge,
   DEFAULT_PRODUCT_BADGE_CLASS,
 } from '@/lib/event-status-presentation'
-import { plpProductPath } from '@/lib/routes'
+import { productDetailPath } from '@/lib/routes'
+import { ProductCardCtaBar } from '@/components/plp/ProductCardCtaBar'
 import { cn } from '@/lib/utils'
 
 const GAP_CLASS = { sm: 'gap-3 md:gap-4', md: 'gap-4 md:gap-8', lg: 'gap-6 md:gap-16' } as const
@@ -161,7 +162,10 @@ function ColumnPerson({ col }: { col: ColumnItem }) {
   )
 }
 
-function productCardCtaLabel(col: ColumnItem, product: { badge?: string | null }): string | null {
+function productCardCtaLabel(
+  col: ColumnItem,
+  product: { badge?: string | null },
+): string | null {
   const custom = col.productCardsItemCtaLabel?.trim()
   if (custom) return custom
   const badge = product.badge?.trim()
@@ -208,10 +212,15 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
           if (!product) return null
           const title = product.title?.trim()
           const handle = product.handle?.trim()
-          const href = handle ? plpProductPath(handle) : '#'
+          const href = handle
+            ? productDetailPath(handle, { recordType: product.recordType })
+            : '#'
           const thumbnailUrl = product.thumbnailUrl?.trim()
           const ctaLabel = productCardCtaLabel(col, product)
-          const ctaClass = ctaLabel
+          const useSalesforceCtaBar = Boolean(
+            ctaLabel && (product.ctaColor?.trim() || product.ctaColorHover?.trim()),
+          )
+          const ctaClass = ctaLabel && !useSalesforceCtaBar
             ? (() => {
                 const derived = classNameForProductBadge(ctaLabel)
                 return derived === DEFAULT_PRODUCT_BADGE_CLASS
@@ -247,6 +256,17 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
                     </p>
                   ) : null}
                   {ctaLabel ? (
+                    useSalesforceCtaBar ? (
+                      <ProductCardCtaBar
+                        event={{
+                          badge: ctaLabel,
+                          cta_color: product.ctaColor,
+                          cta_color_hover: product.ctaColorHover,
+                        }}
+                        className="px-2.5 md:px-3"
+                        showChevron
+                      />
+                    ) : (
                     <span
                       className={cn(
                         'flex items-center justify-between gap-1 border-t border-va-lightgray px-2.5 py-1.5 md:px-3',
@@ -267,6 +287,7 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
                         ›
                       </span>
                     </span>
+                    )
                   ) : null}
                 </div>
               </Link>
