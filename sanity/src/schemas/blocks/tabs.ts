@@ -22,7 +22,7 @@ const TABS_INTERACTION_MODE_OPTIONS = [
 export const tabsBlock = defineType({
   name: "tabsBlock",
   title: "Tabs",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

@@ -18,10 +18,19 @@ Fields titled **CTA URL** (and related link fields) use `defineCtaUrlField` from
 
 ### Block System
 
-Pages are composed of **blocks** - reusable content components that can be arranged in any order. Each block is a separate document type with:
+Pages are composed of **blocks** — reusable content components stored **inline** on `page.blocks[]` as Sanity object types (`type: "object"`), not separate documents. This keeps Presentation click-to-edit paths aligned with the schema.
 
 - **Shared fields**: Margin (top/bottom), width, background color
 - **Block-specific fields**: Content unique to each block type
+
+**Migration** from legacy referenced block documents (required once after the object schema deploy):
+
+```bash
+DRY_RUN=1 npm run migrate:blocks-inline --prefix sanity
+SANITY_API_WRITE_TOKEN=… npm run migrate:blocks-inline --prefix sanity
+```
+
+Optional orphan cleanup after verification: `DELETE_ORPHANS=1 npm run migrate:blocks-inline --prefix sanity`
 
 ### Document Types
 
@@ -39,7 +48,6 @@ SANITY_API_WRITE_TOKEN=… npm run seed:footer-settings --prefix sanity
 ```
 
 Default menu IDs match MCP-created drafts that were published on dataset `production` (override with `MENU_FOOTER_*` env vars if yours differ). Requires schema with `footerColumn` / `footerSocialLink` array object names (`generalSettings` footer fields).
-- **Blocks**: Individual content blocks (hero, richText, imageBlock, etc.)
 - **Person**: Teamleden / docenten / gastsprekers. Veld **Type** (`personType`) is verplicht en kiest één waarde: Docent, Team of Gastspreker (niet combineerbaar). Bestaande inhoud met het oude `typeTags`-veld: `npm run migrate:person-type` in de `sanity`-map (zie script voor benodigde env-vars).
 
 ### SEO (`sanity-plugin-seo`)
@@ -188,6 +196,8 @@ Menu items support:
 ## Visual Editing
 
 The Studio includes the Presentation tool for visual editing with the Next.js frontend. Content creators can see live previews and edit content directly in context.
+
+Blocks must be **inline objects** on the page (not separate block documents) so stega paths like `blocks[_key].introText` resolve in the Presentation tool. Run `npm run migrate:blocks-inline --prefix sanity` once after deploying the object block schemas if content still uses `_ref` stubs.
 
 **CORS for live preview (Sanity v6 Presentation):** Studio connects to the Live Content API from its own origin (`http://localhost:3333` in dev). In [sanity.io/manage](https://sanity.io/manage) → API → CORS origins, add **both** Studio and frontend origins with **Allow credentials** enabled:
 

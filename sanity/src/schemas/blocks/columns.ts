@@ -54,7 +54,7 @@ const COLUMN_MEDIA_TYPE_OPTIONS = [
 export const columnsBlock = defineType({
   name: "columnsBlock",
   title: "Columns",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

@@ -9,7 +9,7 @@ const SOURCE_TYPE_OPTIONS = [
 export const vathuisProductRowBlock = defineType({
   name: "vathuisProductRowBlock",
   title: "VA Thuis productkaarten",
-  type: "document",
+  type: "object",
   fields: [
     defineField({
       name: "title",

@@ -12,7 +12,7 @@ const USP_ITEMS_LAYOUT_OPTIONS = [
 export const uspBlock = defineType({
   name: "uspBlock",
   title: "USP",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

@@ -3,7 +3,7 @@ import { defineType, defineField } from "sanity"
 export const vathuisTeachersBlock = defineType({
   name: "vathuisTeachersBlock",
   title: "VA Thuis docenten",
-  type: "document",
+  type: "object",
   fields: [
     defineField({
       name: "title",

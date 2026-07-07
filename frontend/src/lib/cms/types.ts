@@ -46,6 +46,7 @@ export interface BlockLayout {
 
 export interface Block extends BlockLayout {
   _id: string
+  _key?: string
   _type: string
   [key: string]: unknown
 }

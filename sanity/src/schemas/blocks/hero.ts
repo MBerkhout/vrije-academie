@@ -15,7 +15,7 @@ const TOP_PANEL_TITLE_SIZE_OPTIONS = TITLE_SIZE_OPTIONS.filter((o) => o.value !=
 export const heroBlock = defineType({
   name: "heroBlock",
   title: "Hero",
-  type: "document",
+  type: "object",
   groups: [
     { name: "slider", title: "Slider", default: true },
     { name: "topPanel", title: "Top Panel" },

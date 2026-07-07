@@ -185,6 +185,8 @@ If `SANITY_API_READ_TOKEN` is missing, `/api/draft` returns 503 with a helpful e
 
 **Live updates**: `SanityLive` uses the same viewer token in the browser during draft mode and `revalidateSyncTags` → `router.refresh()` (required on Next.js 16). In Draft Mode, string fields are stega-encoded for overlays, which breaks strict equality (`=== 'h3'`, `=== 'bibliotheek'`). Block components use `getTitleTag()`, `getTitleSizeClass()`, and `cleanBlockValue()` from `@/lib/cms` (`stegaClean`) for heading size/alignment and for **library vs custom** item `source` on the Categories block so labels, images, and links resolve correctly.
 
+**Block paths**: CMS blocks are inline objects on `page.blocks[]`. The frontend identifies blocks by `_key` (with `_id` coalesced in GROQ for React keys). Legacy separate block documents must be inlined with `npm run migrate:blocks-inline --prefix sanity` or Presentation logs `No field could be resolved at path: blocks[…]`.
+
 ## 404
 
 - `app/not-found.tsx` wraps the shared [`NotFoundView`](../src/components/NotFoundView.tsx) with header/footer for routes outside `(main)`.

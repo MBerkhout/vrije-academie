@@ -6,7 +6,7 @@ import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 export const accordionBlock = defineType({
   name: "accordionBlock",
   title: "FAQ / Accordion",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

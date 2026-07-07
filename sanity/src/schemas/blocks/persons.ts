@@ -26,7 +26,7 @@ const COLUMNS_DESKTOP_OPTIONS = [
 export const personsBlock = defineType({
   name: "personsBlock",
   title: "Persons",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

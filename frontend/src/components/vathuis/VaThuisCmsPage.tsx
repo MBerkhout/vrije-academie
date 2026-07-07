@@ -20,7 +20,9 @@ export function buildVaThuisPageMetadata(
 
 export function VaThuisCmsPage({ page }: VaThuisCmsPageProps) {
   const blocksBeforeFilter = page.blocks ?? []
-  const blocks = blocksBeforeFilter.filter((b): b is NonNullable<typeof b> => Boolean(b?._id))
+  const blocks = blocksBeforeFilter.filter((b): b is NonNullable<typeof b> =>
+    Boolean(b?._key ?? b?._id),
+  )
 
   if (blocks.length === 0) {
     return (
@@ -35,9 +37,10 @@ export function VaThuisCmsPage({ page }: VaThuisCmsPageProps) {
       {blocks.map((block) => {
         const b = block as { titleSize?: string; titleAlignment?: string }
         const hasTitleOptions = 'titleSize' in block || 'titleAlignment' in block
+        const blockId = block._key ?? block._id
         const blockKey = hasTitleOptions
-          ? `${block._id}-${b.titleSize ?? ''}-${b.titleAlignment ?? ''}`
-          : block._id
+          ? `${blockId}-${b.titleSize ?? ''}-${b.titleAlignment ?? ''}`
+          : blockId
         return <BlockRenderer key={blockKey} block={block} tone="onDark" />
       })}
     </>

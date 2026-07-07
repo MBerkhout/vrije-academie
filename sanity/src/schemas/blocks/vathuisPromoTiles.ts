@@ -4,7 +4,7 @@ import { defineCtaUrlField } from "../objects/ctaUrl"
 export const vathuisPromoTilesBlock = defineType({
   name: "vathuisPromoTilesBlock",
   title: "VA Thuis promo tegels",
-  type: "document",
+  type: "object",
   fields: [
     defineField({
       name: "tiles",

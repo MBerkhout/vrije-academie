@@ -18,6 +18,7 @@
     "migrate:homepage-product-row": "node ./scripts/migrate-homepage-product-row.mjs",
     "migrate:seo-fields": "node ./scripts/migrate-seo-fields.mjs",
     "migrate:vathuis-landing-to-blocks": "node ./scripts/migrate-vathuis-landing-to-blocks.mjs",
+    "migrate:blocks-inline": "node ./scripts/migrate-blocks-inline.mjs",
     "test": "vitest",
     "test:run": "vitest run"
   },

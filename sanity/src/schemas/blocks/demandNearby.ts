@@ -7,7 +7,7 @@ import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 export const demandNearbyBlock = defineType({
   name: "demandNearbyBlock",
   title: "Demand Nearby",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

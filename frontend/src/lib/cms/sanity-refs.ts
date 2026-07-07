@@ -214,14 +214,14 @@ const PDP_BODY_BLOCKS_PROJECTION = `"body": body[] {
       "columns": @.columns[] {
         columnType, width, verticalAlignment,
         textTitle, textTitleSize,
-        textContent[] { _type, _key, children, markDefs, listItem, style },
+        textContent[] ${PT_BLOCK},
         mediaType,
         mediaImage { asset-> { _id, url }, alt },
         mediaImageAlt, mediaYoutubeUrl, mediaCaption, mediaAspectRatio,
         highlightImage { asset-> { _id, url } }, highlightTitle, highlightTitleSize,
-        highlightTeaser[] { _type, _key, children, markDefs, listItem, style }, highlightLabel,
+        highlightTeaser[] ${PT_BLOCK}, highlightLabel,
         ctaCardBgImage { asset-> { _id, url } }, ctaCardTitle, ctaCardTitleSize, ctaCardOverlay,
-        ctaCardBody[] { _type, _key, children, markDefs, listItem, style },
+        ctaCardBody[] ${PT_BLOCK},
         ctaCardCtaEnabled, ctaCardCtaLabel, ctaCardCtaUrl,
         person-> { _id, name, photo { asset->{ _id, url } }, role, bio, profileUrl, personType },
         personShowBio, personShowLink

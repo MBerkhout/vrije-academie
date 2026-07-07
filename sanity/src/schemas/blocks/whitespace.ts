@@ -15,7 +15,7 @@ const HEIGHT_PRESETS = [
 export const whitespaceBlock = defineType({
   name: "whitespaceBlock",
   title: "Whitespace",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

@@ -18,7 +18,7 @@ const MEDIA_TYPE_OPTIONS = [
 export const afbeeldingBlock = defineType({
   name: "afbeeldingBlock",
   title: "Afbeelding",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

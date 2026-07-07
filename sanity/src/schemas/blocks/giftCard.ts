@@ -9,7 +9,7 @@ import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 export const giftCardBlock = defineType({
   name: "giftCardBlock",
   title: "Cadeaubon (koop)",
-  type: "document",
+  type: "object",
   fields: [
     defineField({
       name: "pageTitle",

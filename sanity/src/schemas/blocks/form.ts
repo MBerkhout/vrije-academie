@@ -12,7 +12,7 @@ const FORM_SOURCE_OPTIONS = [
 export const formBlock = defineType({
   name: "formBlock",
   title: "Form",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

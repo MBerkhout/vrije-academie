@@ -18,7 +18,7 @@ const AUTOMATED_FEED_OPTIONS = [
 export const productRowBlock = defineType({
   name: "productRowBlock",
   title: "Productkaarten",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

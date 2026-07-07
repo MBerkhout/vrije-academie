@@ -37,12 +37,14 @@ export default async function Home() {
     )
   }
 
-  const blocks = (page.blocks ?? []).filter((b): b is NonNullable<typeof b> => Boolean(b?._id))
+  const blocks = (page.blocks ?? []).filter((b): b is NonNullable<typeof b> =>
+    Boolean(b?._key ?? b?._id),
+  )
 
   return (
     <div>
       {blocks.map((block) => (
-        <BlockRenderer key={block._id} block={block} />
+        <BlockRenderer key={block._key ?? block._id} block={block} />
       ))}
     </div>
   )

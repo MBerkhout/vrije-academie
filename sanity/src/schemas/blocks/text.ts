@@ -7,7 +7,7 @@ import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 export const textBlock = defineType({
   name: "textBlock",
   title: "Text",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Block style" },

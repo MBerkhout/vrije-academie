@@ -9,7 +9,7 @@ import { defineCtaUrlField } from "../objects/ctaUrl"
 export const plpBlock = defineType({
   name: "plpBlock",
   title: "PLP (Ons aanbod)",
-  type: "document",
+  type: "object",
   fields: [
     defineField({
       name: "banner",

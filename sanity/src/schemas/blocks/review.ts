@@ -14,7 +14,7 @@ const STAR_RATING_BUTTONS = [1, 2, 3, 4, 5].map((n) => ({ title: String(n), valu
 export const reviewBlock = defineType({
   name: "reviewBlock",
   title: "Review",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

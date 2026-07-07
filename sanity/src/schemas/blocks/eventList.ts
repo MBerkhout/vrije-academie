@@ -11,7 +11,7 @@ const EVENT_TYPE_FILTER_OPTIONS = [
 export const eventList = defineType({
   name: "eventList",
   title: "Event List",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Style" },

@@ -8,7 +8,7 @@ import { EDITORIAL_TITLE_SIZE_OPTIONS, OVERLAY_OPTIONS, overlayField } from "../
 export const editorialCardsBlock = defineType({
   name: "editorialCardsBlock",
   title: "Redactionele promotiekaarten",
-  type: "document",
+  type: "object",
   groups: [
     { name: "content", title: "Content", default: true },
     { name: "style", title: "Stijl" },

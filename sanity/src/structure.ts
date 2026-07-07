@@ -2,8 +2,8 @@ import type { StructureResolver } from "sanity/structure"
 import { LinkIcon, DocumentsIcon } from "@sanity/icons"
 
 /**
- * Content blocks are only used inside Page.blocks.
- * Hide them from the sidebar - editors add blocks via "+ Add item" in the Page editor.
+ * Content blocks are inline object types on Page.blocks (not standalone documents).
+ * Hide legacy block document types from the sidebar if any remain in the dataset.
  */
 const CONTENT_BLOCK_TYPES = [
   "eventList",
