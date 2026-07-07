@@ -1,6 +1,16 @@
 import type { Metadata } from 'next'
 import type { SEO } from './types'
 
+/** Applied site-wide until public launch. */
+export const SITE_ROBOTS: Metadata['robots'] = {
+  index: false,
+  follow: false,
+  googleBot: {
+    index: false,
+    follow: false,
+  },
+}
+
 export function resolveSeoImageUrl(seo?: SEO | null): string | undefined {
   return seo?.openGraph?.image?.asset?.url ?? seo?.metaImage?.asset?.url
 }
@@ -15,15 +25,8 @@ export function resolveSeoDescription(seo?: SEO | null, fallback?: string): stri
   return value || undefined
 }
 
-function resolveRobots(seo?: SEO | null): string | undefined {
-  const robots: string[] = []
-  if (seo?.nofollowAttributes) {
-    robots.push('noindex', 'nofollow')
-  }
-  for (const directive of seo?.robotsMeta ?? []) {
-    if (!robots.includes(directive)) robots.push(directive)
-  }
-  return robots.length ? robots.join(', ') : undefined
+function resolveRobots(_seo?: SEO | null): Metadata['robots'] {
+  return SITE_ROBOTS
 }
 
 export function buildSeoMetadata(
@@ -38,12 +41,10 @@ export function buildSeoMetadata(
   const title = resolveSeoTitle(seo, options.fallbackTitle)
   const description = resolveSeoDescription(seo, options.fallbackDescription)
   const ogImage = resolveSeoImageUrl(seo) ?? options.fallbackImage
-  const robots = resolveRobots(seo)
-
   return {
     ...(title && { title }),
     ...(description && { description }),
-    ...(robots && { robots }),
+    robots: resolveRobots(seo),
     ...(options.canonical && { alternates: { canonical: options.canonical } }),
     openGraph: {
       ...(title && { title }),

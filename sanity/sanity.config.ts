@@ -12,7 +12,7 @@ import { mirroredDocumentActions } from "./src/lib/mirrorActions"
 import { redirectAwareDocumentActions } from "./src/lib/redirectActions"
 
 const previewOrigin =
-  process.env.SANITY_STUDIO_PREVIEW_URL || "https://frontend-va.thedigitalimprover.nl"
+  process.env.SANITY_STUDIO_PREVIEW_URL || "https://v2.vrijeacademie.nl"
 const hubspotApiUrl = `${previewOrigin}/api/hubspot`
 
 export default defineConfig({

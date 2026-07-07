@@ -276,17 +276,7 @@ export interface UspBlock extends Block {
 }
 
 export interface UspItem {
-  source: 'bibliotheek' | 'aangepast'
-  usp?:
-    | { _ref: string }
-    | {
-        _id?: string
-        title?: string
-        description?: PortableTextBlock[]
-        linkEnabled?: boolean
-        linkLabel?: string
-        linkUrl?: string
-      }
+  _key?: string
   title?: string
   description?: PortableTextBlock[]
   linkEnabled?: boolean
@@ -666,15 +656,6 @@ export interface Category {
   image?: { asset: { _ref: string } }
   linkUrl?: string
   sortOrder?: number
-}
-
-export interface Usp {
-  _id: string
-  title: string
-  description?: PortableTextBlock[]
-  linkEnabled?: boolean
-  linkLabel?: string
-  linkUrl?: string
 }
 
 export type PersonType = 'docent' | 'team' | 'gastspreker'

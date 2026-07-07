@@ -89,7 +89,7 @@ Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS ori
 | `SANITY_API_READ_TOKEN` | Viewer token from [sanity.io/manage](https://sanity.io/manage) → API → Tokens (draft read). Without it, `/api/draft` returns 503 and the preview shows published content only. |
 | `NEXT_PUBLIC_SANITY_STUDIO_URL` | Hosted Studio URL including `basePath`, e.g. `https://<project-id>.sanity.studio/studio` |
 
-In the Sanity project (**API → CORS origins**), add `https://frontend-va.thedigitalimprover.nl` with **Allow credentials** checked so `SanityLive` can subscribe to draft updates in the Presentation iframe.
+In the Sanity project (**API → CORS origins**), add `https://v2.vrijeacademie.nl` with **Allow credentials** checked so `SanityLive` can subscribe to draft updates in the Presentation iframe.
 
 Sanity Studio env for CI is provided via GitHub Secrets (see below), not on the server.
 
@@ -180,7 +180,7 @@ In the repo: **Settings → Secrets and variables → Actions**
 | `SANITY_STUDIO_PROJECT_ID` | Sanity project ID (also used as the hosted studio subdomain on first deploy) |
 | `SANITY_STUDIO_DATASET` | Dataset name (e.g. `production` or `staging`) |
 
-CI also sets `SANITY_STUDIO_PREVIEW_URL` to `https://frontend-va.thedigitalimprover.nl` for the Presentation tool (bundled at deploy time).
+CI also sets `SANITY_STUDIO_PREVIEW_URL` to `https://v2.vrijeacademie.nl` for the Presentation tool (bundled at deploy time).
 
 You do **not** need a separate studio hostname secret. CI sets `studioHost` from `SANITY_STUDIO_PROJECT_ID`, so the first deploy registers `https://<project-id>.sanity.studio` automatically. Only add `SANITY_STUDIO_HOSTNAME` if you later want a custom subdomain instead of the project ID.
 

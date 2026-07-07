@@ -4,48 +4,12 @@ import Link from 'next/link'
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
 import { PortableText } from '@/components/cms/PortableText'
 import {
-  cleanBlockValue,
   getTitleTag,
   getTitleSizeClass,
   type UspBlock as UspBlockType,
-  type UspItem,
   type PortableTextBlock,
 } from '@/lib/cms'
 import { cn } from '@/lib/utils'
-
-function getUspTitle(item: UspItem): string {
-  if (!item) return ''
-  const source = cleanBlockValue(item.source)
-  if (source === 'aangepast') return item.title ?? ''
-  if (source === 'bibliotheek' && item.usp && typeof item.usp === 'object' && 'title' in item.usp) {
-    return (item.usp as { title?: string }).title ?? ''
-  }
-  return ''
-}
-
-function getUspDescription(item: UspItem): PortableTextBlock[] | null {
-  if (!item) return null
-  const source = cleanBlockValue(item.source)
-  if (source === 'aangepast') return item.description ?? null
-  if (source === 'bibliotheek' && item.usp && typeof item.usp === 'object' && 'description' in item.usp) {
-    const desc = (item.usp as { description?: PortableTextBlock[] }).description
-    return desc ?? null
-  }
-  return null
-}
-
-function getUspLink(item: UspItem): { label?: string; url?: string } | null {
-  if (!item) return null
-  const source = cleanBlockValue(item.source)
-  if (source === 'aangepast' && item.linkEnabled) {
-    return { label: item.linkLabel, url: item.linkUrl }
-  }
-  if (source === 'bibliotheek' && item.usp && typeof item.usp === 'object') {
-    const usp = item.usp as { linkEnabled?: boolean; linkLabel?: string; linkUrl?: string }
-    if (usp.linkEnabled) return { label: usp.linkLabel, url: usp.linkUrl }
-  }
-  return null
-}
 
 export function UspBlock({
   block,
@@ -81,12 +45,15 @@ export function UspBlock({
           )}
         >
           {items.map((item, i) => {
-            const title = getUspTitle(item)
-            const description = getUspDescription(item)
-            const link = getUspLink(item)
+            const title = item.title ?? ''
+            const description = item.description ?? null
+            const link =
+              item.linkEnabled && item.linkUrl && item.linkLabel
+                ? { label: item.linkLabel, url: item.linkUrl }
+                : null
             return (
               <div
-                key={i}
+                key={item._key ?? i}
                 className={cn(
                   'flex w-full max-w-[240px] flex-none flex-col items-center text-center md:w-auto',
                   isDark && 'max-w-none text-center',
@@ -112,7 +79,7 @@ export function UspBlock({
                       isDark ? 'text-va-gray-300' : 'text-va-darkgray',
                     )}
                   >
-                    <PortableText value={description} tone={tone} />
+                    <PortableText value={description as PortableTextBlock[]} tone={tone} />
                   </div>
                 )}
                 {link?.url && link?.label && (

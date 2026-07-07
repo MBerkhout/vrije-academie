@@ -107,7 +107,6 @@ function blocksFromLegacy(legacy) {
       _key: blockKey("uspBlock"),
       items: usps.map((usp) => ({
         _key: blockKey("uspItem"),
-        source: "aangepast",
         title: usp?.title ?? "",
         description: textToPortableText(usp?.body),
       })),
@@ -170,19 +169,16 @@ function defaultLandingBlocks() {
       items: [
         {
           _key: blockKey("uspItem"),
-          source: "aangepast",
           title: "Elk moment",
           description: textToPortableText("Kijk wanneer het jou uitkomt."),
         },
         {
           _key: blockKey("uspItem"),
-          source: "aangepast",
           title: "Overal",
           description: textToPortableText("Op je laptop, tablet of telefoon."),
         },
         {
           _key: blockKey("uspItem"),
-          source: "aangepast",
           title: "Beschikbaar",
           description: textToPortableText("Na aankoop 3 maanden toegang."),
         },

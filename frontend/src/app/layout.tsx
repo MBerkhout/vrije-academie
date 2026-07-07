@@ -3,6 +3,7 @@ import { draftMode } from 'next/headers'
 import { Source_Sans_3 } from 'next/font/google'
 import { VisualEditing } from 'next-sanity/visual-editing'
 import { SanityLive } from '@/lib/cms/live'
+import { SITE_ROBOTS } from '@/lib/cms/seo-metadata'
 import { refreshOnPresentation } from '@/app/actions/refresh'
 import { DisableDraftMode } from '@/components/DisableDraftMode'
 import './globals.css'
@@ -17,6 +18,7 @@ const fontSans = Source_Sans_3({
 export const metadata: Metadata = {
   title: 'Vrije Academie',
   description: 'Kunst, geschiedenis en filosofie',
+  robots: SITE_ROBOTS,
 }
 
 export default async function RootLayout({

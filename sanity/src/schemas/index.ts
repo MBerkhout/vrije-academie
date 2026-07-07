@@ -32,7 +32,7 @@ import {
   linkObject,
   imageWithAlt,
 } from "./objects"
-import { category, usp, person, product, docent, city } from "./documents"
+import { category, person, product, docent, city } from "./documents"
 
 export const schemaTypes = [
   // Documents
@@ -41,7 +41,6 @@ export const schemaTypes = [
   generalSettings,
   menu,
   category,
-  usp,
   person,
   product,
   docent,

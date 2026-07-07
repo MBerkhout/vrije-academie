@@ -84,7 +84,7 @@ Create a `.env` file:
 ```env
 SANITY_STUDIO_PROJECT_ID=your-project-id
 SANITY_STUDIO_DATASET=production
-# Presentation preview (hosted default: https://frontend-va.thedigitalimprover.nl)
+# Presentation preview (hosted default: https://v2.vrijeacademie.nl)
 SANITY_STUDIO_PREVIEW_URL=http://localhost:3001
 ```
 
@@ -192,7 +192,7 @@ The Studio includes the Presentation tool for visual editing with the Next.js fr
 **CORS for live preview (Sanity v6 Presentation):** Studio connects to the Live Content API from its own origin (`http://localhost:3333` in dev). In [sanity.io/manage](https://sanity.io/manage) → API → CORS origins, add **both** Studio and frontend origins with **Allow credentials** enabled:
 
 - `http://localhost:3333`, `http://localhost:3000` (and `http://127.0.0.1:*` if you open Studio via IP)
-- Hosted: `https://<project-id>.sanity.studio`, `https://frontend-va.thedigitalimprover.nl`
+- Hosted: `https://<project-id>.sanity.studio`, `https://v2.vrijeacademie.nl`
 
 `sanity cors list` only shows URLs, not the credentials flag. Recreate with credentials: `npx sanity cors delete http://localhost:3333 && npx sanity cors add http://localhost:3333 --credentials` (repeat for each origin). Hard-refresh Studio after changes.
 

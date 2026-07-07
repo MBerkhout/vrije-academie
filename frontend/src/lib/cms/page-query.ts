@@ -3,7 +3,7 @@
  * Keep in sync with Sanity block schemas.
  *
  * Inline blocks: when `page.blocks[]` items are full documents (no `_ref`), the default branch only spreads `@`.
- * Types that hold references in nested arrays (categories, USP, persons, columns[].person) must repeat those joins here or refs stay raw.
+ * Types that hold references in nested arrays (categories, persons, columns[].person) must repeat those joins here or refs stay raw.
  * Page-only blocks (e.g. editorialCardsBlock): projected in `BLOCK_PROJECTION` + PAGE_QUERY inline branch; not in tab panel arrays.
  */
 
@@ -190,8 +190,6 @@ const TAB_CONTENT_BLOCK_PROJECTION = `{
         title,
         titleSize,
         items[] {
-          source,
-          usp-> { _id, title, description, linkEnabled, linkLabel, linkUrl },
           title,
           description[] { _type, _key, children, markDefs, listItem, style },
           linkEnabled,
@@ -263,8 +261,6 @@ const TAB_PANEL_NESTED_BLOCKS_INNER = `            ...select(
                 ...@,
                 ${INLINE_PAGE_BLOCK_LAYOUT},
                 "items": @.items[] {
-                  source,
-                  "usp": usp-> { _id, title, description, linkEnabled, linkLabel, linkUrl },
                   title,
                   description[] { _type, _key, children, markDefs, listItem, style },
                   linkEnabled,
@@ -435,8 +431,6 @@ const BLOCK_PROJECTION = `{
         title,
         titleSize,
         items[] {
-          source,
-          usp-> { _id, title, description, linkEnabled, linkLabel, linkUrl },
           title,
           description[] { _type, _key, children, markDefs, listItem, style },
           linkEnabled,
@@ -559,8 +553,6 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
         ...@,
         ${INLINE_PAGE_BLOCK_LAYOUT},
         "items": @.items[] {
-          source,
-          "usp": usp-> { _id, title, description, linkEnabled, linkLabel, linkUrl },
           title,
           description[] { _type, _key, children, markDefs, listItem, style },
           linkEnabled,

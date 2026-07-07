@@ -9,6 +9,7 @@
     "deploy": "sanity deploy",
     "schema:deploy": "sanity schema deploy",
     "migrate:person-type": "node ./scripts/migrate-person-type.mjs",
+    "migrate:usp-inline": "node ./scripts/migrate-usp-inline.mjs",
     "migrate:plp-to-page": "node ./scripts/migrate-plp-to-page.mjs",
     "migrate:gift-card-to-page": "node ./scripts/migrate-gift-card-to-page.mjs",
     "seed:footer-settings": "node ./scripts/seed-footer-general-settings.mjs",

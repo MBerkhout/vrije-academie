@@ -160,9 +160,11 @@ Image Block
 
 ## USP
 
-**Purpose**: Three selling points in a row or column layout (library USP documents or per-block custom items).
+**Purpose**: Three selling points in a row or column layout, edited inline per block (title, description, optional link per item).
 
-**GROQ**: `page-query.ts` projects text and link fields on `usp->` for library items; the frontend renders title, description, and optional link only (no icons).
+**GROQ**: `page-query.ts` projects inline item fields only; the frontend renders title, description, and optional link (no icons).
+
+**Migration**: Run `npm run migrate:usp-inline --prefix sanity` once when upgrading from the legacy USP library model.
 
 ---
 
@@ -197,7 +199,7 @@ Image Block
 - **Column gap** (sm / md / lg)
 - **Columns**: per column — **Width** (Equal / Narrow / Wide, horizontal radio), **Vertical alignment** (Top / Center / Bottom), then type-specific content (text with title size radios, media, highlight, product cards, CTA card, person card)
 
-**Frontend**: From `md` up, columns are a horizontal flex row with proportional widths; **vertical alignment** applies within the row. On small screens, columns stack. Inline `columnsBlock` on pages (and columns inside tabs) uses a dedicated GROQ branch so **`person->`** and other column references resolve—same idea as categories/USP/persons inline blocks.
+**Frontend**: From `md` up, columns are a horizontal flex row with proportional widths; **vertical alignment** applies within the row. On small screens, columns stack. Inline `columnsBlock` on pages (and columns inside tabs) uses a dedicated GROQ branch so **`person->`** and other column references resolve—same idea as categories/persons inline blocks.
 
 **Nested column types**:
 - Text, Media, Highlight card, Product cards, CTA card, Person card (not arbitrary nested blocks)

@@ -2,12 +2,7 @@ import { defineType, defineField } from "sanity"
 import { defineCtaUrlField } from "../objects/ctaUrl"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
-import { portableText } from "../objects/portableText"
 import { TITLE_SIZE_OPTIONS } from "../objects/mediaEnums"
-const USP_ITEM_SOURCE_OPTIONS = [
-  { title: "Bibliotheek", value: "bibliotheek" },
-  { title: "Aangepast", value: "aangepast" },
-] as const
 
 const USP_ITEMS_LAYOUT_OPTIONS = [
   { title: "Horizontal", value: "horizontal" },
@@ -48,78 +43,39 @@ export const uspBlock = defineType({
         {
           type: "object",
           preview: {
-            select: {
-              source: "source",
-              customTitle: "title",
-              libraryTitle: "usp.title",
-            },
-            prepare({ source, customTitle, libraryTitle }) {
-              const fromLibrary = source !== "aangepast"
-              return {
-                title: fromLibrary
-                  ? libraryTitle || "Kies USP (bibliotheek)"
-                  : customTitle || "Aangepast item",
-                subtitle: fromLibrary ? "Bibliotheek" : "Aangepast",
-              }
+            select: { title: "title" },
+            prepare({ title }) {
+              return { title: title || "USP item" }
             },
           },
           fields: [
             defineField({
-              name: "source",
-              title: "Source",
-              type: "string",
-              options: { list: [...USP_ITEM_SOURCE_OPTIONS] },
-              initialValue: "bibliotheek",
-              components: { input: createButtonSelectInput([...USP_ITEM_SOURCE_OPTIONS]) },
-            }),
-            defineField({
-              name: "usp",
-              title: "USP",
-              type: "reference",
-              to: [{ type: "usp" }],
-              hidden: ({ parent }) => parent?.source !== "bibliotheek",
-              validation: (Rule) =>
-                Rule.custom((ref, ctx) => {
-                  const parent = ctx.parent as { source?: string }
-                  if (parent?.source === "bibliotheek" && !ref) return "Selecteer een USP uit de bibliotheek."
-                  return true
-                }),
-            }),
-            defineField({
               name: "title",
               title: "Title",
               type: "string",
-              hidden: ({ parent }) => parent?.source !== "aangepast",
               validation: (Rule) =>
-                Rule.custom((v, ctx) => {
-                  const parent = ctx.parent as { source?: string }
-                  if (parent?.source === "aangepast" && !v) return "USP-titel is verplicht."
-                  if (v && v.length > 30) return "Max 30 karakters."
-                  return true
-                }),
+                Rule.required().max(30).error("USP-titel is verplicht (max 30 karakters)."),
             }),
             defineField({
               name: "description",
               title: "Description",
               type: "portableText",
-              hidden: ({ parent }) => parent?.source !== "aangepast",
             }),
             defineField({
               name: "linkEnabled",
               title: "Show Link",
               type: "boolean",
               initialValue: false,
-              hidden: ({ parent }) => parent?.source !== "aangepast",
             }),
             defineField({
               name: "linkLabel",
               title: "Link Label",
               type: "string",
-              hidden: ({ parent }) => parent?.source !== "aangepast" || !parent?.linkEnabled,
+              hidden: ({ parent }) => !parent?.linkEnabled,
               validation: (Rule) =>
                 Rule.custom((v, ctx) => {
-                  const parent = ctx.parent as { source?: string; linkEnabled?: boolean }
-                  if (parent?.source === "aangepast" && parent?.linkEnabled && !v)
+                  const parent = ctx.parent as { linkEnabled?: boolean }
+                  if (parent?.linkEnabled && !v)
                     return "Linktekst en URL zijn verplicht als link is ingeschakeld."
                   return true
                 }),
@@ -127,11 +83,11 @@ export const uspBlock = defineType({
             defineCtaUrlField({
               name: "linkUrl",
               title: "Link URL",
-              hidden: ({ parent }) => parent?.source !== "aangepast" || !parent?.linkEnabled,
+              hidden: ({ parent }) => !parent?.linkEnabled,
               validation: (Rule) =>
                 Rule.custom((v, ctx) => {
-                  const parent = ctx.parent as { source?: string; linkEnabled?: boolean }
-                  if (parent?.source === "aangepast" && parent?.linkEnabled && !v)
+                  const parent = ctx.parent as { linkEnabled?: boolean }
+                  if (parent?.linkEnabled && !v)
                     return "Linktekst en URL zijn verplicht."
                   return true
                 }),
