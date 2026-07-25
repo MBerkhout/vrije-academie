@@ -31,7 +31,7 @@ The frontend `blockLayout.ts` supports both flat (GROQ projection) and nested (`
 
 - **Page only** (add via **Page → Content Blocks**), same as Hero and Productkaarten.
 - **Layout defaults:** Full width, 24px vertical margin, 48px vertical padding; block **background** stays none — the visual comes from the **achtergrondbeeld**.
-- **Content:** Sectietitel (with underline style on the frontend), full-bleed **background image** + **overlay** (default **None**; light / medium / dark), **Titelgrootte** (default **None** for body-style text, or H1–H4), **2–4 cards** (grid shows the same number of columns as cards on large breakpoints). Each card: optional label, title, rich text, 16:9 image on top, optional link (label + URL). Cards are **white**, rounded, shadowed; entire card is clickable when a URL is set. Overlay and titelgrootte use the same button-style choices as other blocks (no blank row in a dropdown).
+- **Content:** Sectietitel (with underline style on the frontend), full-bleed **background image** + **overlay** (default **None**; light / medium / dark), **Titelgrootte** (default **None** for body-style text, or H1–H4), **2–4 cards** (grid shows the same number of columns as cards at all breakpoints, including mobile). Each card: optional label, title, rich text, 16:9 image on top, optional link (label + URL). Cards are **white**, rounded, shadowed; entire card is clickable when a URL is set. Overlay and titelgrootte use the same button-style choices as other blocks (no blank row in a dropdown).
 
 ## Productkaarten — `productRowBlock`
 

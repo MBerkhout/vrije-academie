@@ -61,6 +61,9 @@ export function AgendaRow({ item }: AgendaRowProps) {
         <div className="font-bold text-va-black text-sm leading-none">
           {dayNum} {monthLabel}
         </div>
+        {timeRange ? (
+          <div className="mt-1 text-xs text-va-black leading-snug sm:hidden">{timeRange}</div>
+        ) : null}
         <div className="text-xs text-va-gray mt-1 capitalize">{weekday}</div>
       </div>
 

@@ -22,6 +22,61 @@ interface CartItemRowProps {
   onRemove: (itemId: string) => Promise<void>
 }
 
+function CartQuantityStepper({
+  item,
+  updating,
+  isGiftPurchase,
+  onQuantityChange,
+}: {
+  item: CartItem
+  updating: boolean
+  isGiftPurchase: boolean
+  onQuantityChange: (itemId: string, quantity: number) => Promise<void>
+}) {
+  if (isGiftPurchase) {
+    return <span className="font-sans text-sm text-va-darkgray tabular-nums">1</span>
+  }
+
+  return (
+    <div className="flex items-center">
+      <button
+        type="button"
+        aria-label="Minder"
+        disabled={updating || item.quantity <= 1}
+        onClick={() => onQuantityChange(item.id, item.quantity - 1)}
+        className="flex h-8 w-8 items-center justify-center border border-r-0 border-va-gray-300 font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40"
+      >
+        −
+      </button>
+      <label className="sr-only" htmlFor={`qty-${item.id}`}>
+        Aantal
+      </label>
+      <select
+        id={`qty-${item.id}`}
+        value={item.quantity}
+        onChange={(e) => onQuantityChange(item.id, Number(e.target.value))}
+        disabled={updating}
+        className="h-8 w-11 appearance-none border border-va-gray-300 bg-white px-1 text-center font-sans text-sm text-va-black outline-none focus-visible:ring-2 focus-visible:ring-va-yellow"
+      >
+        {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+          <option key={n} value={n}>
+            {n}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        aria-label="Meer"
+        disabled={updating || item.quantity >= 12}
+        onClick={() => onQuantityChange(item.id, item.quantity + 1)}
+        className="flex h-8 w-8 items-center justify-center border border-l-0 border-va-gray-300 font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40"
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
 export function CartItemRow({
   item,
   extras,
@@ -42,98 +97,72 @@ export function CartItemRow({
   })
 
   return (
-    <div className={clsx('py-4 flex gap-4', updating && 'opacity-60 pointer-events-none')}>
-      {/* Thumbnail */}
-      <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 overflow-hidden bg-va-lightgray-200 rounded-lg">
+    <div
+      className={clsx(
+        'grid grid-cols-[4rem_1fr] gap-x-3 gap-y-3 py-4 sm:gap-x-4 md:grid-cols-[5rem_1fr_auto]',
+        updating && 'pointer-events-none opacity-60'
+      )}
+    >
+      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-va-lightgray-200 md:h-20 md:w-20">
         {thumbnail ? (
           <Image
             src={thumbnail}
             alt={title}
             width={80}
             height={80}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-va-lightgray-200" />
+          <div className="h-full w-full bg-va-lightgray-200" />
         )}
       </div>
 
-      {/* Middle: title + session details */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         {handle ? (
           <Link
             href={plpProductPath(handle)}
-            className="font-sans font-semibold text-sm text-va-black hover:underline leading-snug"
+            className="font-sans text-sm font-semibold leading-snug text-va-black hover:underline"
           >
             {title}
           </Link>
         ) : (
-          <span className="font-sans font-semibold text-sm text-va-black leading-snug">{title}</span>
+          <span className="font-sans text-sm font-semibold leading-snug text-va-black">{title}</span>
         )}
 
         <CartLineItemDetails blocks={detailBlocks} variant="cart" />
       </div>
 
-        <div className="shrink-0 flex flex-col items-end gap-1">
+      <div className="col-span-2 flex flex-col gap-2 md:col-span-1 md:col-start-3 md:row-start-1 md:items-end">
+        <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-end md:gap-2">
           <div className="flex items-center gap-2">
-            {/* Qty stepper — gift cards are always qty 1 */}
-            <div className="flex items-center">
-              {isGiftPurchase ? (
-                <span className="font-sans text-sm text-va-darkgray w-24 text-center tabular-nums">1</span>
-              ) : (
-              <>
-              <button
-                type="button"
-                aria-label="Minder"
-                disabled={updating || item.quantity <= 1}
-                onClick={() => onQuantityChange(item.id, item.quantity - 1)}
-                className="w-7 h-7 flex items-center justify-center border border-r-0 border-va-gray-300 font-sans text-base text-va-black hover:bg-va-lightgray-200 disabled:opacity-40 transition-colors"
-              >
-                −
-              </button>
-              <label className="sr-only" htmlFor={`qty-${item.id}`}>Aantal</label>
-              <select
-                id={`qty-${item.id}`}
-                value={item.quantity}
-                onChange={(e) => onQuantityChange(item.id, Number(e.target.value))}
-                disabled={updating}
-                className="h-7 border border-va-gray-300 px-1 font-sans text-sm bg-white outline-none focus-visible:ring-2 focus-visible:ring-va-yellow text-center appearance-none w-10"
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                aria-label="Meer"
-                disabled={updating || item.quantity >= 12}
-                onClick={() => onQuantityChange(item.id, item.quantity + 1)}
-                className="w-7 h-7 flex items-center justify-center border border-l-0 border-va-gray-300 font-sans text-base text-va-black hover:bg-va-lightgray-200 disabled:opacity-40 transition-colors"
-              >
-                +
-              </button>
-              </>
-              )}
-            </div>
-            {/* Price */}
-            <span className="font-sans font-semibold text-sm text-va-black whitespace-nowrap w-16 text-right">
-              {formatPriceEur(lineTotal, 'standard')}
+            <span className="shrink-0 font-sans text-xs font-semibold text-va-darkgray md:hidden">
+              Aantal
             </span>
+            <div className="md:flex md:w-24 md:justify-center">
+              <CartQuantityStepper
+                item={item}
+                updating={updating}
+                isGiftPurchase={isGiftPurchase}
+                onQuantityChange={onQuantityChange}
+              />
+            </div>
           </div>
-
-          {/* Verwijderen — below qty stepper, aligned left of stepper */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onRemove(item.id)}
-              disabled={updating}
-              className="font-sans text-xs text-va-darkgray hover:text-red-600 underline underline-offset-2 transition-colors w-24 text-left"
-            >
-              Verwijderen
-            </button>
-            <span className="w-16" aria-hidden />
-          </div>
+          <span className="font-sans text-sm font-semibold whitespace-nowrap text-va-black md:w-16 md:text-right">
+            {formatPriceEur(lineTotal, 'standard')}
+          </span>
         </div>
+        <div className="md:flex md:w-full md:justify-end md:gap-2">
+          <button
+            type="button"
+            onClick={() => onRemove(item.id)}
+            disabled={updating}
+            className="font-sans text-xs text-va-darkgray underline underline-offset-2 transition-colors hover:text-red-600 md:w-24 md:text-left"
+          >
+            Verwijderen
+          </button>
+          <span className="hidden w-16 md:inline" aria-hidden />
+        </div>
+      </div>
     </div>
   )
 }

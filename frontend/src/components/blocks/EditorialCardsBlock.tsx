@@ -35,25 +35,25 @@ function linkIsExternal(href: string) {
   return /^https?:\/\//i.test(href) || href.startsWith('//')
 }
 
-/** One row of N columns on large screens (N = 2…4); stacked on small viewports. */
+/** Same column count at all breakpoints (2–4 cards side by side, including mobile). */
 function editorialGridClass(cardCount: number) {
   if (cardCount <= 1) {
     return 'grid-cols-1 md:max-w-4xl'
   }
   if (cardCount === 2) {
-    return 'grid-cols-1 md:grid-cols-2'
+    return 'grid-cols-2'
   }
   if (cardCount === 3) {
-    return 'grid-cols-1 md:grid-cols-3'
+    return 'grid-cols-3'
   }
-  return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+  return 'grid-cols-4'
 }
 
 function cardImageSizes(cardCount: number) {
   if (cardCount <= 1) return '(min-width: 768px) 80vw, 100vw'
-  if (cardCount === 2) return '(min-width: 768px) 45vw, 100vw'
-  if (cardCount === 3) return '(min-width: 768px) 34vw, 100vw'
-  return '(min-width: 1024px) 24vw, (min-width: 640px) 45vw, 100vw'
+  if (cardCount === 2) return '(min-width: 768px) 45vw, 50vw'
+  if (cardCount === 3) return '(min-width: 768px) 34vw, 33vw'
+  return '(min-width: 1024px) 24vw, 25vw'
 }
 
 function EditorialCard({ card, cardCount }: { card: EditorialCardItem; cardCount: number }) {
@@ -74,19 +74,32 @@ function EditorialCard({ card, cardCount }: { card: EditorialCardItem; cardCount
           />
         ) : null}
       </div>
-      <div className="flex flex-1 flex-col gap-3 px-5 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5">
+      <div
+        className={cn(
+          'flex flex-1 flex-col gap-2 px-3 pb-3 pt-3 sm:gap-3 sm:px-6 sm:pb-6 sm:pt-5',
+          cardCount >= 2 && 'md:gap-3'
+        )}
+      >
         {card.label?.trim() ? (
-          <p className="font-sans text-xs font-semibold uppercase tracking-[0.12em] text-va-gray">
+          <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.12em] text-va-gray sm:text-xs">
             {card.label.trim()}
           </p>
         ) : null}
         {title ? (
-          <h3 className="font-sans text-lg font-bold leading-snug text-va-black sm:text-xl">{title}</h3>
+          <h3
+            className={cn(
+              'font-sans font-bold leading-snug text-va-black',
+              cardCount >= 2 ? 'text-sm sm:text-xl' : 'text-lg sm:text-xl'
+            )}
+          >
+            {title}
+          </h3>
         ) : null}
         {card.description && card.description.length > 0 ? (
           <div
             className={cn(
-              'font-sans text-sm leading-relaxed text-va-darkgray',
+              'font-sans leading-relaxed text-va-darkgray',
+              cardCount >= 2 ? 'hidden text-xs sm:block sm:text-sm' : 'text-sm',
               '[&_p]:mb-2 [&_p:last-child]:mb-0 [&_li]:text-sm'
             )}
           >
@@ -193,7 +206,7 @@ export function EditorialCardsBlock({ block }: { block: EcBlock }) {
 
           <div
             className={cn(
-              'mt-8 grid gap-6 md:gap-8',
+              'mt-8 grid gap-3 sm:gap-6 md:gap-8',
               editorialGridClass(cards.length)
             )}
           >

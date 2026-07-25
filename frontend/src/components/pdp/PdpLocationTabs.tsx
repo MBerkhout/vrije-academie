@@ -465,12 +465,11 @@ export function PdpLocationTabs({
                       </p>
                       {venue ? <p className="text-va-gray leading-snug pl-5">{venue}</p> : null}
                       {(showDate && ei?.start_at) || ei?.start_at ? (
-                        <p className="min-w-0 text-va-black">
+                        <div className="flex min-w-0 flex-col gap-0.5 text-va-black">
                           {showDate && ei?.start_at ? (
                             <>
                               <span>{formatDateWeekdayLong(ei.start_at)}</span>
                               <span className="text-va-gray">
-                                {' '}
                                 {formatTimeRange(ei.start_at, ei.end_at, { separator: ' tot ' })}
                               </span>
                             </>
@@ -479,7 +478,7 @@ export function PdpLocationTabs({
                               {formatTimeRange(ei.start_at!, ei.end_at, { separator: ' tot ' })}
                             </span>
                           )}
-                        </p>
+                        </div>
                       ) : null}
                       {instructor ? <p className="text-va-gray">{instructor}</p> : null}
                     </div>

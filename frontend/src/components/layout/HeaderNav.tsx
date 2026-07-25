@@ -373,46 +373,53 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
       <div className={clsx('relative max-w-[1240px] mx-auto', CONTAINER_PADDING_CLASS)}>
         {/* Mobile: stacked branding row (desktop main nav lives in column layout below) */}
         <div className="md:hidden">
-          <div className="flex items-center justify-between gap-3 py-3">
+          <div className="flex min-w-0 items-center justify-between gap-2 py-3 sm:gap-3">
             <HeaderLogoMobile header={header} lightWordmark={isVaThuis} />
 
-            <div className={clsx('flex items-end justify-end gap-5 font-sans text-[11px]', isVaThuis ? 'text-white' : 'text-va-black')}>
+            <div className={clsx('flex shrink-0 items-end justify-end gap-3 font-sans text-[11px]', isVaThuis ? 'text-white' : 'text-va-black')}>
               <button
                 type="button"
-                className="flex flex-col items-center gap-1 min-w-[3rem] outline-none focus-visible:ring-2 focus-visible:ring-va-yellow"
+                className="flex max-w-[2.75rem] flex-col items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-va-yellow"
                 onClick={openMobileSearch}
                 aria-expanded={searchOpen}
               >
-                <IconSearch className="w-6 h-6" />
-                <span>Zoeken</span>
+                <IconSearch className="w-6 h-6 shrink-0" />
+                <span className="w-full text-center leading-tight break-words hyphens-auto">Zoeken</span>
               </button>
               <Link
                 href={cartUrl}
-                className="flex flex-col items-center gap-1 min-w-[3rem] relative outline-none focus-visible:ring-2 focus-visible:ring-va-yellow rounded"
+                className="flex max-w-[2.75rem] flex-col items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-va-yellow rounded"
                 aria-label={
                   cartItemCount !== null && cartItemCount > 0
                     ? `Winkelwagen, ${cartItemCount > 99 ? '99+' : cartItemCount} artikelen in mandje`
                     : 'Winkelwagen'
                 }
               >
-                <span className="inline-flex items-center gap-1">
+                <span className="relative inline-flex shrink-0">
                   <IconCart className="w-6 h-6" aria-hidden />
                   {cartItemCount !== null && cartItemCount > 0 ? (
-                    <CartCountBadge count={cartItemCount} />
+                    <CartCountBadge
+                      count={cartItemCount}
+                      className="absolute -top-1.5 -right-2 min-h-[1.125rem] min-w-[1.125rem] px-1 text-[10px]"
+                    />
                   ) : null}
                 </span>
-                <span>Winkelwagen</span>
+                <span className="w-full text-center leading-tight break-words hyphens-auto">
+                  Winkel
+                  <wbr aria-hidden="true" />
+                  wagen
+                </span>
               </Link>
               <button
                 type="button"
-                className="flex flex-col items-center gap-1 min-w-[3rem] outline-none focus-visible:ring-2 focus-visible:ring-va-yellow"
+                className="flex max-w-[2.75rem] flex-col items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-va-yellow"
                 onClick={() => (menuOpen ? closeMenu() : openMenu())}
                 aria-expanded={menuOpen}
                 aria-controls="mobile-drawer-nav"
                 id="mobile-menu-trigger"
               >
-                {menuOpen ? <IconClose className="w-6 h-6" /> : <IconMenu className="w-6 h-6" />}
-                <span>Menu</span>
+                {menuOpen ? <IconClose className="w-6 h-6 shrink-0" /> : <IconMenu className="w-6 h-6 shrink-0" />}
+                <span className="w-full text-center leading-tight break-words hyphens-auto">Menu</span>
               </button>
             </div>
           </div>

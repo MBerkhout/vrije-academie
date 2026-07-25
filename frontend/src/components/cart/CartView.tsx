@@ -198,8 +198,8 @@ export function CartView({ settings }: CartViewProps) {
       <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
         {/* Left column: continue link + items + promo */}
         <div className="flex-1 min-w-0 space-y-6">
-          {/* Column header row */}
-          <div className="flex gap-4 border-b border-va-lightgray-300 pb-2">
+          {/* Column header row — desktop table layout only */}
+          <div className="hidden gap-4 border-b border-va-lightgray-300 pb-2 md:flex">
             <div className="w-16 md:w-20 shrink-0" aria-hidden />
             <div className="flex-1 min-w-0">
               <span className="font-sans text-xs font-semibold text-va-darkgray">Product</span>

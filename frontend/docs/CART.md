@@ -74,7 +74,7 @@ Zie ook [`medusa/docs/GIFT-CARDS.md`](../../medusa/docs/GIFT-CARDS.md).
 ## Layout
 
 - `lg+`: two-column grid — left `flex-1` (items + promo), right `w-80` sticky (order summary → trust/USPs → **Doorgaan met afrekenen** last)
-- `< md`: single column, `ProceedCta` is **sticky at bottom** of viewport via `fixed bottom-0`
+- `< md`: single column; cart line items use a **stacked layout** (product info full width, then **Aantal** stepper + price on one row, **Verwijderen** below). Column headers are hidden. `ProceedCta` is **sticky at bottom** of viewport via `fixed bottom-0`
 
 ## Checkout shell (routes under `/checkout/*`)
 
