@@ -30,7 +30,7 @@ export function PlpTabs({ tabs, activePath }: PlpTabsProps) {
               role="tab"
               aria-selected={isActive}
               className={cn(
-                'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
+                'pb-2 md:pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
                 isActive
                   ? 'border-va-yellow text-va-black'
                   : 'border-transparent text-va-gray hover:text-va-black'

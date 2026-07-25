@@ -1,10 +1,9 @@
 import { Suspense } from 'react'
 import { AccountGegevensForm } from '@/components/account/AccountGegevensForm'
 import { defaultMessages } from '@/lib/i18n/messages'
+import { noIndexMetadata } from '@/lib/cms/seo-metadata'
 
-export const metadata = {
-  title: 'Persoonlijke gegevens – Vrije Academie',
-}
+export const metadata = noIndexMetadata('Persoonlijke gegevens – Vrije Academie')
 
 function GegevensFallback() {
   const common = defaultMessages.common

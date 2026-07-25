@@ -5,7 +5,11 @@ import clsx from 'clsx'
 import Link from 'next/link'
 import { isCustomerProfileComplete, isGuestCartCheckoutReady } from '@/lib/commerce/checkout-profile'
 import { ensureGuestCheckoutCartHydrated } from '@/lib/commerce/checkout-resume'
+import { getActiveCart } from '@/lib/commerce/cart'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
+import { trackBeginCheckout } from '@/lib/analytics/events/ecommerce'
+import { buildUserDataFromCustomer, buildUserDataFromFields } from '@/lib/analytics/mappers/user-data'
+import { fetchCartExtras } from '@/lib/commerce/fetch-cart-extras'
 
 interface ProceedCtaProps {
   label?: string
@@ -41,9 +45,27 @@ export function ProceedCta({ label, fullWidth = false }: ProceedCtaProps) {
     }
   }, [customer, customerLoading])
 
+  async function handleClick() {
+    const cart = await getActiveCart()
+    if (!cart) return
+    const extras = await fetchCartExtras(cart.id)
+    const userData =
+      buildUserDataFromCustomer(customer) ??
+      buildUserDataFromFields({
+        email: cart.email,
+        phone: cart.shipping_address?.phone,
+        first_name: cart.shipping_address?.first_name,
+        last_name: cart.shipping_address?.last_name,
+        postal_code: cart.shipping_address?.postal_code,
+        country: cart.shipping_address?.country_code,
+      })
+    trackBeginCheckout(cart, extras, userData)
+  }
+
   return (
     <Link
       href={href}
+      onClick={() => void handleClick()}
       className={clsx(
         'inline-flex items-center justify-center',
         'bg-va-yellow text-va-black font-sans font-semibold text-sm',

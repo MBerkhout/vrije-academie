@@ -1,5 +1,6 @@
 import { centsToMajorEur } from "../utils/money"
 import { REGISTRATION_EXTERNAL_ID_FIELD } from "../utils/salesforce-config"
+import { usesSalesforceMedusaCustomFields } from "../utils/salesforce-medusa-fields"
 
 export type SfRegistrationShape = {
   Id?: string
@@ -45,19 +46,25 @@ export type RegistrationLineContext = {
 }
 
 export function registrationToSalesforce(input: RegistrationLineContext): Partial<SfRegistrationShape> {
-  return {
-    Medusa_Registration_Id__c: input.externalId,
+  const useMedusaFields = usesSalesforceMedusaCustomFields()
+  const core: Partial<SfRegistrationShape> = {
+    ...(useMedusaFields ? { Medusa_Registration_Id__c: input.externalId } : {}),
     Order__c: input.orderId,
     Account__c: input.accountId,
     Contact_Lookup__c: input.contactId,
     vaProduct__c: input.vaProductId,
     Status__c: "Ingeschreven",
-    Origin__c: "Website",
     WebOrder__c: true,
     Number_Of_People__c: 1,
     Total_Price__c: centsToMajorEur(input.lineTotalCents),
-    Order_Amount__c: centsToMajorEur(input.orderTotalCents),
     Total_Quantity__c: 1,
+  }
+  if (!useMedusaFields) return core
+
+  return {
+    ...core,
+    Origin__c: "Website",
+    Order_Amount__c: centsToMajorEur(input.orderTotalCents),
     Product_Start_Date__c: input.productStartAt ?? undefined,
     Product_End_Date__c: input.productEndAt ?? undefined,
     Product_Code__c: input.productCode ?? undefined,
@@ -93,7 +100,9 @@ export function voucherPurchaseToSalesforce(input: {
   code: string
 }): Partial<SfVoucherShape> {
   return {
-    Medusa_Gift_Card_Id__c: input.giftCardId,
+    ...(usesSalesforceMedusaCustomFields()
+      ? { Medusa_Gift_Card_Id__c: input.giftCardId }
+      : {}),
     Source_Order__c: input.orderId,
     Type__c: "Giftcard",
     Original_Amount__c: centsToMajorEur(input.amountCents),

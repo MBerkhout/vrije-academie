@@ -2,8 +2,10 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { cmsClient } from '@/lib/cms/server'
 import { buildSeoMetadata } from '@/lib/cms/seo-metadata'
+import { buildCmsPageJsonLd } from '@/lib/cms/page-structured-data'
 import { CONTAINER_CLASS } from '@/lib/cms'
 import { BlockRenderer } from '@/components/blocks'
+import { JsonLd } from '@/components/common/JsonLd'
 
 // Revalidate cached HTML every 60 s; on-demand revalidation from Sanity webhooks can lower this further.
 export const revalidate = 60
@@ -20,6 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return buildSeoMetadata(page.seo, {
     fallbackTitle: page.title ? `${page.title} | Vrije Academie` : undefined,
+    path: `/${slug}`,
   })
 }
 
@@ -43,6 +46,9 @@ export default async function SlugPage({ params }: PageProps) {
 
   return (
     <div>
+      {buildCmsPageJsonLd(page, `/${slug}`).map((schema) => (
+        <JsonLd key={schema['@type'] as string} data={schema} />
+      ))}
       {blocks.length > 0 ? (
         blocks.map((block) => {
           const b = block as { titleSize?: string; titleAlignment?: string }

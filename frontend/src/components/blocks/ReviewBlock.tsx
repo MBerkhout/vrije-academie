@@ -108,7 +108,7 @@ export function ReviewBlock({ block }: { block: ReviewBlockType }) {
           {showRating && (
             <div
               className={cn(
-                'mb-6 md:mb-0 md:flex-shrink-0 md:max-w-[13rem]',
+                'mb-6 mx-auto max-w-[100px] md:mx-0 md:mb-0 md:flex-shrink-0 md:max-w-[13rem]',
                 'rounded-none border border-va-lightgray-300 border-b-[6px] border-b-va-yellow bg-va-white',
                 'p-5 md:p-6 shadow-sm'
               )}

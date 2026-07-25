@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { noIndexMetadata } from '@/lib/cms/seo-metadata'
 import {
   Badge,
   Button,
@@ -14,6 +16,8 @@ import {
 } from '@/lib/va-colors.js'
 import { PlpEventCard } from '@/components/plp/PlpEventCard'
 import { PlpEmptyState } from '@/components/plp/PlpEmptyState'
+
+export const metadata: Metadata = noIndexMetadata('Component library – Vrije Academie')
 
 function Section({
   title,

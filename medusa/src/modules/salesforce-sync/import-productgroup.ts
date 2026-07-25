@@ -257,7 +257,7 @@ async function upsertEventItemForVariant(
   const productModule = container.resolve(Modules.PRODUCT)
 
   const delivery = inferDeliveryType(child, groupRecordType)
-  const qty = courseProductAvailableQuantity(child)
+  const qty = courseProductAvailableQuantity(child, groupRecordType)
   const isVathuis = delivery === "pre_recorded"
   const startAt =
     isVathuis || !child.Start_date_time__c ? null : new Date(child.Start_date_time__c)

@@ -3,9 +3,9 @@ import { cmsClient } from '@/lib/cms/server'
 import { Breadcrumbs } from '@/components/common/Breadcrumbs'
 import { LoginForm } from '@/components/auth/LoginForm'
 
-export const metadata = {
-  title: 'Inloggen – Vrije Academie',
-}
+import { noIndexMetadata } from '@/lib/cms/seo-metadata'
+
+export const metadata = noIndexMetadata('Inloggen – Vrije Academie')
 
 export default async function LoginPage() {
   const settings = await cmsClient.getGeneralSettings()

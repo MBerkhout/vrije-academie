@@ -37,8 +37,8 @@ The frontend `blockLayout.ts` supports both flat (GROQ projection) and nested (`
 
 - **Page only:** Add via **Page → Content Blocks** (not inside Tabs), same as Hero.
 - **Layout defaults:** Full width, 24px top/bottom margin (adjust in Style).
-- **Source:** Handmatig (exact 4 product refs), Automatisch (bestsellers or newest via Medusa), or Persoonlijk (visitor favorites, else recently viewed; hidden when empty).
-- **Structure:** Section title + horizontal carousel of 4 `PlpEventCard`-style product cards. Optional footer CTA (e.g. “Bekijk al onze reizen”).
+- **Source:** Handmatig (1–4 product refs), Automatisch (bestsellers or newest via Medusa), or Persoonlijk (visitor favorites, else recently viewed; hidden when empty).
+- **Structure:** Section title + horizontal carousel of up to 4 `PlpEventCard`-style product cards (fixed card width so the block keeps the same size with fewer picks). Optional footer CTA (e.g. “Bekijk al onze reizen”).
 
 ## Deprecated blocks
 

@@ -1,6 +1,8 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
+import { stripMedusaCustomFields } from "../../../modules/salesforce-sync/utils/salesforce-medusa-fields"
+import { upsertSalesforceRecordById } from "../../../modules/salesforce-sync/utils/upsert-record"
 
 export type UpsertSalesforceInput = {
   skipped?: boolean
@@ -8,6 +10,7 @@ export type UpsertSalesforceInput = {
   externalIdField: string
   externalId: string
   fields: Record<string, unknown>
+  existingSalesforceId?: string | null
 }
 
 /**
@@ -27,11 +30,14 @@ export const upsertSalesforceStep = createStep(
       })
     }
     const svc = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
-    const { id } = await svc.upsertByExternalId(
+    const fields = stripMedusaCustomFields(input.fields)
+    const id = await upsertSalesforceRecordById(
+      svc,
       input.salesforceObject,
+      input.existingSalesforceId ?? null,
       input.externalIdField,
       input.externalId,
-      input.fields
+      fields
     )
     return new StepResponse<{ skipped: boolean; salesforceId: string | null }>({
       skipped: false,

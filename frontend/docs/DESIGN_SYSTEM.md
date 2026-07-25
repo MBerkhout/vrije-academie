@@ -96,8 +96,13 @@ Fonts load via **`next/font/google`** in `src/app/layout.tsx` (self-hosted at bu
 ## Spacing & Layout
 
 ### Page Wrapper
+
+Sitewide content uses **`CONTAINER_CLASS`** from `@/lib/cms` (`max-w-[1240px] mx-auto px-4 md:px-8 min-[1304px]:px-0`). Side padding stays until the viewport is wide enough that centering alone provides the same 32px gutter (1240 + 2×32 = **1304px**). Header, footer, CMS blocks, and page shells share this pattern via `CONTAINER_PADDING_CLASS`.
+
 ```tsx
-<div className="max-w-6xl mx-auto px-4 md:px-8">
+import { CONTAINER_CLASS } from '@/lib/cms'
+
+<div className={CONTAINER_CLASS}>
   {/* Content */}
 </div>
 ```
@@ -197,7 +202,7 @@ Use `@/components/ui/Badge` everywhere so colors and spacing stay consistent.
 
 **Header Navigation**:
 - **Desktop (`md+`)**: Two columns — left, the VA monogram (or CMS logo) is fixed at 125px height, vertically centered; right, stacked rows: wordmark + utility links, gold rule, then primary nav and search. Implemented in `HeaderNav`.
-- **Mobile**: Single branding row with icons, gold rule, optional quick bar, drawer for the main menu.
+- **Mobile**: Single branding row with icons, yellow secondary nav bar, drawer for the main menu.
 
 ```tsx
 <nav className="bg-white border-b border-va-lightgray">

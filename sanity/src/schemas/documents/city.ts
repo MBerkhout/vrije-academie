@@ -40,6 +40,12 @@ export const city = defineType({
       readOnly: true,
       initialValue: 0,
     }),
+    defineField({
+      name: "seo",
+      title: "SEO",
+      type: "seo",
+      description: "Optional SEO for the city listing page (/ons-aanbod/plaats/[slug]).",
+    }),
   ],
   orderings: [
     { title: "Sort Order", name: "sortOrderAsc", by: [{ field: "sortOrder", direction: "asc" }] },

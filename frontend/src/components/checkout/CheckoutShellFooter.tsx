@@ -18,7 +18,7 @@ export function CheckoutShellFooter({ settings }: CheckoutShellFooterProps) {
 
   return (
     <footer className="border-t border-va-lightgray-300 bg-va-lightgray-100 mt-auto">
-      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0 py-6">
+      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1304px]:px-0 py-6">
         {isExternalHref(href) ? (
           <a
             href={href}

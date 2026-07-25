@@ -1,8 +1,10 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { PLP_BASE_PATH } from '@/lib/routes'
+import { trackSortChange } from '@/lib/analytics/events/ecommerce'
+import { plpListIdFromPath } from '@/lib/analytics/page-types'
 
 const DEFAULT_SORT_OPTIONS = [
   { value: 'order', label: 'Aanbevolen' },
@@ -30,11 +32,14 @@ export function PlpSortSelect({
 }: PlpSortSelectProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname() ?? basePath
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const sortValue = e.target.value
     const params = new URLSearchParams(searchParams.toString())
-    params.set('sort', e.target.value)
+    params.set('sort', sortValue)
     params.delete('page')
+    trackSortChange(plpListIdFromPath(pathname), sortValue)
     router.push(`${basePath}?${params.toString()}`)
   }
 

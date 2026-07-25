@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { cmsClient } from '@/lib/cms/server'
 import { buildSeoMetadata } from '@/lib/cms/seo-metadata'
+import { buildCmsPageJsonLd } from '@/lib/cms/page-structured-data'
 import { CONTAINER_CLASS } from '@/lib/cms'
 import { BlockRenderer } from '@/components/blocks'
+import { JsonLd } from '@/components/common/JsonLd'
 
 // Match other CMS pages: avoid indefinite static cache of Sanity content (e.g. category tile images).
 export const revalidate = 60
@@ -13,11 +15,13 @@ export async function generateMetadata(): Promise<Metadata> {
     return buildSeoMetadata(undefined, {
       fallbackTitle: 'Vrije Academie',
       fallbackDescription: 'Kunst, geschiedenis en filosofie',
+      path: '/',
     })
   }
 
   return buildSeoMetadata(page.seo, {
     fallbackTitle: page.title ? `${page.title} | Vrije Academie` : 'Vrije Academie',
+    path: '/',
   })
 }
 
@@ -43,6 +47,10 @@ export default async function Home() {
 
   return (
     <div>
+      {page &&
+        buildCmsPageJsonLd(page, '/').map((schema) => (
+          <JsonLd key={schema['@type'] as string} data={schema} />
+        ))}
       {blocks.map((block) => (
         <BlockRenderer key={block._key ?? block._id} block={block} />
       ))}

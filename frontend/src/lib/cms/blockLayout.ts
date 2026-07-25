@@ -89,9 +89,16 @@ export function getBlockContainerStyles(block: Record<string, unknown>): Record<
   }
 }
 
-/** Shared container class with padding. Used for container-width blocks and page fallbacks. Side padding only below max width so centered layout is not double-inset. */
-export const CONTAINER_CLASS =
-  'max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0'
+/**
+ * Horizontal padding for the 1240px content column.
+ * Keep `md:px-8` until the viewport is wide enough that `mx-auto` centering alone
+ * provides the same 32px gutter (1240 + 2×32 = 1304px). Removing padding earlier
+ * caused a cliff around 1240–1260px where content sat flush to the viewport edge.
+ */
+export const CONTAINER_PADDING_CLASS = 'px-4 md:px-8 min-[1304px]:px-0'
+
+/** Shared container class with padding. Used for container-width blocks and page fallbacks. */
+export const CONTAINER_CLASS = `max-w-[1240px] mx-auto ${CONTAINER_PADDING_CLASS}`
 
 export function getBlockContainerWidthClass(block: Record<string, unknown>): string {
   const layout = block.layout as Record<string, unknown> | undefined

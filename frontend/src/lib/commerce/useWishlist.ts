@@ -13,6 +13,7 @@ import {
   wishlistHandlesEqual,
 } from './wishlist'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
+import { trackAddToWishlist } from '@/lib/analytics/events/ecommerce'
 
 export function useWishlist() {
   const { customer, loading: customerLoading, refresh } = useCustomer()
@@ -95,6 +96,14 @@ export function useWishlist() {
         const inList = handles.includes(h)
         const next = inList ? removeHandleFromList(handles, h) : addHandleToList(handles, h)
         await persistHandles(next)
+        if (!inList) {
+          try {
+            const event = await commerceClient.getEvent(h)
+            if (event) trackAddToWishlist(event)
+          } catch {
+            /* analytics best-effort */
+          }
+        }
       } finally {
         setPendingHandle(null)
       }

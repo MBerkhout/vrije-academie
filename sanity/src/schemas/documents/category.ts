@@ -93,7 +93,7 @@ export const category = defineType({
     defineField({
       name: "seo",
       title: "SEO",
-      type: "seoMetaFields",
+      type: "seo",
       group: "seo",
     }),
   ],

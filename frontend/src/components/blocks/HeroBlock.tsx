@@ -8,6 +8,7 @@ import { SanityImage } from '@/components/cms/SanityImage'
 import { Button } from '@/components/ui'
 import { getTitleTag, getTitleSizeClass, cleanBlockValue, type HeroBlock as HeroBlockType } from '@/lib/cms'
 import { isExternalHref } from '@/lib/menu-href'
+import { trackSelectPromotion, trackViewPromotion } from '@/lib/analytics/events/ecommerce'
 import { cn } from '@/lib/utils'
 
 const OVERLAY_CLASS = {
@@ -60,27 +61,29 @@ function SlideLinkShell({
   href,
   className,
   children,
+  onNavigate,
 }: {
   href: string
   className?: string
   children: ReactNode
+  onNavigate?: () => void
 }) {
   if (isExternalHref(href)) {
     return (
-      <a href={href} className={className} target="_blank" rel="noopener noreferrer">
+      <a href={href} className={className} target="_blank" rel="noopener noreferrer" onClick={onNavigate}>
         {children}
       </a>
     )
   }
   if (href.startsWith('mailto:') || href.startsWith('tel:')) {
     return (
-      <a href={href} className={className}>
+      <a href={href} className={className} onClick={onNavigate}>
         {children}
       </a>
     )
   }
   return (
-    <Link href={href} className={className}>
+    <Link href={href} className={className} onClick={onNavigate}>
       {children}
     </Link>
   )
@@ -97,6 +100,21 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
     const id = setInterval(() => setSlideIndex((i) => (i + 1) % slides.length), interval)
     return () => clearInterval(id)
   }, [block.autoplay, block.autoplayInterval, slides.length])
+
+  useEffect(() => {
+    if (!slide) return
+    const promotionName = cleanBlockValue(slide.title)?.trim() || 'Homepage banner'
+    const promotionId = promotionName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || `slide_${slideIndex + 1}`
+    trackViewPromotion(promotionId, promotionName, `homepage_jumbotron_${slideIndex + 1}`)
+  }, [slide, slideIndex])
+
+  function trackSlideSelect(index: number) {
+    const target = slides[index]
+    if (!target) return
+    const promotionName = cleanBlockValue(target.title)?.trim() || 'Homepage banner'
+    const promotionId = promotionName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || `slide_${index + 1}`
+    trackSelectPromotion(promotionId, promotionName, `homepage_jumbotron_${index + 1}`)
+  }
 
   const Tag = getTitleTag(block.topPanelTitleSize ?? 'h2')
   const fullBleed = cleanBlockValue(block.width) === 'full'
@@ -158,6 +176,7 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
                 <SlideLinkShell
                   href={slideLink}
                   className="absolute inset-0 z-0 block cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+                  onNavigate={() => trackSlideSelect(slideIndex)}
                 >
                   {slideBody}
                 </SlideLinkShell>
@@ -188,7 +207,10 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
                   <button
                     key={i}
                     type="button"
-                    onClick={() => setSlideIndex(i)}
+                    onClick={() => {
+                      trackSlideSelect(i)
+                      setSlideIndex(i)
+                    }}
                     aria-label={`Go to slide ${i + 1}`}
                     aria-current={i === slideIndex}
                     className={cn(
@@ -205,20 +227,20 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
           <div
             className={cn(
               'flex-1 min-h-0 overflow-hidden border border-va-lightgray-300 bg-white',
-              'rounded-lg flex flex-col sm:flex-row sm:items-stretch'
+              'rounded-lg flex flex-row items-stretch'
             )}
           >
             <div
               className={cn(
-                'min-w-0 flex flex-1 flex-col justify-center p-6 lg:p-8',
-                block.topPanelImage?.asset && 'sm:max-w-[58%] lg:max-w-[60%]'
+                'min-w-0 flex flex-1 flex-col justify-center p-4 sm:p-6 lg:p-8',
+                block.topPanelImage?.asset && 'max-w-[58%] lg:max-w-[60%]'
               )}
             >
               {block.topPanelTitle && (
                 <Tag
                   className={cn(
                     getTitleSizeClass(block.topPanelTitleSize),
-                    'font-sans font-bold text-va-black mb-3 text-balance'
+                    'font-sans font-bold text-va-black mb-2 sm:mb-3 text-balance'
                   )}
                 >
                   {block.topPanelTitle}
@@ -228,20 +250,20 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
                 <PortableText value={block.topPanelBody} />
               )}
               {block.topPanelCtaEnabled && block.topPanelCtaLabel && block.topPanelCtaUrl && (
-                <Button variant="primary" href={block.topPanelCtaUrl} className="mt-4 self-start">
+                <Button variant="primary" href={block.topPanelCtaUrl} className="mt-3 sm:mt-4 self-start">
                   {block.topPanelCtaLabel}
                 </Button>
               )}
             </div>
             {block.topPanelImage?.asset && (
-              <div className="relative mr-1 h-full min-h-[10rem] w-full min-w-0 bg-white sm:flex-1 sm:max-w-[45%]">
+              <div className="relative mr-1 min-h-[5rem] w-[42%] shrink-0 min-w-0 self-stretch bg-white sm:flex-1 sm:max-w-[45%]">
                 <SanityImage
                   source={block.topPanelImage}
                   fill
                   aspectRatio=""
                   objectFit="contain"
-                  sizes="(min-width: 1024px) 320px, 100vw"
-                  className="h-full w-full min-h-[10rem] sm:min-h-0"
+                  sizes="(min-width: 640px) 45vw, 42vw"
+                  className="h-full w-full"
                 />
               </div>
             )}

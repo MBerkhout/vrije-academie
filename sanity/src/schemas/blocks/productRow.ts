@@ -5,7 +5,7 @@ import { TITLE_SIZE_OPTIONS } from "../objects/mediaEnums"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 
 const SOURCE_TYPE_OPTIONS = [
-  { title: "Handmatig (4 producten)", value: "handpicked" },
+  { title: "Handmatig (1–4 producten)", value: "handpicked" },
   { title: "Automatisch (bestsellers / nieuwste)", value: "automated" },
   { title: "Persoonlijk (favorieten / recent bekeken)", value: "personalized" },
 ] as const
@@ -62,7 +62,8 @@ export const productRowBlock = defineType({
           const parent = ctx.parent as { sourceType?: string }
           if (parent?.sourceType !== "handpicked") return true
           const count = Array.isArray(items) ? items.length : 0
-          if (count !== 4) return "Selecteer exact 4 producten."
+          if (count < 1) return "Selecteer minimaal 1 product."
+          if (count > 4) return "Selecteer maximaal 4 producten."
           return true
         }),
     }),

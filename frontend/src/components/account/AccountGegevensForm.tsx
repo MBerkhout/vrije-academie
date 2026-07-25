@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { trackUpdateAccountInfo } from '@/lib/analytics/events/ecommerce'
 import { commerceClient } from '@/lib/commerce'
 import { getDefaultCheckoutAddress, splitAddressLine } from '@/lib/commerce/checkout-profile'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
@@ -186,6 +187,10 @@ export function AccountGegevensForm() {
       })
       await refresh()
       window.dispatchEvent(new Event('va:customer-updated'))
+      trackUpdateAccountInfo(
+        ['naam', 'telefoonnummer', 'geboortedatum', 'adres'],
+        customer?.email ?? ''
+      )
       setSaveSuccess(true)
     } catch {
       setError(t.saveProfileError)

@@ -5,6 +5,9 @@ export default defineCliConfig({
     projectId: process.env.SANITY_STUDIO_PROJECT_ID || '',
     dataset: process.env.SANITY_STUDIO_DATASET || 'production',
   },
+  deployment: {
+    appId: 'o2zj4sblnrnlmddkbsg4dean',
+  },
   // Required for `sanity deploy --yes` (CI). Defaults to project ID → https://<id>.sanity.studio
   studioHost:
     process.env.SANITY_STUDIO_HOSTNAME || process.env.SANITY_STUDIO_PROJECT_ID || undefined,

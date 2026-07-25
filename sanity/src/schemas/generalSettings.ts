@@ -397,6 +397,66 @@ export const generalSettings = defineType({
       ],
     }),
     defineField({
+      name: "organization",
+      title: "Organization (structured data)",
+      type: "object",
+      description:
+        "Optional overrides for Schema.org Organization JSON-LD. Footer contact and social links are used as fallbacks.",
+      fields: [
+        defineField({
+          name: "legalName",
+          title: "Legal name",
+          type: "string",
+          description: 'Defaults to "Vrije Academie" when empty.',
+        }),
+        defineField({
+          name: "logo",
+          title: "Logo",
+          type: "image",
+          description: "Used in Organization schema. Falls back to the header logo.",
+          options: { hotspot: true },
+        }),
+        defineField({
+          name: "telephone",
+          title: "Telephone",
+          type: "string",
+          description: "Falls back to the footer phone line.",
+        }),
+        defineField({
+          name: "email",
+          title: "Email",
+          type: "string",
+          description: "Falls back to the footer contact email.",
+        }),
+        defineField({
+          name: "sameAs",
+          title: "Profile URLs (sameAs)",
+          type: "array",
+          description: "Social or official profile URLs. Falls back to footer social links.",
+          of: [
+            defineArrayMember({
+              type: "object",
+              name: "organizationProfileUrl",
+              fields: [
+                defineField({
+                  name: "url",
+                  title: "URL",
+                  type: "url",
+                  validation: (Rule) => Rule.required(),
+                }),
+              ],
+              preview: {
+                select: { url: "url" },
+                prepare({ url }) {
+                  return { title: url || "Profile URL" }
+                },
+              },
+            }),
+          ],
+        }),
+      ],
+    }),
+    defineField({
       name: "footer",
       title: "Footer",
       type: "object",

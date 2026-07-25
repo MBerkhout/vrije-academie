@@ -52,7 +52,7 @@ Copy is fixed: title **Meld je aan**, subtext **Schrijf je hier in voor onze nie
 ## Design Notes
 
 - On large viewports the slider column stretches to match the right column height so the image area aligns with the right column.
-- The top panel uses a **white** card, light border, and the optional image sits beside the text (no stripe between). The image uses **object-contain** so the full image fits without zoom-crop. The newsletter card matches the same white + border (no extra shadow on either card by default).
+- The top panel uses a **white** card, light border, and the optional image sits beside the text on **all** breakpoints (text left, image right; no stripe between). The image uses **object-contain** so the full image fits without zoom-crop. The newsletter card matches the same white + border (no extra shadow on either card by default).
 - Full-width layout adds horizontal padding on the hero grid; container width uses the block wrapper padding.
 - Background images should be high-quality and optimized for performance; overlay opacity controls slide text readability.
 - CTA button uses the primary yellow style.

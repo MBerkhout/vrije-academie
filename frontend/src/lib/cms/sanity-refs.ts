@@ -1,5 +1,6 @@
 import { sanityPreviewClient } from './sanity-preview-client'
 import { SEO_FIELD } from './seo-fragment'
+import type { ProductSeoSource } from './seo-metadata'
 import type { SEO } from './types'
 
 /**
@@ -89,7 +90,8 @@ export const CITY_BY_SLUG_QUERY = `*[_type == "city" && slug == $slug][0] {
   _id,
   slug,
   label,
-  sortOrder
+  sortOrder,
+  ${SEO_FIELD}
 }`
 
 /** Single category mirror by slug (for category PLP pages). */
@@ -153,6 +155,7 @@ export type CityOption = {
   slug: string
   label: string
   sortOrder?: number
+  seo?: SEO | null
 }
 
 export async function getPlpPage(): Promise<PlpPageData | null> {
@@ -268,6 +271,8 @@ export type SanityProductExtras = {
   customUrgencyMessage?: string | null
   relatedProducts?: RelatedProductCard[]
   seo?: SEO | null
+  seoTitle?: string | null
+  seoDescription?: string | null
 }
 
 const PRODUCT_EXTRAS_QUERY = `*[_type == "product" && medusaId == $medusaId][0] {
@@ -275,6 +280,8 @@ const PRODUCT_EXTRAS_QUERY = `*[_type == "product" && medusaId == $medusaId][0] 
   onlineBadge { enabled, text },
   customUrgencyMessage,
   ${SEO_FIELD},
+  seoTitle,
+  seoDescription,
   "relatedProducts": relatedProducts[]-> {
     _id,
     medusaId,
@@ -295,10 +302,13 @@ export async function getSanityProductExtras(medusaId: string): Promise<SanityPr
 }
 
 const PRODUCT_SEO_BY_HANDLE_QUERY = `*[_type == "product" && handle == $handle][0] {
-  ${SEO_FIELD}
+  ${SEO_FIELD},
+  seoTitle,
+  seoDescription
 }`
 
-export async function getProductSeoByHandle(handle: string): Promise<SEO | null> {
-  const row = await staticFetch<{ seo?: SEO | null }>(PRODUCT_SEO_BY_HANDLE_QUERY, { handle })
-  return row?.seo ?? null
+export interface ProductSeoByHandle extends ProductSeoSource {}
+
+export async function getProductSeoByHandle(handle: string): Promise<ProductSeoByHandle | null> {
+  return staticFetch<ProductSeoByHandle>(PRODUCT_SEO_BY_HANDLE_QUERY, { handle })
 }

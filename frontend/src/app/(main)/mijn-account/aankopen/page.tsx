@@ -1,9 +1,8 @@
 import { AccountOrdersList } from '@/components/account/AccountOrdersList'
 import { defaultMessages } from '@/lib/i18n/messages'
+import { noIndexMetadata } from '@/lib/cms/seo-metadata'
 
-export const metadata = {
-  title: 'Mijn aankopen – Vrije Academie',
-}
+export const metadata = noIndexMetadata('Mijn aankopen – Vrije Academie')
 
 export default function AccountAankopenPage() {
   const t = defaultMessages.accountPage

@@ -1,4 +1,17 @@
 import type SalesforceSyncModuleService from "../service"
+import {
+  SALESFORCE_DISCOUNT_PRODUCT2_ID,
+  SF_ORDER_ITEM_OBJECT,
+  SF_REGISTRATION_OBJECT,
+} from "./salesforce-config"
+import {
+  stripMedusaCustomFields,
+  usesSalesforceMedusaCustomFields,
+} from "./salesforce-medusa-fields"
+
+function escapeSoql(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
+}
 
 /** Upsert by external id; returns Salesforce record Id. */
 export async function upsertSalesforceRecord(
@@ -8,7 +21,12 @@ export async function upsertSalesforceRecord(
   externalId: string,
   fields: Record<string, unknown>
 ): Promise<string> {
-  const { id } = await sync.upsertByExternalId(sobject, externalIdField, externalId, fields)
+  const cleanFields = stripMedusaCustomFields(fields)
+  if (!usesSalesforceMedusaCustomFields()) {
+    const { id } = await sync.createRecord(sobject, cleanFields)
+    return id
+  }
+  const { id } = await sync.upsertByExternalId(sobject, externalIdField, externalId, cleanFields)
   return id
 }
 
@@ -21,17 +39,30 @@ export async function upsertSalesforceRecordById(
   externalId: string,
   fields: Record<string, unknown>
 ): Promise<string> {
+  const cleanFields = stripMedusaCustomFields(fields)
   if (salesforceId) {
-    await sync.updateRecord(sobject, salesforceId, fields)
+    let patchFields = cleanFields
+    if (sobject === SF_ORDER_ITEM_OBJECT && !usesSalesforceMedusaCustomFields()) {
+      patchFields = Object.fromEntries(
+        Object.entries(cleanFields).filter(([key]) =>
+          ["UnitPrice", "Quantity", "Registration__c", "vaProduct__c"].includes(key)
+        )
+      )
+    }
+    await sync.updateRecord(sobject, salesforceId, patchFields)
     return salesforceId
   }
+  if (!usesSalesforceMedusaCustomFields()) {
+    const { id } = await sync.createRecord(sobject, cleanFields)
+    return id
+  }
   try {
-    return await upsertSalesforceRecord(sync, sobject, externalIdField, externalId, fields)
+    return await upsertSalesforceRecord(sync, sobject, externalIdField, externalId, cleanFields)
   } catch (err) {
     const msg = (err as Error).message ?? ""
     if (/INVALID_FIELD|No such column/i.test(msg)) {
       const { id } = await sync.createRecord(sobject, {
-        ...fields,
+        ...cleanFields,
         [externalIdField]: externalId,
       })
       return id
@@ -46,6 +77,7 @@ export async function findSalesforceIdByExternalId(
   externalIdField: string,
   externalId: string
 ): Promise<string | null> {
+  if (!usesSalesforceMedusaCustomFields()) return null
   const escaped = externalId.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
   try {
     const q = await sync.query<{ Id: string }>(
@@ -55,6 +87,76 @@ export async function findSalesforceIdByExternalId(
   } catch {
     return null
   }
+}
+
+export async function findRegistrationByOrderAndVaProduct(
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  salesforceOrderId: string,
+  vaProductId: string
+): Promise<string | null> {
+  const orderId = escapeSoql(salesforceOrderId)
+  const vaId = escapeSoql(vaProductId)
+  const q = await sync.query<{ Id: string }>(
+    `SELECT Id FROM ${SF_REGISTRATION_OBJECT} WHERE Order__c = '${orderId}' AND vaProduct__c = '${vaId}' ORDER BY CreatedDate ASC LIMIT 1`
+  )
+  return q.records[0]?.Id ?? null
+}
+
+export async function findOrderItemByOrderRegistration(
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  salesforceOrderId: string,
+  registrationId: string,
+  kind: "product" | "discount",
+  vaProductId?: string
+): Promise<string | null> {
+  const orderId = escapeSoql(salesforceOrderId)
+  const regId = escapeSoql(registrationId)
+  const filter =
+    kind === "product" && vaProductId
+      ? `AND vaProduct__c = '${escapeSoql(vaProductId)}'`
+      : kind === "discount"
+        ? `AND Product2Id = '${escapeSoql(SALESFORCE_DISCOUNT_PRODUCT2_ID)}'`
+        : ""
+  const q = await sync.query<{ Id: string }>(
+    `SELECT Id FROM ${SF_ORDER_ITEM_OBJECT} WHERE OrderId = '${orderId}' AND Registration__c = '${regId}' ${filter} ORDER BY CreatedDate ASC LIMIT 1`
+  )
+  return q.records[0]?.Id ?? null
+}
+
+export async function ensureSyncState(
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  entityType: string,
+  medusaId: string,
+  salesforceId: string
+): Promise<void> {
+  const row = await sync.getStateByMedusaId(entityType, medusaId)
+  const payload = {
+    entity_type: entityType,
+    medusa_id: medusaId,
+    salesforce_id: salesforceId,
+    last_pushed_at: new Date(),
+    last_status: "success",
+    last_error: null,
+    failure_count: 0,
+    severity: null,
+    next_retry_at: null,
+  }
+  if (!row) {
+    await sync.createSalesforceSyncStates([payload])
+    return
+  }
+  await sync.updateSalesforceSyncStates({ id: row.id, ...payload })
+}
+
+export async function resolveExistingSalesforceId(
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  entityType: string,
+  medusaId: string,
+  externalLookup: () => Promise<string | null>
+): Promise<string | null> {
+  const fromState = (await sync.getStateByMedusaId(entityType, medusaId))?.salesforce_id
+  if (fromState) return fromState
+  return externalLookup()
 }
 
 export async function findVoucherIdByCode(

@@ -52,6 +52,7 @@ export const preparePushVariantStep = createStep(
       salesforceObject: "Product2",
       externalIdField: variantMapping.externalIdField,
       externalId: input.variantId,
+      existingSalesforceId: row?.salesforce_id ?? null,
       fields,
       entityType: "variant",
       medusaId: input.variantId,

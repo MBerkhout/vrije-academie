@@ -1,11 +1,11 @@
 import { defineConfig } from "sanity"
+import { assist } from "@sanity/assist"
 import { structureTool } from "sanity/structure"
 import { structure } from "./src/structure"
 import { presentationTool } from "sanity/presentation"
 import { visionTool } from "@sanity/vision"
 import { formSchema } from "@sanity/form-toolkit/form-schema"
 import { hubSpotInput } from "@sanity/form-toolkit/hubspot"
-import { seoMetaFields } from "sanity-plugin-seo"
 import { schemaTypes } from "./src/schemas"
 import { resolve } from "./src/presentation/resolve"
 import { mirroredDocumentActions } from "./src/lib/mirrorActions"
@@ -38,9 +38,7 @@ export default defineConfig({
       },
     }),
     visionTool(),
-    seoMetaFields({
-      slugField: "slug",
-    }),
+    assist(),
   ],
 
   schema: {

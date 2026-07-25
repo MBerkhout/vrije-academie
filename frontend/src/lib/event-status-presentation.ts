@@ -12,7 +12,7 @@ import { defaultMessages, interpolate } from '@/lib/i18n'
  * - PLP / card image badge styles from free-text CMS values (`classNameForProductBadge`)
  * - PLP tile low-stock footnote vs sold-out (`plpListingStockPresentation`)
  * - PDP session table availability cell (`sessionTableAvailabilityPresentation`)
- * - PLP card location + date visibility (`plpEventLocationLines`, `shouldShowEventDates`, `plpEventHasMultipleDates`)
+ * - PLP card delivery icon + date visibility (`plpEventDeliveryTypeDisplay`, `shouldShowEventDates`, `plpEventHasMultipleDates`)
  *
  * Add new keyword → style mappings for product badges here; keep order in
  * `PRODUCT_BADGE_RULES` meaningful (first matching rule wins).
@@ -39,6 +39,21 @@ export function shouldShowOnlineDeliveryIcon(input: {
 export interface PlpEventLocationLine {
   label: string
   isOnline: boolean
+}
+
+export type PlpEventDeliveryTypeDisplay = 'offline' | 'online' | 'both'
+
+/** Compact delivery icon next to PLP card titles: pin, camera, or pin / camera. */
+export function plpEventDeliveryTypeDisplay(
+  event: EventCardLocationInput,
+): PlpEventDeliveryTypeDisplay | null {
+  const hasOnsite = event.delivery_types?.includes('offline')
+  const hasOnline = event.delivery_types?.includes('online')
+
+  if (hasOnsite && hasOnline) return 'both'
+  if (isOnlineOnlyEvent(event)) return 'online'
+  if (hasOnsite || (event.cities?.length ?? 0) > 0) return 'offline'
+  return null
 }
 
 /** Location lines on PLP tiles and similar product cards. Hybrid products return two lines. */
@@ -149,6 +164,48 @@ function pricingVariantsForEvent(
     return bundle ? [bundle] : variants.filter((v) => v.purchasable !== false)
   }
   return variants.filter((v) => v.purchasable !== false)
+}
+
+/** VA Thuis on-demand bundles are always available for purchase. */
+export function eventHasUnlimitedAvailability(
+  event: Pick<EventCard, 'purchase_mode' | 'record_type'>,
+): boolean {
+  return event.purchase_mode === 'bundle_only' || event.record_type === 'vathuis'
+}
+
+function variantAvailableQuantity(variant: EventVariant): number {
+  return variant.event_item?.available_quantity ?? 0
+}
+
+/** Future, purchasable sessions that count toward product-level availability. */
+export function bookableEventVariants(
+  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id'>,
+): EventVariant[] {
+  return filterFutureEventVariants(pricingVariantsForEvent(event))
+}
+
+/**
+ * True when every bookable session is sold out. Unlike `min_available_quantity === 0`,
+ * this stays false when only some dates are volgeboekt.
+ */
+export function eventIsFullySoldOut(
+  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id' | 'record_type'>,
+): boolean {
+  if (eventHasUnlimitedAvailability(event)) return false
+  const variants = bookableEventVariants(event)
+  if (variants.length === 0) return false
+  return variants.every((variant) => variantAvailableQuantity(variant) === 0)
+}
+
+/** Lowest spot count among sessions that still have availability; null when none remain. */
+export function minPositiveBookableQuantity(
+  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id' | 'record_type'>,
+): number | null {
+  if (eventHasUnlimitedAvailability(event)) return null
+  const quantities = bookableEventVariants(event)
+    .map(variantAvailableQuantity)
+    .filter((quantity) => quantity > 0)
+  return quantities.length > 0 ? Math.min(...quantities) : null
 }
 
 /** Positive per-variant prices (cents) used for “Vanaf” vs “Voor” on cards and PDP. */
@@ -273,13 +330,19 @@ export function sessionTableAvailabilityPresentation(
   }
 }
 
-/** `EventCard.min_available_quantity` on listing grids (PLP, related, similar). */
+/** Product-level stock on listing grids (PLP, related, similar). */
 export function plpListingStockPresentation(
-  minAvailableQuantity: number | null | undefined,
+  event: Pick<
+    EventCard,
+    'variants' | 'purchase_mode' | 'bundle_variant_id' | 'min_available_quantity' | 'record_type'
+  >,
   lowStockThreshold: number
 ): { soldOut: boolean; lowStock: { label: string } | null } {
-  const soldOut = minAvailableQuantity === 0
-  const n = minAvailableQuantity
+  if (eventHasUnlimitedAvailability(event)) {
+    return { soldOut: false, lowStock: null }
+  }
+  const soldOut = eventIsFullySoldOut(event)
+  const n = soldOut ? null : (minPositiveBookableQuantity(event) ?? event.min_available_quantity)
   const showLowStock =
     n !== null && n !== undefined && n <= lowStockThreshold && n > 0
   const lowStock = showLowStock

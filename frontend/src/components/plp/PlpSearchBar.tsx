@@ -30,7 +30,6 @@ export function PlpSearchBar({
 }: PlpSearchBarProps) {
   const router = useRouter()
   const controlled = value !== undefined && onChange !== undefined
-  const displayValue = controlled ? value : undefined
 
   function navigateWithQuery(q: string) {
     const params = new URLSearchParams()
@@ -67,9 +66,10 @@ export function PlpSearchBar({
         <input
           type="search"
           name="q"
-          value={displayValue}
-          defaultValue={controlled ? undefined : defaultValue}
-          onChange={controlled ? (e) => onChange(e.target.value) : undefined}
+          {...(controlled
+            ? { value, onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value) }
+            : { defaultValue })}
+          key={controlled ? 'controlled' : defaultValue}
           placeholder={placeholder}
           aria-label="Zoek activiteiten"
           autoComplete="off"

@@ -46,7 +46,7 @@ export const page = defineType({
     defineField({
       name: "seo",
       title: "SEO",
-      type: "seoMetaFields",
+      type: "seo",
     }),
   ],
   preview: {

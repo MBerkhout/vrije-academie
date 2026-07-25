@@ -1,14 +1,18 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { VathuisChapter, VathuisEpisode } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
+import { commerceClient } from '@/lib/commerce'
+import { useVathuisAccess } from '@/lib/commerce/use-vathuis-access'
 import { defaultMessages } from '@/lib/i18n/messages'
+import { formatDateShort } from '@/lib/locale-format'
 import { Button } from '@/components/ui/Button'
 import { PdpEpisodePreviewModal } from '@/components/pdp/PdpEpisodePreviewModal'
 import { cn } from '@/lib/utils'
 
 interface PdpEpisodesTableProps {
+  productHandle: string
   chapters?: VathuisChapter[]
   episodes: VathuisEpisode[]
   chapterTitle?: string | null
@@ -16,11 +20,38 @@ interface PdpEpisodesTableProps {
   variant?: 'light' | 'dark'
 }
 
+type PlaylistItem = {
+  chapterNumber: number
+  episode: VathuisEpisode
+}
+
 function scrollToBookingPanel() {
   document.getElementById('booking-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+function episodeKey(chapterNumber: number, episodeNumber: number): string {
+  return `${chapterNumber}-${episodeNumber}`
+}
+
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  )
+}
+
 export function PdpEpisodesTable({
+  productHandle,
   chapters = [],
   episodes,
   chapterTitle,
@@ -29,6 +60,9 @@ export function PdpEpisodesTable({
 }: PdpEpisodesTableProps) {
   const labels = settings?.pdp?.labels
   const t = defaultMessages.pdp
+  const { access: vathuisAccess } = useVathuisAccess(productHandle)
+  const hasPurchasedAccess = Boolean(vathuisAccess.hasAccess)
+  const accessExpiresAt = vathuisAccess.expiresAt
 
   const resolvedChapters = useMemo(() => {
     if (chapters.length > 0) return chapters
@@ -46,13 +80,32 @@ export function PdpEpisodesTable({
     () => resolvedChapters[0]?.number ?? 1,
   )
   const [previewEpisode, setPreviewEpisode] = useState<VathuisEpisode | null>(null)
+  const [playlistIndex, setPlaylistIndex] = useState<number | null>(null)
+  const [loadingEpisodeKey, setLoadingEpisodeKey] = useState<string | null>(null)
+
+  const canWatchEpisode = useCallback(
+    (episode: VathuisEpisode) => Boolean(episode.preview_available) || hasPurchasedAccess,
+    [hasPurchasedAccess],
+  )
+
+  const playlist = useMemo(() => {
+    const items: PlaylistItem[] = []
+    for (const chapter of resolvedChapters) {
+      for (const episode of chapter.episodes) {
+        if (canWatchEpisode(episode)) {
+          items.push({ chapterNumber: chapter.number, episode })
+        }
+      }
+    }
+    return items
+  }, [resolvedChapters, canWatchEpisode])
 
   const selectedChapter =
     resolvedChapters.find((chapter) => chapter.number === selectedChapterNumber) ??
     resolvedChapters[0]
 
   const selectedChapterIndex = resolvedChapters.findIndex(
-    (chapter) => chapter.number === selectedChapter?.number
+    (chapter) => chapter.number === selectedChapter?.number,
   )
   const hasPreviousChapter = selectedChapterIndex > 0
   const hasNextChapter =
@@ -66,6 +119,67 @@ export function PdpEpisodesTable({
   function goToNextChapter() {
     if (!hasNextChapter) return
     setSelectedChapterNumber(resolvedChapters[selectedChapterIndex + 1].number)
+  }
+
+  const resolveEpisodeEmbed = useCallback(
+    async (item: PlaylistItem): Promise<VathuisEpisode | null> => {
+      if (item.episode.preview_available && item.episode.embed_url) {
+        return item.episode
+      }
+
+      if (!hasPurchasedAccess) return null
+
+      const key = episodeKey(item.chapterNumber, item.episode.number)
+      const embedUrl = await commerceClient.getVathuisEpisodeEmbed(productHandle, key)
+      if (!embedUrl) return null
+      return { ...item.episode, embed_url: embedUrl }
+    },
+    [hasPurchasedAccess, productHandle],
+  )
+
+  const openPlaylistItem = useCallback(
+    async (index: number) => {
+      const item = playlist[index]
+      if (!item) return
+
+      setPlaylistIndex(index)
+      setSelectedChapterNumber(item.chapterNumber)
+
+      const key = episodeKey(item.chapterNumber, item.episode.number)
+      setLoadingEpisodeKey(key)
+      try {
+        const resolved = await resolveEpisodeEmbed(item)
+        if (resolved) setPreviewEpisode(resolved)
+      } finally {
+        setLoadingEpisodeKey(null)
+      }
+    },
+    [playlist, resolveEpisodeEmbed],
+  )
+
+  async function handleWatchEpisode(episode: VathuisEpisode, chapterNumber: number) {
+    if (!canWatchEpisode(episode)) {
+      scrollToBookingPanel()
+      return
+    }
+
+    const index = playlist.findIndex(
+      (item) => item.chapterNumber === chapterNumber && item.episode.number === episode.number,
+    )
+    if (index < 0) return
+    await openPlaylistItem(index)
+  }
+
+  async function goToPlaylistOffset(offset: number) {
+    if (playlistIndex == null) return
+    const nextIndex = playlistIndex + offset
+    if (nextIndex < 0 || nextIndex >= playlist.length) return
+    await openPlaylistItem(nextIndex)
+  }
+
+  function closePreview() {
+    setPreviewEpisode(null)
+    setPlaylistIndex(null)
   }
 
   if (!selectedChapter?.episodes.length) return null
@@ -87,6 +201,18 @@ export function PdpEpisodesTable({
   const watchLabel = labels?.watchEpisode ?? t.episodesWatchEpisode ?? 'Bekijk aflevering'
   const buyLabel = labels?.bundleCta ?? t.episodesBuyAll ?? 'Koop alle lessen'
 
+  const accessNote =
+    hasPurchasedAccess && accessExpiresAt
+      ? (t.episodesAccessUntil ?? 'Toegang tot {date}').replace(
+          '{date}',
+          formatDateShort(accessExpiresAt),
+        )
+      : null
+
+  const showModalNavigation = hasPurchasedAccess && playlist.length > 1
+  const hasPreviousEpisode = playlistIndex != null && playlistIndex > 0
+  const hasNextEpisode = playlistIndex != null && playlistIndex < playlist.length - 1
+
   return (
     <>
       <section id="afleveringen" className="py-8">
@@ -98,23 +224,31 @@ export function PdpEpisodesTable({
             >
               {chapterLabel}:
             </label>
-            <select
-              id="pdp-chapter-select"
-              value={selectedChapter.number}
-              onChange={(e) => setSelectedChapterNumber(Number(e.target.value))}
-              className={cn(
-                'w-full border px-4 py-3 text-sm font-semibold uppercase tracking-wide appearance-none cursor-pointer',
-                isDark
-                  ? 'border-va-darkgray-600 bg-va-darkgray-900 text-white'
-                  : 'border-va-lightgray bg-va-yellow text-va-black',
-              )}
-            >
-              {resolvedChapters.map((chapter) => (
-                <option key={chapter.number} value={chapter.number}>
-                  {chapter.title}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="pdp-chapter-select"
+                value={selectedChapter.number}
+                onChange={(e) => setSelectedChapterNumber(Number(e.target.value))}
+                className={cn(
+                  'w-full border px-4 py-3 pr-10 text-sm font-semibold uppercase tracking-wide appearance-none cursor-pointer',
+                  isDark
+                    ? 'border-va-darkgray-600 bg-va-darkgray-900 text-white'
+                    : 'border-va-lightgray bg-va-yellow text-va-black',
+                )}
+              >
+                {resolvedChapters.map((chapter) => (
+                  <option key={chapter.number} value={chapter.number}>
+                    {chapter.title}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon
+                className={cn(
+                  'pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2',
+                  isDark ? 'text-white' : 'text-va-black',
+                )}
+              />
+            </div>
           </div>
         )}
 
@@ -133,6 +267,10 @@ export function PdpEpisodesTable({
 
         <h2 className={cn('font-sans text-2xl font-bold mb-4', headingClass)}>{heading}</h2>
 
+        {accessNote ? (
+          <p className={cn('mb-4 text-sm', mutedClass)}>{accessNote}</p>
+        ) : null}
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -146,47 +284,54 @@ export function PdpEpisodesTable({
               </tr>
             </thead>
             <tbody>
-              {selectedChapter.episodes.map((episode) => (
-                <tr
-                  key={`${selectedChapter.number}-${episode.number}-${episode.audience_article_id ?? episode.title}`}
-                  className={cn('border-b', rowBorderClass)}
-                >
-                  <td className="py-4 pr-4 align-top">
-                    <span className={cn('font-semibold', cellTitleClass)}>
-                      {episode.number}. {episode.title}
-                    </span>
-                  </td>
-                  <td className={cn('py-4 pr-4 align-top whitespace-nowrap', mutedClass)}>
-                    {episode.duration_label ? `${episode.duration_label} minuten` : '—'}
-                  </td>
-                  <td className={cn('py-4 pr-4 align-top hidden md:table-cell', mutedClass)}>
-                    {episode.description ?? '—'}
-                  </td>
-                  <td className="py-4 align-top text-right whitespace-nowrap">
-                    {episode.preview_available ? (
-                      <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        className="uppercase tracking-wide text-xs"
-                        onClick={() => setPreviewEpisode(episode)}
-                      >
-                        {watchLabel}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="uppercase tracking-wide text-xs opacity-80"
-                        onClick={scrollToBookingPanel}
-                      >
-                        {buyLabel}
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {selectedChapter.episodes.map((episode) => {
+                const key = episodeKey(selectedChapter.number, episode.number)
+                const watchable = canWatchEpisode(episode)
+                const loading = loadingEpisodeKey === key
+
+                return (
+                  <tr
+                    key={`${selectedChapter.number}-${episode.number}-${episode.audience_article_id ?? episode.title}`}
+                    className={cn('border-b', rowBorderClass)}
+                  >
+                    <td className="py-4 pr-4 align-top">
+                      <span className={cn('font-semibold', cellTitleClass)}>
+                        {episode.number}. {episode.title}
+                      </span>
+                    </td>
+                    <td className={cn('py-4 pr-4 align-top whitespace-nowrap', mutedClass)}>
+                      {episode.duration_label ? `${episode.duration_label} minuten` : '—'}
+                    </td>
+                    <td className={cn('py-4 pr-4 align-top hidden md:table-cell', mutedClass)}>
+                      {episode.description ?? '—'}
+                    </td>
+                    <td className="py-4 align-top text-right whitespace-nowrap">
+                      {watchable ? (
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          className="uppercase tracking-wide text-xs"
+                          disabled={loading}
+                          onClick={() => void handleWatchEpisode(episode, selectedChapter.number)}
+                        >
+                          {loading ? '…' : watchLabel}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="uppercase tracking-wide text-xs opacity-80"
+                          onClick={scrollToBookingPanel}
+                        >
+                          {buyLabel}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -211,8 +356,16 @@ export function PdpEpisodesTable({
 
       <PdpEpisodePreviewModal
         episode={previewEpisode}
+        productHandle={productHandle}
+        productTitle={chapterTitle ?? undefined}
         open={previewEpisode != null}
-        onClose={() => setPreviewEpisode(null)}
+        onClose={closePreview}
+        showNavigation={showModalNavigation}
+        hasPrevious={hasPreviousEpisode}
+        hasNext={hasNextEpisode}
+        onPrevious={() => void goToPlaylistOffset(-1)}
+        onNext={() => void goToPlaylistOffset(1)}
+        loadingNavigation={loadingEpisodeKey != null}
       />
     </>
   )

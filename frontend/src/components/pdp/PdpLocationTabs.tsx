@@ -1,9 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { DeliveryTypeIcon } from '@/components/ui/DeliveryTypeIcon'
 import { addVariantToCart } from '@/lib/commerce/cart'
-import type { EventVariant } from '@/lib/commerce/types'
+import { trackFilterChange } from '@/lib/analytics/events/ecommerce'
+import type { EventCard, EventVariant } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
 import {
   minVariantPriceCents,
@@ -18,6 +20,7 @@ import {
 } from '@/lib/locale-format'
 
 interface PdpLocationTabsProps {
+  event: EventCard
   variants: EventVariant[]
   settings: GeneralSettings | null
   instructors?: { id: string; name: string; photo_url?: string | null }[]
@@ -26,6 +29,7 @@ interface PdpLocationTabsProps {
 
 type SessionSortField = 'date' | 'location'
 type SessionSortDirection = 'asc' | 'desc'
+type DeliveryFilter = 'both' | 'online' | 'offline'
 
 /** Sentinel for tab state: show every location's sessions in one list */
 const ALL_LOCATIONS = '__all__'
@@ -65,26 +69,27 @@ function sortVariants(
       const bDate = b.event_item?.start_at ? new Date(b.event_item.start_at).getTime() : Infinity
       return (aDate - bDate) * mult
     }
-    const aLoc = [a.event_item?.city, a.event_item?.location_name].filter(Boolean).join(' ')
-    const bLoc = [b.event_item?.city, b.event_item?.location_name].filter(Boolean).join(' ')
+    const aLoc = sessionLocationSortKey(a)
+    const bLoc = sessionLocationSortKey(b)
     return aLoc.localeCompare(bLoc, 'nl') * mult
   })
 }
 
-function sessionCityLabel(ei: EventVariant['event_item']): string {
+function sessionLocationSortKey(variant: EventVariant): string {
+  if (isOnlineVariant(variant)) return 'Online'
+  const ei = variant.event_item
+  return [ei?.city, ei?.location_name].filter(Boolean).join(' ')
+}
+
+function sessionCityLabel(ei: EventVariant['event_item'], isOnline: boolean): string {
+  if (isOnline) return 'Online'
   return ei?.city ?? '—'
 }
 
 /** Venue / location line from Salesforce `Product_Location_Name__c`. */
-function sessionVenueLine(ei: EventVariant['event_item']): string | null {
+function sessionVenueLine(ei: EventVariant['event_item'], isOnline: boolean): string | null {
+  if (isOnline) return null
   return ei?.location_name?.trim() || null
-}
-
-function instructorName(
-  ei: EventVariant['event_item'],
-  instructors: { name: string }[],
-): string {
-  return ei?.instructor_name?.trim() || instructors[0]?.name?.trim() || '—'
 }
 
 function SortIndicator({ active, direction }: { active: boolean; direction: SessionSortDirection }) {
@@ -96,13 +101,37 @@ function SortIndicator({ active, direction }: { active: boolean; direction: Sess
   )
 }
 
-export function PdpLocationTabs({ variants, settings, instructors = [], externalRegistrationUrl }: PdpLocationTabsProps) {
+function filterVariantsByDeliveryAndCity(
+  deliveryFilter: DeliveryFilter,
+  activeCity: string,
+  onlineVariants: EventVariant[],
+  offlineVariants: EventVariant[],
+  groups: Record<string, EventVariant[]>,
+): EventVariant[] {
+  const filteredOffline =
+    activeCity === ALL_LOCATIONS ? offlineVariants : (groups[activeCity] ?? [])
+
+  if (deliveryFilter === 'online') return onlineVariants
+  if (deliveryFilter === 'offline') return filteredOffline
+  return [...onlineVariants, ...filteredOffline]
+}
+
+export function PdpLocationTabs({
+  event,
+  variants,
+  settings,
+  instructors = [],
+  externalRegistrationUrl,
+}: PdpLocationTabsProps) {
   const labels = settings?.pdp?.labels
   const t = defaultMessages.pdp
   const threshold = settings?.pdp?.lowStockThreshold ?? 5
 
   const onlineVariants = sortVariantsByStart(variants.filter(isOnlineVariant))
   const offlineVariants = sortVariantsByStart(variants.filter(isOfflineVariant))
+  const hasOnline = onlineVariants.length > 0
+  const hasOffline = offlineVariants.length > 0
+  const showDeliveryFilter = hasOnline && hasOffline
 
   const groups = groupOfflineVariantsByCity(offlineVariants)
   const cities = Object.keys(groups)
@@ -113,6 +142,7 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
     variants,
   })
 
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('both')
   const [activeCity, setActiveCity] = useState(() =>
     cities.length > 1 ? ALL_LOCATIONS : (cities[0] ?? ''),
   )
@@ -125,9 +155,10 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
   const sessionsRef = useRef<HTMLDivElement>(null)
 
   const handleRegister = async (variantId: string) => {
+    const variant = variants.find((v) => v.id === variantId) ?? null
     setAddingId(variantId)
     try {
-      await addVariantToCart(variantId)
+      await addVariantToCart(variantId, { event, variant })
       router.push('/winkelwagen')
     } finally {
       setAddingId(null)
@@ -137,16 +168,14 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
   const externalUrl = externalRegistrationUrl?.trim() || null
   const usesExternalRegistration = Boolean(externalUrl)
   const sessionCtaMobileClassName =
-    'w-full text-sm font-bold uppercase tracking-wide px-4 py-3 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'
+    'shrink-0 text-sm font-bold uppercase tracking-wide px-4 py-2 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'
   const sessionCtaDesktopClassName =
     'text-sm font-bold px-4 py-2 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-block text-center'
 
-  const physicalSessionsHeading =
-    labels?.physicalSessionsHeading ??
-    labels?.sessionsHeading ??
-    t.physicalSessionsHeading ??
-    'Fysieke sessies'
-  const onlineSessionsHeading = labels?.onlineSessionsHeading ?? t.onlineSessionsHeading ?? 'Bezoek deze lezing online'
+  const sessionsHeading = labels?.sessionsHeading ?? t.locationSessions ?? 'Sessies'
+  const deliveryFilterBothLabel = t.deliveryFilterBoth ?? 'Beide'
+  const deliveryFilterOnlineLabel = t.deliveryFilterOnline ?? 'Online'
+  const deliveryFilterOfflineLabel = t.deliveryFilterOffline ?? 'Fysiek'
   const onlineZoomInfo =
     labels?.onlineSessionsZoomInfo ??
     t.onlineSessionsZoomInfo ??
@@ -158,20 +187,77 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
   const sortLabel = labels?.sessionsSortLabel ?? t.sessionsSortLabel ?? 'Sorteren op'
   const sortDateLabel = labels?.sessionsSortDate ?? t.sessionsSortDate ?? t.tableDate
   const sortLocationLabel = labels?.sessionsSortLocation ?? t.sessionsSortLocation ?? t.tableLocation
-  const allLocationsLabel = labels?.allLocationsTab ?? 'Alle locaties'
+  const allLocationsLabel = labels?.allLocationsTab ?? t.locationAll ?? 'Alle locaties'
   const soldOutLabel = labels?.soldOutLabel ?? 'Volgeboekt'
   const primaryCtaLabel = labels?.primaryCta ?? 'Direct inschrijven'
   const freeTrialLabel = labels?.freeTrialBadge ?? 'Gratis proefles'
   const noSessionsMessage = labels?.noSessionsMessage ?? 'Momenteel geen sessies beschikbaar.'
 
-  const canSortPhysical = offlineVariants.length > 1
+  const filteredVariants = filterVariantsByDeliveryAndCity(
+    showDeliveryFilter ? deliveryFilter : hasOnline ? 'online' : 'offline',
+    activeCity,
+    onlineVariants,
+    offlineVariants,
+    groups,
+  )
 
-  const filteredOfflineVariants =
-    activeCity === ALL_LOCATIONS ? offlineVariants : (groups[activeCity] ?? [])
+  const canSort = filteredVariants.length > 1
+  const sortedVariants = canSort
+    ? sortVariants(filteredVariants, sortField, sortDirection)
+    : sortVariantsByStart(filteredVariants)
 
-  const sortedOfflineVariants = canSortPhysical
-    ? sortVariants(filteredOfflineVariants, sortField, sortDirection)
-    : sortVariantsByStart(filteredOfflineVariants)
+  const skipInitialFilterTrack = useRef(true)
+  useEffect(() => {
+    if (skipInitialFilterTrack.current) {
+      skipInitialFilterTrack.current = false
+      return
+    }
+    trackFilterChange({
+      scope: 'activiteit_detail',
+      filterName: 'modaliteit',
+      filterValue: deliveryFilter,
+      resultsCount: sortedVariants.length,
+      itemId: event.handle,
+    })
+  }, [deliveryFilter, event.handle, sortedVariants.length])
+
+  const skipInitialCityTrack = useRef(true)
+  useEffect(() => {
+    if (skipInitialCityTrack.current) {
+      skipInitialCityTrack.current = false
+      return
+    }
+    if (activeCity === ALL_LOCATIONS) return
+    trackFilterChange({
+      scope: 'activiteit_detail',
+      filterName: 'plaats',
+      filterValue: activeCity,
+      resultsCount: sortedVariants.length,
+      itemId: event.handle,
+    })
+  }, [activeCity, event.handle, sortedVariants.length])
+
+  const showLocationTabs =
+    (deliveryFilter === 'both' || deliveryFilter === 'offline' || !showDeliveryFilter) &&
+    hasOffline &&
+    cities.length > 1 &&
+    deliveryFilter !== 'online'
+
+  const showOnlineInfo =
+    hasOnline &&
+    deliveryFilter !== 'offline' &&
+    sortedVariants.some(isOnlineVariant)
+
+  const deliveryFilterButtonClass = (active: boolean) =>
+    `inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-none text-sm font-medium transition-colors ${
+      active
+        ? 'bg-va-yellow text-va-black'
+        : 'border border-va-lightgray text-va-gray hover:bg-va-lightgray'
+    }`
+
+  /** Mobile: align left with container, bleed tabs to the right viewport edge; themed scrollbar. */
+  const sessionFilterScrollClass =
+    'flex gap-2 overflow-x-auto pb-2 scrollbar-va max-md:-mr-4 max-md:pr-4'
 
   const handleSortFieldChange = (field: SessionSortField) => {
     if (field === sortField) {
@@ -230,7 +316,7 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
   }
 
   const renderSortableHeader = (field: SessionSortField, label: string) => {
-    if (!canSortPhysical) {
+    if (!canSort) {
       return <th className="text-left py-3 pr-4 font-medium">{label}</th>
     }
     const isActive = sortField === field
@@ -249,7 +335,7 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
     )
   }
 
-  if (onlineVariants.length === 0 && offlineVariants.length === 0) {
+  if (!hasOnline && !hasOffline) {
     return (
       <section id="sessies" className="py-8">
         <p className="text-va-gray">{noSessionsMessage}</p>
@@ -259,134 +345,126 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
 
   return (
     <section id="sessies" className="py-8" ref={sessionsRef}>
-      {/* Online sessions */}
-      {onlineVariants.length > 0 && (
-        <div className={offlineVariants.length > 0 ? 'mb-10' : undefined}>
-          <div className="inline-block max-w-2xl border border-va-lightgray-300 bg-va-lightgray-100 px-5 py-6 md:px-6 md:py-7">
-            <h2 className="mb-5 font-sans text-xl font-bold text-va-black md:text-2xl">
-              {onlineSessionsHeading}
-            </h2>
-
-            <div className="flex flex-col gap-5">
-              {onlineVariants.map((variant, index) => {
-                const ei = variant.event_item
-                const qty = ei?.available_quantity ?? 0
-                const isSoldOut = qty === 0
-                const isFreeTrial = ei?.is_free_trial ?? false
-                const price = minVariantPriceCents(variant)
-                const instructor = instructorName(ei, instructors)
-
-                return (
-                  <div
-                    key={variant.id}
-                    className={index > 0 ? 'border-t border-va-lightgray-300 pt-5' : undefined}
-                  >
-                    <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center md:gap-x-6">
-                      <div className="flex min-w-0 flex-col gap-0.5">
-                        {ei?.start_at ? (
-                          <span className="font-medium text-va-black">
-                            {formatDateWeekdayLong(ei.start_at)}
-                          </span>
-                        ) : null}
-                        <span className="text-sm text-va-black">
-                          {ei?.start_at ? formatTimeRange(ei.start_at, ei.end_at) : '—'}
-                        </span>
-                        {instructor !== '—' ? (
-                          <span className="text-sm text-va-gray">{instructor}</span>
-                        ) : null}
-                      </div>
-
-                      <div className="flex items-center justify-between gap-4 md:contents">
-                        {price ? (
-                          <span className="shrink-0 text-base font-semibold tabular-nums text-va-black md:text-right">
-                            {formatPriceEur(price)}
-                          </span>
-                        ) : (
-                          <span className="hidden md:block" aria-hidden />
-                        )}
-                        <div className="shrink-0 md:justify-self-end">
-                          {renderSessionCta(variant, {
-                            className: `${sessionCtaDesktopClassName} w-full whitespace-nowrap sm:w-auto`,
-                            isSoldOut,
-                            isFreeTrial,
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-
-              <p className="border-t border-va-lightgray-300 pt-4 text-sm leading-relaxed text-va-gray">
-                {onlineZoomInfo} {onlineReplayInfo}
-              </p>
-            </div>
-          </div>
+      {/* Delivery type filter */}
+      {showDeliveryFilter && (
+        <div
+          className={`mb-4 ${sessionFilterScrollClass}`}
+          role="tablist"
+          aria-label="Beschikbaarheid"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={deliveryFilter === 'both'}
+            onClick={() => setDeliveryFilter('both')}
+            className={deliveryFilterButtonClass(deliveryFilter === 'both')}
+          >
+            <DeliveryTypeIcon variant="both" className="w-4 h-4" />
+            {deliveryFilterBothLabel}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={deliveryFilter === 'online'}
+            onClick={() => setDeliveryFilter('online')}
+            className={deliveryFilterButtonClass(deliveryFilter === 'online')}
+          >
+            <DeliveryTypeIcon variant="online" className="w-4 h-4" />
+            {deliveryFilterOnlineLabel}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={deliveryFilter === 'offline'}
+            onClick={() => setDeliveryFilter('offline')}
+            className={deliveryFilterButtonClass(deliveryFilter === 'offline')}
+          >
+            <DeliveryTypeIcon variant="offline" className="w-4 h-4" />
+            {deliveryFilterOfflineLabel}
+          </button>
         </div>
       )}
 
-      {/* Physical sessions */}
-      {offlineVariants.length > 0 && (
-        <div>
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <h2 className="font-sans text-2xl font-bold text-va-black">{physicalSessionsHeading}</h2>
-            {canSortPhysical && (
-              <select
-                value={sortField}
-                onChange={handleSortDropdownChange}
-                aria-label={sortLabel}
-                className="text-sm border border-va-lightgray px-3 py-2 text-va-black bg-white focus:outline-none focus:ring-2 focus:ring-va-yellow"
-              >
-                <option value="date">{sortDateLabel}</option>
-                <option value="location">{sortLocationLabel}</option>
-              </select>
-            )}
+      {/* City tabs */}
+      {showLocationTabs && (
+        <div
+          className={`mb-6 ${sessionFilterScrollClass}`}
+          role="tablist"
+          aria-label="Locaties"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeCity === ALL_LOCATIONS}
+            onClick={() => setActiveCity(ALL_LOCATIONS)}
+            className={`shrink-0 px-4 py-2 rounded-none text-sm font-medium transition-colors ${activeCity === ALL_LOCATIONS ? 'bg-va-yellow text-va-black' : 'border border-va-lightgray text-va-gray hover:bg-va-lightgray'}`}
+          >
+            {allLocationsLabel}
+          </button>
+          {cities.map((city) => (
+            <button
+              type="button"
+              role="tab"
+              key={city}
+              aria-selected={activeCity === city}
+              onClick={() => setActiveCity(city)}
+              className={`shrink-0 px-4 py-2 rounded-none text-sm font-medium transition-colors ${activeCity === city ? 'bg-va-yellow text-va-black' : 'border border-va-lightgray text-va-gray hover:bg-va-lightgray'}`}
+            >
+              {city}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="font-sans text-2xl font-bold text-va-black">{sessionsHeading}</h2>
+        {canSort && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="sessions-sort" className="text-sm text-va-gray">
+              {sortLabel}
+            </label>
+            <select
+              id="sessions-sort"
+              value={sortField}
+              onChange={handleSortDropdownChange}
+              className="text-sm border border-va-lightgray px-3 py-2 text-va-black bg-white focus:outline-none focus:ring-2 focus:ring-va-yellow"
+            >
+              <option value="date">{sortDateLabel}</option>
+              <option value="location">{sortLocationLabel}</option>
+            </select>
           </div>
+        )}
+      </div>
 
-          {/* City tabs */}
-          {cities.length > 1 && (
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-              <button
-                type="button"
-                onClick={() => setActiveCity(ALL_LOCATIONS)}
-                className={`shrink-0 px-4 py-2 rounded-none text-sm font-medium transition-colors ${activeCity === ALL_LOCATIONS ? 'bg-va-black text-white' : 'border border-va-lightgray text-va-gray hover:bg-va-lightgray'}`}
-              >
-                {allLocationsLabel}
-              </button>
-              {cities.map((city) => (
-                <button
-                  type="button"
-                  key={city}
-                  onClick={() => setActiveCity(city)}
-                  className={`shrink-0 px-4 py-2 rounded-none text-sm font-medium transition-colors ${activeCity === city ? 'bg-va-black text-white' : 'border border-va-lightgray text-va-gray hover:bg-va-lightgray'}`}
-                >
-                  {city}
-                </button>
-              ))}
-            </div>
-          )}
-
+      {sortedVariants.length === 0 ? (
+        <p className="text-va-gray">{noSessionsMessage}</p>
+      ) : (
+        <>
           {/* Mobile: stacked session cards */}
           <ul className="divide-y divide-va-black border-t border-va-black md:hidden">
-            {sortedOfflineVariants.map((variant) => {
+            {sortedVariants.map((variant) => {
               const ei = variant.event_item
+              const isOnline = isOnlineVariant(variant)
               const qty = ei?.available_quantity ?? 0
               const isSoldOut = qty === 0
               const isFreeTrial = ei?.is_free_trial ?? false
               const availability = sessionTableAvailabilityPresentation(qty, threshold)
               const price = minVariantPriceCents(variant)
-              const city = sessionCityLabel(ei)
-              const venue = sessionVenueLine(ei)
+              const city = sessionCityLabel(ei, isOnline)
+              const venue = sessionVenueLine(ei, isOnline)
               const instructor =
                 ei?.instructor_name?.trim() || instructors[0]?.name?.trim() || null
 
               return (
                 <li key={variant.id} className="py-6 first:pt-6">
-                  <div className="flex flex-col gap-1.5 text-sm">
-                    <p className="font-semibold text-va-black">{city}</p>
-                    {venue ? <p className="text-va-gray leading-snug">{venue}</p> : null}
-                    {(showDate && ei?.start_at) || ei?.start_at ? (
-                      <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-3 text-sm">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <p className="flex items-center gap-1.5 font-semibold text-va-black">
+                        <DeliveryTypeIcon variant={isOnline ? 'online' : 'offline'} />
+                        {city}
+                      </p>
+                      {venue ? <p className="text-va-gray leading-snug pl-5">{venue}</p> : null}
+                      {(showDate && ei?.start_at) || ei?.start_at ? (
                         <p className="min-w-0 text-va-black">
                           {showDate && ei?.start_at ? (
                             <>
@@ -402,24 +480,20 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
                             </span>
                           )}
                         </p>
-                        <span className={`${availability.className} shrink-0`}>
-                          {availability.label}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex justify-end">
-                        <span className={availability.className}>{availability.label}</span>
-                      </div>
-                    )}
-                    {instructor ? <p className="text-va-gray">{instructor}</p> : null}
-                    {price ? <p className="font-medium text-va-black">{formatPriceEur(price)}</p> : null}
-                  </div>
-                  <div className="mt-4">
-                    {renderSessionCta(variant, {
-                      className: sessionCtaMobileClassName,
-                      isSoldOut,
-                      isFreeTrial,
-                    })}
+                      ) : null}
+                      {instructor ? <p className="text-va-gray">{instructor}</p> : null}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      {price ? (
+                        <p className="font-medium text-va-black">{formatPriceEur(price)}</p>
+                      ) : null}
+                      <span className={availability.className}>{availability.label}</span>
+                      {renderSessionCta(variant, {
+                        className: sessionCtaMobileClassName,
+                        isSoldOut,
+                        isFreeTrial,
+                      })}
+                    </div>
                   </div>
                 </li>
               )
@@ -438,13 +512,14 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
                     {t.tableInstructor}
                   </th>
                   <th className="text-left py-3 pr-4 font-medium">{t.tablePrice}</th>
-                  <th className="text-left py-3 font-medium">{t.tableAvailability}</th>
+                  <th className="text-left py-3 pr-4 font-medium">{t.tableAvailability}</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {sortedOfflineVariants.map((variant) => {
+                {sortedVariants.map((variant) => {
                   const ei = variant.event_item
+                  const isOnline = isOnlineVariant(variant)
                   const qty = ei?.available_quantity ?? 0
                   const isSoldOut = qty === 0
                   const isFreeTrial = ei?.is_free_trial ?? false
@@ -457,10 +532,18 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
                       className="border-b border-va-lightgray/60 hover:bg-va-lightgray/20 transition-colors"
                     >
                       <td className="py-4 pr-4 align-middle text-va-gray">
-                        <div>{sessionCityLabel(ei)}</div>
-                        {sessionVenueLine(ei) ? (
-                          <div className="text-xs mt-0.5">{sessionVenueLine(ei)}</div>
-                        ) : null}
+                        <div className="flex items-start gap-1.5">
+                          <DeliveryTypeIcon
+                            variant={isOnline ? 'online' : 'offline'}
+                            className="mt-0.5"
+                          />
+                          <div>
+                            <div>{sessionCityLabel(ei, isOnline)}</div>
+                            {sessionVenueLine(ei, isOnline) ? (
+                              <div className="text-xs mt-0.5">{sessionVenueLine(ei, isOnline)}</div>
+                            ) : null}
+                          </div>
+                        </div>
                       </td>
                       {showDate && (
                         <td className="py-4 pr-4 align-middle">
@@ -494,7 +577,13 @@ export function PdpLocationTabs({ variants, settings, instructors = [], external
               </tbody>
             </table>
           </div>
-        </div>
+
+          {showOnlineInfo && (
+            <p className="mt-6 text-sm leading-relaxed text-va-gray">
+              {onlineZoomInfo} {onlineReplayInfo}
+            </p>
+          )}
+        </>
       )}
     </section>
   )

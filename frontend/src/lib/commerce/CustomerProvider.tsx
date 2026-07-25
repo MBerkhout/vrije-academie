@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { commerceClient } from '@/lib/commerce'
+import { trackLogin, trackLogout, trackSignUp } from '@/lib/analytics/events/engagement'
 import type { Customer, RegisterInput } from './types'
 
 interface CustomerContextValue {
@@ -56,18 +57,21 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const c = await commerceClient.login(email, password)
     setCustomer(c)
+    trackLogin(email)
     window.dispatchEvent(new Event('va:customer-updated'))
   }, [])
 
   const register = useCallback(async (input: RegisterInput) => {
     const c = await commerceClient.register(input)
     setCustomer(c)
+    trackSignUp(input.email)
     window.dispatchEvent(new Event('va:customer-updated'))
   }, [])
 
   const logout = useCallback(async () => {
     await commerceClient.logout()
     setCustomer(null)
+    trackLogout()
     window.dispatchEvent(new Event('va:customer-updated'))
   }, [])
 

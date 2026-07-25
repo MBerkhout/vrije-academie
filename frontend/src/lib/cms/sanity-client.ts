@@ -183,6 +183,23 @@ export const sanityClient: CMSClient = {
         },
         sticky
       },
+      organization {
+        legalName,
+        logo {
+          asset-> {
+            _id,
+            url,
+            metadata {
+              dimensions
+            }
+          }
+        },
+        telephone,
+        email,
+        sameAs[] {
+          url
+        }
+      },
       footer {
         topMenuPrimary-> {
           _id,

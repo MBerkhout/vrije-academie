@@ -3,12 +3,16 @@ import { MedusaError, Modules } from "@medusajs/framework/utils"
 import type { ICustomerModuleService } from "@medusajs/framework/types"
 
 import {
+  customerHasMedusaPassword,
   customerHasPassword,
   ensurePasswordlessAuthIdentity,
   findAuthIdentityByEmail,
+  verifyLegacyPasswordForEmail,
 } from "../../../../lib/customer-auth/helpers"
 import { CUSTOMER_OTP_MODULE } from "../../../../modules/customer-otp"
 import type CustomerOtpModuleService from "../../../../modules/customer-otp/service"
+import { LEGACY_PASSWORD_MODULE } from "../../../../modules/legacy-password"
+import type LegacyPasswordModuleService from "../../../../modules/legacy-password/service"
 
 /**
  * POST /store/auth/set-password
@@ -40,6 +44,7 @@ export async function POST(
   }
 
   const hasPassword = await customerHasPassword(req.scope, email)
+  const hasMedusaPassword = await customerHasMedusaPassword(req.scope, email)
   const auth = req.scope.resolve(Modules.AUTH) as {
     updateProvider: (
       provider: string,
@@ -58,13 +63,21 @@ export async function POST(
         res.status(400).json({ message: "Current password is required" })
         return
       }
-      const login = await auth.authenticate("emailpass", {
-        body: { email, password: oldPassword },
-        headers: req.headers,
-      })
-      if (!login.success) {
-        res.status(401).json({ message: "Current password is incorrect" })
-        return
+      if (hasMedusaPassword) {
+        const login = await auth.authenticate("emailpass", {
+          body: { email, password: oldPassword },
+          headers: req.headers,
+        })
+        if (!login.success) {
+          res.status(401).json({ message: "Current password is incorrect" })
+          return
+        }
+      } else {
+        const legacyValid = await verifyLegacyPasswordForEmail(req.scope, email, oldPassword)
+        if (!legacyValid) {
+          res.status(401).json({ message: "Current password is incorrect" })
+          return
+        }
       }
     } else {
       const otpCode = typeof body.otpCode === "string" ? body.otpCode.trim() : ""
@@ -93,6 +106,13 @@ export async function POST(
         MedusaError.Types.INVALID_DATA,
         updated.error ?? "Could not update password"
       )
+    }
+
+    if (!hasMedusaPassword) {
+      const legacyPassword = req.scope.resolve(LEGACY_PASSWORD_MODULE) as InstanceType<
+        typeof LegacyPasswordModuleService
+      >
+      await legacyPassword.deleteByCustomerId(customerId)
     }
 
     res.json({ success: true })

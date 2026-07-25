@@ -75,7 +75,7 @@ export const product = defineType({
     defineField({
       name: "seo",
       title: "SEO",
-      type: "seoMetaFields",
+      type: "seo",
       group: "editorial",
       description:
         "Optional editorial SEO overrides for the product detail page. When empty, the storefront uses Medusa catalog data.",

@@ -2,8 +2,15 @@
 
 import { commerceClient } from '@/lib/commerce'
 import { clearCheckoutDraft } from '@/lib/commerce/checkout-draft'
-import type { Cart } from '@/lib/commerce/types'
+import { trackAddToCart } from '@/lib/analytics/events/ecommerce'
+import type { Cart, EventCard, EventVariant } from '@/lib/commerce/types'
 import { CART_COOKIE } from '@/lib/commerce/cart-cookie-name'
+
+export type AddToCartTrackingContext = {
+  event: EventCard
+  variant?: EventVariant | null
+  quantity?: number
+}
 
 export function getCartId(): string | null {
   if (typeof document === 'undefined') return null
@@ -72,8 +79,14 @@ export async function getOrCreateCartId(): Promise<string> {
   return cart.id
 }
 
-export async function addVariantToCart(variantId: string): Promise<void> {
+export async function addVariantToCart(
+  variantId: string,
+  tracking?: AddToCartTrackingContext
+): Promise<void> {
   const cartId = await getOrCreateCartId()
-  await commerceClient.addToCart(cartId, variantId, 1)
+  await commerceClient.addToCart(cartId, variantId, tracking?.quantity ?? 1)
   dispatchCartUpdated()
+  if (tracking) {
+    trackAddToCart(tracking.event, tracking.variant, tracking.quantity ?? 1)
+  }
 }

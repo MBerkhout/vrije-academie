@@ -12,6 +12,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { parseSampleQueryResponse } from "../modules/salesforce-sync/samples/run-parse-sample"
 import { salesforceAuthMode } from "../modules/salesforce-sync/utils/is-configured"
+import { resolveOrderIdByDisplayId } from "../modules/salesforce-sync/utils/resolve-order-id-by-display-id"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import {
   pullWorkflowIdForEntity,
@@ -22,6 +23,16 @@ import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 function arg(name: string): string | undefined {
   const p = process.argv.find((a) => a.startsWith(`${name}=`))
   return p?.split("=").slice(1).join("=")
+}
+
+function parseDisplayIdArg(): number | undefined {
+  const raw = arg("--display-id") ?? arg("--order-nr")
+  if (raw == null || raw === "") return undefined
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`Invalid display id: ${raw} (expected a positive integer)`)
+  }
+  return n
 }
 
 export default async function syncSalesforceScript({ container }: ExecArgs) {
@@ -62,33 +73,64 @@ export default async function syncSalesforceScript({ container }: ExecArgs) {
     | undefined
   const action = arg("--action") as "push" | "pull" | undefined
   const id = arg("--id")
+  const displayId = parseDisplayIdArg()
   const salesforceId = arg("--salesforce-id")
   const all = process.argv.includes("--all")
   const limit = Math.min(500, Math.max(1, Number(arg("--limit")) || 10))
 
   if (!type || !action) {
     logger.info(
-      "[sync-salesforce] Usage: --type=customer|order|product|productgroup|variant --action=push|pull [--id=] [--salesforce-id=] [--all] [--limit=] | --probe [--probe-verbose] | --parse-sample\n" +
+      "[sync-salesforce] Usage: --type=customer|order|product|productgroup|variant --action=push|pull [--id=] [--display-id=] [--order-nr=] [--salesforce-id=] [--all] [--limit=] | --probe [--probe-verbose] | --parse-sample\n" +
+        "  order push by number: --type=order --action=push --display-id=6 (or --order-nr=6)\n" +
         "  product import: --type=product --action=pull --salesforce-id=<Product2 Id> (no --id)\n" +
         "  productgroup import: --type=productgroup --action=pull --salesforce-id=<vaProductgroup__c Id>"
     )
     return
   }
 
-  if (action === "push" && id) {
-    const wf = pushWorkflowIdForEntity(type)
-    if (!wf) throw new Error("No push workflow")
-    const input =
-      type === "customer"
-        ? { customerId: id }
-        : type === "order"
-          ? { orderId: id }
-          : type === "product"
-            ? { productId: id }
-            : { variantId: id }
-    await runSalesforceWorkflow(container, wf, input, { eventGroupId: id, entityType: type, medusaId: id })
-    logger.info(`[sync-salesforce] push ${type} ${id} done`)
-    return
+  if (action === "push") {
+    if (id && displayId != null) {
+      logger.error("[sync-salesforce] Provide --id or --display-id/--order-nr, not both")
+      return
+    }
+
+    let pushId = id
+    if (displayId != null) {
+      if (type !== "order") {
+        logger.error("[sync-salesforce] --display-id/--order-nr is only supported for --type=order")
+        return
+      }
+      pushId = await resolveOrderIdByDisplayId(container, displayId)
+      logger.info(`[sync-salesforce] resolved display_id ${displayId} → ${pushId}`)
+    }
+
+    if (pushId) {
+      const wf = pushWorkflowIdForEntity(type)
+      if (!wf) throw new Error("No push workflow")
+      const input =
+        type === "customer"
+          ? { customerId: pushId }
+          : type === "order"
+            ? { orderId: pushId }
+            : type === "product"
+              ? { productId: pushId }
+              : { variantId: pushId }
+      const ret = await runSalesforceWorkflow(container, wf, input, {
+        eventGroupId: pushId,
+        entityType: type,
+        medusaId: pushId,
+      })
+      const result = ret.result as { skipped?: boolean; skipReason?: string } | undefined
+      if (result?.skipped) {
+        logger.warn(
+          `[sync-salesforce] push ${type} ${pushId} skipped` +
+            (result.skipReason ? ` (${result.skipReason})` : "")
+        )
+      } else {
+        logger.info(`[sync-salesforce] push ${type} ${pushId} done`)
+      }
+      return
+    }
   }
 
   if (action === "pull" && salesforceId) {
@@ -180,5 +222,7 @@ export default async function syncSalesforceScript({ container }: ExecArgs) {
     return
   }
 
-  logger.info("[sync-salesforce] Provide --id (and --salesforce-id for pull), or --all with supported type")
+  logger.info(
+    "[sync-salesforce] Provide --id or --display-id/--order-nr (orders), --salesforce-id for pull, or --all with supported type"
+  )
 }

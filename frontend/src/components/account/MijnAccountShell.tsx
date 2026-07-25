@@ -36,7 +36,7 @@ export function MijnAccountShell({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0 py-12">
+      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1304px]:px-0 py-12">
         <p className="font-sans text-va-darkgray" aria-busy="true">
           {common.loadingEllipsis}
         </p>
@@ -46,7 +46,7 @@ export function MijnAccountShell({ children }: { children: React.ReactNode }) {
 
   if (!customer) {
     return (
-      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0 py-12">
+      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1304px]:px-0 py-12">
         <p className="font-sans text-va-darkgray mb-6">{t.loginPrompt}</p>
         <Link
           href="/login?returnTo=%2Fmijn-account"
@@ -59,7 +59,7 @@ export function MijnAccountShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0 py-12">
+    <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1304px]:px-0 py-12">
       <div className="flex flex-col gap-8 lg:flex-row lg:gap-12 lg:items-start">
         <aside
           className={cn(
@@ -67,7 +67,12 @@ export function MijnAccountShell({ children }: { children: React.ReactNode }) {
           )}
         >
           <nav aria-label={t.heading}>
-            <ul className="flex flex-row gap-1 overflow-x-auto lg:flex-col lg:gap-0 lg:overflow-visible">
+            <ul
+              className={cn(
+                'flex flex-row gap-1 overflow-x-auto pb-2 scrollbar-va max-lg:-mr-4 max-lg:pr-4',
+                'lg:flex-col lg:gap-0 lg:overflow-visible lg:pb-0',
+              )}
+            >
               {NAV.map(({ href, key }) => {
                 const active = isNavActive(pathname, href)
                 return (

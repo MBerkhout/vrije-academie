@@ -49,6 +49,7 @@ export const preparePushProductStep = createStep(
       salesforceObject: "Product2",
       externalIdField: productMapping.externalIdField,
       externalId: input.productId,
+      existingSalesforceId: row?.salesforce_id ?? null,
       fields,
       entityType: "product",
       medusaId: input.productId,

@@ -81,6 +81,11 @@ export interface EventCard {
   cta_color_hover?: string | null
   /** When set (e.g. reizen), Direct inschrijven opens this external purchase URL instead of cart. */
   external_registration_url?: string | null
+  /**
+   * Hybrid studiedag-style products: online Zoom sessions were merged from a linked
+   * Salesforce product group (`Linked_Online_Productgroup__c`).
+   */
+  has_linked_online_sessions?: boolean
   /** When `bundle_only`, only `bundle_variant_id` may be added to cart (VAthuis). */
   purchase_mode?: 'bundle_only' | string | null
   bundle_variant_id?: string | null
@@ -117,6 +122,21 @@ export interface VathuisBundleInfo {
     preview_url?: string | null
     iframe_url?: string | null
   } | null
+}
+
+export interface VathuisAccessItem {
+  productId: string
+  productHandle: string
+  productTitle: string | null
+  grantedAt: string
+  expiresAt: string
+  isExpired: boolean
+}
+
+export interface VathuisAccessStatus {
+  hasAccess: boolean
+  grantedAt: string | null
+  expiresAt: string | null
 }
 
 export interface EventVariant {
@@ -458,6 +478,10 @@ export interface CommerceClient {
   getOrder(orderId: string): Promise<Order | null>
   /** Logged-in customer orders (store API). */
   listCustomerOrders(options?: { limit?: number; offset?: number }): Promise<{ orders: Order[]; count: number }>
+  /** VA Thuis entitlements for the logged-in customer. */
+  listVathuisAccess(): Promise<VathuisAccessItem[]>
+  getVathuisAccess(handle: string): Promise<VathuisAccessStatus>
+  getVathuisEpisodeEmbed(handle: string, episodeKey: string): Promise<string | null>
   /** Change password (with current) or set initial password (with OTP when passwordless). */
   setPassword(input: {
     newPassword: string

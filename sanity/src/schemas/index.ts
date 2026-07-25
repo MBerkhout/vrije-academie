@@ -31,6 +31,7 @@ import {
   portableText,
   linkObject,
   imageWithAlt,
+  seo,
 } from "./objects"
 import { category, person, product, docent, city } from "./documents"
 
@@ -54,6 +55,7 @@ export const schemaTypes = [
   portableText,
   linkObject,
   imageWithAlt,
+  seo,
 
   // Blocks
   eventList,

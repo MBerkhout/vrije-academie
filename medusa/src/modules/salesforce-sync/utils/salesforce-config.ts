@@ -19,3 +19,5 @@ export const ORDER_EXTERNAL_ID_FIELD = "Medusa_Order_Id__c"
 export const ORDER_ITEM_EXTERNAL_ID_FIELD = "Medusa_Order_Item_Id__c"
 export const REGISTRATION_EXTERNAL_ID_FIELD = "Medusa_Registration_Id__c"
 export const VOUCHER_GIFT_CARD_EXTERNAL_ID_FIELD = "Medusa_Gift_Card_Id__c"
+
+export { usesSalesforceMedusaCustomFields } from "./salesforce-medusa-fields"

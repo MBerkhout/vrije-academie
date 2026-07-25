@@ -27,6 +27,8 @@ import type {
   EventListResult,
   VathuisFilters,
   VathuisListResult,
+  VathuisAccessItem,
+  VathuisAccessStatus,
   AgendaFilters,
   AgendaListResult,
   EventFacets,
@@ -877,36 +879,21 @@ export const medusaClient: CommerceClient = {
   },
 
   async login(email: string, password: string): Promise<Customer> {
-    const result = await medusa.auth.login('customer', 'emailpass', { email, password })
-    if (!result || typeof result === 'object' && 'location' in result) {
-      throw new Error('Login failed: redirect received instead of token')
+    const res = await storeFetch('/store/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error((data as { message?: string }).message ?? 'LOGIN_FAILED')
     }
-    const retrieveCustomer = async (): Promise<Customer> => {
-      const { customer } = await medusa.store.customer.retrieve()
-      return customer as Customer
+    const data = await res.json()
+    if (!data.token || typeof data.token !== 'string') {
+      throw new Error('LOGIN_NO_TOKEN')
     }
-
-    try {
-      const customer = await retrieveCustomer()
-      void enqueueSalesforceCustomerSync(email)
-      return customer
-    } catch (e) {
-      if (getFetchStatus(e) !== 401) throw e
-    }
-
-    // Stale JWT or missing customer_id on auth identity — see Medusa generateJwtTokenForAuthIdentity (empty actor_id → 401 on /customers/me).
-    try {
-      await medusa.auth.refresh()
-      const customer = await retrieveCustomer()
-      void enqueueSalesforceCustomerSync(email)
-      return customer
-    } catch (e) {
-      if (getFetchStatus(e) !== 401) throw e
-    }
-
-    await medusa.store.customer.create({ email })
-    await medusa.auth.refresh()
-    const customer = await retrieveCustomer()
+    setStoredJwt(data.token)
+    const customer = await customerAfterToken(email)
     void enqueueSalesforceCustomerSync(email)
     return customer
   },
@@ -1182,6 +1169,33 @@ export const medusaClient: CommerceClient = {
     })
     const orders = (rawOrders ?? []).map((row: unknown) => mapStoreOrder(row))
     return { orders, count: typeof count === 'number' ? count : orders.length }
+  },
+
+  async listVathuisAccess(): Promise<VathuisAccessItem[]> {
+    const res = await storeFetch('/store/customer/me/vathuis-access')
+    if (!res.ok) return []
+    const data = (await res.json()) as { items?: VathuisAccessItem[] }
+    return data.items ?? []
+  },
+
+  async getVathuisAccess(handle: string): Promise<VathuisAccessStatus> {
+    const encoded = encodeURIComponent(handle)
+    const res = await storeFetch(`/store/customer/me/vathuis-access/${encoded}`)
+    if (!res.ok) {
+      return { hasAccess: false, grantedAt: null, expiresAt: null }
+    }
+    return (await res.json()) as VathuisAccessStatus
+  },
+
+  async getVathuisEpisodeEmbed(handle: string, episodeKey: string): Promise<string | null> {
+    const encodedHandle = encodeURIComponent(handle)
+    const encodedKey = encodeURIComponent(episodeKey)
+    const res = await storeFetch(
+      `/store/customer/me/vathuis-access/${encodedHandle}/episodes/${encodedKey}/embed`
+    )
+    if (!res.ok) return null
+    const data = (await res.json()) as { embedUrl?: string }
+    return data.embedUrl ?? null
   },
 
   async searchSite(query: string): Promise<SiteSearchHit[]> {

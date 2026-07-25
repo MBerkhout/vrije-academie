@@ -23,6 +23,7 @@ export const pushProductToSalesforceWorkflow = createWorkflow(
         salesforceObject: prep.salesforceObject,
         externalIdField: prep.externalIdField,
         externalId: prep.externalId,
+        existingSalesforceId: prep.existingSalesforceId,
         fields: prep.fields,
       }))
     )

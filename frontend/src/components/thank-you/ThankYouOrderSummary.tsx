@@ -10,7 +10,14 @@ import {
 import { CartLineItemDetails } from '@/components/cart/CartLineItemDetails'
 import { OrderSummaryThumbnail } from '@/components/checkout/CheckoutOrderSummary'
 import { formatPriceEur } from '@/lib/locale-format'
-import { vathuisProductPath } from '@/lib/routes'
+import { productDetailPath, vathuisProductPath } from '@/lib/routes'
+
+function productHrefForItem(item: CheckoutConfirmationItem): string | null {
+  if (!item.product_handle) return null
+  return productDetailPath(item.product_handle, {
+    recordType: item.is_vathuis ? 'vathuis' : null,
+  })
+}
 
 function itemToCartShape(item: CheckoutConfirmationItem) {
   return {
@@ -36,7 +43,14 @@ function itemToExtras(item: CheckoutConfirmationItem): CartItemExtras {
   }
 }
 
-export function ThankYouOrderItems({ items }: { items: CheckoutConfirmationItem[] }) {
+export function ThankYouOrderItems({
+  items,
+  linkToProduct = false,
+}: {
+  items: CheckoutConfirmationItem[]
+  /** When true, title and thumbnail link to the product PDP (e.g. Mijn account → Aankopen). */
+  linkToProduct?: boolean
+}) {
   if (!items.length) return null
 
   return (
@@ -48,6 +62,7 @@ export function ThankYouOrderItems({ items }: { items: CheckoutConfirmationItem[
           onlineCityFallback: true,
           quantityLabel: buildLineItemQuantityLabel(cartItem as any),
         })
+        const productHref = linkToProduct ? productHrefForItem(item) : null
         const watchHref =
           item.is_vathuis && item.product_handle
             ? vathuisProductPath(item.product_handle)
@@ -56,13 +71,31 @@ export function ThankYouOrderItems({ items }: { items: CheckoutConfirmationItem[
         return (
           <li key={item.id} className="flex gap-3 items-start border-b border-va-lightgray-200 pb-4 last:border-0 last:pb-0">
             {item.thumbnail ? (
-              <OrderSummaryThumbnail src={item.thumbnail} alt={item.title} />
+              productHref ? (
+                <Link
+                  href={productHref}
+                  className="shrink-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-va-yellow"
+                >
+                  <OrderSummaryThumbnail src={item.thumbnail} alt={item.title} />
+                </Link>
+              ) : (
+                <OrderSummaryThumbnail src={item.thumbnail} alt={item.title} />
+              )
             ) : null}
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex justify-between items-start gap-3">
-                <p className="font-sans text-sm font-bold text-va-black leading-snug min-w-0 flex-1">
-                  {item.title}
-                </p>
+                {productHref ? (
+                  <Link
+                    href={productHref}
+                    className="font-sans text-sm font-bold text-va-black leading-snug min-w-0 flex-1 hover:underline"
+                  >
+                    {item.title}
+                  </Link>
+                ) : (
+                  <p className="font-sans text-sm font-bold text-va-black leading-snug min-w-0 flex-1">
+                    {item.title}
+                  </p>
+                )}
                 <p className="font-sans text-sm font-semibold text-va-black whitespace-nowrap shrink-0">
                   {formatPriceEur(item.total)}
                 </p>

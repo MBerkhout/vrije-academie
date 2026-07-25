@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { resolveCityBySlug } from '@/lib/commerce/resolve-city-slug'
+import { buildSeoMetadata } from '@/lib/cms/seo-metadata'
+import { getCityBySlug } from '@/lib/cms/sanity-refs'
 import { PlpListingPage } from '@/components/plp/PlpListingPage'
 import { parseFilterState, serializeFilterState } from '../../_state/url'
 import { plpCityHref } from '@/lib/routes'
@@ -14,14 +16,18 @@ interface CityPlpPageProps {
 
 export async function generateMetadata({ params }: CityPlpPageProps): Promise<Metadata> {
   const { city: citySlug } = await params
-  const city = await resolveCityBySlug(citySlug)
-  const label = city?.label ?? citySlug
+  const [city, sanityCity] = await Promise.all([
+    resolveCityBySlug(citySlug),
+    getCityBySlug(citySlug),
+  ])
+  const label = city?.label ?? sanityCity?.label ?? citySlug
   const siteName = 'Vrije Academie'
 
-  return {
-    title: `Ons aanbod in ${label} – ${siteName}`,
-    description: `Bekijk het aanbod van ${siteName} in ${label}.`,
-  }
+  return buildSeoMetadata(sanityCity?.seo, {
+    fallbackTitle: `Ons aanbod in ${label} – ${siteName}`,
+    fallbackDescription: `Bekijk het aanbod van ${siteName} in ${label}.`,
+    path: plpCityHref(citySlug),
+  })
 }
 
 export default async function CityPlpPage({ params, searchParams }: CityPlpPageProps) {

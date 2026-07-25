@@ -15,6 +15,7 @@ import type { EventFacets } from '@/lib/commerce/types'
 import { PLP_PRODUCT_TYPES } from '@/lib/plp-product-types'
 import { cn } from '@/lib/utils'
 import { PLP_BASE_PATH } from '@/lib/routes'
+import { trackFilterChange } from '@/lib/analytics/events/ecommerce'
 
 interface PlpFilterSidebarProps {
   filterState: PlpFilterState
@@ -39,6 +40,7 @@ function filterTheme(variant: FilterVariant) {
       title: 'text-white',
       chevron: 'text-va-gray-400',
       label: 'text-white/90 hover:text-white',
+      labelText: 'group-hover:underline underline-offset-2 decoration-va-black',
       count: 'text-va-gray-500',
       resetBtn: 'text-va-gray-400 border-va-darkgray-600 hover:bg-va-darkgray-800',
       mobileTrigger:
@@ -48,8 +50,10 @@ function filterTheme(variant: FilterVariant) {
       drawerTitle: 'text-white',
       drawerClear: 'text-va-gray-400 hover:text-white',
       gradientFrom: 'from-va-darkgray-950',
-      expandBtn: 'text-white hover:text-va-yellow',
-      expandIcon: 'text-white',
+      expandBtn: 'text-white hover:underline underline-offset-2 decoration-white',
+      expandIcon: 'text-white transition-transform group-hover:translate-y-0.5',
+      checkbox:
+        'accent-va-yellow w-4 h-4 shrink-0 rounded border border-va-darkgray-500 transition-colors group-hover:border-white group-hover:ring-1 group-hover:ring-inset group-hover:ring-white/80',
     }
   }
   return {
@@ -57,6 +61,7 @@ function filterTheme(variant: FilterVariant) {
     title: 'text-va-black',
     chevron: 'text-va-gray',
     label: 'text-va-black hover:text-va-darkgray',
+    labelText: 'group-hover:underline underline-offset-2 decoration-va-black',
     count: 'text-va-gray',
     resetBtn: 'text-va-gray border-va-lightgray hover:bg-va-lightgray',
     mobileTrigger:
@@ -66,8 +71,10 @@ function filterTheme(variant: FilterVariant) {
     drawerTitle: 'text-va-black',
     drawerClear: 'text-va-gray hover:text-va-black',
     gradientFrom: 'from-white',
-    expandBtn: 'text-va-black hover:text-va-darkgray',
-    expandIcon: 'text-va-black',
+    expandBtn: 'text-va-black hover:underline underline-offset-2 decoration-va-black',
+    expandIcon: 'text-va-black transition-transform group-hover:translate-y-0.5',
+    checkbox:
+      'accent-va-yellow w-4 h-4 shrink-0 rounded border border-va-lightgray transition-colors group-hover:border-va-black group-hover:ring-1 group-hover:ring-inset group-hover:ring-va-black',
   }
 }
 
@@ -127,14 +134,14 @@ function ToggleCheckbox({
   onChange: (v: boolean) => void
 }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer text-sm text-va-black hover:text-va-darkgray">
+    <label className="group flex items-center gap-2 cursor-pointer text-sm text-va-black hover:text-va-darkgray">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="accent-va-yellow w-4 h-4 rounded"
+        className={filterTheme('light').checkbox}
       />
-      {label}
+      <span className="group-hover:underline underline-offset-2 decoration-va-black">{label}</span>
     </label>
   )
 }
@@ -179,8 +186,12 @@ function FilterSlidersIcon({ className }: { className?: string }) {
   )
 }
 
-function groupDefaultOpen(desktopDefault: boolean | undefined, collapseGroups: boolean): boolean {
-  if (collapseGroups) return false
+function groupDefaultOpen(
+  desktopDefault: boolean | undefined,
+  collapseGroups: boolean,
+  mobileDefaultOpen = false,
+): boolean {
+  if (collapseGroups) return mobileDefaultOpen
   return desktopDefault ?? true
 }
 
@@ -249,28 +260,38 @@ function PlaatsSearchableMultiSelectChecklist({
         <p className="text-xs text-va-gray py-1">Geen resultaten</p>
       ) : (
         <>
-          <div
-            className={cn(
-              'relative',
-              needsScroll && 'max-h-[17.5rem] overflow-y-auto pr-0.5',
-            )}
-          >
-            <MultiSelectChecklist
-              options={visibleOptions}
-              selected={selected}
-              onToggle={onToggle}
-            />
+          <div>
+            <div
+              className={cn(
+                'relative',
+                needsScroll && 'max-h-[17.5rem] overflow-y-auto pr-0.5',
+                needsCollapse && !showFullList && 'max-h-[9.25rem] overflow-hidden',
+              )}
+            >
+              <MultiSelectChecklist
+                options={visibleOptions}
+                selected={selected}
+                onToggle={onToggle}
+              />
+              {needsCollapse && !showFullList && (
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white via-white/95 to-transparent"
+                  aria-hidden
+                />
+              )}
+            </div>
             {needsCollapse && !showFullList && (
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-8">
-                <button
-                  type="button"
-                  onClick={() => setExpanded(true)}
-                  className="flex w-full items-center justify-center gap-1.5 pb-0.5 text-sm font-medium text-va-black hover:text-va-darkgray transition-colors"
-                >
-                  Meer bekijken
-                  <ChevronDownIcon className="w-4 h-4 shrink-0 text-va-black" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className={cn(
+                  'group mt-1 flex w-full items-center justify-center gap-1.5 py-1 text-sm font-medium transition-colors',
+                  filterTheme('light').expandBtn,
+                )}
+              >
+                Meer bekijken
+                <ChevronDownIcon className={cn('w-4 h-4 shrink-0', filterTheme('light').expandIcon)} />
+              </button>
             )}
           </div>
         </>
@@ -296,16 +317,16 @@ function MultiSelectChecklist({
       {options.map((opt) => (
         <label
           key={opt.value}
-          className={cn('flex items-center justify-between gap-2 cursor-pointer text-sm', theme.label)}
+          className={cn('group flex items-center justify-between gap-2 cursor-pointer text-sm', theme.label)}
         >
           <span className="flex items-center gap-2">
             <input
               type="checkbox"
               checked={selected.includes(opt.value)}
               onChange={() => onToggle(opt.value)}
-              className="accent-va-yellow w-4 h-4 rounded"
+              className={theme.checkbox}
             />
-            {opt.label}
+            <span className={theme.labelText}>{opt.label}</span>
           </span>
           {opt.count !== undefined && (
             <span className={cn('text-xs', theme.count)}>{opt.count}</span>
@@ -347,24 +368,42 @@ function CollapsibleMultiSelectChecklist({
     : options.slice(0, collapsedCount)
 
   return (
-    <div className="relative">
-      <MultiSelectChecklist
-        options={visibleOptions}
-        selected={selected}
-        onToggle={onToggle}
-        variant={variant}
-      />
+    <div>
+      <div
+        className={cn(
+          'relative',
+          needsCollapse && !expanded && 'max-h-[10.5rem] overflow-hidden',
+        )}
+      >
+        <MultiSelectChecklist
+          options={visibleOptions}
+          selected={selected}
+          onToggle={onToggle}
+          variant={variant}
+        />
+        {needsCollapse && !expanded && (
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t to-transparent',
+              theme.gradientFrom,
+              variant === 'dark' ? 'via-va-darkgray-950/95' : 'via-white/95',
+            )}
+            aria-hidden
+          />
+        )}
+      </div>
       {needsCollapse && !expanded && (
-        <div className={cn('absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent pt-8', variant === 'dark' ? 'from-va-darkgray-950 via-va-darkgray-950/95' : 'from-white via-white/95')}>
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            className={cn('flex w-full items-center justify-center gap-1.5 pb-0.5 text-sm font-medium transition-colors', theme.expandBtn)}
-          >
-            {expandLabel}
-            <ChevronDownIcon className={cn('w-4 h-4 shrink-0', theme.expandIcon)} />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className={cn(
+            'group mt-1 flex w-full items-center justify-center gap-1.5 py-1 text-sm font-medium transition-colors',
+            theme.expandBtn,
+          )}
+        >
+          {expandLabel}
+          <ChevronDownIcon className={cn('w-4 h-4 shrink-0', theme.expandIcon)} />
+        </button>
       )}
     </div>
   )
@@ -543,7 +582,15 @@ export function PlpFilterSidebar({
       (filterState.dayParts?.length ?? 0) +
       (filterState.periodStart || filterState.periodEnd ? 1 : 0)
 
-  function applyFilter(newState: PlpFilterState) {
+  function applyFilter(newState: PlpFilterState, meta?: { filterName: string; filterValue: string }) {
+    if (meta) {
+      trackFilterChange({
+        scope: 'aanbod_overzicht',
+        filterName: meta.filterName,
+        filterValue: meta.filterValue,
+        resultsCount: 0,
+      })
+    }
     if (usesPlpCanonicalFilterHref(basePath)) {
       router.push(resolvePlpFilterHref(newState))
       return
@@ -558,7 +605,19 @@ export function PlpFilterSidebar({
     const next = current.includes(value)
       ? current.filter((v) => v !== value)
       : [...current, value]
-    applyFilter({ ...filterState, [key]: next })
+    const filterNameMap: Partial<Record<keyof PlpFilterState, string>> = {
+      categories: 'vakgebied',
+      productTypes: 'categorie',
+      teachers: 'docent',
+      cities: 'plaats',
+      deliveryTypes: 'modaliteit',
+      dayParts: 'dagdeel',
+      recordTypes: 'type',
+    }
+    applyFilter(
+      { ...filterState, [key]: next },
+      { filterName: filterNameMap[key] ?? String(key), filterValue: value }
+    )
   }
 
   function clearAll() {
@@ -623,7 +682,7 @@ export function PlpFilterSidebar({
         {!catalogOnly && deliveryOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Beschikbaarheid"
-            defaultOpen={groupDefaultOpen(true, collapseGroups)}
+            defaultOpen={groupDefaultOpen(true, collapseGroups, true)}
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.deliveryTypes?.length ?? 0}
@@ -659,7 +718,9 @@ export function PlpFilterSidebar({
         {categoryOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Categorie"
-            defaultOpen={catalogOnly ? true : groupDefaultOpen(undefined, collapseGroups)}
+            defaultOpen={
+              catalogOnly ? true : groupDefaultOpen(undefined, collapseGroups, true)
+            }
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.categories?.length ?? 0}
@@ -678,7 +739,9 @@ export function PlpFilterSidebar({
         {teacherOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Docent"
-            defaultOpen={catalogOnly ? true : groupDefaultOpen(false, collapseGroups)}
+            defaultOpen={
+              catalogOnly ? true : groupDefaultOpen(false, collapseGroups, true)
+            }
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.teachers?.length ?? 0}
@@ -696,7 +759,7 @@ export function PlpFilterSidebar({
         {!catalogOnly && citiesFromFacets.length > 0 && (
           <FilterGroupCollapsible
             title="Plaats"
-            defaultOpen={groupDefaultOpen(true, collapseGroups)}
+            defaultOpen={groupDefaultOpen(true, collapseGroups, true)}
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.cities?.length ?? 0}

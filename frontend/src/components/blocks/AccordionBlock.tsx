@@ -31,7 +31,7 @@ export function AccordionBlock({ block }: { block: AccordionBlockType }) {
 
   return (
     <BlockWrapper block={block}>
-      <div className="font-sans" itemScope itemType="https://schema.org/FAQPage">
+      <div className="font-sans">
         {block.title && (
           <TitleTag className={cn(getTitleSizeClass(block.titleSize ?? 'h3'), 'font-bold text-va-black mb-4')}>
             {block.title}
@@ -41,7 +41,7 @@ export function AccordionBlock({ block }: { block: AccordionBlockType }) {
           {items.map((item, i) => {
             const isOpen = openIndices.has(i)
             return (
-              <div key={i} className="bg-white" itemScope itemProp="mainEntity" itemType="https://schema.org/Question">
+              <div key={i} className="bg-white">
                 <button
                   type="button"
                   onClick={() => toggle(i)}
@@ -53,7 +53,7 @@ export function AccordionBlock({ block }: { block: AccordionBlockType }) {
                   aria-controls={`accordion-answer-${block._id}-${i}`}
                   id={`accordion-question-${block._id}-${i}`}
                 >
-                  <span itemProp="name">{item.question}</span>
+                  <span>{item.question}</span>
                   {/* Animated +/- icon: horizontal bar always visible, vertical bar fades/scales out when open */}
                   <span className="flex-shrink-0 w-4 h-4 relative flex items-center justify-center" aria-hidden>
                     <span className="absolute w-full h-px bg-va-gray rounded-full transition-transform duration-300" />
@@ -73,12 +73,9 @@ export function AccordionBlock({ block }: { block: AccordionBlockType }) {
                   aria-hidden={!isOpen}
                   className="grid transition-[grid-template-rows] duration-300 ease-in-out"
                   style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
-                  itemScope
-                  itemProp="acceptedAnswer"
-                  itemType="https://schema.org/Answer"
                 >
                   <div className="overflow-hidden">
-                    <div className="px-4 pb-4 pt-3 text-va-darkgray border-t border-va-lightgray" itemProp="text">
+                    <div className="px-4 pb-4 pt-3 text-va-darkgray border-t border-va-lightgray">
                       {item.answer && <PortableText value={item.answer} />}
                     </div>
                   </div>

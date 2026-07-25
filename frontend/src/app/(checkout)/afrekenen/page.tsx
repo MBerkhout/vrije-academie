@@ -1,3 +1,7 @@
+import { noIndexMetadata } from '@/lib/cms/seo-metadata'
+
+export const metadata = noIndexMetadata('Afrekenen – Vrije Academie')
+
 export default function AfrekenenPage() {
   return (
     <div className="min-h-screen bg-va-lightgray flex items-center justify-center">

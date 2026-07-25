@@ -17,6 +17,16 @@ export function plpCategoryHref(categorySlug: string): string {
   return `${PLP_BASE_PATH}/${encodeURIComponent(categorySlug)}`
 }
 
+/** Record-type filter on Ons aanbod, e.g. `/ons-aanbod?record_type=collegereeks`. */
+export function plpRecordTypeHref(recordType: string): string | null {
+  const slug = recordType.trim().toLowerCase()
+  if (!slug) return null
+  if (slug === 'vathuis') return VATHUIS_BASE_PATH
+  const params = new URLSearchParams()
+  params.set('record_type', slug)
+  return `${PLP_BASE_PATH}?${params.toString()}`
+}
+
 /** PLP city landing page, e.g. `/ons-aanbod/plaats/amsterdam`. */
 export function plpCityHref(citySlug: string): string {
   return `${PLP_BASE_PATH}/plaats/${encodeURIComponent(citySlug)}`

@@ -43,9 +43,19 @@ export function AgendaRow({ item }: AgendaRowProps) {
 
   const href = plpProductPath(item.product_handle)
   const status = presentationForAvailabilityStatus(item.status, { city: item.city })
+  const statusClassName = status.className
+    .split(' ')
+    .filter((c) => !c.startsWith('hover:'))
+    .join(' ')
 
   return (
-    <article className="grid grid-cols-[76px_1fr_auto_auto] items-stretch gap-0 bg-white border border-va-lightgray rounded-lg overflow-hidden hover:shadow-sm transition-shadow">
+    <article className="group relative grid grid-cols-[76px_1fr_auto_auto] items-stretch gap-0 bg-white border border-va-lightgray rounded-lg overflow-hidden hover:border-va-gray hover:shadow-md transition-[box-shadow,border-color]">
+      <Link
+        href={href}
+        className="absolute inset-0 z-10 rounded-lg"
+        aria-label={item.product_title}
+      />
+
       {/* Date cell */}
       <div className="bg-va-lightgray/50 flex flex-col items-center justify-center py-3 px-2 text-center">
         <div className="font-bold text-va-black text-sm leading-none">
@@ -56,12 +66,9 @@ export function AgendaRow({ item }: AgendaRowProps) {
 
       {/* Title + location */}
       <div className="flex flex-col justify-center px-4 py-3 min-w-0">
-        <Link
-          href={href}
-          className="font-sans font-semibold text-va-black text-sm leading-snug hover:text-va-yellow transition-colors line-clamp-1"
-        >
+        <p className="font-sans font-semibold text-va-black text-sm leading-snug group-hover:underline underline-offset-2 decoration-va-black line-clamp-1">
           {item.product_title}
-        </Link>
+        </p>
         <div className="flex items-center gap-1 text-xs text-va-gray mt-0.5">
           <DeliveryTypeIcon isOnline={isOnline} />
           <span className="truncate">{locationLabel}</span>
@@ -73,16 +80,15 @@ export function AgendaRow({ item }: AgendaRowProps) {
         {timeRange}
       </div>
 
-      {/* Action button */}
-      <Link
-        href={href}
+      {/* Availability label */}
+      <div
         className={cn(
-          'flex items-center justify-center px-5 sm:px-8 text-xs font-bold uppercase tracking-wide transition-colors min-w-[140px]',
-          status.className,
+          'flex items-center justify-center px-5 sm:px-8 text-xs font-bold uppercase tracking-wide min-w-[140px]',
+          statusClassName,
         )}
       >
         {status.label}
-      </Link>
+      </div>
     </article>
   )
 }

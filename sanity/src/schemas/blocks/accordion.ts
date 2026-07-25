@@ -80,6 +80,14 @@ export const accordionBlock = defineType({
       initialValue: false,
     }),
     defineField({
+      name: "enableStructuredData",
+      title: "FAQ structured data",
+      type: "boolean",
+      group: "content",
+      description: "When enabled, emits FAQPage JSON-LD for this block on the storefront.",
+      initialValue: true,
+    }),
+    defineField({
       ...createLayoutField({ marginTop: "24", marginBottom: "24" } as BlockLayoutDefaults),
       group: "style",
     }),

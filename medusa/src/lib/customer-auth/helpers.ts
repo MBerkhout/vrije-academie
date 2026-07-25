@@ -9,8 +9,11 @@ import type { ICustomerModuleService } from "@medusajs/framework/types"
 
 import { CUSTOMER_OTP_MODULE } from "../../modules/customer-otp"
 import type CustomerOtpModuleService from "../../modules/customer-otp/service"
+import { LEGACY_PASSWORD_MODULE } from "../../modules/legacy-password"
+import type LegacyPasswordModuleService from "../../modules/legacy-password/service"
 import { enqueueCustomerPullFromSalesforce } from "../../modules/salesforce-sync/utils/enqueue-customer-pull"
 import { enqueueCustomerPushToSalesforce } from "../../modules/salesforce-sync/utils/enqueue-customer-push"
+import { verifyDjangoPbkdf2Password } from "./django-pbkdf2"
 
 const EMAILPASS_PROVIDER = "emailpass"
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -94,8 +97,9 @@ export async function lookupCustomerAuth(
   }
 
   const identities = await listAuthIdentitiesByEmail(container, normalized)
-  const hasPassword = identities.some(authIdentityHasPassword)
-  return { exists: true, hasPassword }
+  const hasMedusaPassword = identities.some(authIdentityHasPassword)
+  const hasLegacyPassword = await customerHasLegacyPassword(container, normalized)
+  return { exists: true, hasPassword: hasMedusaPassword || hasLegacyPassword }
 }
 
 export async function findAuthIdentityByEmail(
@@ -320,10 +324,119 @@ export async function registerPasswordlessCustomer(
   return { token, customerId: customer.id }
 }
 
-export async function customerHasPassword(
+export async function customerHasMedusaPassword(
   container: MedusaContainer,
   email: string
 ): Promise<boolean> {
   const identities = await listAuthIdentitiesByEmail(container, assertValidEmail(email))
   return identities.some(authIdentityHasPassword)
+}
+
+export async function customerHasLegacyPassword(
+  container: MedusaContainer,
+  email: string
+): Promise<boolean> {
+  const legacyPassword = container.resolve(LEGACY_PASSWORD_MODULE) as InstanceType<
+    typeof LegacyPasswordModuleService
+  >
+  return legacyPassword.hasLegacyPassword(container, email)
+}
+
+export async function verifyLegacyPasswordForEmail(
+  container: MedusaContainer,
+  email: string,
+  password: string
+): Promise<boolean> {
+  const legacyPassword = container.resolve(LEGACY_PASSWORD_MODULE) as InstanceType<
+    typeof LegacyPasswordModuleService
+  >
+  const row = await legacyPassword.getByEmail(container, assertValidEmail(email))
+  if (!row?.password_hash) return false
+  return verifyDjangoPbkdf2Password(password, row.password_hash)
+}
+
+export async function loginWithPasswordMigration(
+  container: MedusaContainer,
+  email: string,
+  password: string
+): Promise<{ token: string }> {
+  const normalized = assertValidEmail(email)
+  const auth = container.resolve(Modules.AUTH) as {
+    authenticate: (
+      provider: string,
+      data: Record<string, unknown>
+    ) => Promise<{ success: boolean; authIdentity?: AuthIdentityShape; error?: string }>
+    updateProvider: (
+      provider: string,
+      data: Record<string, unknown>
+    ) => Promise<{ success: boolean; error?: string }>
+  }
+
+  const customer = await getCustomerByEmail(container, normalized)
+  if (!customer) {
+    throw new MedusaError(MedusaError.Types.UNAUTHORIZED, "Invalid email or password")
+  }
+
+  const login = await auth.authenticate("emailpass", {
+    body: { email: normalized, password },
+  })
+
+  if (login.success && login.authIdentity) {
+    let authIdentity = login.authIdentity
+    if (!authIdentity.app_metadata?.customer_id) {
+      await linkAuthIdentityToCustomer(container, authIdentity.id, customer.id)
+      authIdentity = (await findAuthIdentityByEmail(container, normalized)) ?? authIdentity
+    }
+    const token = await issueCustomerJwt(container, authIdentity)
+    void enqueueCustomerPullFromSalesforce(container, customer.id, normalized).catch(() => {})
+    return { token }
+  }
+
+  const legacyPassword = container.resolve(LEGACY_PASSWORD_MODULE) as InstanceType<
+    typeof LegacyPasswordModuleService
+  >
+  const legacyRow = await legacyPassword.getByEmail(container, normalized)
+  if (!legacyRow?.password_hash) {
+    throw new MedusaError(MedusaError.Types.UNAUTHORIZED, "Invalid email or password")
+  }
+
+  if (!verifyDjangoPbkdf2Password(password, legacyRow.password_hash)) {
+    throw new MedusaError(MedusaError.Types.UNAUTHORIZED, "Invalid email or password")
+  }
+
+  let authIdentity = await findAuthIdentityByEmail(container, normalized)
+  if (!authIdentity) {
+    authIdentity = await ensurePasswordlessAuthIdentity(container, normalized)
+  }
+  if (!authIdentity.app_metadata?.customer_id) {
+    await linkAuthIdentityToCustomer(container, authIdentity.id, customer.id)
+    authIdentity = (await findAuthIdentityByEmail(container, normalized)) ?? authIdentity
+  }
+
+  const updated = await auth.updateProvider("emailpass", {
+    entity_id: normalized,
+    password,
+  })
+  if (!updated.success) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      updated.error ?? "Could not migrate password"
+    )
+  }
+
+  await legacyPassword.deleteByCustomerId(customer.id)
+
+  authIdentity = (await findAuthIdentityByEmail(container, normalized)) ?? authIdentity
+  const token = await issueCustomerJwt(container, authIdentity)
+  void enqueueCustomerPullFromSalesforce(container, customer.id, normalized).catch(() => {})
+  return { token }
+}
+
+export async function customerHasPassword(
+  container: MedusaContainer,
+  email: string
+): Promise<boolean> {
+  const normalized = assertValidEmail(email)
+  if (await customerHasMedusaPassword(container, normalized)) return true
+  return customerHasLegacyPassword(container, normalized)
 }

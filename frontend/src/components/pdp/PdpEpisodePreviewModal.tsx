@@ -3,15 +3,41 @@
 import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type { VathuisEpisode } from '@/lib/commerce/types'
+import {
+  trackVideoComplete,
+  trackVideoProgress,
+  trackVideoStart,
+} from '@/lib/analytics/events/ecommerce'
 import { defaultMessages } from '@/lib/i18n/messages'
+import { Button } from '@/components/ui/Button'
 
 interface PdpEpisodePreviewModalProps {
   episode: VathuisEpisode | null
+  productHandle?: string
+  productTitle?: string
   open: boolean
   onClose: () => void
+  showNavigation?: boolean
+  hasPrevious?: boolean
+  hasNext?: boolean
+  onPrevious?: () => void
+  onNext?: () => void
+  loadingNavigation?: boolean
 }
 
-export function PdpEpisodePreviewModal({ episode, open, onClose }: PdpEpisodePreviewModalProps) {
+export function PdpEpisodePreviewModal({
+  episode,
+  productHandle,
+  productTitle,
+  open,
+  onClose,
+  showNavigation = false,
+  hasPrevious = false,
+  hasNext = false,
+  onPrevious,
+  onNext,
+  loadingNavigation = false,
+}: PdpEpisodePreviewModalProps) {
   const t = defaultMessages.pdp
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -34,9 +60,35 @@ export function PdpEpisodePreviewModal({ episode, open, onClose }: PdpEpisodePre
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
+  useEffect(() => {
+    if (!open || !episode?.embed_url || !productHandle) return
+    const itemName = productTitle ?? episode.title
+    trackVideoStart(productHandle, itemName, 'vimeo')
+    const duration = episode.duration_seconds ?? 0
+    const milestones = new Set<number>()
+    const started = Date.now()
+    const interval = window.setInterval(() => {
+      if (duration <= 0) return
+      const pct = Math.round(((Date.now() - started) / 1000 / duration) * 100)
+      for (const milestone of [25, 50, 75, 90]) {
+        if (pct >= milestone && !milestones.has(milestone)) {
+          milestones.add(milestone)
+          trackVideoProgress(productHandle, milestone)
+        }
+      }
+      if (pct >= 98) {
+        trackVideoComplete(productHandle)
+        window.clearInterval(interval)
+      }
+    }, 5000)
+    return () => window.clearInterval(interval)
+  }, [open, episode, productHandle, productTitle])
+
   if (!open || !episode) return null
 
   const embedUrl = episode.embed_url
+  const previousLabel = t.episodePrevious ?? 'Vorige aflevering'
+  const nextLabel = t.episodeNext ?? 'Volgende aflevering'
 
   return createPortal(
     <div
@@ -69,6 +121,7 @@ export function PdpEpisodePreviewModal({ episode, open, onClose }: PdpEpisodePre
         <div className="aspect-video bg-black">
           {embedUrl ? (
             <iframe
+              key={embedUrl}
               src={embedUrl}
               title={`${episode.title} preview`}
               className="w-full h-full border-0"
@@ -77,10 +130,37 @@ export function PdpEpisodePreviewModal({ episode, open, onClose }: PdpEpisodePre
             />
           ) : (
             <div className="flex h-full items-center justify-center text-white/70 text-sm px-6 text-center">
-              {t.episodePreviewUnavailable ?? 'Deze preview is momenteel niet beschikbaar.'}
+              {loadingNavigation
+                ? (t.episodeLoading ?? 'Aflevering laden…')
+                : (t.episodePreviewUnavailable ?? 'Deze preview is momenteel niet beschikbaar.')}
             </div>
           )}
         </div>
+
+        {showNavigation ? (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-white/10">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="uppercase tracking-wide text-xs"
+              disabled={!hasPrevious || loadingNavigation}
+              onClick={onPrevious}
+            >
+              ← {previousLabel}
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              className="uppercase tracking-wide text-xs"
+              disabled={!hasNext || loadingNavigation}
+              onClick={onNext}
+            >
+              {nextLabel} →
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>,
     document.body,

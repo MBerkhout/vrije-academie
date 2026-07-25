@@ -11,6 +11,11 @@ import { listCategoriesForProductIds } from "../../../../lib/product-catalog-cat
 import { externalRegistrationUrlFromMetadata } from "../../../../lib/external-registration-url"
 import { ctaBarFieldsFromMetadata } from "../../../../lib/product-cta-bar"
 import { filterVariantsWithFutureSessions } from "../../../../lib/event-session-eligibility"
+import { stripVathuisPublicEmbeds } from "../../../../lib/vathuis-episode-lookup"
+import {
+  isVathuisUnlimitedAvailability,
+  VATHUIS_UNLIMITED_AVAILABILITY,
+} from "../../../../lib/vathuis-availability"
 
 /** day_part derived from start_at hour: ochtend <12, middag 12–17, avond >=17 */
 function dayPart(startAt: string | null | undefined): string | null {
@@ -103,10 +108,6 @@ export async function GET(
 
   const priceFrom = minPriceCentsFromVariants(variants)
 
-  const minAvailableQuantity = eventItems.length
-    ? Math.min(...eventItems.map((ei) => Number(ei.available_quantity ?? 0)))
-    : null
-
   const hasFreeTrial = eventItems.some((ei) => ei.is_free_trial === true)
 
   const imageUrls = [
@@ -119,18 +120,31 @@ export async function GET(
   const { metadata, ...productFields } = product
   const productMetadata = metadata as Record<string, unknown> | null | undefined
   const ctaFields = ctaBarFieldsFromMetadata(productMetadata)
+  const hasLinkedOnlineSessions = Boolean(
+    productMetadata?.salesforce_linked_online_productgroup_id
+  )
 
   const vathuis = productMetadata?.vathuis as Record<string, unknown> | undefined
   const purchaseMode = vathuis?.purchase_mode ?? null
-  const episodes = Array.isArray(vathuis?.episodes) ? vathuis.episodes : []
-  const chapters = Array.isArray(vathuis?.chapters) ? vathuis.chapters : []
+  const unlimitedAvailability = isVathuisUnlimitedAvailability({
+    recordType: eventGroup?.record_type,
+    purchaseMode: typeof purchaseMode === "string" ? purchaseMode : null,
+  })
+  const minAvailableQuantity = unlimitedAvailability
+    ? VATHUIS_UNLIMITED_AVAILABILITY
+    : eventItems.length
+      ? Math.min(...eventItems.map((ei) => Number(ei.available_quantity ?? 0)))
+      : null
+  const sanitizedVathuis = vathuis ? stripVathuisPublicEmbeds(vathuis) : null
+  const episodes = Array.isArray(sanitizedVathuis?.episodes) ? sanitizedVathuis.episodes : []
+  const chapters = Array.isArray(sanitizedVathuis?.chapters) ? sanitizedVathuis.chapters : []
   const audiencePlayer =
-    vathuis?.audience_player && typeof vathuis.audience_player === "object"
-      ? (vathuis.audience_player as Record<string, unknown>)
+    sanitizedVathuis?.audience_player && typeof sanitizedVathuis.audience_player === "object"
+      ? (sanitizedVathuis.audience_player as Record<string, unknown>)
       : null
   const bundleVariantSalesforceId =
-    typeof vathuis?.bundle_variant_salesforce_id === "string"
-      ? vathuis.bundle_variant_salesforce_id
+    typeof sanitizedVathuis?.bundle_variant_salesforce_id === "string"
+      ? sanitizedVathuis.bundle_variant_salesforce_id
       : null
   const bundleVariant =
     bundleVariantSalesforceId != null
@@ -142,14 +156,23 @@ export async function GET(
   const enriched = {
     ...productFields,
     ...ctaFields,
-    variants: variants.map((v) => ({
-      ...v,
-      prices: normalizeVariantPricesForStorefront(v.prices),
-      purchasable:
-        purchaseMode === "bundle_only"
-          ? v.id === bundleVariant?.id
-          : true,
-    })),
+    variants: variants.map((v) => {
+      const eventItem = v.event_item as Record<string, unknown> | undefined
+      const normalizedEventItem =
+        unlimitedAvailability && eventItem
+          ? { ...eventItem, available_quantity: VATHUIS_UNLIMITED_AVAILABILITY }
+          : eventItem
+
+      return {
+        ...v,
+        event_item: normalizedEventItem,
+        prices: normalizeVariantPricesForStorefront(v.prices),
+        purchasable:
+          purchaseMode === "bundle_only"
+            ? v.id === bundleVariant?.id
+            : true,
+      }
+    }),
     record_type: eventGroup?.record_type ?? null,
     product_type: (product.type as { value?: string } | null | undefined)?.value ?? null,
     has_free_trial_group: eventGroup?.has_free_trial ?? false,
@@ -164,12 +187,13 @@ export async function GET(
     has_free_trial: hasFreeTrial || (eventGroup?.has_free_trial ?? false),
     image_urls: imageUrls,
     external_registration_url: externalRegistrationUrlFromMetadata(productMetadata),
+    has_linked_online_sessions: hasLinkedOnlineSessions,
     purchase_mode: purchaseMode,
     bundle_variant_id: bundleVariant?.id ?? null,
-    vathuis: vathuis
+    vathuis: sanitizedVathuis
       ? {
-          episode_count_label: vathuis.episode_count_label ?? null,
-          play_time: vathuis.play_time ?? null,
+          episode_count_label: sanitizedVathuis.episode_count_label ?? null,
+          play_time: sanitizedVathuis.play_time ?? null,
           episodes,
           chapters,
           audience_player: audiencePlayer

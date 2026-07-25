@@ -1,5 +1,6 @@
 import type { DeliveryType } from "../../events/types"
 import { isVathuisRecordType } from "../clients/audience-player"
+import { VATHUIS_UNLIMITED_AVAILABILITY } from "../../../lib/vathuis-availability"
 
 /** Salesforce `vaProduct__c` (child occurrence under a product group). */
 export type SfCourseProductShape = {
@@ -70,7 +71,13 @@ export function inferDeliveryType(
   return "offline"
 }
 
-export function courseProductAvailableQuantity(sf: SfCourseProductShape): number {
+export function courseProductAvailableQuantity(
+  sf: SfCourseProductShape,
+  groupRecordType?: string | null
+): number {
+  if (isVathuisRecordType(groupRecordType) || sf.Audience_Player_Article_Id__c) {
+    return VATHUIS_UNLIMITED_AVAILABILITY
+  }
   const max = sf.Maximum_capacity__c ?? sf.Capacity__c
   if (typeof max === "number" && max > 0) return max
   const availability = (sf.Availability_capacity__c ?? "").toLowerCase()

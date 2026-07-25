@@ -29,6 +29,7 @@ export async function generateMetadata({ searchParams }: PlpPageProps): Promise<
   return buildSeoMetadata(plpData?.seo, {
     fallbackTitle: `${baseTitle} – ${siteName}`,
     fallbackDescription: `Bekijk het volledige aanbod van ${siteName}.`,
+    path: PLP_BASE_PATH,
   })
 }
 

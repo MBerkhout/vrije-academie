@@ -58,6 +58,19 @@ export function futureOfflineSessionsForListing(
   return eventItems.filter((ei) => isFutureOfflineSession(ei, nowMs))
 }
 
+/** Future bookable sessions (available_quantity > 0) for PLP listing aggregates. */
+export function futureAvailableSessionsForListing(
+  eventItems: EventItemListingRow[],
+  now: Date = new Date()
+): EventItemListingRow[] {
+  const nowMs = now.getTime()
+  return eventItems.filter((ei) => {
+    const qty = Number(ei.available_quantity ?? 0)
+    if (qty <= 0) return false
+    return isFutureSession(ei, nowMs)
+  })
+}
+
 /**
  * True when the product has at least one bookable future session:
  * - available_quantity > 0

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
-import { plpCategoryHref } from '@/lib/routes'
+import { plpCategoryHref, plpRecordTypeHref } from '@/lib/routes'
 
 interface PdpHeaderProps {
   title: string
@@ -21,6 +21,8 @@ export function PdpHeader({ title, onlineBadge, recordType, categories, shareLab
       await navigator.clipboard.writeText(window.location.href).catch(() => null)
     }
   }
+
+  const recordTypeHref = recordType ? plpRecordTypeHref(recordType) : null
 
   return (
     <div className="flex flex-col gap-3">
@@ -51,9 +53,22 @@ export function PdpHeader({ title, onlineBadge, recordType, categories, shareLab
           )
         })}
         {recordType && (
-          <Badge variant="record" size="sm">
-            {recordType}
-          </Badge>
+          recordTypeHref ? (
+            <Link
+              href={recordTypeHref}
+              className="inline-flex hover:opacity-80 transition-opacity"
+            >
+              <Badge variant="record" size="sm">
+                {recordType}
+              </Badge>
+            </Link>
+          ) : (
+            <span className="inline-flex">
+              <Badge variant="record" size="sm">
+                {recordType}
+              </Badge>
+            </span>
+          )
         )}
         {onlineBadge?.enabled && (
           <Badge variant="online" size="sm">

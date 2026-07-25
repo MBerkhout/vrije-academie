@@ -11,12 +11,25 @@ import {
   isCustomerProfileComplete,
 } from '@/lib/commerce/checkout-profile'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
+import { trackAddPaymentInfo } from '@/lib/analytics/events/ecommerce'
+import { buildUserDataFromCustomer, buildUserDataFromFields } from '@/lib/analytics/mappers/user-data'
 import { PaymentMethodTiles } from './PaymentMethodTiles'
 import { TrustSignals } from '@/components/cart/TrustSignals'
 import type { Cart, PaymentProvider } from '@/lib/commerce/types'
 import { parseGiftCardRedemptions } from '@/lib/commerce/gift-card'
 import { formatPriceEur } from '@/lib/locale-format'
 import type { GeneralSettings } from '@/lib/cms/types'
+
+const PAYMENT_TYPE_LABELS: Record<string, string> = {
+  'pp_mollie-ideal_mollie': 'iDEAL',
+  'pp_mollie-card_mollie': 'Creditcard',
+  'pp_mollie-bancontact_mollie': 'Bancontact',
+  'pp_mollie-paypal_mollie': 'PayPal',
+  'pp_mollie-apple-pay_mollie': 'Apple Pay',
+  'pp_mollie-giftcard_mollie': 'Cadeaukaart',
+  'pp_mollie-hosted-checkout_mollie': 'Mollie Checkout',
+}
+
 
 type CheckoutSettings = NonNullable<GeneralSettings['checkout']>
 
@@ -224,6 +237,27 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
 
     setBusy(true)
     try {
+      const userData =
+        buildUserDataFromCustomer(customer) ??
+        buildUserDataFromFields({
+          email,
+          phone,
+          first_name: firstName,
+          last_name: lastName,
+          postal_code: postalCode,
+          country: 'NL',
+        })
+
+      if (!isFreeCheckout && selectedMethod) {
+        trackAddPaymentInfo(
+          PAYMENT_TYPE_LABELS[selectedMethod] ?? selectedMethod,
+          cart.total,
+          userData
+        )
+      } else if (isFreeCheckout) {
+        trackAddPaymentInfo('GRATIS', cart.total, userData)
+      }
+
       if (isFreeCheckout) {
         const result = await commerceClient.completeCart(cartId)
         if (result.type === 'order') {

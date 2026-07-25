@@ -1,9 +1,8 @@
 import { WishlistList } from '@/components/account/WishlistList'
 import { defaultMessages } from '@/lib/i18n/messages'
+import { noIndexMetadata } from '@/lib/cms/seo-metadata'
 
-export const metadata = {
-  title: 'Bewaard – Vrije Academie',
-}
+export const metadata = noIndexMetadata('Bewaard – Vrije Academie')
 
 export default function AccountBewaardPage() {
   const t = defaultMessages.accountPage

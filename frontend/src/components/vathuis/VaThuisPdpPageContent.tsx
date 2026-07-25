@@ -7,7 +7,7 @@ import { CONTAINER_CLASS } from '@/lib/cms'
 
 import { Breadcrumbs } from '@/components/common/Breadcrumbs'
 import { JsonLd } from '@/components/common/JsonLd'
-import { absolutizeUrl, buildOrganizationEntity } from '@/lib/json-ld'
+import { buildPdpEventOrCourseJsonLd } from '@/lib/json-ld'
 import { VATHUIS_BASE_PATH, VATHUIS_CATALOG_PATH, vathuisProductPath } from '@/lib/routes'
 import { PromoBanner } from '@/components/common/PromoBanner'
 import { PdpImageGallery } from '@/components/pdp/PdpImageGallery'
@@ -16,6 +16,7 @@ import { PdpBody } from '@/components/pdp/PdpBody'
 import { PdpBookingPanel } from '@/components/pdp/PdpBookingPanel'
 import { PdpEpisodesTable } from '@/components/pdp/PdpEpisodesTable'
 import { VaThuisSimilarCourses } from '@/components/vathuis/VaThuisSimilarCourses'
+import { PdpAnalytics } from '@/components/analytics/PdpAnalytics'
 import { Badge } from '@/components/ui/Badge'
 
 export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
@@ -46,33 +47,23 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
     { label: event.title, href: vathuisProductPath(handle) },
   ]
 
-  const org = buildOrganizationEntity()
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'Course',
-    name: event.title,
-    description: event.description ?? undefined,
-    image: event.image_urls?.[0] ?? event.thumbnail ?? undefined,
-    url: absolutizeUrl(vathuisProductPath(handle)),
-    provider: org,
-    offers: event.price_from
+  const structuredData = buildPdpEventOrCourseJsonLd(handle, event, {
+    productPath: vathuisProductPath(handle),
+    forceCourse: true,
+    seo: extras
       ? {
-          '@type': 'Offer',
-          price: (event.price_from / 100).toFixed(2),
-          priceCurrency: 'EUR',
-          availability:
-            event.min_available_quantity === 0
-              ? 'https://schema.org/SoldOut'
-              : 'https://schema.org/InStock',
+          seo: extras.seo,
+          seoTitle: extras.seoTitle,
+          seoDescription: extras.seoDescription,
         }
       : undefined,
-  }
+  })
 
   const bannerText = extras?.customUrgencyMessage ?? null
   const vathuisEpisodes = event.vathuis?.episodes ?? []
 
   return (
-    <>
+    <PdpAnalytics event={event} pageType="vathuis">
       <JsonLd data={structuredData} />
 
       <div className="pb-16">
@@ -148,6 +139,7 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
         {(event.vathuis?.chapters?.length || vathuisEpisodes.length) > 0 ? (
           <div className={`${CONTAINER_CLASS} text-white`}>
             <PdpEpisodesTable
+              productHandle={handle}
               chapters={event.vathuis?.chapters}
               episodes={vathuisEpisodes}
               chapterTitle={event.title}
@@ -167,6 +159,6 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
           </div>
         )}
       </div>
-    </>
+    </PdpAnalytics>
   )
 }

@@ -5,10 +5,17 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { addVariantToCart } from '@/lib/commerce/cart'
 import { useWishlist } from '@/lib/commerce/useWishlist'
+import { useVathuisAccess } from '@/lib/commerce/use-vathuis-access'
 import { defaultMessages, interpolate } from '@/lib/i18n/messages'
+import { trackShare } from '@/lib/analytics/events/engagement'
 import { absolutizeUrl } from '@/lib/json-ld'
 import { plpProductPath } from '@/lib/routes'
-import { eventPricePrefixLabel } from '@/lib/event-status-presentation'
+import {
+  eventHasUnlimitedAvailability,
+  eventIsFullySoldOut,
+  eventPricePrefixLabel,
+  minPositiveBookableQuantity,
+} from '@/lib/event-status-presentation'
 import { formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
 import type { GeneralSettings } from '@/lib/cms/types'
@@ -30,8 +37,11 @@ function computeSignal(event: EventCard, settings: GeneralSettings | null): stri
   const countdownDays = pdp?.countdownWindowDays ?? 30
   const templates = pdp?.signalTemplates
 
-  const qty = event.min_available_quantity
-  if (qty === 0) return templates?.soldOut ?? 'Volgeboekt'
+  if (eventHasUnlimitedAvailability(event)) return null
+
+  if (eventIsFullySoldOut(event)) return templates?.soldOut ?? 'Volgeboekt'
+
+  const qty = minPositiveBookableQuantity(event) ?? event.min_available_quantity
   if (qty !== null && qty !== undefined && qty <= threshold) {
     return (templates?.lowStock ?? 'Nog maar {n} plaatsen beschikbaar').replace('{n}', String(qty))
   }
@@ -56,6 +66,10 @@ function computeSignal(event: EventCard, settings: GeneralSettings | null): stri
   }
 
   return null
+}
+
+function scrollToEpisodes() {
+  document.getElementById('afleveringen')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineBadge, onScrollToSessions, variant = 'light' }: PdpBookingPanelProps) {
@@ -83,8 +97,10 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
     from: t.bookingFrom,
     for: t.bookingFor,
   })
-  const isSoldOut = event.min_available_quantity === 0
+  const isSoldOut = eventIsFullySoldOut(event)
   const isBundleOnly = event.purchase_mode === 'bundle_only'
+  const { access: vathuisAccess } = useVathuisAccess(isBundleOnly ? event.handle : null)
+  const hasPurchasedAccess = Boolean(vathuisAccess.hasAccess)
 
   const signal = computeSignal(event, settings)
 
@@ -97,6 +113,10 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
         : null
 
   const handleRegister = async () => {
+    if (isBundleOnly && hasPurchasedAccess) {
+      scrollToEpisodes()
+      return
+    }
     if (event.external_registration_url?.trim()) {
       window.open(event.external_registration_url.trim(), '_blank', 'noopener,noreferrer')
       return
@@ -104,7 +124,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
     if (singleVariant && !isSoldOut) {
       setAddingId(singleVariant.id)
       try {
-        await addVariantToCart(singleVariant.id)
+        await addVariantToCart(singleVariant.id, { event, variant: singleVariant })
         router.push('/winkelwagen')
       } finally {
         setAddingId(null)
@@ -135,6 +155,8 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
   const linkedInShareHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(productUrl)}`
 
   const inviteLabel = labels?.inviteSomeone ?? t.bookingInviteSomeone
+  const watchEpisodesLabel = labels?.watchEpisodes ?? t.bookingWatchEpisodes ?? 'Afleveringen bekijken'
+  const primaryBundleLabel = hasPurchasedAccess ? watchEpisodesLabel : bundleCtaLabel
 
   const iconBtnClass =
     variant === 'dark'
@@ -211,10 +233,16 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
       ) : (
         <button
           onClick={() => void handleRegister()}
-          disabled={isSoldOut || addingId !== null}
+          disabled={(isSoldOut && !(isBundleOnly && hasPurchasedAccess)) || addingId !== null}
           className={primaryCtaClassName}
         >
-          {isSoldOut ? soldOutLabel : addingId ? 'Bezig…' : isBundleOnly ? bundleCtaLabel : primaryCtaLabel}
+          {isSoldOut && !(isBundleOnly && hasPurchasedAccess)
+            ? soldOutLabel
+            : addingId
+              ? 'Bezig…'
+              : isBundleOnly
+                ? primaryBundleLabel
+                : primaryCtaLabel}
         </button>
       )}
 
@@ -246,6 +274,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
       <a
         href={inviteHref}
         className={cn(secondaryBtnClass, 'text-center')}
+        onClick={() => trackShare('email', 'activiteit', event.handle)}
       >
         <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
           <path

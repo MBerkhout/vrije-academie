@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { trackSearch } from '@/lib/analytics/events/engagement'
 
 type UseLiveListingSearchOptions<TItem, TFilter extends { q?: string; sort?: string }> = {
   basePath: string
@@ -74,8 +75,13 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
         if (!response.ok) throw new Error('fetch failed')
 
         const data = (await response.json()) as Record<string, unknown>
-        setItems((data[listKey] as TItem[]) ?? [])
-        setCount(typeof data.count === 'number' ? data.count : 0)
+        const nextItems = (data[listKey] as TItem[]) ?? []
+        const nextCount = typeof data.count === 'number' ? data.count : 0
+        setItems(nextItems)
+        setCount(nextCount)
+        if (trimmed) {
+          trackSearch(trimmed, nextCount)
+        }
       } catch {
         setSearchError('Kon zoekresultaten niet laden. Probeer het opnieuw.')
       } finally {

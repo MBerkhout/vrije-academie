@@ -1,9 +1,13 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { stegaClean } from 'next-sanity'
 import { commerceClient } from '@/lib/commerce'
 import { isExternalHref } from '@/lib/menu-href'
 import type { SiteSearchHit } from '@/lib/commerce/types'
+import { noIndexMetadata } from '@/lib/cms/seo-metadata'
+
+export const metadata: Metadata = noIndexMetadata('Zoeken – Vrije Academie')
 
 type Props = { searchParams: Promise<{ q?: string }> }
 

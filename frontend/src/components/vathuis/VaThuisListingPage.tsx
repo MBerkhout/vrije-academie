@@ -9,7 +9,8 @@ import {
 } from '@/app/(main)/va-thuis/_state/url'
 import { Breadcrumbs } from '@/components/common/Breadcrumbs'
 import { JsonLd } from '@/components/common/JsonLd'
-import { buildBreadcrumbListJsonLd, buildItemListJsonLd } from '@/lib/json-ld'
+import { buildCollectionPageJsonLd, buildItemListJsonLd } from '@/lib/json-ld'
+import { eventIsFullySoldOut } from '@/lib/event-status-presentation'
 import { VATHUIS_BASE_PATH, VATHUIS_CATALOG_PATH, vathuisProductPath } from '@/lib/routes'
 import { VaThuisLiveListing } from '@/components/vathuis/VaThuisLiveListing'
 
@@ -50,10 +51,6 @@ export async function VaThuisListingPage({
     { label: 'Ons aanbod', href: VATHUIS_CATALOG_PATH },
   ]
 
-  const breadcrumbJsonLd = buildBreadcrumbListJsonLd(
-    breadcrumbCrumbs.map((c) => ({ name: c.label, item: c.href }))
-  )
-
   const itemListJsonLd = items.length
     ? buildItemListJsonLd({
         name: pageTitle,
@@ -61,13 +58,22 @@ export async function VaThuisListingPage({
         items: items.slice(0, 24).map((event) => ({
           path: vathuisProductPath(event.handle),
           name: event.title,
+          image: event.thumbnail ?? event.image_urls?.[0] ?? undefined,
+          priceFromCents: event.price_from,
+          inStock: !eventIsFullySoldOut(event),
         })),
       })
     : null
 
+  const collectionPageJsonLd = buildCollectionPageJsonLd({
+    name: pageTitle,
+    description: introText,
+    url: VATHUIS_CATALOG_PATH,
+  })
+
   return (
     <>
-      <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd data={collectionPageJsonLd} />
       {itemListJsonLd && <JsonLd data={itemListJsonLd} />}
 
       <div className="pb-16">

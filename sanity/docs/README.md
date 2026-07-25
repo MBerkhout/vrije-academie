@@ -50,25 +50,37 @@ SANITY_API_WRITE_TOKEN=… npm run seed:footer-settings --prefix sanity
 Default menu IDs match MCP-created drafts that were published on dataset `production` (override with `MENU_FOOTER_*` env vars if yours differ). Requires schema with `footerColumn` / `footerSocialLink` array object names (`generalSettings` footer fields).
 - **Person**: Teamleden / docenten / gastsprekers. Veld **Type** (`personType`) is verplicht en kiest één waarde: Docent, Team of Gastspreker (niet combineerbaar). Bestaande inhoud met het oude `typeTags`-veld: `npm run migrate:person-type` in de `sanity`-map (zie script voor benodigde env-vars).
 
-### SEO (`sanity-plugin-seo`)
+### SEO (custom `seo` object)
 
-Pages, categories, and products use the **`seoMetaFields`** type from [`sanity-plugin-seo`](https://www.npmjs.com/package/sanity-plugin-seo) (configured in `sanity.config.ts`). Editors get meta title/description, Open Graph, robots meta, and a live SEO score.
+Pages, categories, and products use a lightweight **`seo`** object type defined in `src/schemas/objects/seo.ts`:
+
+| Field | Purpose |
+|---|---|
+| `metaTitle` | Page title for search and social sharing |
+| `metaDescription` | Short summary for search and social sharing |
+| `metaImage` | Open Graph / social image (1200×630 recommended) |
+| `noIndex` | Hide from search engines and exclude from sitemap |
 
 | Document | Field | Notes |
 |---|---|---|
-| `page` | `seo` | Used by CMS pages, homepage, PLP wrapper, VA Thuis landing |
+| `page` | `seo` | CMS pages, homepage, PLP wrapper, VA Thuis landing |
 | `category` | `seo` (SEO tab) | Preserved on Medusa sync |
 | `product` | `seo` (Editorial group) | Optional PDP override; mirror `seoTitle` / `seoDescription` from Salesforce remain read-only |
+| `city` | `seo` | Optional SEO for `/ons-aanbod/plaats/{slug}`; `noIndex` excludes from sitemap |
 
-**Migration** from legacy `seo { title, description, image }` to plugin field names:
+**Structured data enrichment** (General settings → **Organization**): optional `legalName`, `logo`, `telephone`, `email`, `sameAs` for Schema.org `Organization` JSON-LD (footer contact/social used as fallbacks).
+
+**FAQ accordion**: `enableStructuredData` (default `true`) controls whether the block contributes to `FAQPage` JSON-LD on the storefront.
+
+**Migration** from `sanity-plugin-seo` to the custom schema:
 
 ```bash
-SANITY_API_WRITE_TOKEN=… npm run migrate:seo-fields --prefix sanity
+SANITY_API_WRITE_TOKEN=… npm run migrate:seo-to-custom --prefix sanity
 ```
 
-Dry run: `DRY_RUN=1 npm run migrate:seo-fields --prefix sanity`
+Dry run: `DRY_RUN=1 npm run migrate:seo-to-custom --prefix sanity`
 
-Storefront GROQ uses `metaTitle`, `metaDescription`, `metaImage` (see `frontend/src/lib/cms/seo-fragment.ts`).
+Storefront GROQ uses `metaTitle`, `metaDescription`, `metaImage`, `noIndex` (see `frontend/src/lib/cms/seo-fragment.ts`).
 
 ## Setup
 
@@ -93,7 +105,8 @@ Create a `.env` file:
 SANITY_STUDIO_PROJECT_ID=your-project-id
 SANITY_STUDIO_DATASET=production
 # Presentation preview (hosted default: https://v2.vrijeacademie.nl)
-SANITY_STUDIO_PREVIEW_URL=http://localhost:3001
+# For local dev, override in .env.local: SANITY_STUDIO_PREVIEW_URL=http://localhost:3000
+SANITY_STUDIO_PREVIEW_URL=https://v2.vrijeacademie.nl
 ```
 
 ### Development
@@ -119,6 +132,10 @@ CI uses `sanity deploy --yes`; set `studioHost` via `SANITY_STUDIO_HOSTNAME` or 
 ```bash
 npm run schema:deploy
 ```
+
+Loads `sanity/.env` automatically. Requires Node.js **22.12+** (Sanity v6.4+) and `SANITY_AUTH_TOKEN` or `SANITY_API_WRITE_TOKEN` with deploy permissions.
+
+If `schema:deploy` crashes locally (`zsh: abort`), switch Node version: `nvm use 22`, then retry. Studio-only updates can also go via `npm run deploy`.
 
 ## Block Types
 
@@ -192,6 +209,18 @@ Menu items support:
 - Stored rows use schema types **`menuItem`** (top level) and **`menuSubItem`** (nested); API / Studio need this for strict validation (e.g. MCP patches).
 - **Highlighted in mobile menu**: Optional accent background in the full-screen nav (e.g. gift card).
 - Nested submenu items (schema-supported; the current header renders top-level links)
+
+## AI Assist
+
+The Studio includes [Sanity AI Assist](https://www.sanity.io/ai-assist) for AI-powered content tasks (SEO, translation, drafts, and custom instructions).
+
+After deploying Studio, enable the API once per project (admin/developer):
+
+1. Open any document in Studio
+2. Click the sparkle (✨) icon in the document header → **Manage instructions**
+3. Click **Enable AI assistance** to create the “Sanity AI” API token
+
+Revoke that token in [sanity.io/manage](https://sanity.io/manage) → API to disable the service.
 
 ## Visual Editing
 

@@ -1,5 +1,6 @@
 import { cmsClient } from '@/lib/cms/server'
 import { CustomerProvider } from '@/lib/commerce/CustomerProvider'
+import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider'
 import { CheckoutShellHeader } from '@/components/checkout/CheckoutShellHeader'
 import { CheckoutShellFooter } from '@/components/checkout/CheckoutShellFooter'
 
@@ -12,11 +13,13 @@ export default async function CheckoutGroupLayout({
 
   return (
     <CustomerProvider>
-      <div className="flex min-h-screen flex-col bg-white">
-        <CheckoutShellHeader />
-        <main className="flex-1">{children}</main>
-        <CheckoutShellFooter settings={settings} />
-      </div>
+      <AnalyticsProvider>
+        <div className="flex min-h-screen flex-col bg-white">
+          <CheckoutShellHeader />
+          <main className="flex-1">{children}</main>
+          <CheckoutShellFooter settings={settings} />
+        </div>
+      </AnalyticsProvider>
     </CustomerProvider>
   )
 }

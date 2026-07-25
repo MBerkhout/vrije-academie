@@ -8,6 +8,7 @@ export { anchorIdFromString } from '../anchor-id'
 export { urlFor } from './image-url'
 export {
   CONTAINER_CLASS,
+  CONTAINER_PADDING_CLASS,
   getBlockContainerStyles,
   getBlockContainerWidthClass,
   getBlockBackgroundClass,

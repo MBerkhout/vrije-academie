@@ -16,6 +16,7 @@ import {
   type GiftCardFormValidity,
 } from '@/lib/auth/gift-card-field-validation'
 import { defaultMessages, interpolate } from '@/lib/i18n'
+import { trackSelectCadeaubonBedrag } from '@/lib/analytics/events/ecommerce'
 
 type GiftCardSettings = GiftCardBlockContent
 
@@ -143,6 +144,7 @@ export function GiftCardPurchaseForm({ settings }: { settings?: GiftCardSettings
                 onClick={() => {
                   setCustomEuro('')
                   setSelectedEuro(euro)
+                  trackSelectCadeaubonBedrag(euro)
                   resetValidity('customAmount')
                 }}
                 className={`border-2 py-3 px-2 font-sans text-sm font-medium transition-colors ${

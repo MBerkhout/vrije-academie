@@ -20,13 +20,7 @@ export interface SEO {
   metaTitle?: string
   metaDescription?: string
   metaImage?: SeoImage
-  openGraph?: {
-    title?: string
-    description?: string
-    image?: SeoImage
-  }
-  robotsMeta?: string[]
-  nofollowAttributes?: boolean
+  noIndex?: boolean
 }
 
 export interface BlockLayout {
@@ -92,6 +86,8 @@ export interface AccordionBlock extends Block {
   titleSize?: 'h1' | 'h2' | 'h3' | 'h4'
   items?: { question: string; answer?: PortableTextBlock[] }[]
   allowMultipleOpen?: boolean
+  /** When false, FAQPage JSON-LD is omitted for this block. Defaults to true. */
+  enableStructuredData?: boolean
 }
 
 export interface TabsBlock extends Block {
@@ -442,6 +438,13 @@ export interface GeneralSettings {
     cartUrl?: string
     sticky: boolean
   }
+  organization?: {
+    legalName?: string
+    logo?: { asset?: ImageAsset }
+    telephone?: string
+    email?: string
+    sameAs?: { url: string }[]
+  }
   footer?: {
     topMenuPrimary?: Menu
     topMenuSecondary?: Menu
@@ -494,6 +497,8 @@ export interface GeneralSettings {
       primaryCta?: string
       /** CTA when the product is bundle-only (default: Koop alle lessen) */
       bundleCta?: string
+      /** CTA when the customer already owns the bundle (default: Afleveringen bekijken) */
+      watchEpisodes?: string
       wishlist?: string
       /** Label when the product is already on the wishlist (e.g. “Verwijderen uit bewaard”) */
       wishlistSaved?: string

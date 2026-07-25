@@ -58,7 +58,7 @@ describe('blockLayout', () => {
 
     it('returns max-w centered for container', () => {
       expect(getBlockContainerWidthClass({ width: 'container' })).toBe(
-        'max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0'
+        'max-w-[1240px] mx-auto px-4 md:px-8 min-[1304px]:px-0'
       )
     })
   })

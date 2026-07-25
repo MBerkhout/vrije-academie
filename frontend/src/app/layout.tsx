@@ -3,9 +3,10 @@ import { draftMode } from 'next/headers'
 import { Source_Sans_3 } from 'next/font/google'
 import { VisualEditing } from 'next-sanity/visual-editing'
 import { SanityLive } from '@/lib/cms/live'
-import { SITE_ROBOTS } from '@/lib/cms/seo-metadata'
+import { buildSiteMetadata } from '@/lib/cms/seo-metadata'
 import { refreshOnPresentation } from '@/app/actions/refresh'
 import { DisableDraftMode } from '@/components/DisableDraftMode'
+import { GtmScripts } from '@/components/analytics/GtmScripts'
 import './globals.css'
 
 const fontSans = Source_Sans_3({
@@ -15,11 +16,10 @@ const fontSans = Source_Sans_3({
   display: 'swap',
 })
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildSiteMetadata({
   title: 'Vrije Academie',
   description: 'Kunst, geschiedenis en filosofie',
-  robots: SITE_ROBOTS,
-}
+})
 
 export default async function RootLayout({
   children,
@@ -34,6 +34,7 @@ export default async function RootLayout({
       className={fontSans.variable}
     >
       <body>
+        <GtmScripts />
         {children}
         {isDraftMode && (
           <>

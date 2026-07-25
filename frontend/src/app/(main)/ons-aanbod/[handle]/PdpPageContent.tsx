@@ -6,7 +6,7 @@ import { CONTAINER_CLASS } from '@/lib/cms'
 
 import { Breadcrumbs } from '@/components/common/Breadcrumbs'
 import { JsonLd } from '@/components/common/JsonLd'
-import { absolutizeUrl, buildOrganizationEntity, getSiteOrigin } from '@/lib/json-ld'
+import { buildPdpEventOrCourseJsonLd } from '@/lib/json-ld'
 import { PLP_BASE_PATH, plpCategoryHref, plpProductPath } from '@/lib/routes'
 import { PromoBanner } from '@/components/common/PromoBanner'
 import { PdpImageGallery } from '@/components/pdp/PdpImageGallery'
@@ -20,6 +20,7 @@ import { PdpTrustBar } from '@/components/pdp/PdpTrustBar'
 import { PdpSimilarCourses } from '@/components/pdp/PdpSimilarCourses'
 import { PdpRelatedProducts } from '@/components/pdp/PdpRelatedProducts'
 import { PdpRecentViewed } from '@/components/pdp/PdpRecentViewed'
+import { PdpAnalytics } from '@/components/analytics/PdpAnalytics'
 
 export async function PdpPageContent({ handle }: { handle: string }) {
   const [event, settings, similar] = await Promise.all([
@@ -45,39 +46,15 @@ export async function PdpPageContent({ handle }: { handle: string }) {
     { label: event.title, href: plpProductPath(handle) },
   ]
 
-  const isCourse = event.record_type === 'collegereeks' || !event.record_type
-  const siteOrigin = getSiteOrigin()
-  const org = buildOrganizationEntity()
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': isCourse ? 'Course' : 'Event',
-    name: event.title,
-    description: event.description ?? undefined,
-    image: event.image_urls?.[0] ?? event.thumbnail ?? undefined,
-    url: absolutizeUrl(plpProductPath(handle)),
-    ...(isCourse
+  const structuredData = buildPdpEventOrCourseJsonLd(handle, event, {
+    seo: extras
       ? {
-          provider: org,
+          seo: extras.seo,
+          seoTitle: extras.seoTitle,
+          seoDescription: extras.seoDescription,
         }
-      : {
-          organizer: org,
-          startDate: event.earliest_start_at ?? undefined,
-          location: event.cities?.[0]
-            ? { '@type': 'Place', name: event.cities[0] }
-            : { '@type': 'VirtualLocation', url: siteOrigin },
-          offers: event.price_from
-            ? {
-                '@type': 'Offer',
-                price: (event.price_from / 100).toFixed(2),
-                priceCurrency: 'EUR',
-                availability:
-                  event.min_available_quantity === 0
-                    ? 'https://schema.org/SoldOut'
-                    : 'https://schema.org/InStock',
-              }
-            : undefined,
-        }),
-  }
+      : undefined,
+  })
 
   const bannerText = extras?.customUrgencyMessage ?? null
 
@@ -85,7 +62,7 @@ export async function PdpPageContent({ handle }: { handle: string }) {
   const vathuisEpisodes = event.vathuis?.episodes ?? []
 
   return (
-    <>
+    <PdpAnalytics event={event}>
       <JsonLd data={structuredData} />
 
       <div className="pb-16">
@@ -131,6 +108,7 @@ export async function PdpPageContent({ handle }: { handle: string }) {
         {isBundleOnly && (event.vathuis?.chapters?.length || vathuisEpisodes.length) > 0 ? (
           <div className={CONTAINER_CLASS}>
             <PdpEpisodesTable
+              productHandle={handle}
               chapters={event.vathuis?.chapters}
               episodes={vathuisEpisodes}
               chapterTitle={event.title}
@@ -140,6 +118,7 @@ export async function PdpPageContent({ handle }: { handle: string }) {
         ) : !isBundleOnly ? (
           <div className={CONTAINER_CLASS}>
             <PdpLocationTabs
+              event={event}
               variants={event.variants ?? []}
               settings={settings}
               externalRegistrationUrl={event.external_registration_url}
@@ -183,6 +162,6 @@ export async function PdpPageContent({ handle }: { handle: string }) {
           />
         </div>
       </div>
-    </>
+    </PdpAnalytics>
   )
 }

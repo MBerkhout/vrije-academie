@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { commerceClient } from '@/lib/commerce'
 import { cmsClient } from '@/lib/cms/server'
+import { buildProductPdpMetadata } from '@/lib/cms/seo-metadata'
+import { getProductSeoByHandle } from '@/lib/cms/sanity-refs'
+import { vathuisProductPath } from '@/lib/routes'
 import { VaThuisPdpPageContent } from '@/components/vathuis/VaThuisPdpPageContent'
 import {
   buildVaThuisPageMetadata,
@@ -26,28 +29,27 @@ export async function generateMetadata({ params }: VaThuisSlugPageProps): Promis
 
   const cmsPage = await resolveCmsPage(slugParts)
   if (cmsPage) {
-    return buildVaThuisPageMetadata(cmsPage)
+    const cmsSlug = `va-thuis/${slugParts.join('/')}`
+    return buildVaThuisPageMetadata(cmsPage, {
+      path: `/${cmsSlug}`,
+    })
   }
 
   if (slugParts.length !== 1) return {}
 
   const handle = slugParts[0]
-  const event = await commerceClient.getEvent(handle)
+  const [event, productSeo] = await Promise.all([
+    commerceClient.getEvent(handle),
+    getProductSeoByHandle(handle),
+  ])
   if (!event || event.purchase_mode !== 'bundle_only') return {}
 
-  const title = `${event.title} | VA Thuis – Vrije Academie`
-  const description = event.description?.slice(0, 160) ?? undefined
-  const image = event.image_urls?.[0] ?? event.thumbnail ?? undefined
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      images: image ? [image] : [],
-    },
-  }
+  return buildProductPdpMetadata(
+    productSeo,
+    event,
+    'VA Thuis – Vrije Academie',
+    vathuisProductPath(handle),
+  )
 }
 
 export default async function VaThuisSlugPage({ params }: VaThuisSlugPageProps) {

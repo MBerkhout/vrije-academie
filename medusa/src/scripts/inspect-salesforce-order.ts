@@ -2,6 +2,8 @@
  * Read-only Salesforce dump for an order and related records.
  *
  *   npm run salesforce:inspect-order -- --medusa-id=order_...
+ *   npm run salesforce:inspect-order -- --display-id=6
+ *   npm run salesforce:inspect-order -- --order-nr=6
  *   npm run salesforce:inspect-order -- --salesforce-id=801...
  *   npm run salesforce:inspect-order -- --salesforce-id=801... --out=./tmp/order.json
  */
@@ -13,13 +15,25 @@ import { dirname } from "node:path"
 import {
   ORDER_EXTERNAL_ID_FIELD,
   SF_ORDER_OBJECT,
+  usesSalesforceMedusaCustomFields,
 } from "../modules/salesforce-sync/utils/salesforce-config"
+import { resolveOrderIdByDisplayId } from "../modules/salesforce-sync/utils/resolve-order-id-by-display-id"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { salesforceAuthMode } from "../modules/salesforce-sync/utils/is-configured"
 
 function arg(name: string): string | undefined {
   const p = process.argv.find((a) => a.startsWith(`${name}=`))
   return p?.split("=").slice(1).join("=")
+}
+
+function parseDisplayIdArg(): number | undefined {
+  const raw = arg("--display-id") ?? arg("--order-nr")
+  if (raw == null || raw === "") return undefined
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`Invalid display id: ${raw} (expected a positive integer)`)
+  }
+  return n
 }
 
 function escapeSoql(value: string): string {
@@ -37,24 +51,36 @@ export default async function inspectSalesforceOrder({ container }: ExecArgs) {
     return
   }
 
-  const medusaId = arg("--medusa-id")?.trim()
+  const medusaIdArg = arg("--medusa-id")?.trim()
+  const displayId = parseDisplayIdArg()
   const salesforceIdArg = arg("--salesforce-id")?.trim()
   const outPath = arg("--out")?.trim()
 
-  if (!medusaId && !salesforceIdArg) {
+  if (medusaIdArg && displayId != null) {
+    logger.error("[salesforce:inspect-order] Provide --medusa-id or --display-id/--order-nr, not both")
+    return
+  }
+
+  if (!medusaIdArg && displayId == null && !salesforceIdArg) {
     logger.info(
-      "[salesforce:inspect-order] Usage: --medusa-id=order_... | --salesforce-id=801... [--out=path.json]"
+      "[salesforce:inspect-order] Usage: --medusa-id=order_... | --display-id=N | --order-nr=N | --salesforce-id=801... [--out=path.json]"
     )
     return
   }
 
   logger.info(`[salesforce:inspect-order] auth mode: ${salesforceAuthMode()}`)
 
+  let medusaId = medusaIdArg ?? ""
+  if (displayId != null) {
+    medusaId = await resolveOrderIdByDisplayId(container, displayId)
+    logger.info(`[salesforce:inspect-order] resolved display_id ${displayId} → ${medusaId}`)
+  }
+
   let salesforceId = salesforceIdArg ?? ""
   if (medusaId && !salesforceId) {
     const row = await sync.getStateByMedusaId("order", medusaId)
     salesforceId = row?.salesforce_id ?? ""
-    if (!salesforceId) {
+    if (!salesforceId && usesSalesforceMedusaCustomFields()) {
       try {
         const q = await sync.query<{ Id: string }>(
           `SELECT Id FROM ${SF_ORDER_OBJECT} WHERE ${ORDER_EXTERNAL_ID_FIELD} = '${escapeSoql(medusaId)}' LIMIT 1`
@@ -82,11 +108,16 @@ export default async function inspectSalesforceOrder({ container }: ExecArgs) {
     "Order_Origin__c",
     "Payment_Method__c",
     "Ideal_Transaction_Id__c",
-    ORDER_EXTERNAL_ID_FIELD,
+    "Description",
+    ...(usesSalesforceMedusaCustomFields() ? [ORDER_EXTERNAL_ID_FIELD] : []),
   ])
 
+  const orderItemFields = usesSalesforceMedusaCustomFields()
+    ? "Id, OrderItemNumber, Product_Name__c, UnitPrice, TotalPrice, Quantity, Is_Discount__c, Is_Voucher__c, vaProduct__c, Registration__c, Discount_Code__c, Voucher__c, Medusa_Order_Item_Id__c"
+    : "Id, OrderItemNumber, Product_Name__c, UnitPrice, TotalPrice, Quantity, Is_Discount__c, Is_Voucher__c, vaProduct__c, Registration__c, Discount_Code__c, Voucher__c"
+
   const items = await sync.query<Record<string, unknown>>(
-    `SELECT Id, OrderItemNumber, Product_Name__c, UnitPrice, TotalPrice, Quantity, Is_Discount__c, Is_Voucher__c, vaProduct__c, Registration__c, Discount_Code__c, Voucher__c, Medusa_Order_Item_Id__c FROM OrderItem WHERE OrderId = '${escapeSoql(salesforceId)}'`
+    `SELECT ${orderItemFields} FROM OrderItem WHERE OrderId = '${escapeSoql(salesforceId)}'`
   )
 
   const regIds = [
@@ -107,7 +138,7 @@ export default async function inspectSalesforceOrder({ container }: ExecArgs) {
       "vaProduct__c",
       "Order__c",
       "Total_Price__c",
-      "Medusa_Registration_Id__c",
+      ...(usesSalesforceMedusaCustomFields() ? ["Medusa_Registration_Id__c"] : []),
     ])
     registrations.push(reg)
   }
@@ -117,7 +148,7 @@ export default async function inspectSalesforceOrder({ container }: ExecArgs) {
   )
 
   const dump = {
-    medusa_id: medusaId ?? null,
+    medusa_id: medusaId || null,
     salesforce_order_id: salesforceId,
     order,
     order_items: items.records,

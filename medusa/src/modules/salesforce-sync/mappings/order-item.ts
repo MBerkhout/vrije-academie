@@ -1,5 +1,6 @@
 import { centsToMajorEur } from "../utils/money"
 import { ORDER_ITEM_EXTERNAL_ID_FIELD } from "../utils/salesforce-config"
+import { usesSalesforceMedusaCustomFields } from "../utils/salesforce-medusa-fields"
 
 export type SfOrderItemShape = {
   Id?: string
@@ -65,8 +66,9 @@ export type VoucherRedemptionLineInput = {
 }
 
 export function productOrderItemFields(input: ProductLineInput): Partial<SfOrderItemShape> {
-  return {
-    Medusa_Order_Item_Id__c: input.externalId,
+  const useMedusaFields = usesSalesforceMedusaCustomFields()
+  const core: Partial<SfOrderItemShape> = {
+    ...(useMedusaFields ? { Medusa_Order_Item_Id__c: input.externalId } : {}),
     OrderId: input.orderId,
     PricebookEntryId: input.pricebookEntryId,
     Product2Id: input.product2Id,
@@ -74,6 +76,11 @@ export function productOrderItemFields(input: ProductLineInput): Partial<SfOrder
     UnitPrice: centsToMajorEur(input.unitPriceCents),
     vaProduct__c: input.vaProductId,
     Registration__c: input.registrationId,
+  }
+  if (!useMedusaFields) return core
+
+  return {
+    ...core,
     Is_Discount__c: false,
     Is_Voucher__c: false,
     Product_Name__c: input.productLabel,
@@ -82,14 +89,20 @@ export function productOrderItemFields(input: ProductLineInput): Partial<SfOrder
 }
 
 export function discountOrderItemFields(input: DiscountLineInput): Partial<SfOrderItemShape> {
-  return {
-    Medusa_Order_Item_Id__c: input.externalId,
+  const useMedusaFields = usesSalesforceMedusaCustomFields()
+  const core: Partial<SfOrderItemShape> = {
+    ...(useMedusaFields ? { Medusa_Order_Item_Id__c: input.externalId } : {}),
     OrderId: input.orderId,
     PricebookEntryId: input.pricebookEntryId,
     Product2Id: input.product2Id,
     Quantity: 1,
     UnitPrice: -centsToMajorEur(input.discountCents),
     Registration__c: input.registrationId,
+  }
+  if (!useMedusaFields) return core
+
+  return {
+    ...core,
     Is_Discount__c: true,
     Is_Voucher__c: false,
     Product_Name__c: "Korting",
@@ -102,7 +115,9 @@ export function giftCardPurchaseOrderItemFields(
   input: GiftCardPurchaseLineInput
 ): Partial<SfOrderItemShape> {
   return {
-    Medusa_Order_Item_Id__c: input.externalId,
+    ...(usesSalesforceMedusaCustomFields()
+      ? { Medusa_Order_Item_Id__c: input.externalId }
+      : {}),
     OrderId: input.orderId,
     PricebookEntryId: input.pricebookEntryId,
     Product2Id: input.product2Id,
@@ -122,7 +137,9 @@ export function voucherRedemptionOrderItemFields(
   input: VoucherRedemptionLineInput
 ): Partial<SfOrderItemShape> {
   return {
-    Medusa_Order_Item_Id__c: input.externalId,
+    ...(usesSalesforceMedusaCustomFields()
+      ? { Medusa_Order_Item_Id__c: input.externalId }
+      : {}),
     OrderId: input.orderId,
     PricebookEntryId: input.pricebookEntryId,
     Product2Id: input.product2Id,

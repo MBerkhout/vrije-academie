@@ -32,7 +32,7 @@ export function PlpEventCardWishlistButton({ handle, className }: PlpEventCardWi
       aria-pressed={saved}
       aria-label={ariaLabel}
       className={cn(
-        'absolute top-2 right-2 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-va-black shadow-sm transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50',
+        'absolute top-2 right-2 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(255,255,255,0.7)] text-va-black shadow-sm transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
     >

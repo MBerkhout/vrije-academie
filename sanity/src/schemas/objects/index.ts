@@ -1,3 +1,4 @@
+export { seo } from "./seo"
 export {
   CTA_URL_DESCRIPTION,
   ctaUrlFormatMessage,

@@ -36,7 +36,7 @@ export function GiftCardBlock({ block }: { block: Block }) {
 
   return (
     <BlockWrapper block={block}>
-      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0 py-8">
+      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1304px]:px-0 py-8">
         <TitleTag
           className={cn('font-sans font-bold text-va-black mb-8', getTitleSizeClass(size))}
         >

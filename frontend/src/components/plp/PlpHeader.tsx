@@ -10,8 +10,8 @@ interface PlpHeaderProps {
 
 export function PlpHeader({ title, intro, introText, className }: PlpHeaderProps) {
   return (
-    <div className={cn('space-y-3', className)}>
-      <h1 className="font-sans text-3xl md:text-4xl font-bold text-va-black">{title}</h1>
+    <div className={cn('space-y-2 md:space-y-3', className)}>
+      <h1 className="font-sans text-2xl md:text-4xl font-bold text-va-black">{title}</h1>
       {introText ? (
         <p className="max-w-2xl font-sans text-sm text-va-darkgray">{introText}</p>
       ) : null}

@@ -84,6 +84,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
           "status",
           "created_at",
           "type.value",
+          "metadata",
           "variants.*",
           "variants.prices.*",
           "variants.event_item.*",
@@ -99,6 +100,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     ])
 
   const productHandleById: Record<string, string | undefined> = {}
+  const productMetadataById: Record<string, Record<string, unknown> | null | undefined> = {}
   const eventGroupByProduct: Record<string, { record_type?: string | null; show_in_plp?: boolean | null } | null> =
     {}
   for (const r of eventGroupLinks ?? []) {
@@ -106,12 +108,20 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     if (row.product_id) eventGroupByProduct[row.product_id] = row.event_group ?? null
   }
   for (const p of candidateProducts ?? []) {
-    const row = p as { id?: string; handle?: string }
-    if (row.id) productHandleById[row.id] = row.handle
+    const row = p as { id?: string; handle?: string; metadata?: Record<string, unknown> | null }
+    if (row.id) {
+      productHandleById[row.id] = row.handle
+      productMetadataById[row.id] = row.metadata ?? null
+    }
   }
 
   const listableIds = new Set(
-    filterStoreListingProductIds(candidateIds, productHandleById, eventGroupByProduct)
+    filterStoreListingProductIds(
+      candidateIds,
+      productHandleById,
+      eventGroupByProduct,
+      productMetadataById
+    )
   )
 
   type SimilarRow = Record<string, unknown> & {

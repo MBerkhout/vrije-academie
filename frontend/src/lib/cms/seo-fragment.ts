@@ -1,11 +1,9 @@
-/** Shared GROQ projection for `sanity-plugin-seo` fields on document `seo` objects. */
+/** Shared GROQ projection for custom `seo` object fields on documents. */
 export const SEO_FRAGMENT = `{
   metaTitle,
   metaDescription,
   metaImage { asset-> { url } },
-  openGraph { title, description, image { asset-> { url } } },
-  robotsMeta,
-  nofollowAttributes
+  noIndex
 }`
 
 /** Inline field projection: `seo { … }` */

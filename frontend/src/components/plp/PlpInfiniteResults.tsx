@@ -14,6 +14,8 @@ import type { EventCard } from '@/lib/commerce/types'
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
 import { serializeFilterState } from '@/app/(main)/ons-aanbod/_state/url'
 import { PlpResultsGrid } from '@/components/plp/PlpResultsGrid'
+import { useItemListContext } from '@/components/analytics/ItemListProvider'
+import { trackViewItemList } from '@/lib/analytics/events/ecommerce'
 import { Spinner } from '@/components/ui'
 import { cn } from '@/lib/utils'
 
@@ -54,6 +56,7 @@ export function PlpInfiniteResultsProvider({
   pageSize,
   children,
 }: PlpInfiniteResultsProviderProps) {
+  const list = useItemListContext()
   const [events, setEvents] = useState(initialEvents)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -75,6 +78,7 @@ export function PlpInfiniteResultsProvider({
 
     setLoading(true)
     setError(null)
+    const batchNumber = Math.floor(events.length / pageSize) + 1
 
     try {
       const params = serializeFilterState({ ...filterState, sort: sort as PlpFilterState['sort'] })
@@ -88,13 +92,19 @@ export function PlpInfiniteResultsProvider({
       const next = data.events ?? []
       if (next.length > 0) {
         setEvents((prev) => [...prev, ...next])
+        if (list) {
+          trackViewItemList(list, next, {
+            loadType: 'infinite_scroll',
+            batchId: `batch_${batchNumber}`,
+          })
+        }
       }
     } catch {
       setError('Kon extra activiteiten niet laden. Probeer het opnieuw.')
     } finally {
       setLoading(false)
     }
-  }, [loading, hasMore, filterState, sort, events.length, pageSize])
+  }, [loading, hasMore, filterState, sort, events.length, pageSize, list])
 
   const value: PlpInfiniteResultsContextValue = {
     shownEnd: Math.min(events.length, totalCount),

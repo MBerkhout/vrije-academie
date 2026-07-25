@@ -7,10 +7,10 @@ import {
   getProductSeoByHandle,
 } from '@/lib/cms/sanity-refs'
 import { buildProductPdpMetadata, buildSeoMetadata } from '@/lib/cms/seo-metadata'
+import { plpCategoryHref, plpProductPath, plpProductTypeHref, vathuisProductPath } from '@/lib/routes'
 import { PlpListingPage } from '@/components/plp/PlpListingPage'
 import { parseFilterState, serializeFilterState } from '../_state/url'
 import { resolvePlpFilterHref, singleProductTypeRedirectTarget } from '../_state/redirects'
-import { plpCategoryHref, plpProductTypeHref, vathuisProductPath } from '@/lib/routes'
 import { isPlpProductTypeSlug, productTypeLabelFromSlug } from '@/lib/plp-product-types'
 import { PdpPageContent } from './PdpPageContent'
 
@@ -35,6 +35,7 @@ export async function generateMetadata({ params }: HandlePageProps): Promise<Met
         category.description?.trim() ||
         `Bekijk het aanbod van ${siteName} in ${displayTitle}.`,
       fallbackImage: category.image?.asset?.url,
+      path: plpCategoryHref(handle),
     })
   }
 
@@ -52,7 +53,7 @@ export async function generateMetadata({ params }: HandlePageProps): Promise<Met
   ])
   if (!event) return {}
 
-  return buildProductPdpMetadata(productSeo, event, 'Vrije Academie')
+  return buildProductPdpMetadata(productSeo, event, 'Vrije Academie', plpProductPath(handle))
 }
 
 export default async function HandlePage({ params, searchParams }: HandlePageProps) {

@@ -55,6 +55,8 @@ SALESFORCE_DEFAULT_PRICEBOOK2_ID=01s1t000002j19kAAA
 SALESFORCE_DISCOUNT_PRODUCT2_ID=01t1t000001j7i9AAA
 # SALESFORCE_GIFTCARD_PRODUCT2_ID=   # Product2 "Cadeaubon"; auto-resolved if unset
 # SALESFORCE_VOUCHER_PRODUCT2_ID=    # Product2 "Voucher" for redemption lines
+# Omit Medusa_* custom fields + external-id upserts (use sync state for order/product idempotency)
+# SALESFORCE_MEDUSA_CUSTOM_FIELDS=false
 ```
 
 Admin **Open in Salesforce** (customer/order/product widgets + sync failures page) uses `openInSalesforceUrl` from `GET /admin/salesforce/...`. Instance base comes from `SALESFORCE_INSTANCE_URL`, else the OAuth-stored instance URL after Admin connect. Customers with a linked Person Account open the **Account** record when `salesforce_account_id` is set.
@@ -62,7 +64,7 @@ Admin **Open in Salesforce** (customer/order/product widgets + sync failures pag
 ## Salesforce setup (manual)
 
 1. **Connected App** — **JWT** (digital signature + certificate) *or* **refresh token** (OAuth scopes `api` + `refresh_token` / `offline_access`).
-2. **External Id** custom fields (examples): `Medusa_Order_Id__c` on `Order`, `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` on `Product2` — must match `mappings/*.ts` and `utils/salesforce-config.ts`. **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
+2. **External Id** custom fields (optional when `SALESFORCE_MEDUSA_CUSTOM_FIELDS=false`): `Medusa_Order_Id__c` on `Order`, `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` on `Product2` — must match `mappings/*.ts` and `utils/salesforce-config.ts`. With custom fields disabled, orders/products create via standard SF fields only; Medusa stores the linked Salesforce Id in `salesforce_sync_state` (re-push updates the header; line items may duplicate without external ids). **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
 3. **Inbound webhook**: Flow or Apex `POST` to `{MEDUSA_URL}/hooks/salesforce` with body `{ object_type, salesforce_id }` and header `X-Salesforce-Webhook-Secret: <same as env>`.
 
 ## Loop protection
@@ -188,7 +190,7 @@ Medusa does **not** log third-party HTTP automatically. This connector adds:
 | `npx medusa exec ./src/scripts/sync-salesforce.ts -- --probe --probe-verbose` | After a live probe query, prints the parsed result JSON (truncated at 12k chars). Combine with `SALESFORCE_DEBUG_HTTP=1` to see raw HTTP as well. |
 | `npx medusa exec ./src/scripts/verify-productgroup-import.ts` | Live acceptance test for `a05Mz00000YEMptIAH`: double import (idempotency), future-date guard, categories, prices, event items. Requires Salesforce credentials. |
 | `npm run salesforce:inspect -- --url=<Productgroup_URL__c>` | `FIELDS(ALL)` dump of `vaProductgroup__c` + child `vaProduct__c` records; highlights docent/embed-related fields. Optional `--describe`, `--out=path.json`. Script: `src/scripts/inspect-salesforce-productgroup.ts`. |
-| `npm run salesforce:inspect-order -- --medusa-id=order_...` | Dump Salesforce `Order`, `OrderItem`, `Registration__c`, `Voucher__c` for a synced order. Script: `src/scripts/inspect-salesforce-order.ts`. |
+| `npm run salesforce:inspect-order -- --medusa-id=order_...` | Dump Salesforce `Order`, `OrderItem`, `Registration__c`, `Voucher__c` for a synced order. Also `--display-id=N` or `--order-nr=N`. Script: `src/scripts/inspect-salesforce-order.ts`. |
 
 Use debug flags only in **local/staging**; noisy logs may include PII from Salesforce payloads.
 
@@ -227,13 +229,18 @@ Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push
 | Gift card purchase | `OrderItem` + `Voucher__c` | `Is_Voucher__c`, `Giftcard_*` fields; voucher sync state `entity_type: voucher` |
 | Gift card redemption | voucher `OrderItem` | negative amount, `Voucher__c` lookup |
 
-**Requirements:** customer must exist in Medusa (checkout login); event variants must have been imported from Salesforce (`salesforce_sync_state` variant → `vaProduct__c`). Amounts: Medusa cents → SF EUR major units.
+**Requirements:** customer must exist in Medusa (checkout login); event variants must have been imported from Salesforce (`salesforce_sync_state` variant → `vaProduct__c`). Amounts: order graph fields (`unit_price`, `total`, adjustments) are in **major EUR**; the loader converts to cents, then mappings write SF major units (`centsToMajorEur`). When `order.total` is `0` in the graph API, the loader derives the total from line items.
+
+With `SALESFORCE_MEDUSA_CUSTOM_FIELDS=false`, re-pushes resolve existing `Registration__c` / `OrderItem` rows via `salesforce_sync_state` or SOQL (order + `vaProduct__c`), then patch prices in place.
 
 **Manual push / inspect:**
 
 ```bash
 npm run salesforce:push -- --type=order --action=push --id=order_...
+npm run salesforce:push -- --type=order --action=push --display-id=6
+npm run salesforce:push -- --type=order --action=push --order-nr=6   # alias for --display-id
 npm run salesforce:inspect-order -- --medusa-id=order_...
+npm run salesforce:inspect-order -- --display-id=6
 npm run salesforce:inspect-order -- --salesforce-id=801...
 ```
 
@@ -289,12 +296,15 @@ Salesforce record types **`Lezingen_Thuis`** and **`Thuis_College`** map to on-d
 
 - **`EventGroup.record_type`** → `vathuis` (excluded from Ons aanbod / Agenda; listed via **`GET /store/vathuis`**)
 - **`EventItem.delivery_type`** → `pre_recorded` (no session date/city)
+- **`EventItem.available_quantity`** — always unlimited on import; VA Thuis colleges cannot sell out (see `src/lib/vathuis-availability.ts`)
 - **`metadata.vathuis`** — chapters + episodes fetched from Audience Player (`Audience_Player_Article_Id__c` on the child product), plus `purchase_mode: bundle_only`
 - **`metadata.vathuis.chapters[]`** — each Audience Player season → `{ number, title, episodes[] }` (e.g. “1. Inleiding”, “2. Engeland”)
 - **Episode preview** — first episode of chapter 1 gets `preview_available: true` and an `embed_url` (from `Audience_Preview_Url__c`, `IFrame_URL_1__c`, or `AUDIENCE_PLAYER_IFRAME_URL` template)
 - Optional env: `AUDIENCE_PLAYER_PROJECT_ID` (default `14`), `AUDIENCE_PLAYER_API_URL` (default `https://api.audienceplayer.com`), `AUDIENCE_PLAYER_IFRAME_URL` (default `https://embed.audienceplayer.com/{projectId}/article/{articleId}/asset/{assetId}`)
 
 Storefront: `GET /store/events/:handle` exposes `purchase_mode`, `bundle_variant_id`, `vathuis.chapters`, `vathuis.episodes`, and `vathuis.audience_player`. PDP shows a chapter dropdown, episode table (aflevering / duur / beschrijving), **Bekijk aflevering** (preview modal with iframe) or **Koop alle lessen** per row, plus the bundle CTA in `PdpBookingPanel`.
+
+**Purchase access:** see `medusa/docs/VATHUIS_ACCESS.md` — 3-month entitlement after completed order; full embed URLs only via authenticated customer API.
 
 ### Future-only auto-sync
 

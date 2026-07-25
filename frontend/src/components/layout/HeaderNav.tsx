@@ -13,12 +13,15 @@ import type {
   GeneralSettings,
   MenuItem,
 } from '@/lib/cms/types'
+import { CONTAINER_PADDING_CLASS } from '@/lib/cms'
 import { isExternalHref, resolveMenuItemHref } from '@/lib/menu-href'
+import { PLP_BASE_PATH, VATHUIS_BASE_PATH } from '@/lib/routes'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { QuickSearch } from '@/components/search/QuickSearch'
 import { commerceClient } from '@/lib/commerce'
 import { getActiveCart } from '@/lib/commerce/cart'
 import type { Cart } from '@/lib/commerce/types'
+import { lockBodyScroll } from '@/lib/body-scroll-lock'
 
 export type HeaderConfig = GeneralSettings['header']
 
@@ -45,6 +48,12 @@ function pathsMatch(a: string, b: string): boolean {
 
 /** Until CMS menus include these; keep in sync with `frontend/src/app/(main)/` routes */
 const HARDCODED_ACCOUNT_PATH = '/mijn-account'
+const HARDCODED_LOGIN_PATH = '/login'
+
+const MOBILE_SECONDARY_NAV = [
+  { label: 'Ons aanbod', href: PLP_BASE_PATH },
+  { label: 'Va thuis', href: VATHUIS_BASE_PATH },
+] as const
 
 function menuHasNormalizedPath(items: MenuItem[], path: string): boolean {
   const target = normalizePath(path)
@@ -208,7 +217,7 @@ function HeaderLogoMobile({
             alt="Vrije Academie"
             width={490}
             height={68}
-            className={clsx('hidden sm:block h-8 w-auto', wordmarkClass)}
+            className={clsx('-ml-[14px] h-6 w-auto max-w-[min(140px,36vw)] sm:h-8 sm:max-w-none', wordmarkClass)}
           />
         </>
       )}
@@ -279,7 +288,8 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
   })
   // If neither /mijn-account nor /login was in the CMS menu but we added /mijn-account via withHardcoded,
   // the map above already handles it since withHardcoded added '/mijn-account'.
-  const quickItems = header.mobileQuickMenu?.items ?? []
+  const mobileLoginHref = customer ? HARDCODED_ACCOUNT_PATH : HARDCODED_LOGIN_PATH
+  const mobileLoginLabel = customer ? 'Mijn account' : 'Login'
   const sticky = header.sticky
 
   const closeMenu = useCallback(() => setMenuOpen(false), [])
@@ -288,10 +298,7 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
 
   useEffect(() => {
     if (!menuOpen) return
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = ''
-    }
+    return lockBodyScroll()
   }, [menuOpen])
 
   useEffect(() => {
@@ -359,11 +366,12 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
     <header
       className={clsx(
         isVaThuis ? 'bg-va-black text-white' : 'bg-va-white text-va-black',
-        sticky && 'sticky top-0 z-50'
+        'sticky top-0 z-50',
+        !sticky && 'md:static md:z-auto'
       )}
     >
-      <div className="relative max-w-[1240px] mx-auto px-3 sm:px-4 min-[1240px]:px-0">
-        {/* Mobile: stacked branding row + yellow rule (desktop main nav lives in column layout below) */}
+      <div className={clsx('relative max-w-[1240px] mx-auto', CONTAINER_PADDING_CLASS)}>
+        {/* Mobile: stacked branding row (desktop main nav lives in column layout below) */}
         <div className="md:hidden">
           <div className="flex items-center justify-between gap-3 py-3">
             <HeaderLogoMobile header={header} lightWordmark={isVaThuis} />
@@ -408,12 +416,10 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
               </button>
             </div>
           </div>
-
-          <div className="h-px w-full bg-va-yellow" aria-hidden />
         </div>
 
         {/* Desktop: tall monogram / CMS logo at left; wordmark, utilities, rule, main nav + search to the right */}
-        <div className="hidden md:flex items-stretch xl:-ml-14">
+        <div className="hidden md:flex items-stretch min-[1352px]:-ml-14">
           <Link
             href="/"
             className="flex h-full min-h-0 shrink-0 items-center justify-start self-stretch outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2"
@@ -489,8 +495,22 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
                 aria-expanded={searchOpen}
                 aria-haspopup="dialog"
                 className={clsx(
-                  'shrink-0 w-full max-w-[220px] rounded-lg border pl-3 pr-4 py-2 text-sm font-sans text-left',
-                  'inline-flex items-center gap-2 outline-none transition-colors',
+                  'flex flex-col items-center gap-1 min-w-[3rem] shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-va-yellow',
+                  'font-sans text-[11px] md:inline-flex lg:hidden',
+                  isVaThuis ? 'text-white hover:text-va-yellow' : 'text-va-black',
+                )}
+              >
+                <IconSearch className="w-6 h-6" aria-hidden />
+                <span>Zoeken</span>
+              </button>
+              <button
+                type="button"
+                onClick={openDesktopSearch}
+                aria-expanded={searchOpen}
+                aria-haspopup="dialog"
+                className={clsx(
+                  'hidden lg:inline-flex shrink-0 w-full max-w-[220px] rounded-lg border pl-3 pr-4 py-2 text-sm font-sans text-left',
+                  'items-center gap-2 outline-none transition-colors',
                   'focus-visible:ring-2 focus-visible:ring-va-yellow',
                   isVaThuis
                     ? 'border-va-darkgray-600 text-va-gray-300 bg-va-darkgray-900 hover:border-va-darkgray-500'
@@ -504,20 +524,32 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
           </div>
         </div>
 
-        {/* Mobile quick bar */}
-        {quickItems.length > 0 ? (
-          <div className="md:hidden grid grid-cols-3 divide-x divide-white/90 bg-va-yellow">
-            {quickItems.map((item, i) => (
-              <div key={i} className="py-2.5 px-1 text-center text-sm font-sans font-medium">
-                <MenuLink
-                  item={item}
-                  pathname={pathname}
-                  className="text-va-black hover:opacity-80 block"
-                />
-              </div>
-            ))}
-          </div>
-        ) : null}
+        {/* Mobile secondary nav */}
+        <div className="md:hidden -mx-4 grid grid-cols-3 divide-x divide-white/90 bg-va-yellow">
+          {MOBILE_SECONDARY_NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={clsx(
+                'block w-full py-1.5 px-1 text-center text-sm font-sans font-medium min-w-0 truncate',
+                'text-va-black hover:opacity-80',
+                pathActive(pathname, item.href) && 'underline underline-offset-2'
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
+          <Link
+            href={mobileLoginHref}
+            className={clsx(
+              'block w-full py-1.5 px-1 text-center text-sm font-sans font-medium min-w-0 truncate',
+              'text-va-black hover:opacity-80',
+              pathActive(pathname, mobileLoginHref) && 'underline underline-offset-2'
+            )}
+          >
+            {mobileLoginLabel}
+          </Link>
+        </div>
 
         {/* Mobile full menu */}
         {menuOpen ? (
@@ -530,10 +562,10 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
             />
             <nav
               id="mobile-drawer-nav"
-              className="absolute left-0 right-0 top-full z-50 md:hidden border-b border-va-lightgray-300 bg-va-white shadow-lg animate-va-header-drawer motion-reduce:animate-none"
+              className="absolute left-0 right-0 top-full z-50 md:hidden border-b border-va-lightgray-300 bg-va-white text-va-black shadow-lg animate-va-header-drawer motion-reduce:animate-none"
               aria-labelledby="mobile-menu-trigger"
             >
-              <div className="max-w-[1240px] mx-auto px-3 py-6 min-[1240px]:px-0 grid grid-cols-2 gap-x-4 gap-y-0 text-sm font-sans">
+              <div className={clsx('max-w-[1240px] mx-auto py-6 grid grid-cols-2 gap-x-4 gap-y-0 text-sm font-sans', CONTAINER_PADDING_CLASS)}>
                 <ul className="space-y-3">
                   {colLeft.map((item, i) => (
                     <li key={i}>

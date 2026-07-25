@@ -17,7 +17,11 @@ import {
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 import { resolvePricebookEntryId } from "../../../modules/salesforce-sync/utils/resolve-pricebook-entry"
 import {
+  ensureSyncState,
+  findOrderItemByOrderRegistration,
+  findRegistrationByOrderAndVaProduct,
   findSalesforceIdByExternalId,
+  resolveExistingSalesforceId,
   upsertSalesforceRecordById,
 } from "../../../modules/salesforce-sync/utils/upsert-record"
 
@@ -72,11 +76,21 @@ export const pushOrderLinesSalesforceStep = createStep(
     for (const seat of payload.eventSeats) {
       const productPbe = await resolvePricebookEntryId(sync, seat.product2Id)
 
-      let regSfId = await findSalesforceIdByExternalId(
+      let regSfId = await resolveExistingSalesforceId(
         sync,
-        SF_REGISTRATION_OBJECT,
-        registrationExternalIdField,
-        seat.registrationExternalId
+        "registration",
+        seat.registrationExternalId,
+        () =>
+          findSalesforceIdByExternalId(
+            sync,
+            SF_REGISTRATION_OBJECT,
+            registrationExternalIdField,
+            seat.registrationExternalId
+          ).then(
+            (id) =>
+              id ??
+              findRegistrationByOrderAndVaProduct(sync, orderId, seat.vaProductId)
+          )
       )
 
       const regFields = registrationToSalesforce({
@@ -105,12 +119,29 @@ export const pushOrderLinesSalesforceStep = createStep(
         regFields
       )
       registrationIds[seat.registrationExternalId] = regSfId
+      await ensureSyncState(sync, "registration", seat.registrationExternalId, regSfId)
 
-      let productItemId = await findSalesforceIdByExternalId(
+      let productItemId = await resolveExistingSalesforceId(
         sync,
-        SF_ORDER_ITEM_OBJECT,
-        ORDER_ITEM_EXTERNAL_ID_FIELD,
-        seat.productLineExternalId
+        "order_item",
+        seat.productLineExternalId,
+        () =>
+          findSalesforceIdByExternalId(
+            sync,
+            SF_ORDER_ITEM_OBJECT,
+            ORDER_ITEM_EXTERNAL_ID_FIELD,
+            seat.productLineExternalId
+          ).then(
+            (id) =>
+              id ??
+              findOrderItemByOrderRegistration(
+                sync,
+                orderId,
+                regSfId,
+                "product",
+                seat.vaProductId
+              )
+          )
       )
       productItemId = await upsertSalesforceRecordById(
         sync,
@@ -130,13 +161,24 @@ export const pushOrderLinesSalesforceStep = createStep(
         })
       )
       orderItemIds[seat.productLineExternalId] = productItemId
+      await ensureSyncState(sync, "order_item", seat.productLineExternalId, productItemId)
 
       if (seat.discountLineExternalId && seat.discountCents > 0) {
-        let discountItemId = await findSalesforceIdByExternalId(
+        let discountItemId = await resolveExistingSalesforceId(
           sync,
-          SF_ORDER_ITEM_OBJECT,
-          ORDER_ITEM_EXTERNAL_ID_FIELD,
-          seat.discountLineExternalId
+          "order_item",
+          seat.discountLineExternalId,
+          () =>
+            findSalesforceIdByExternalId(
+              sync,
+              SF_ORDER_ITEM_OBJECT,
+              ORDER_ITEM_EXTERNAL_ID_FIELD,
+              seat.discountLineExternalId!
+            ).then(
+              (id) =>
+                id ??
+                findOrderItemByOrderRegistration(sync, orderId, regSfId, "discount")
+            )
         )
         discountItemId = await upsertSalesforceRecordById(
           sync,
@@ -155,6 +197,7 @@ export const pushOrderLinesSalesforceStep = createStep(
           })
         )
         orderItemIds[seat.discountLineExternalId] = discountItemId
+        await ensureSyncState(sync, "order_item", seat.discountLineExternalId, discountItemId)
       }
     }
 

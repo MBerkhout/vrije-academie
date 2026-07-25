@@ -1,0 +1,351 @@
+import type { MedusaContainer } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, MedusaError, MedusaService } from "@medusajs/framework/utils"
+
+import productEventGroupLink from "../../links/product-event-group"
+import {
+  buildAudiencePlayerEmbedUrl,
+  type VathuisEpisode,
+} from "../salesforce-sync/clients/audience-player"
+import {
+  findVathuisEpisode,
+  parseEpisodeKey,
+  type VathuisMetadataShape,
+} from "../../lib/vathuis-episode-lookup"
+import {
+  isAccessActive,
+  parseIsoDate,
+  toIsoString,
+  vathuisAccessExpiresAt,
+} from "../../lib/vathuis-access-expiry"
+import { CustomerVathuisAccess } from "./models/customer-vathuis-access"
+
+function isGiftCardLine(item: Record<string, unknown>): boolean {
+  if (item.is_giftcard === true) return true
+  const meta = item.metadata as { gift_card?: unknown } | null
+  return !!meta?.gift_card
+}
+
+export type VathuisAccessItem = {
+  productId: string
+  productHandle: string
+  productTitle: string | null
+  grantedAt: string
+  expiresAt: string
+  isExpired: boolean
+}
+
+export type VathuisAccessStatus = {
+  hasAccess: boolean
+  grantedAt: string | null
+  expiresAt: string | null
+}
+
+type VathuisLineContext = {
+  lineItemId: string
+  variantId: string
+  productId: string
+  productHandle: string
+  productTitle: string | null
+}
+
+class VathuisAccessModuleService extends MedusaService({
+  CustomerVathuisAccess,
+}) {
+  private async resolveVathuisLines(
+    container: MedusaContainer,
+    orderId: string
+  ): Promise<{
+    customerId: string
+    grantedAt: Date
+    lines: VathuisLineContext[]
+  } | null> {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+
+    const { data: orders } = await query.graph({
+      entity: "order",
+      fields: [
+        "id",
+        "customer_id",
+        "created_at",
+        "status",
+        "items.id",
+        "items.variant_id",
+        "items.metadata",
+        "items.is_giftcard",
+      ],
+      filters: { id: orderId },
+    })
+
+    const order = orders?.[0] as Record<string, unknown> | undefined
+    if (!order) return null
+
+    const customerId = order.customer_id as string | undefined
+    if (!customerId) return null
+    if (order.status !== "completed") return null
+
+    const grantedAt = parseIsoDate(order.created_at as string) ?? new Date()
+    const items = (order.items as Record<string, unknown>[]) ?? []
+    const variantIds = [
+      ...new Set(
+        items
+          .filter((item) => !isGiftCardLine(item))
+          .map((item) => item.variant_id as string | undefined)
+          .filter((id): id is string => Boolean(id))
+      ),
+    ]
+
+    if (!variantIds.length) return { customerId, grantedAt, lines: [] }
+
+    const { data: variants } = await query.graph({
+      entity: "product_variant",
+      fields: ["id", "product_id", "product.id", "product.handle", "product.title", "product.metadata"],
+      filters: { id: variantIds },
+    })
+
+    const variantById = new Map(
+      (variants ?? []).map((row) => {
+        const v = row as Record<string, unknown>
+        return [v.id as string, v]
+      })
+    )
+
+    const productIds = [
+      ...new Set(
+        [...variantById.values()]
+          .map((v) => v.product_id as string | undefined)
+          .filter((id): id is string => Boolean(id))
+      ),
+    ]
+
+    const vathuisProductIds = new Set<string>()
+    if (productIds.length) {
+      const { data: groupLinks } = await query.graph({
+        entity: productEventGroupLink.entryPoint,
+        fields: ["product_id", "event_group.record_type"],
+        filters: { product_id: productIds },
+      })
+      for (const row of groupLinks ?? []) {
+        const link = row as { product_id?: string; event_group?: { record_type?: string } | null }
+        if (link.event_group?.record_type === "vathuis" && link.product_id) {
+          vathuisProductIds.add(link.product_id)
+        }
+      }
+    }
+
+    const lines: VathuisLineContext[] = []
+    for (const item of items) {
+      if (isGiftCardLine(item)) continue
+      const variantId = item.variant_id as string | undefined
+      if (!variantId) continue
+
+      const variant = variantById.get(variantId)
+      const product = variant?.product as Record<string, unknown> | undefined
+      const productId = (variant?.product_id as string | undefined) ?? (product?.id as string | undefined)
+      if (!productId || !vathuisProductIds.has(productId)) continue
+
+      const metadata = product?.metadata as Record<string, unknown> | null | undefined
+      const vathuis = metadata?.vathuis as Record<string, unknown> | undefined
+      if (vathuis?.purchase_mode !== "bundle_only") continue
+
+      const handle = product?.handle as string | undefined
+      if (!handle) continue
+
+      lines.push({
+        lineItemId: String(item.id),
+        variantId,
+        productId,
+        productHandle: handle,
+        productTitle: (product?.title as string | undefined) ?? null,
+      })
+    }
+
+    return { customerId, grantedAt, lines }
+  }
+
+  async listVathuisLinesForOrder(
+    container: MedusaContainer,
+    orderId: string
+  ): Promise<VathuisLineContext[]> {
+    const resolved = await this.resolveVathuisLines(container, orderId)
+    return resolved?.lines ?? []
+  }
+
+  async grantFromCompletedOrder(
+    container: MedusaContainer,
+    orderId: string
+  ): Promise<number> {
+    const resolved = await this.resolveVathuisLines(container, orderId)
+    if (!resolved?.lines.length) return 0
+
+    const { customerId, grantedAt, lines } = resolved
+    const newExpiresAt = vathuisAccessExpiresAt(grantedAt)
+    let granted = 0
+
+    for (const line of lines) {
+      const existingForLine = await this.listCustomerVathuisAccesses(
+        {
+          order_id: orderId,
+          order_line_item_id: line.lineItemId,
+        },
+        { take: 1 }
+      )
+      if (existingForLine[0]) continue
+
+      const existingForProduct = await this.listCustomerVathuisAccesses(
+        { customer_id: customerId, product_id: line.productId },
+        { take: 1 }
+      )
+      const current = existingForProduct[0]
+
+      const grantedAtIso = toIsoString(grantedAt)
+      const newExpiresIso = toIsoString(newExpiresAt)
+
+      if (current) {
+        const currentExpires = parseIsoDate(current.expires_at)
+        const mergedExpires =
+          currentExpires && currentExpires.getTime() > newExpiresAt.getTime()
+            ? currentExpires
+            : newExpiresAt
+
+        await this.updateCustomerVathuisAccesses({
+          id: current.id,
+          variant_id: line.variantId,
+          order_id: orderId,
+          order_line_item_id: line.lineItemId,
+          granted_at: grantedAtIso,
+          expires_at: toIsoString(mergedExpires),
+          product_handle: line.productHandle,
+          product_title: line.productTitle,
+        })
+      } else {
+        await this.createCustomerVathuisAccesses({
+          customer_id: customerId,
+          product_id: line.productId,
+          product_handle: line.productHandle,
+          product_title: line.productTitle,
+          variant_id: line.variantId,
+          order_id: orderId,
+          order_line_item_id: line.lineItemId,
+          granted_at: grantedAtIso,
+          expires_at: newExpiresIso,
+        })
+      }
+
+      granted += 1
+    }
+
+    return granted
+  }
+
+  async listForCustomer(
+    customerId: string,
+    options?: { activeOnly?: boolean }
+  ): Promise<VathuisAccessItem[]> {
+    const rows = await this.listCustomerVathuisAccesses(
+      { customer_id: customerId },
+      { order: { expires_at: "DESC" } }
+    )
+
+    const now = new Date()
+    return rows
+      .map((row) => {
+        const isExpired = !isAccessActive(row.expires_at, now)
+        return {
+          productId: row.product_id,
+          productHandle: row.product_handle,
+          productTitle: row.product_title ?? null,
+          grantedAt: row.granted_at,
+          expiresAt: row.expires_at,
+          isExpired,
+        }
+      })
+      .filter((row) => (options?.activeOnly ? !row.isExpired : true))
+  }
+
+  async getAccess(customerId: string, productHandle: string): Promise<VathuisAccessStatus> {
+    const rows = await this.listCustomerVathuisAccesses(
+      { customer_id: customerId, product_handle: productHandle },
+      { take: 1 }
+    )
+    const row = rows[0]
+    if (!row) {
+      return { hasAccess: false, grantedAt: null, expiresAt: null }
+    }
+
+    return {
+      hasAccess: isAccessActive(row.expires_at),
+      grantedAt: row.granted_at,
+      expiresAt: row.expires_at,
+    }
+  }
+
+  private episodeEmbedUrl(
+    episode: VathuisEpisode,
+    vathuis: VathuisMetadataShape
+  ): string | null {
+    if (episode.embed_url) return episode.embed_url
+
+    const audience = vathuis.audience_player
+    const projectId =
+      typeof audience?.project_id === "number" && Number.isFinite(audience.project_id)
+        ? audience.project_id
+        : Number(process.env.AUDIENCE_PLAYER_PROJECT_ID ?? 14)
+
+    return buildAudiencePlayerEmbedUrl({
+      projectId,
+      previewUrl: audience?.preview_url ?? null,
+      iframeUrl: audience?.iframe_url ?? null,
+      articleId: episode.audience_article_id,
+      assetId: episode.audience_asset_id ?? null,
+      previewEpisode: false,
+    })
+  }
+
+  async resolveEmbedUrl(
+    container: MedusaContainer,
+    customerId: string,
+    productHandle: string,
+    episodeKey: string
+  ): Promise<string> {
+    const access = await this.getAccess(customerId, productHandle)
+    if (!access.hasAccess) {
+      throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "No active access for this course")
+    }
+
+    const parsed = parseEpisodeKey(episodeKey)
+    if (!parsed) {
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, "Invalid episode key")
+    }
+
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const { data: products } = await query.graph({
+      entity: "product",
+      fields: ["id", "metadata"],
+      filters: { handle: productHandle },
+    })
+    const product = products?.[0] as Record<string, unknown> | undefined
+    if (!product) {
+      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Product not found")
+    }
+
+    const vathuis = (product.metadata as Record<string, unknown> | null | undefined)
+      ?.vathuis as VathuisMetadataShape | undefined
+    const episode = findVathuisEpisode(
+      vathuis,
+      parsed.chapterNumber,
+      parsed.episodeNumber
+    )
+    if (!episode) {
+      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Episode not found")
+    }
+
+    const embedUrl = this.episodeEmbedUrl(episode, vathuis ?? {})
+    if (!embedUrl) {
+      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Episode embed unavailable")
+    }
+
+    return embedUrl
+  }
+}
+
+export default VathuisAccessModuleService

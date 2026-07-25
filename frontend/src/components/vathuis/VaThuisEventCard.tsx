@@ -30,10 +30,7 @@ export function VaThuisEventCard({
 }: VaThuisEventCardProps) {
   const href = vathuisProductPath(event.handle)
   const meta = vathuisMetaLine(event)
-  const { soldOut } = plpListingStockPresentation(
-    event.min_available_quantity,
-    stockThreshold
-  )
+  const { soldOut } = plpListingStockPresentation(event, stockThreshold)
   const priceFrom = event.price_from
 
   return (
@@ -87,7 +84,7 @@ export function VaThuisEventCard({
         >
           <Link
             href={href}
-            className="transition-colors hover:text-va-yellow group-hover:text-va-yellow after:absolute after:inset-0 after:content-['']"
+            className="group-hover:underline underline-offset-2 after:absolute after:inset-0 after:content-['']"
           >
             {event.title}
           </Link>
@@ -110,7 +107,7 @@ export function VaThuisEventCard({
               <span className="text-xs text-va-gray-400">Uitverkocht</span>
             )}
           </div>
-          <span className="text-xs md:text-sm font-medium text-white/80 flex items-center gap-1 group-hover:text-va-yellow transition-colors shrink-0">
+          <span className="text-xs md:text-sm font-medium text-white/80 flex items-center gap-1 group-hover:underline underline-offset-2 shrink-0">
             <span className="md:hidden">Bekijk →</span>
             <span className="hidden md:inline">Bekijk meer →</span>
           </span>

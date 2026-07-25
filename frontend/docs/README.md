@@ -28,16 +28,22 @@ Use **`src/lib/locale-format.ts`** for Dutch (`nl-NL`) formatting instead of dup
 
 ### JSON-LD (Schema.org)
 
-Use **`src/lib/json-ld.ts`** for structured data:
+Use **`src/lib/json-ld.ts`** for structured data and **`<JsonLd />`** (`src/components/common/JsonLd.tsx`) to render it.
 
-- `getSiteOrigin()` — from `NEXT_PUBLIC_SITE_URL` or `https://vrijeacademie.nl`.
-- `absolutizeUrl(path)` — absolute URLs for `item` / `url` fields.
-- `stringifyJsonLd(data)` — `JSON.stringify` safe inside `<script>` (escapes `<`).
-- `buildBreadcrumbListJsonLd`, `buildBreadcrumbListFromCrumbs` — `BreadcrumbList`.
-- `buildItemListJsonLd` — PLP first-page `ItemList`.
-- `buildPdpEventOrCourseJsonLd(handle, event)` — PDP `Course` / `Event`.
+**Sitewide** (in `(main)/layout.tsx`): `Organization` (with `@id`, enriched from General settings → Organization + footer fallbacks) and `WebSite` with `SearchAction` (`/zoeken?q={search_term_string}`).
 
-Render with **`<JsonLd data={…} />`** from `src/components/common/JsonLd.tsx` instead of hand-written script tags.
+**Per route** (see `src/lib/cms/page-structured-data.ts` for CMS pages):
+
+| Route | Schema types |
+|---|---|
+| `/`, CMS slugs, VA Thuis CMS | `WebPage`, optional `FAQPage` from accordion blocks |
+| PLP / category / city / VA Thuis catalog | `BreadcrumbList`, `CollectionPage`, `ItemList` (enriched with image + offers when available) |
+| PDP / VA Thuis PDP | `BreadcrumbList`, `Course` or `Event` (instructors, instances, offers, attendance mode) |
+| `/agenda` | `CollectionPage`, `ItemList` |
+
+**Data priority for PDP JSON-LD**: editorial `seo` → Salesforce mirror (`seoTitle` / `seoDescription`) → commerce event fields (same as metadata).
+
+**Key helpers**: `getSiteOrigin()`, `absolutizeUrl()`, `buildOrganizationJsonLd()`, `buildWebSiteJsonLd()`, `buildWebPageJsonLd()`, `buildCollectionPageJsonLd()`, `buildFaqPageJsonLd()`, `buildBreadcrumbListJsonLd`, `buildItemListJsonLd`, `buildPdpEventOrCourseJsonLd()`.
 
 ### Component Structure
 
@@ -50,7 +56,7 @@ src/components/
 └── pdp/         # Product detail: booking, session table, location tabs
 ```
 
-**PDP sessions**: `GET /store/events/:handle` omits variants whose `event_item.start_at` is in the past; the commerce client applies the same filter as a safeguard. `PdpLocationTabs` splits **online** sessions (one bordered block with shared background: heading, datum, tijd, prijs, CTA, and Zoom/replay info) from **Fysieke sessies** (offline only). When an event has physical sessions in more than one city, an **Alle locaties** tab is shown first (default selected); per-city tabs filter the list. With multiple physical sessions, users can sort by datum or locatie via a dropdown or clickable column headers. On mobile (`< md`), each physical session is a vertical stack; from `md` up the session tables are used. Session **Beschikbaarheid**: uitverkocht → “Volgeboekt”; ≤ `lowStockThreshold` (default 5) → “Nog N plaats(en)”; **10+ vrije plaatsen** → “Beschikbaar”; otherwise → “N beschikbaar”. Logic in `sessionTableAvailabilityPresentation`. **Reizen with external registration**: when Medusa returns `external_registration_url` (Salesforce `External_Registration_URL__c`), **Direct inschrijven** in `PdpBookingPanel` and session rows opens that URL in a new tab instead of the cart. **VAthuis** products (`purchase_mode: bundle_only`) show `PdpEpisodesTable` with a chapter selector, episode rows (aflevering, duur, beschrijving), **Bekijk aflevering** preview modal (`PdpEpisodePreviewModal` + Audience Player iframe), and **Koop alle lessen** on locked rows (scrolls to `#booking-panel`). Copy for sessions, online info, and episodes is editable in **General settings → PDP → UI labels** (`physicalSessionsHeading`, `onlineSessionsHeading`, `onlineSessionsZoomInfo`, `onlineSessionsReplayInfo`, `sessionsSortDate`, `sessionsSortLocation`, `episodesHeading`, `chapterLabel`, column headers, `watchEpisode`, `bundleCta`). Session table column **Docent** (not “Instructeur”). Category badges in `PdpHeader` link to `/ons-aanbod/{category-slug}` when a slug is present.
+**PDP sessions**: `GET /store/events/:handle` omits variants whose `event_item.start_at` is in the past; the commerce client applies the same filter as a safeguard. `PdpLocationTabs` shows online and offline sessions in one list. Hybrid products get a **Beide | Online | Fysiek** filter (icons on Online/Fysiek); **Beide** lists online and offline sessions together; city tabs apply to **Beide** and **Fysiek** only (per-city tabs filter offline sessions; online rows stay visible). Linked online sessions (Salesforce `Linked_Online_Productgroup__c`, exposed as `has_linked_online_sessions`) are merged onto the parent product and follow the same filters. Rows use `DeliveryTypeIcon` (camera for online, pin for offline). When an event has physical sessions in more than one city, an **Alle locaties** tab is shown first (default selected); per-city tabs filter offline sessions. With multiple sessions, users can sort by datum or locatie via a dropdown or clickable column headers. On mobile (`< md`), each session is a vertical stack (availability at the top; price and **Direct inschrijven** on one row); from `md` up the session tables are used. Session **Beschikbaarheid**: uitverkocht → “Volgeboekt”; ≤ `lowStockThreshold` (default 5) → “Nog N plaats(en)”; **10+ vrije plaatsen** → “Beschikbaar”; otherwise → “N beschikbaar”. Logic in `sessionTableAvailabilityPresentation`. **Reizen with external registration**: when Medusa returns `external_registration_url` (Salesforce `External_Registration_URL__c`), **Direct inschrijven** in `PdpBookingPanel` and session rows opens that URL in a new tab instead of the cart. **VAthuis** products (`purchase_mode: bundle_only`) show `PdpEpisodesTable` with a chapter selector, episode rows (aflevering, duur, beschrijving), **Bekijk aflevering** preview modal (`PdpEpisodePreviewModal` + Audience Player iframe), and **Koop alle lessen** on locked rows (scrolls to `#booking-panel`). Copy for sessions, online info, and episodes is editable in **General settings → PDP → UI labels** (`physicalSessionsHeading`, `onlineSessionsHeading`, `onlineSessionsZoomInfo`, `onlineSessionsReplayInfo`, `sessionsSortDate`, `sessionsSortLocation`, `episodesHeading`, `chapterLabel`, column headers, `watchEpisode`, `bundleCta`). Session table column **Docent** (not “Instructeur”). Category badges in `PdpHeader` link to `/ons-aanbod/{category-slug}` when a slug is present.
 
 **PDP / PLP prices**: Medusa variant prices are stored in major EUR units; store API responses and Sanity `priceFrom` use **cents**. `formatPriceEur(cents, …)` expects cents. The commerce client converts Medusa **cart/order** money from major EUR to cents in `src/lib/commerce/normalize-store-money.ts` (gift card purchase lines already use cent-scale `unit_price`). Re-run **Push to Sanity** (or `sync-sanity.ts --entity=products`) after price fixes so mirrored `priceFrom` updates in Studio.
 
@@ -105,7 +111,7 @@ If an **auth identity** exists without a linked **customer** row (empty `custome
 
 Authenticated via `useCustomer()` (same Medusa JWT session as the header). Guests see a login link with `returnTo=/mijn-account`.
 
-**Layout**: `src/app/(main)/mijn-account/layout.tsx` wraps routes in `MijnAccountShell` (`src/components/account/MijnAccountShell.tsx`): loading state, login prompt when logged out, otherwise a **left sidebar nav** (horizontal scroll on small screens) and main content, with **logout** at the bottom of the sidebar (redirects to `/login`).
+**Layout**: `src/app/(main)/mijn-account/layout.tsx` wraps routes in `MijnAccountShell` (`src/components/account/MijnAccountShell.tsx`): loading state, login prompt when logged out, otherwise a **left sidebar nav** (horizontal scroll below `lg`) and main content, with **logout** at the bottom of the sidebar (redirects to `/login`). On mobile/tablet, the nav keeps left alignment with the page container, **bleeds to the right viewport edge** (`max-lg:-mr-4`), adds **trailing space after the last tab** when scrolled (`max-lg:pr-4`), and uses **`scrollbar-va`**.
 
 **Routes**
 
@@ -114,10 +120,10 @@ Authenticated via `useCustomer()` (same Medusa JWT session as the header). Guest
 | `/mijn-account` | Dashboard: welcome banner, grid of gray panels (profile + address with **Gegevens aanpassen** / **Wachtwoord wijzigen**), **Recent bewaard** and **Recent aangekocht**, full-width **Snel naar** buttons |
 | `/mijn-account/gegevens` | Edit profile: `updateCustomerProfile` plus **shipping address** via `upsertCheckoutShippingAddress` (same shape as checkout). Address UI uses **`NlAddressFields`** (country field first), **`usePdokAddressLookup`** (PDOK NL only), **`useCountryToggleManualAddress`** (non-NL shows manual straat/plaats; switching back to NL re-enables PDOK), and **`validateAccountField`** with country-aware postal rules (`lib/address/postal-code.ts`). Button opens **`ChangePasswordModal`**; `?wachtwoord=1` auto-opens the modal. |
 | `/mijn-account/bewaard` | Wishlist (`WishlistList`, `metadata.va_wishlist`) |
-| `/mijn-account/aankopen` | Order list (`commerceClient.listCustomerOrders`) |
-| `/mijn-account/collectie` | Placeholder for future “online” content |
+| `/mijn-account/aankopen` | Order list with line items, session/vathuis details and totals (`listCustomerOrders` + `GET /store/checkout/confirmation` per order via `AccountOrderCard`) |
+| `/mijn-account/collectie` | Purchased VA Thuis courses with expiry; links to episode player on PDP |
 
-**Commerce**: `listCustomerOrders` wraps `medusa.store.order.list`. Password management uses `commerceClient.setPassword` → `POST /store/auth/set-password` (current password, or OTP verification when the account has no password). `getAuthStatus` drives “Wachtwoord instellen” vs “Wachtwoord wijzigen” in account gegevens. Checkout/login OTP: `customerLookup`, `requestOtp`, `verifyOtp`, `registerPasswordless` — see `medusa/docs/CUSTOMER_AUTH.md`.
+**Commerce**: `listCustomerOrders` wraps `medusa.store.order.list`. Password login uses `commerceClient.login` → `POST /store/auth/login` (supports legacy Django PBKDF2 migration on first login). Password management uses `commerceClient.setPassword` → `POST /store/auth/set-password` (current password, or OTP verification when the account has no password). `getAuthStatus` drives “Wachtwoord instellen” vs “Wachtwoord wijzigen” in account gegevens. Checkout/login OTP: `customerLookup`, `requestOtp`, `verifyOtp`, `registerPasswordless` — see `medusa/docs/CUSTOMER_AUTH.md`.
 
 Storefront copy for the account area lives in `src/locales/nl.json` (`accountPage`).
 
@@ -196,10 +202,12 @@ If `SANITY_API_READ_TOKEN` is missing, `/api/draft` returns 503 with a helpful e
 
 ## SEO & JSON-LD
 
-- Metadata from Sanity page documents
-- JSON-LD structured data for Organization, Event, BreadcrumbList
-- Next.js App Router metadata API
-- **No-index (pre-launch)** — all routes inherit `SITE_ROBOTS` from `app/layout.tsx` (`noindex, nofollow` via `src/lib/cms/seo-metadata.ts`); CMS SEO fields do not override this until launch
+- **Metadata** — `buildSeoMetadata()` in `src/lib/cms/seo-metadata.ts` maps Sanity `seo` fields (title, description, image, `noIndex`) to Next.js App Router metadata. Meta fields are reused for Open Graph. Set `metadataBase` via `buildSiteMetadata()` in the root layout.
+- **Canonical URLs** — pass `path` to `buildSeoMetadata()` (e.g. `/ons-aanbod/kunst`); resolved against `NEXT_PUBLIC_SITE_URL`.
+- **PDP fallbacks** — editorial `seo` → Salesforce mirror (`seoTitle` / `seoDescription`) → commerce event title/description.
+- **Utility routes** — account, checkout, cart, login, search, and dev pages use `noIndexMetadata()` (`robots: noindex, nofollow`).
+- **Sitemap & robots** — `app/sitemap.ts` (Sanity pages, categories, products, cities + static routes; skips `noIndex`) and `app/robots.ts` (disallows private paths, links sitemap). Revalidates hourly.
+- **JSON-LD** — `src/lib/json-ld.ts` builders + `src/lib/cms/page-structured-data.ts` for CMS `WebPage` / `FAQPage`. Sitewide `Organization` + `WebSite` in `(main)/layout.tsx`. PDP uses `buildPdpEventOrCourseJsonLd()` with commerce + Sanity SEO overrides. Tests: `src/lib/json-ld.test.ts`.
 
 ## i18n Readiness
 
@@ -252,4 +260,5 @@ See [components.md](./components.md#deferred-work) for details.
 
 - [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) - Design tokens and component usage
 - [components.md](./components.md) - Block components and CMS integration
+- [ANALYTICS.md](./ANALYTICS.md) - GTM / GA4 dataLayer events and server-side purchase
 - [OPEN_POINTS.md](./OPEN_POINTS.md) - Future considerations

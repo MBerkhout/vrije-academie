@@ -11,7 +11,8 @@ import { PlpHeader } from '@/components/plp/PlpHeader'
 import { PlpTabs } from '@/components/plp/PlpTabs'
 import { PlpLiveListing } from '@/components/plp/PlpLiveListing'
 import { JsonLd } from '@/components/common/JsonLd'
-import { buildBreadcrumbListJsonLd, buildItemListJsonLd } from '@/lib/json-ld'
+import { buildBreadcrumbListJsonLd, buildCollectionPageJsonLd, buildItemListJsonLd } from '@/lib/json-ld'
+import { eventIsFullySoldOut } from '@/lib/event-status-presentation'
 import { PLP_BASE_PATH, plpProductPath } from '@/lib/routes'
 
 export type PlpBreadcrumbCrumb = { label: string; href: string }
@@ -81,27 +82,37 @@ export async function PlpListingPage({
           items: events.slice(0, 24).map((event) => ({
             path: plpProductPath(event.handle),
             name: event.title,
+            image: event.thumbnail ?? event.image_urls?.[0] ?? undefined,
+            priceFromCents: event.price_from,
+            inStock: !eventIsFullySoldOut(event),
           })),
         })
       : null
 
+  const collectionPageJsonLd = buildCollectionPageJsonLd({
+    name: pageTitle,
+    description: introText,
+    url: basePath,
+  })
+
   return (
     <>
       <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd data={collectionPageJsonLd} />
       {itemListJsonLd && <JsonLd data={itemListJsonLd} />}
 
       <div className="pb-16">
         <div className={CONTAINER_CLASS}>
-          <PlpBreadcrumbs crumbs={breadcrumbCrumbs} />
+          <PlpBreadcrumbs crumbs={breadcrumbCrumbs} className="pt-3 pb-1 md:pt-4 md:pb-2" />
         </div>
 
         {plpData?.banner?.enabled && <PlpBanner banner={plpData.banner} />}
 
-        <div className={`${CONTAINER_CLASS} mt-6`}>
+        <div className={`${CONTAINER_CLASS} mt-1 md:mt-2`}>
           <PlpHeader title={pageTitle} intro={plpData?.intro} introText={introText} />
         </div>
 
-        <div className={`${CONTAINER_CLASS} mt-4`}>
+        <div className={`${CONTAINER_CLASS} mt-2 md:mt-4`}>
           <PlpTabs tabs={tabs} activePath={activeTabPath} />
         </div>
 

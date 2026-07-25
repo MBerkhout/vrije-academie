@@ -6,12 +6,14 @@ import { GIFT_CARD_MODULE } from "../../modules/gift-card"
 import GiftCardModuleService from "../../modules/gift-card/service"
 import { GIFT_CARD_REFERENCE } from "../../lib/gift-card-cart"
 import { toNumber } from "../../lib/store-cart"
+import { medusaOrderMoneyToCents } from "./utils/money"
 import {
   buildOrderItemExternalId,
   buildRegistrationExternalId,
 } from "./utils/build-registration-id"
 import { resolveOrderPayment } from "./utils/resolve-order-payment"
 import SalesforceSyncModuleService from "./service"
+import { addCalendarMonths, toIsoString, parseIsoDate, VATHUIS_ACCESS_MONTHS } from "../../lib/vathuis-access-expiry"
 
 const ENTITY_VARIANT = "variant"
 
@@ -85,7 +87,10 @@ export type OrderPushPayload = {
 function lineDiscountCents(item: Record<string, unknown>): number {
   const adjustments = item.adjustments as Array<{ amount?: unknown; promotion_id?: string }> | undefined
   if (!adjustments?.length) return 0
-  return adjustments.reduce((sum, adj) => sum + Math.abs(toNumber(adj.amount)), 0)
+  return adjustments.reduce(
+    (sum, adj) => sum + Math.abs(medusaOrderMoneyToCents(adj.amount)),
+    0
+  )
 }
 
 function isGiftCardLine(item: Record<string, unknown>): boolean {
@@ -151,11 +156,7 @@ export async function loadOrderPushPayload(
   const summary = order.summary as
     | { raw_current_order_total?: { value?: unknown }; current_order_total?: unknown }
     | undefined
-  const totalCents = toNumber(
-    summary?.raw_current_order_total?.value ?? summary?.current_order_total ?? order.total
-  )
 
-  const payment = await resolveOrderPayment(container, orderId, totalCents)
   const promotions = (order.promotions as Array<{ code?: string }> | undefined) ?? []
   const promotionCodes = promotions.map((p) => p.code).filter((c): c is string => !!c)
   const promotionCode = promotionCodes[0] ?? null
@@ -192,14 +193,18 @@ export async function loadOrderPushPayload(
 
     const { data: linkRows } = await query.graph({
       entity: variantEventItemLink.entryPoint,
-      fields: ["event_item.start_at", "event_item.end_at", "event_item.city"],
+      fields: ["event_item.start_at", "event_item.end_at", "event_item.city", "event_item.delivery_type"],
       filters: { product_variant_id: variantId },
     })
     const eventItem = (linkRows?.[0] as { event_item?: Record<string, unknown> } | undefined)
       ?.event_item
 
+    const isPreRecorded = eventItem?.delivery_type === "pre_recorded"
+    const orderCreatedAt = parseIsoDate(order.created_at as string) ?? new Date()
+    const vathuisEndAt = addCalendarMonths(orderCreatedAt, VATHUIS_ACCESS_MONTHS)
+
     const qty = Math.max(1, toNumber(item.quantity))
-    const unitPriceCents = toNumber(item.unit_price)
+    const unitPriceCents = medusaOrderMoneyToCents(item.unit_price)
     const discountTotal = lineDiscountCents(item)
     const discountPerSeat = qty > 0 ? Math.round(discountTotal / qty) : 0
     const productLabel =
@@ -235,12 +240,14 @@ export async function loadOrderPushPayload(
         discountCents: discountPerSeat,
         promotionCode,
         productLabel,
-        productStartAt:
-          (eventItem?.start_at as string) ??
-          (vaRow.Start_date_time__c as string) ??
-          null,
-        productEndAt:
-          (eventItem?.end_at as string) ?? (vaRow.End_date_time__c as string) ?? null,
+        productStartAt: isPreRecorded
+          ? toIsoString(orderCreatedAt)
+          : ((eventItem?.start_at as string) ??
+            (vaRow.Start_date_time__c as string) ??
+            null),
+        productEndAt: isPreRecorded
+          ? toIsoString(vathuisEndAt)
+          : ((eventItem?.end_at as string) ?? (vaRow.End_date_time__c as string) ?? null),
         productCity:
           (eventItem?.city as string) ?? (vaRow.Product_City__c as string) ?? null,
         lineTotalCents: Math.max(0, unitPriceCents - discountPerSeat),
@@ -265,9 +272,9 @@ export async function loadOrderPushPayload(
     if (!gc?.recipient_email || !gc.recipient_name) continue
 
     const qty = Math.max(1, toNumber(item.quantity))
-    const unit = toNumber(item.unit_price)
+    const unitCents = medusaOrderMoneyToCents(item.unit_price)
     const amountCents =
-      typeof gc.amount_cents === "number" ? gc.amount_cents : Math.round(unit * qty)
+      typeof gc.amount_cents === "number" ? gc.amount_cents : unitCents * qty
 
     const cards = await gift.listGiftCards({
       purchased_by_order_id: orderId,
@@ -293,7 +300,7 @@ export async function loadOrderPushPayload(
   for (const cl of creditLines) {
     if (cl.reference !== GIFT_CARD_REFERENCE) continue
     const meta = cl.metadata as { gift_card_id?: string; code?: string } | null
-    const amountCents = toNumber(cl.amount)
+    const amountCents = medusaOrderMoneyToCents(cl.amount)
     if (amountCents <= 0 || !meta?.gift_card_id) continue
 
     const cardRows = await gift.listGiftCards({ id: meta.gift_card_id })
@@ -317,6 +324,19 @@ export async function loadOrderPushPayload(
     })
   }
 
+  let totalCents = medusaOrderMoneyToCents(
+    summary?.raw_current_order_total?.value ?? summary?.current_order_total ?? order.total
+  )
+  if (totalCents <= 0) {
+    const seatsTotal = eventSeats.reduce((sum, seat) => sum + seat.lineTotalCents, 0)
+    const giftTotal = giftCardPurchases.reduce((sum, row) => sum + row.amountCents, 0)
+    const redemptionTotal = giftCardRedemptions.reduce((sum, row) => sum + row.amountCents, 0)
+    const derived = seatsTotal + giftTotal - redemptionTotal
+    if (derived > 0) totalCents = derived
+  }
+
+  const payment = await resolveOrderPayment(container, orderId, totalCents)
+
   return {
     orderId,
     displayId: (order.display_id as number) ?? null,
@@ -324,7 +344,10 @@ export async function loadOrderPushPayload(
     customerId: (order.customer_id as string) ?? null,
     currencyCode: (order.currency_code as string) ?? "eur",
     totalCents,
-    createdAt: (order.created_at as string) ?? new Date().toISOString(),
+    createdAt:
+      order.created_at instanceof Date
+        ? order.created_at.toISOString()
+        : ((order.created_at as string) ?? new Date().toISOString()),
     billingAddress: (order.billing_address as OrderPushPayload["billingAddress"]) ?? null,
     shippingAddress: (order.shipping_address as OrderPushPayload["shippingAddress"]) ?? null,
     payment,

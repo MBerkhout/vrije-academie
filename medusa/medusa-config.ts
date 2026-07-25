@@ -62,6 +62,12 @@ export default defineConfig({
     customerOtp: {
       resolve: "./src/modules/customer-otp",
     },
+    legacyPassword: {
+      resolve: "./src/modules/legacy-password",
+    },
+    vathuisAccess: {
+      resolve: "./src/modules/vathuis-access",
+    },
     ...(process.env.SENDGRID_API_KEY
       ? {
           notification: {

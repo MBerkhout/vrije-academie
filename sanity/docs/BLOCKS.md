@@ -21,7 +21,7 @@ Blocks are reusable content components that can be arranged on pages. Each block
 - [Event List](#event-list) - Dynamic event listing
 - [Demand Nearby](#demand-nearby) - Postcode search → results page
 - [PLP (Ons aanbod)](#plp-ons-aanbod) - Banner, intro, tabs voor de product listing `/ons-aanbod`
-- [Productkaarten](#productkaarten) - Carousel of 4 product cards (handpicked, automated, or personalized)
+- [Productkaarten](#productkaarten) - Carousel of up to 4 product cards (handpicked, automated, or personalized)
 - [Cadeaubon (koop)](#cadeaubon-koop) - Teksten en bedragen voor de cadeaubon-kooppagina `/cadeaubon`
 
 ## Shared Block Fields
@@ -356,7 +356,7 @@ Event List Block
 
 ## Productkaarten
 
-**Purpose**: Horizontal carousel of four commerce product cards on page surfaces (homepage, landing pages).
+**Purpose**: Horizontal carousel of up to four commerce product cards on page surfaces (homepage, landing pages).
 
 **Use when**:
 - Highlighting curated products (e.g. travel picks)
@@ -365,7 +365,7 @@ Event List Block
 
 **Fields**:
 - Title, title size
-- Source: handpicked (4 product refs), automated (`bestsellers` | `newest`), or personalized
+- Source: handpicked (1–4 product refs), automated (`bestsellers` | `newest`), or personalized
 - Personalized: optional separate titles for favorites vs recently viewed
 - Optional footer CTA (label + URL)
 

@@ -1,15 +1,22 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { AccountOrderCard } from '@/components/account/AccountOrderCard'
 import { commerceClient } from '@/lib/commerce'
+import type { CheckoutConfirmationPayload } from '@/lib/commerce/checkout-confirmation-types'
+import { fetchCheckoutConfirmation } from '@/lib/commerce/fetch-checkout-confirmation'
 import type { Order } from '@/lib/commerce/types'
 import { defaultMessages } from '@/lib/i18n/messages'
-import { formatDateShort, formatPriceEur } from '@/lib/locale-format'
+
+type OrderRow = {
+  order: Order
+  confirmation: CheckoutConfirmationPayload | null
+}
 
 export function AccountOrdersList() {
   const t = defaultMessages.accountPage
   const common = defaultMessages.common
-  const [orders, setOrders] = useState<Order[]>([])
+  const [rows, setRows] = useState<OrderRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -18,14 +25,27 @@ export function AccountOrdersList() {
     void (async () => {
       try {
         const { orders: list } = await commerceClient.listCustomerOrders({ limit: 50 })
+        const enriched = await Promise.all(
+          list.map(async (order) => {
+            try {
+              const confirmation = await fetchCheckoutConfirmation({ orderId: order.id })
+              return {
+                order,
+                confirmation: confirmation.status === 'ready' ? confirmation : null,
+              }
+            } catch {
+              return { order, confirmation: null }
+            }
+          })
+        )
         if (!cancelled) {
-          setOrders(list)
+          setRows(enriched)
           setError(false)
         }
       } catch {
         if (!cancelled) {
           setError(true)
-          setOrders([])
+          setRows([])
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -52,32 +72,14 @@ export function AccountOrdersList() {
     )
   }
 
-  if (orders.length === 0) {
+  if (rows.length === 0) {
     return <p className="font-sans text-sm text-va-darkgray">{t.ordersEmpty}</p>
   }
 
   return (
-    <ul className="space-y-3">
-      {orders.map((order) => (
-        <li
-          key={order.id}
-          className="border border-va-lightgray bg-white p-4 rounded-none font-sans text-sm"
-        >
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-            <span className="font-medium text-va-black">
-              {t.ordersNumber}{' '}
-              {order.display_id != null ? `#${order.display_id}` : order.id.slice(-8)}
-            </span>
-            {order.created_at ? (
-              <span className="text-va-darkgray">
-                {t.ordersDate}: {formatDateShort(order.created_at)}
-              </span>
-            ) : null}
-          </div>
-          <div className="mt-2 text-va-black">
-            {t.ordersTotal}: {formatPriceEur(order.total, 'standard')}
-          </div>
-        </li>
+    <ul className="space-y-4">
+      {rows.map(({ order, confirmation }) => (
+        <AccountOrderCard key={order.id} order={order} confirmation={confirmation} />
       ))}
     </ul>
   )

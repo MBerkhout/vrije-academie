@@ -21,7 +21,7 @@ Route constants: `frontend/src/lib/routes.ts` (`VATHUIS_BASE_PATH`, `VATHUIS_CAT
 - **Similar:** `GET /store/vathuis/:handle/similar` via `commerceClient.getSimilarVathuis()`
 - **CSR pagination:** `GET /api/plp/vathuis`
 
-Products are excluded from Ons aanbod, Agenda, and site search (`record_type: vathuis`).
+Products are excluded from Ons aanbod, Agenda, and site search (`record_type: vathuis`). **Availability:** VA Thuis colleges are always purchasable (never sold out); capacity from Salesforce is not enforced.
 
 ## Components
 
@@ -32,6 +32,8 @@ All under `frontend/src/components/vathuis/`:
 - `VaThuisListingPage` / `VaThuisLiveListing` — catalog shell
 - `VaThuisPdpPageContent` — dark PDP (episodes table, booking panel)
 - `VaThuisCmsPage` — renders CMS `page.blocks` via `BlockRenderer` (`tone="onDark"`)
+
+**Purchase access:** after buying a bundle, logged-in customers can watch all episodes for **3 months** (`PdpEpisodesTable` unlock + `/mijn-account/collectie`). Full embed URLs are served only via authenticated Medusa APIs — see `medusa/docs/VATHUIS_ACCESS.md`.
 
 Dark shell: `app/(main)/va-thuis/layout.tsx` (`bg-va-black`).
 

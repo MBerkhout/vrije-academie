@@ -6,6 +6,7 @@ import {
 
 import variantEventItemLink from "../links/variant-event-item"
 import EventsModuleService from "../modules/events/service"
+import { isVathuisUnlimitedAvailability } from "../lib/vathuis-availability"
 
 /**
  * When a Medusa order is completed, decrement `EventItem.available_quantity`
@@ -53,6 +54,14 @@ export default async function decrementAvailableQuantityOnOrderCompleted({
       | undefined
     const eventItem = row?.event_item
     if (!eventItem?.id) {
+      continue
+    }
+
+    if (
+      isVathuisUnlimitedAvailability({
+        deliveryType: (eventItem as { delivery_type?: string }).delivery_type,
+      })
+    ) {
       continue
     }
 

@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import productEventGroupLink from "../links/product-event-group"
 import type EventsModuleService from "../modules/events/service"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
+import { isLinkedOnlineSlaveProduct } from "../lib/store-listing-eligibility"
 
 /**
  * Enable "Show on Ons aanbod" for product(s).
@@ -50,9 +51,24 @@ export default async function enableShowInPlp({ container }: ExecArgs) {
       filters: { product_id: productIds },
     })
 
-    const toEnable = (links ?? []).filter(
-      (row) => (row as { event_group?: { show_in_plp?: boolean } }).event_group?.show_in_plp === false
-    ) as { product_id?: string; event_group?: { id: string } }[]
+    const { data: products } = await query.graph({
+      entity: "product",
+      fields: ["id", "metadata"],
+      filters: { id: productIds },
+    })
+    const metadataById = new Map(
+      (products ?? []).map((p) => {
+        const row = p as { id?: string; metadata?: Record<string, unknown> | null }
+        return [row.id, row.metadata ?? null] as const
+      })
+    )
+
+    const toEnable = (links ?? []).filter((row) => {
+      const typed = row as { product_id?: string; event_group?: { id: string; show_in_plp?: boolean } }
+      if (typed.event_group?.show_in_plp !== false) return false
+      if (isLinkedOnlineSlaveProduct(metadataById.get(typed.product_id) ?? null)) return false
+      return true
+    }) as { product_id?: string; event_group?: { id: string } }[]
 
     let updated = 0
     for (const row of toEnable) {
@@ -70,12 +86,22 @@ export default async function enableShowInPlp({ container }: ExecArgs) {
 
   const { data: products } = await query.graph({
     entity: "product",
-    fields: ["id", "handle", "title"],
+    fields: ["id", "handle", "title", "metadata"],
     filters: { handle },
   })
-  const product = products?.[0] as { id: string; handle: string; title: string } | undefined
+  const product = products?.[0] as {
+    id: string
+    handle: string
+    title: string
+    metadata?: Record<string, unknown> | null
+  } | undefined
   if (!product) {
     console.log(`Product not found: ${handle}`)
+    return
+  }
+
+  if (isLinkedOnlineSlaveProduct(product.metadata)) {
+    console.log(`Skipped linked-online slave catalog: ${product.title} (${handle})`)
     return
   }
 

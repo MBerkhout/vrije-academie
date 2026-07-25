@@ -1,4 +1,5 @@
 import type { FieldMap } from "./types"
+import { usesSalesforceMedusaCustomFields } from "../utils/salesforce-medusa-fields"
 
 export type SfProduct2Shape = {
   Id?: string
@@ -25,7 +26,7 @@ export const productMapping: FieldMap<MedusaProductShape, SfProduct2Shape> = {
     "StockKeepingUnit",
   ],
   toSalesforce: (p) => ({
-    Medusa_Product_Id__c: p.id,
+    ...(usesSalesforceMedusaCustomFields() ? { Medusa_Product_Id__c: p.id } : {}),
     Name: p.title ?? p.handle ?? p.id,
     Description: p.description ?? undefined,
     StockKeepingUnit: p.handle ?? undefined,

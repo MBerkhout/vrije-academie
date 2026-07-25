@@ -3,6 +3,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { commerceClient } from '@/lib/commerce'
 import { dispatchCartUpdated, getActiveCart } from '@/lib/commerce/cart'
+import {
+  trackApplyCoupon,
+  trackCartQuantityChange,
+  trackRemoveFromCart,
+  trackViewCart,
+} from '@/lib/analytics/events/ecommerce'
 import { withSortedCartItems } from '@/lib/commerce/cart-sort'
 import type { Cart } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
@@ -54,6 +60,7 @@ export function CartView({ settings }: CartViewProps) {
       const extrasList = await fetchCartExtras(cartData.id)
       setCart(withSortedCartItems(cartData))
       setExtras(extrasList)
+      trackViewCart(cartData, extrasList)
     } catch {
       showToast('Kon de winkelwagen niet laden. Probeer het opnieuw.')
     } finally {
@@ -69,6 +76,8 @@ export function CartView({ settings }: CartViewProps) {
     async (itemId: string, quantity: number) => {
       if (!cart) return
       const prev = cart
+      const line = cart.items.find((i) => i.id === itemId)
+      const quantityOld = line?.quantity ?? 0
       setUpdatingId(itemId)
       try {
         let updated = await commerceClient.updateCartItem(cart.id, itemId, quantity)
@@ -79,6 +88,8 @@ export function CartView({ settings }: CartViewProps) {
         }
         setCart(withSortedCartItems(updated))
         dispatchCartUpdated()
+        const handle = extras.find((e) => e.line_item_id === itemId)?.product_handle ?? itemId
+        trackCartQuantityChange(handle, quantityOld, quantity)
       } catch {
         setCart(prev)
         showToast('Kon het aantal niet bijwerken. Probeer het opnieuw.')
@@ -86,7 +97,7 @@ export function CartView({ settings }: CartViewProps) {
         setUpdatingId(null)
       }
     },
-    [cart, showToast]
+    [cart, showToast, extras]
   )
 
   const handleRemove = useCallback(
@@ -106,6 +117,7 @@ export function CartView({ settings }: CartViewProps) {
         }
         setCart(withSortedCartItems(updated))
         dispatchCartUpdated()
+        trackRemoveFromCart(prev, extras, itemId)
       } catch {
         setCart(prev)
         showToast('Kon het product niet verwijderen. Probeer het opnieuw.')
@@ -113,7 +125,7 @@ export function CartView({ settings }: CartViewProps) {
         setUpdatingId(null)
       }
     },
-    [cart, settings, showToast]
+    [cart, settings, showToast, extras]
   )
 
   const handleApplyCode = useCallback(
@@ -124,6 +136,7 @@ export function CartView({ settings }: CartViewProps) {
         const { cart: next } = await commerceClient.applyCode(cart.id, code, promoCodes)
         setCart(withSortedCartItems(next))
         dispatchCartUpdated()
+        trackApplyCoupon(code, next.total)
         return { ok: true as const }
       } catch {
         return { ok: false as const, error: 'Deze code is niet geldig of al gebruikt.' }

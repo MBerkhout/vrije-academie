@@ -164,7 +164,7 @@ export function Footer({ settings }: FooterProps) {
 
   return (
     <footer className="bg-va-footer text-white">
-      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1240px]:px-0 py-10 md:py-12">
+      <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1304px]:px-0 py-10 md:py-12">
         <div className="flex flex-col gap-10 lg:flex-row lg:gap-12 lg:items-start">
           <div className="shrink-0 lg:w-[30%] max-w-lg">
             <Link

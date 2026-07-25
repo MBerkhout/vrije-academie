@@ -16,8 +16,9 @@ import {
   type CityRef,
 } from "./city-refs"
 import {
+  futureAvailableSessionsForListing,
   futureOfflineSessionsForListing,
-  productEligibleForEventsListing,
+  productHasFutureAvailableSession,
 } from "./event-session-eligibility"
 import { minPriceCentsFromVariants, medusaMajorToCents } from "./medusa-price-to-cents"
 import { ctaBarFieldsFromMetadata } from "./product-cta-bar"
@@ -113,15 +114,20 @@ async function resolveEligibleProductIds(
   }
 
   const productHandleById: Record<string, string | undefined> = {}
+  const productMetadataById: Record<string, Record<string, unknown> | null | undefined> = {}
   for (const p of allProducts ?? []) {
-    const row = p as { id?: string; handle?: string }
-    if (row.id) productHandleById[row.id] = row.handle
+    const row = p as { id?: string; handle?: string; metadata?: Record<string, unknown> | null }
+    if (row.id) {
+      productHandleById[row.id] = row.handle
+      productMetadataById[row.id] = row.metadata ?? null
+    }
   }
 
   const eligibleProductIds = filterStoreListingProductIds(
     (allProducts ?? []).map((p) => (p as { id: string }).id).filter(Boolean),
     productHandleById,
-    eventGroupByProduct
+    eventGroupByProduct,
+    productMetadataById
   )
 
   return {
@@ -223,9 +229,16 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
 
     const priceFrom = minPriceCentsFromVariants(variants as Parameters<typeof minPriceCentsFromVariants>[0])
 
-    const minAvailableQty = eventItems.length
+    const futureAvailableItems = futureAvailableSessionsForListing(
+      eventItems as Parameters<typeof futureAvailableSessionsForListing>[0],
+      listingNow
+    )
+
+    const minAvailableQty = futureAvailableItems.length
       ? Math.min(
-          ...eventItems.map((ei) => Number((ei as { available_quantity?: number }).available_quantity ?? 0))
+          ...futureAvailableItems.map((ei) =>
+            Number((ei as { available_quantity?: number }).available_quantity ?? 0)
+          )
         )
       : null
 
@@ -253,8 +266,8 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
     const eventItems = ((p.variants ?? []) as Record<string, unknown>[])
       .map((v) => v.event_item)
       .filter(Boolean)
-    return productEligibleForEventsListing(
-      eventItems as Parameters<typeof productEligibleForEventsListing>[0],
+    return productHasFutureAvailableSession(
+      eventItems as Parameters<typeof productHasFutureAvailableSession>[0],
       listingNow
     )
   })
@@ -521,6 +534,8 @@ async function buildVathuisSnapshot(scope: MedusaContainer): Promise<VathuisList
       ...ctaFields,
       salesforce_order: salesforceOrderFromMetadata(metadata),
       record_type: "vathuis",
+      purchase_mode:
+        typeof vathuis?.purchase_mode === "string" ? vathuis.purchase_mode : "bundle_only",
       product_type: (row.type as { value?: string } | null | undefined)?.value ?? null,
       categories: categoryByProduct[id] ?? [],
       docenten: docentByProduct[id] ?? [],

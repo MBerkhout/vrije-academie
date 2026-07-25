@@ -20,6 +20,7 @@ import {
   PlpInfiniteResultsProvider,
 } from '@/components/plp/PlpInfiniteResults'
 import { PlpEmptyState } from '@/components/plp/PlpEmptyState'
+import { PlpListingAnalytics } from '@/components/analytics/PlpListingAnalytics'
 import { Spinner } from '@/components/ui'
 import { useLiveListingSearch } from '@/components/plp/useLiveListingSearch'
 
@@ -89,7 +90,7 @@ export function PlpLiveListing({
 
   function ResultsToolbar({ showCount }: { showCount: boolean }) {
     return (
-      <div className="flex flex-col gap-3 mb-6">
+      <div className="flex flex-col gap-3 mb-4 md:mb-6">
         <div className="flex items-center justify-between gap-4">
           {searching ? (
             <span className="inline-flex items-center gap-2 text-sm text-va-darkgray">
@@ -183,8 +184,12 @@ export function PlpLiveListing({
   }
 
   return (
-    <>
-      <div className="mt-6">
+    <PlpListingAnalytics
+      events={events}
+      categorySlug={liveFilterState.categories?.[0]}
+      searchQuery={liveFilterState.q}
+    >
+      <div className="mt-3 md:mt-6">
         <PlpSearchBar
           value={query}
           onChange={setQuery}
@@ -194,7 +199,7 @@ export function PlpLiveListing({
         />
       </div>
 
-      <div className="mt-8">
+      <div className="mt-5 md:mt-8">
         <div className="flex gap-8 items-start">
           <aside className="hidden lg:block w-72 shrink-0">
             <PlpFilterSidebar
@@ -208,6 +213,6 @@ export function PlpLiveListing({
           <div className="flex-1 min-w-0">{resultsBody}</div>
         </div>
       </div>
-    </>
+    </PlpListingAnalytics>
   )
 }
