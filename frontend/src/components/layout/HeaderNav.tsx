@@ -391,8 +391,8 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
                 className="flex max-w-[2.75rem] flex-col items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-va-yellow rounded"
                 aria-label={
                   cartItemCount !== null && cartItemCount > 0
-                    ? `Winkelwagen, ${cartItemCount > 99 ? '99+' : cartItemCount} artikelen in mandje`
-                    : 'Winkelwagen'
+                    ? `Mandje, ${cartItemCount > 99 ? '99+' : cartItemCount} artikelen`
+                    : 'Mandje'
                 }
               >
                 <span className="relative inline-flex shrink-0">
@@ -404,11 +404,7 @@ export function HeaderNav({ header }: { header: HeaderConfig }) {
                     />
                   ) : null}
                 </span>
-                <span className="w-full text-center leading-tight break-words hyphens-auto">
-                  Winkel
-                  <wbr aria-hidden="true" />
-                  wagen
-                </span>
+                <span className="w-full text-center leading-tight">Mandje</span>
               </Link>
               <button
                 type="button"

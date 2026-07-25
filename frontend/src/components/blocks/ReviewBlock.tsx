@@ -108,14 +108,18 @@ export function ReviewBlock({ block }: { block: ReviewBlockType }) {
           {showRating && (
             <div
               className={cn(
-                'mb-6 mx-auto max-w-[100px] md:mx-0 md:mb-0 md:flex-shrink-0 md:max-w-[13rem]',
+                'mb-6 mx-auto w-full max-w-md md:mx-0 md:mb-0 md:max-w-[13rem] md:flex-shrink-0',
                 'rounded-none border border-va-lightgray-300 border-b-[6px] border-b-va-yellow bg-va-white',
-                'p-5 md:p-6 shadow-sm'
+                'flex items-center gap-4 p-4 shadow-sm md:block md:p-6'
               )}
             >
-              <p className="text-4xl md:text-5xl font-bold text-va-yellow leading-none tabular-nums">{block.ratingValue}</p>
+              <p className="shrink-0 text-4xl font-bold leading-none tabular-nums text-va-yellow md:text-5xl">
+                {block.ratingValue}
+              </p>
               {block.ratingLabel && (
-                <p className="mt-2 font-sans text-va-black text-sm md:text-base leading-snug">{block.ratingLabel}</p>
+                <p className="min-w-0 font-sans text-sm leading-snug text-va-black md:mt-2 md:text-base">
+                  {block.ratingLabel}
+                </p>
               )}
             </div>
           )}

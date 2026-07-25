@@ -38,38 +38,29 @@ function CartQuantityStepper({
   }
 
   return (
-    <div className="flex items-center">
+    <div className="flex items-center" role="group" aria-label="Aantal">
       <button
         type="button"
         aria-label="Minder"
         disabled={updating || item.quantity <= 1}
         onClick={() => onQuantityChange(item.id, item.quantity - 1)}
-        className="flex h-8 w-8 items-center justify-center border border-r-0 border-va-gray-300 font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40"
+        className="flex h-8 w-8 shrink-0 items-center justify-center border border-r-0 border-va-gray-300 font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40"
       >
         −
       </button>
-      <label className="sr-only" htmlFor={`qty-${item.id}`}>
-        Aantal
-      </label>
-      <select
-        id={`qty-${item.id}`}
-        value={item.quantity}
-        onChange={(e) => onQuantityChange(item.id, Number(e.target.value))}
-        disabled={updating}
-        className="h-8 w-11 appearance-none border border-va-gray-300 bg-white px-1 text-center font-sans text-sm text-va-black outline-none focus-visible:ring-2 focus-visible:ring-va-yellow"
+      <span
+        aria-live="polite"
+        aria-atomic="true"
+        className="flex h-8 w-11 shrink-0 items-center justify-center border border-va-gray-300 bg-white font-sans text-sm tabular-nums text-va-black"
       >
-        {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-          <option key={n} value={n}>
-            {n}
-          </option>
-        ))}
-      </select>
+        {item.quantity}
+      </span>
       <button
         type="button"
         aria-label="Meer"
         disabled={updating || item.quantity >= 12}
         onClick={() => onQuantityChange(item.id, item.quantity + 1)}
-        className="flex h-8 w-8 items-center justify-center border border-l-0 border-va-gray-300 font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40"
+        className="flex h-8 w-8 shrink-0 items-center justify-center border border-l-0 border-va-gray-300 font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40"
       >
         +
       </button>
