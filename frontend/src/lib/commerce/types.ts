@@ -232,7 +232,7 @@ export interface AgendaFilters {
   /** YYYY-MM-DD, single-day filter (mutually useful with period) */
   date?: string
   includePast?: boolean
-  sort?: 'start_date' | 'start_date_desc' | 'price_asc' | 'price_desc'
+  sort?: 'start_date' | 'start_date_desc' | 'relevance' | 'price_asc' | 'price_desc'
   limit?: number
   offset?: number
 }
