@@ -1,22 +1,25 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 export async function resolveOrderIdByDisplayId(
   container: MedusaContainer,
   displayId: number
 ): Promise<string> {
-  const orderModule = container.resolve(Modules.ORDER)
-  const orders = await orderModule.listOrders(
-    { display_id: displayId },
-    { take: 2, select: ["id", "display_id", "status"] }
-  )
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data: orders } = await query.graph({
+    entity: "order",
+    fields: ["id", "display_id", "status"],
+    filters: { display_id: displayId },
+  })
 
-  if (orders.length === 0) {
+  const matches = orders ?? []
+
+  if (matches.length === 0) {
     throw new Error(`No order found with display_id ${displayId}`)
   }
-  if (orders.length > 1) {
+  if (matches.length > 1) {
     throw new Error(`Multiple orders with display_id ${displayId}`)
   }
 
-  return orders[0].id
+  return (matches[0] as { id: string }).id
 }

@@ -60,7 +60,9 @@ export function stripNonPreviewEmbedUrls<T extends { preview_available?: boolean
   )
 }
 
-export function stripVathuisPublicEmbeds(vathuis: Record<string, unknown> | null | undefined) {
+export function stripVathuisPublicEmbeds(
+  vathuis: Record<string, unknown> | null | undefined
+): Record<string, unknown> | null | undefined {
   if (!vathuis || typeof vathuis !== "object") return vathuis
 
   const episodes = Array.isArray(vathuis.episodes)

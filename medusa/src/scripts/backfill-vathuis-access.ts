@@ -6,7 +6,7 @@
  *   npx medusa exec ./src/scripts/backfill-vathuis-access.ts -- --limit=100
  */
 import type { ExecArgs } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { VATHUIS_ACCESS_MODULE } from "../modules/vathuis-access"
 import type VathuisAccessModuleService from "../modules/vathuis-access/service"
@@ -22,7 +22,6 @@ function arg(name: string): string | undefined {
 
 export default async function backfillVathuisAccess({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const orderModule = container.resolve(Modules.ORDER)
   const vathuisAccess = container.resolve(VATHUIS_ACCESS_MODULE) as InstanceType<
     typeof VathuisAccessModuleService
   >
@@ -36,14 +35,31 @@ export default async function backfillVathuisAccess({ container }: ExecArgs) {
     return
   }
 
-  const orders = await orderModule.listOrders(
-    { status: "completed" },
-    {
-      take: limit ?? 10_000,
-      order: { created_at: "ASC" },
-      select: ["id", "status", "customer_id"],
-    }
-  )
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data: rawOrders } = await query.graph({
+    entity: "order",
+    fields: ["id", "status", "customer_id", "created_at"],
+    filters: { status: "completed" },
+  })
+
+  let orders = (rawOrders ?? []) as Array<{
+    id: string
+    status?: string
+    customer_id?: string | null
+    created_at?: string
+  }>
+
+  orders.sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0
+    return ta - tb
+  })
+
+  if (limit) {
+    orders = orders.slice(0, limit)
+  } else if (orders.length > 10_000) {
+    orders = orders.slice(0, 10_000)
+  }
 
   logger.info(
     `[backfill-vathuis-access] ${dryRun ? "DRY RUN — " : ""}processing ${orders.length} completed order(s)`
