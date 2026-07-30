@@ -325,16 +325,35 @@ Bulk CLI scripts (`import-future`, `import-linked-vathuis`, `import-all`) prefet
 
 | Flag | Default | Purpose |
 |------|---------|---------|
-| `--concurrency=N` | `1` | Import up to N product groups in parallel. Start with `3–4`; watch for Salesforce 429s or DB load. |
+| `--concurrency=N` | `1` | Import up to N product groups in parallel (Salesforce + Medusa only). Sanity mirroring runs once after the pool. With batched Sanity sync and import caches, **8–10** is usually safe — watch Salesforce 429s or DB load. |
 | `--skip-search` | off | Skip per-product OpenSearch reindex during import; reindex imported products once at the end. Or run `npm run search:reindex` afterward. |
+| `--skip-unchanged` | off | Skip product groups whose Salesforce fingerprint matches `salesforce_sync_state.mapping_version` (fast re-runs when nothing changed). |
+| `--since=<ISO>` | off | Only fetch groups (and parents of modified children) with `SystemModstamp >= since`. Example: `--since=2026-03-01T00:00:00.000Z`. |
 | `--limit=N` | unlimited | Stop after N import attempts (after guard filtering). |
 | `--dry-run` | off | List candidates only. |
 
-During bulk import the CLI sets `SALESFORCE_SUPPRESS_PUSH=1` so `product.created` / `product-variant.created` subscribers skip push-back to Salesforce (webhooks and admin single-import are unaffected). VAthuis groups remain slower (Audience Player HTTP per group); concurrency overlaps that I/O.
+During bulk import the CLI sets `SALESFORCE_SUPPRESS_PUSH=1` (no push-back to Salesforce) and `SALESFORCE_SUPPRESS_SANITY_SYNC=1` (defers all Sanity subscribers). After all groups are imported, **batched Sanity passes** run for products, then categories/docenten:
 
-After deploying `Order__c` → `salesforce_order`, re-import product groups so PLP default sort is populated: `npm run salesforce:import-all -- --skip-search --concurrency=3` (or a narrower import). Products without `salesforce_order` sort last until re-imported.
+1. Products: chunked GROQ reads + `client.transaction()` writes (default 50/chunk), diff-before-write.
+2. Related entities: unique catalog categories, native categories, and docenten mirrored once each.
 
-Utility: `prefetch-productgroups-for-import.ts`, `run-pool.ts`.
+**Import caches** (one `BulkImportContext` per run): shipping profile, sales channel, product types, category lists, teacher SF profiles, linked-online parent map, variant sync states, docent link locks per product.
+
+Sanity mutate limits: **25 req/s per IP**, **4 MB per mutate request** ([Sanity technical limits](https://www.sanity.io/docs/content-lake/technical-limits)).
+
+VAthuis groups remain slower (Audience Player HTTP per group); concurrency overlaps that I/O.
+
+**Incremental re-sync** (after Salesforce edits to location, teacher, etc.):
+
+```bash
+npm run salesforce:import-all -- --since=2026-03-01T00:00:00.000Z --skip-unchanged --skip-search --concurrency=8
+```
+
+Replace the ISO timestamp with when you last synced (or the date of your Salesforce bulk update).
+
+After deploying `Order__c` → `salesforce_order`, re-import product groups so PLP default sort is populated: `npm run salesforce:import-all -- --skip-search --concurrency=5` (or a narrower import). Products without `salesforce_order` sort last until re-imported.
+
+Utility: `prefetch-productgroups-for-import.ts`, `run-pool.ts`, `batch-sync-products.ts`.
 
 The **storefront** also hides past occurrences (`GET /store/events`, `GET /store/agenda` unless `include_past=true`).
 

@@ -8,11 +8,10 @@
  *   npm run salesforce:import-future
  *   npm run salesforce:import-linked-vathuis
  *   npm run salesforce:import-all
- *   npm run salesforce:import-all -- --concurrency=4
+ *   npm run salesforce:import-all -- --concurrency=5
+ *   npm run salesforce:import-all -- --since=2026-03-01T00:00:00.000Z
+ *   npm run salesforce:import-all -- --skip-unchanged --concurrency=8
  *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --dry-run --limit=5
- *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --linked-vathuis --dry-run
- *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --all --dry-run --limit=5
- *   npx medusa exec ./src/scripts/import-future-productgroups.ts -- --all --skip-search --concurrency=4
  */
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
@@ -25,10 +24,17 @@ import {
   shouldLinkedVathuisBulkImport,
 } from "../modules/salesforce-sync/utils/future-import-guard"
 import {
+  BulkImportContext,
+  parseSinceArg,
+  prefetchLinkedOnlineParentIdsBySlave,
+} from "../modules/salesforce-sync/utils/import-context"
+import {
   linkedRecordsForGroup,
   prefetchProductgroupsForImport,
 } from "../modules/salesforce-sync/utils/prefetch-productgroups-for-import"
 import { runPool } from "../modules/salesforce-sync/utils/run-pool"
+import { batchSyncProductsToSanity } from "../modules/sanity-sync/batch-sync-products"
+import { batchSyncRelatedEntitiesToSanity } from "../modules/sanity-sync/batch-sync-related-entities"
 
 function arg(name: string): string | undefined {
   const p = process.argv.find((a) => a.startsWith(`${name}=`))
@@ -54,6 +60,8 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
   const importAll = process.argv.includes("--all")
   const linkedVathuisOnly = process.argv.includes("--linked-vathuis")
   const skipSearch = process.argv.includes("--skip-search")
+  const skipUnchanged = process.argv.includes("--skip-unchanged")
+  const since = parseSinceArg(arg("--since"))
   const limit = Math.min(5000, Math.max(0, Number(arg("--limit")) || 0))
   const concurrency = Math.min(20, Math.max(1, Number(arg("--concurrency")) || 1))
   const logTag = importAll
@@ -69,19 +77,26 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
         : linkedVathuisOnly
           ? " (VAthuis + linked-online only)"
           : " (future / VAthuis / linked-online / online-only)") +
+      (since ? ` (since=${since.toISOString()})` : "") +
       (dryRun ? " (dry-run)" : "") +
       (limit ? ` (limit=${limit})` : "") +
       (concurrency > 1 ? ` (concurrency=${concurrency})` : "") +
-      (skipSearch ? " (skip-search)" : "")
+      (skipSearch ? " (skip-search)" : "") +
+      (skipUnchanged ? " (skip-unchanged)" : "")
   )
 
   const previousSuppressPush = process.env.SALESFORCE_SUPPRESS_PUSH
+  const previousSuppressSanity = process.env.SALESFORCE_SUPPRESS_SANITY_SYNC
   if (!dryRun) {
     process.env.SALESFORCE_SUPPRESS_PUSH = "1"
+    process.env.SALESFORCE_SUPPRESS_SANITY_SYNC = "1"
   }
 
   try {
-    const prefetch = await prefetchProductgroupsForImport()
+    const [prefetch, linkedOnlineParentIdsBySlave] = await Promise.all([
+      prefetchProductgroupsForImport(since ? { since } : {}),
+      prefetchLinkedOnlineParentIdsBySlave(),
+    ])
     logger.info(
       `[${logTag}] Prefetched ${prefetch.groups.length} group(s), ${prefetch.linkedOnlineSlaveIds.size} linked-online slave catalog(s)`
     )
@@ -126,7 +141,14 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
       return
     }
 
+    const importContext = await BulkImportContext.create(container, sync, {
+      skipSanitySync: true,
+      skipUnchanged,
+      linkedOnlineParentIdsBySlave,
+    })
+
     const reindexProductIds: string[] = []
+    const sanitySyncProductIds: string[] = []
 
     const outcomes = await runPool(candidates, concurrency, async ({ group }) => {
       const salesforceId = group.Id!
@@ -145,6 +167,8 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
           linkedChildRecords,
           manual: true,
           skipSearch,
+          skipSanitySync: true,
+          importContext,
         })
 
         if (result.skipped) {
@@ -154,6 +178,9 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
           return "skipped" as ImportOutcome
         }
 
+        if (result.medusaId) {
+          sanitySyncProductIds.push(result.medusaId)
+        }
         if (skipSearch && result.medusaId) {
           reindexProductIds.push(result.medusaId)
         }
@@ -170,6 +197,44 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
     const imported = outcomes.filter((o) => o === "imported").length
     const failed = outcomes.filter((o) => o === "failed").length
     skipped += outcomes.filter((o) => o === "skipped").length
+
+    if (sanitySyncProductIds.length) {
+      logger.info(`[${logTag}] Batch-syncing ${sanitySyncProductIds.length} product(s) to Sanity…`)
+      const sanityResult = await batchSyncProductsToSanity(sanitySyncProductIds, container, {
+        onChunkError: (chunkIds, err) => {
+          logger.error(
+            `[${logTag}] Sanity batch sync failed for ${chunkIds.length} product(s): ${err.message}`
+          )
+        },
+      })
+      logger.info(
+        `[${logTag}] Sanity products done. written=${sanityResult.written} skipped=${sanityResult.skipped} failed=${sanityResult.failed}`
+      )
+    }
+
+    const relatedIds = {
+      catalogCategoryIds: [...importContext.pendingCatalogCategoryIds],
+      nativeCategoryIds: [...importContext.pendingNativeCategoryIds],
+      docentIds: [...importContext.pendingDocentIds],
+    }
+    if (
+      relatedIds.catalogCategoryIds.length ||
+      relatedIds.nativeCategoryIds.length ||
+      relatedIds.docentIds.length
+    ) {
+      logger.info(
+        `[${logTag}] Batch-syncing related Sanity entities: catalog=${relatedIds.catalogCategoryIds.length} native=${relatedIds.nativeCategoryIds.length} docenten=${relatedIds.docentIds.length}`
+      )
+      const relatedResult = await batchSyncRelatedEntitiesToSanity(container, {
+        ...relatedIds,
+        onError: (entity, id, err) => {
+          logger.warn(`[${logTag}] Sanity ${entity} ${id} failed: ${err.message}`)
+        },
+      })
+      logger.info(
+        `[${logTag}] Sanity related done. catalog=${relatedResult.catalogCategories} native=${relatedResult.nativeCategories} docenten=${relatedResult.docenten} failed=${relatedResult.failed}`
+      )
+    }
 
     if (skipSearch && reindexProductIds.length) {
       const search = container.resolve("search") as import("../modules/search/service").default
@@ -189,6 +254,11 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
       delete process.env.SALESFORCE_SUPPRESS_PUSH
     } else {
       process.env.SALESFORCE_SUPPRESS_PUSH = previousSuppressPush
+    }
+    if (previousSuppressSanity === undefined) {
+      delete process.env.SALESFORCE_SUPPRESS_SANITY_SYNC
+    } else {
+      process.env.SALESFORCE_SUPPRESS_SANITY_SYNC = previousSuppressSanity
     }
   }
 }

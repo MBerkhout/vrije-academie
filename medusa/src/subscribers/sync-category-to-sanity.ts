@@ -2,6 +2,7 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subsc
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import CatalogModuleService from "../modules/catalog/service"
+import { isSanitySyncSuppressed } from "../modules/salesforce-sync/utils/suppress-sanity-sync"
 import { mirrorCategory, deleteDoc } from "../modules/sanity-sync/service"
 
 /**
@@ -12,6 +13,7 @@ async function syncCategoryToSanity({
   container,
 }: SubscriberArgs<{ id: string }>) {
   if (!process.env.SANITY_PROJECT_ID || !process.env.SANITY_WRITE_TOKEN) return
+  if (name !== "catalog.category.deleted" && isSanitySyncSuppressed()) return
 
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const catalog = container.resolve("catalog") as InstanceType<typeof CatalogModuleService>

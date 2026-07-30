@@ -2,6 +2,7 @@ import { defineType, defineField, defineArrayMember } from "sanity"
 import { createButtonSelectInput } from "../components/ButtonSelectInput"
 import { PLP_BASE_PATH } from "../constants/storefront-paths"
 import { defineCtaUrlField } from "./objects/ctaUrl"
+import { defineImageField } from "./objects/imageField"
 
 const FOOTER_FORM_METHOD_OPTIONS = [
   { title: "GET", value: "get" },
@@ -24,12 +25,12 @@ export const generalSettings = defineType({
       title: "Header",
       type: "object",
       fields: [
-        defineField({
+        defineImageField({
           name: "logo",
           title: "Logo (override)",
-          type: "image",
-          description:
-            "Optional. When empty, the site uses the bundled VA monogram + wordmark from the frontend.",
+          spec: "logo",
+          extraDescription:
+            "Optioneel. Leeg laten = de site gebruikt het ingebouwde VA-monogram + woordmerk uit de frontend.",
           options: {
             hotspot: true,
           },
@@ -409,11 +410,11 @@ export const generalSettings = defineType({
           type: "string",
           description: 'Defaults to "Vrije Academie" when empty.',
         }),
-        defineField({
+        defineImageField({
           name: "logo",
           title: "Logo",
-          type: "image",
-          description: "Used in Organization schema. Falls back to the header logo.",
+          spec: "logo",
+          extraDescription: "Gebruikt in Organization schema. Valt terug op het headerlogo.",
           options: { hotspot: true },
         }),
         defineField({
@@ -763,11 +764,11 @@ export const generalSettings = defineType({
       fields: [
         defineField({ name: "loginHeading", type: "string", title: "Login heading", initialValue: "Inloggen" }),
         defineField({ name: "loginIntro", type: "string", title: "Login intro tekst" }),
-        defineField({
+        defineImageField({
           name: "loginImage",
           title: "Login pagina — achtergrondafbeelding",
-          type: "image",
-          description: "Sfeervolle foto die op de linker helft van de inlogpagina verschijnt (aanbevolen: 1200×1600px, portret).",
+          spec: "loginPortrait",
+          extraDescription: "Sfeervolle foto op de linker helft van de inlogpagina.",
           options: { hotspot: true },
         }),
         defineField({

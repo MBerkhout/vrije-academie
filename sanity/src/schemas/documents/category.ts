@@ -1,5 +1,6 @@
 import { defineType, defineField } from "sanity"
 import { defineCtaUrlField } from "../objects/ctaUrl"
+import { defineImageField } from "../objects/imageField"
 
 /**
  * Catalog category — mirrored from Medusa.
@@ -76,12 +77,13 @@ export const category = defineType({
       rows: 4,
       description: "Optional intro text on the category listing page and search excerpt.",
     }),
-    defineField({
+    defineImageField({
       name: "image",
       title: "Image",
-      type: "image",
       group: "content",
-      description: "Category tile and search thumbnail (e.g. homepage tiles). Re-seed with npm run seed:homepage-categories.",
+      spec: "categoryTile",
+      extraDescription:
+        "Categorietegel en zoekthumbnail (bijv. homepage-tegels). Re-seed met npm run seed:homepage-categories.",
       options: { hotspot: true },
     }),
     defineCtaUrlField({

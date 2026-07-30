@@ -1,5 +1,6 @@
 import { defineType, defineField } from "sanity"
 import { defineCtaUrlField } from "../objects/ctaUrl"
+import { defineImageField } from "../objects/imageField"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
@@ -32,10 +33,10 @@ export const heroBlock = defineType({
         {
           type: "object",
           fields: [
-            defineField({
+            defineImageField({
               name: "backgroundImage",
               title: "Background Image",
-              type: "image",
+              spec: "heroSlide",
               validation: (Rule) => Rule.required().error("Achtergrondafbeelding is verplicht."),
             }),
             defineField({
@@ -126,13 +127,13 @@ export const heroBlock = defineType({
       type: "portableText",
       group: "topPanel",
     }),
-    defineField({
+    defineImageField({
       name: "topPanelImage",
       title: "Image (right of text)",
-      type: "image",
       group: "topPanel",
+      spec: "heroTopPanel",
+      extraDescription: "Optioneel. Rechts van titel en body; past in het vlak zonder bijsnijden.",
       options: { hotspot: true },
-      description: "Optional. Shown to the right of the title and body; fits in the area without cropping.",
       fields: [
         defineField({
           name: "alt",

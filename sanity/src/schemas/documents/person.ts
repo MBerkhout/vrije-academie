@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineImageField } from "../objects/imageField"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { PERSON_TYPE_OPTIONS } from "../../lib/personTypeOptions"
 
@@ -10,10 +11,10 @@ export const person = defineType({
   title: "Person",
   type: "document",
   fields: [
-    defineField({
+    defineImageField({
       name: "photo",
       title: "Photo",
-      type: "image",
+      spec: "personPhoto",
       options: { hotspot: true },
     }),
     defineField({

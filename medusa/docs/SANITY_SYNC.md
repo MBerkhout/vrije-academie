@@ -21,7 +21,20 @@ Medusa is the source of truth for Products, Categories, Cities (plaatsen), and D
 | `sync-city-to-sanity.ts` | `catalog.city.created`, `…updated`, `…deleted` | Upsert / delete Sanity `city` mirror |
 | `sync-docent-to-sanity.ts` | `people.docent.created`, `…updated`, `…deleted` | Upsert / delete Sanity `docent` mirror |
 
-Subscribers are no-ops when `SANITY_PROJECT_ID` or `SANITY_WRITE_TOKEN` is unset (safe in dev without Sanity configured).
+Subscribers are no-ops when `SANITY_PROJECT_ID` or `SANITY_WRITE_TOKEN` is unset (safe in dev without Sanity configured). During bulk Salesforce import, Sanity subscribers for products, categories, and docenten are suppressed (`SALESFORCE_SUPPRESS_SANITY_SYNC=1`); the bulk CLI runs batched Sanity sync afterward.
+
+## Batched product sync
+
+Bulk paths (`import-future-productgroups.ts`, `sync-sanity.ts --entity=products`) call `batchSyncProductsToSanity` in `src/modules/sanity-sync/batch-sync-products.ts`:
+
+1. Load mirror inputs from Medusa (products, categories, docenten, event items).
+2. One GROQ query per chunk (`*[_id in $ids]`, default chunk size 50).
+3. Build target docs via `buildProductMirrorDoc`; skip writes when mirror fields match existing Sanity state.
+4. Commit changed docs in one `client.transaction()` per chunk (429/5xx retry with backoff).
+
+Sanity limits: **25 mutate req/s per IP**, **4 MB max mutation body** per request.
+
+After bulk Salesforce import, `batchSyncRelatedEntitiesToSanity` mirrors deferred catalog categories, native categories, and docenten once each (deduped IDs collected in `BulkImportContext` during import).
 
 ## Resync CLI
 
@@ -39,7 +52,9 @@ npx medusa exec ./src/scripts/sync-sanity.ts -- --entity=docenten
 npx medusa exec ./src/scripts/sync-sanity.ts -- --entity=products
 ```
 
-The `products` entity uses `syncProductById` (includes Salesforce HTML → PDP body import). Sync docenten first if products reference missing docent mirrors. Per-product failures are logged and do not stop the batch.
+The `products` entity uses `batchSyncProductsToSanity` (chunked GROQ read + transaction write, diff-before-write). Sync docenten first if products reference missing docent mirrors. Chunk failures are logged and do not stop the batch.
+
+Single-product admin/subscriber paths still use `syncProductById` (one product at a time).
 
 Single product:
 

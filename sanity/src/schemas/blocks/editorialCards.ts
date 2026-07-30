@@ -1,5 +1,6 @@
 import { defineType, defineField } from "sanity"
 import { ctaUrlFormatMessage } from "../objects/ctaUrl"
+import { defineImageWithAltField } from "../objects/imageField"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
@@ -32,11 +33,11 @@ export const editorialCardsBlock = defineType({
       validation: (Rule) => Rule.required(),
       hidden: ({ parent }) => !parent?.title,
     }),
-    defineField({
+    defineImageWithAltField({
       name: "backgroundImage",
       title: "Achtergrondbeeld (volle breedte)",
-      type: "imageWithAlt",
       group: "content",
+      spec: "editorialBackground",
       validation: (Rule) => Rule.required().error("Achtergrondbeeld is verplicht."),
     }),
     defineField({
@@ -84,10 +85,10 @@ export const editorialCardsBlock = defineType({
               title: "Tekst",
               type: "portableText",
             }),
-            defineField({
+            defineImageWithAltField({
               name: "image",
               title: "Afbeelding (boven tekst)",
-              type: "imageWithAlt",
+              spec: "editorialCard",
               validation: (Rule) => Rule.required(),
             }),
             defineField({

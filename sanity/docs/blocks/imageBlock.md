@@ -49,6 +49,6 @@ Image Block
 
 - Always provide alt text for accessibility
 - Use captions for context and attribution
-- Optimize images before uploading
+- Optimize images before uploading — see [IMAGE_SIZES.md](../IMAGE_SIZES.md) (match upload to **Aspect Ratio** field: 16:9 → 1200×675px, 4:3 → 1200×900px, 1:1 → 1200×1200px)
 - Consider aspect ratio for layout
 - Use full width sparingly for impact

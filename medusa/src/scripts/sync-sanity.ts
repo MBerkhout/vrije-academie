@@ -8,8 +8,8 @@ import {
   mirrorCity,
   mirrorDocent,
 } from "../modules/sanity-sync/service"
+import { batchSyncProductsToSanity } from "../modules/sanity-sync/batch-sync-products"
 import { syncProductCategoryById } from "../modules/sanity-sync/sync-product-category-by-id"
-import { syncProductById } from "../modules/sanity-sync/sync-product-by-id"
 
 /**
  * Full resync of Medusa → Sanity mirrored documents.
@@ -87,21 +87,16 @@ export default async function syncSanity({ container }: ExecArgs) {
     if (!productIds.length) {
       logger.info(`[sync-sanity] No products found.`)
     } else {
-      logger.info(`[sync-sanity] Syncing ${productIds.length} product(s)…`)
-      let failed = 0
-
-      for (const id of productIds) {
-        try {
-          await syncProductById(id, container)
-        } catch (err) {
-          failed += 1
-          const message = err instanceof Error ? err.message : String(err)
-          logger.warn(`[sync-sanity] Failed to sync product ${id}: ${message}`)
-        }
-      }
-
+      logger.info(`[sync-sanity] Batch-syncing ${productIds.length} product(s)…`)
+      const sanityResult = await batchSyncProductsToSanity(productIds, container, {
+        onChunkError: (chunkIds, err) => {
+          logger.warn(
+            `[sync-sanity] Failed to sync chunk of ${chunkIds.length} product(s): ${err.message}`
+          )
+        },
+      })
       logger.info(
-        `[sync-sanity] Products done (${productIds.length - failed} ok${failed ? `, ${failed} failed` : ""}).`
+        `[sync-sanity] Products done. written=${sanityResult.written} skipped=${sanityResult.skipped} failed=${sanityResult.failed} (attempted ${sanityResult.attempted}).`
       )
     }
   }

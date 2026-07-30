@@ -16,6 +16,10 @@ Discrete string (and some number) fields with a **fixed set of options** use the
 
 Fields titled **CTA URL** (and related link fields) use `defineCtaUrlField` from `src/schemas/objects/ctaUrl.ts` (`type: string`), not Sanity’s `url` type. Editors can enter site paths (`/ons-aanbod`, `/ons-aanbod?record_type=collegereeks`) or absolute `http(s)://` / `mailto:` URLs. YouTube, social, and form-endpoint fields stay on `type: url`.
 
+### Image sizes
+
+Every Sanity **image** upload field shows recommended dimensions in Studio (field description). Specs are centralized in `src/schemas/objects/imageSpecs.ts` and applied via `defineImageField` / `defineImageWithAltField`. See [IMAGE_SIZES.md](./IMAGE_SIZES.md) for the full field → size mapping.
+
 ### Block System
 
 Pages are composed of **blocks** — reusable content components stored **inline** on `page.blocks[]` as Sanity object types (`type: "object"`), not separate documents. This keeps Presentation click-to-edit paths aligned with the schema.
@@ -58,7 +62,7 @@ Pages, categories, and products use a lightweight **`seo`** object type defined 
 |---|---|
 | `metaTitle` | Page title for search and social sharing |
 | `metaDescription` | Short summary for search and social sharing |
-| `metaImage` | Open Graph / social image (1200×630 recommended) |
+| `metaImage` | Open Graph / social image — see [IMAGE_SIZES.md](../IMAGE_SIZES.md) (`social`: 1200×630) |
 | `noIndex` | Hide from search engines and exclude from sitemap |
 
 | Document | Field | Notes |

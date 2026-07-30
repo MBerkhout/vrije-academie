@@ -10,6 +10,8 @@ export { buttonAnnotation } from "./buttonAnnotation"
 export { portableText } from "./portableText"
 export { linkObject } from "./link"
 export { imageWithAlt } from "./imageWithAlt"
+export { IMAGE_SPECS, imageSpecDescription, type ImageSpecKey } from "./imageSpecs"
+export { defineImageField, defineImageWithAltField } from "./imageField"
 export {
   WIDTH_OPTIONS,
   ASPECT_RATIO_OPTIONS,

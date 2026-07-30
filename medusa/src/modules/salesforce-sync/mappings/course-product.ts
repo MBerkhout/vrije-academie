@@ -23,6 +23,7 @@ export type SfCourseProductShape = {
   Account_Teacher__c?: string | null
   Main_Teacher_Name__c?: string | null
   Account_Teacher__r?: { Id?: string; Name?: string } | null
+  SystemModstamp?: string | null
 }
 
 export const SF_COURSE_PRODUCT_OBJECT = "vaProduct__c"
@@ -47,6 +48,7 @@ export const courseProductSalesforceFieldsForPull = [
   "Account_Teacher__c",
   "Account_Teacher__r.Name",
   "Main_Teacher_Name__c",
+  "SystemModstamp",
 ] as const
 
 /** Gross price in EUR (Medusa v2 major currency units, e.g. 19.5). */

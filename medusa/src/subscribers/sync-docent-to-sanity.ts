@@ -2,6 +2,7 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subsc
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import PeopleModuleService from "../modules/people/service"
+import { isSanitySyncSuppressed } from "../modules/salesforce-sync/utils/suppress-sanity-sync"
 import { mirrorDocent, deleteDoc } from "../modules/sanity-sync/service"
 
 /**
@@ -12,6 +13,7 @@ async function syncDocentToSanity({
   container,
 }: SubscriberArgs<{ id: string }>) {
   if (!process.env.SANITY_PROJECT_ID || !process.env.SANITY_WRITE_TOKEN) return
+  if (name !== "people.docent.deleted" && isSanitySyncSuppressed()) return
 
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const people = container.resolve("people") as InstanceType<typeof PeopleModuleService>

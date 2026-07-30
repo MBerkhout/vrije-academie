@@ -27,7 +27,7 @@ The hero is split into two columns:
 | Title | String | Yes | Panel headline |
 | Title Size | String | No | `h2`–`h6` (default: `h2`) |
 | Body | Portable Text | No | Rich text body (subtext / main copy) |
-| Image | Image | No | Shown to the right of the text; displayed with **contain** in the area (no crop). Hotspot for focal point. Optional **alt text** (recommended for accessibility) |
+| Image | Image | No | Shown to the right of the text; displayed with **contain** in the area (no crop). Hotspot for focal point. Optional **alt text** (recommended for accessibility). Recommended: min. 800px wide — see [IMAGE_SIZES.md](../IMAGE_SIZES.md) |
 | Show CTA | Boolean | No | Toggle CTA button visibility |
 | CTA Label | String | No | Button text |
 | CTA URL | String | No | Button destination (e.g. `/ons-aanbod` or `https://…`) |
@@ -54,5 +54,5 @@ Copy is fixed: title **Meld je aan**, subtext **Schrijf je hier in voor onze nie
 - On large viewports the slider column stretches to match the right column height so the image area aligns with the right column.
 - The top panel uses a **white** card, light border, and the optional image sits beside the text on **all** breakpoints (text left, image right; no stripe between). The image uses **object-contain** so the full image fits without zoom-crop. The newsletter card matches the same white + border (no extra shadow on either card by default).
 - Full-width layout adds horizontal padding on the hero grid; container width uses the block wrapper padding.
-- Background images should be high-quality and optimized for performance; overlay opacity controls slide text readability.
+- Background images should be high-quality and optimized for performance; recommended **1200×675px (16:9)** for slide backgrounds — see [IMAGE_SIZES.md](../IMAGE_SIZES.md). Top panel image: min. **400px** wide (object-contain in narrow column). Overlay opacity controls slide text readability.
 - CTA button uses the primary yellow style.

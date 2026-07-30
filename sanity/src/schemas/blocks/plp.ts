@@ -1,6 +1,7 @@
 import { defineType, defineField, defineArrayMember } from "sanity"
 import { PLP_BASE_PATH } from "../../constants/storefront-paths"
 import { defineCtaUrlField } from "../objects/ctaUrl"
+import { defineImageField } from "../objects/imageField"
 
 /**
  * PLP editorial surface (banner, intro, tabs) for `/ons-aanbod`.
@@ -20,7 +21,12 @@ export const plpBlock = defineType({
         defineField({ name: "enabled", title: "Show banner", type: "boolean", initialValue: false }),
         defineField({ name: "title", title: "Title", type: "string" }),
         defineField({ name: "subtitle", title: "Subtitle", type: "text", rows: 2 }),
-        defineField({ name: "image", title: "Image", type: "image", options: { hotspot: true } }),
+        defineImageField({
+          name: "image",
+          title: "Image",
+          spec: "plpBanner",
+          options: { hotspot: true },
+        }),
         defineField({ name: "ctaLabel", title: "CTA label", type: "string" }),
         defineCtaUrlField({ name: "ctaUrl", title: "CTA URL" }),
       ],

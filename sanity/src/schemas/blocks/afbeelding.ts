@@ -2,6 +2,7 @@ import { defineType, defineField } from "sanity"
 import { ImageIcon, VideoIcon } from "@sanity/icons"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
+import { defineImageField } from "../objects/imageField"
 import {
   widthField,
   aspectRatioField,
@@ -33,11 +34,12 @@ export const afbeeldingBlock = defineType({
       initialValue: "image",
       components: { input: createButtonSelectInput([...MEDIA_TYPE_OPTIONS]) },
     }),
-    defineField({
+    defineImageField({
       name: "image",
       title: "Image",
-      type: "image",
       group: "content",
+      spec: "blockImageAspectRatio",
+      extraDescription: "Kies beeldverhouding hieronder; upload past bij dat formaat.",
       options: {
         hotspot: true,
         accept: "image/jpeg,image/png,image/webp",
@@ -84,6 +86,21 @@ export const afbeeldingBlock = defineType({
           if (!youtubeUrlRegex.test(url)) return "Voer een geldige YouTube URL in."
           return true
         }),
+    }),
+    defineImageField({
+      name: "placeholderImage",
+      title: "Placeholder Image",
+      group: "content",
+      spec: "blockImageAspectRatio",
+      extraDescription: "Poster vóór afspelen (YouTube). Kies beeldverhouding hieronder.",
+      options: {
+        hotspot: true,
+        accept: "image/jpeg,image/png,image/webp",
+      },
+      hidden: ({ document, parent }) => {
+        const mediaType = parent?.mediaType ?? document?.mediaType
+        return mediaType !== "youtube"
+      },
     }),
     defineField({
       name: "caption",

@@ -1,5 +1,6 @@
 import { defineType, defineField } from "sanity"
 import { defineCtaUrlField } from "../objects/ctaUrl"
+import { defineImageField } from "../objects/imageField"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
 import { TITLE_SIZE_OPTIONS } from "../objects/mediaEnums"
@@ -105,10 +106,10 @@ export const categoriesBlock = defineType({
                   return true
                 }),
             }),
-            defineField({
+            defineImageField({
               name: "image",
               title: "Image",
-              type: "image",
+              spec: "categoryTile",
               hidden: ({ parent }) => parent?.source !== "aangepast",
               validation: (Rule) =>
                 Rule.custom((img, ctx) => {

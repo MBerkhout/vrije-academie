@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineImageField } from "./imageField"
 
 /**
  * Lightweight SEO object — meta title/description/image plus noIndex toggle.
@@ -25,11 +26,11 @@ export const seo = defineType({
       validation: (Rule) =>
         Rule.max(160).warning("Keep meta descriptions under 150 characters when possible."),
     }),
-    defineField({
+    defineImageField({
       name: "metaImage",
       title: "Social image",
-      type: "image",
-      description: "Recommended 1200×630px. Used for Open Graph and Twitter cards.",
+      spec: "social",
+      extraDescription: "Gebruikt voor Open Graph en Twitter cards.",
       options: { hotspot: true },
     }),
     defineField({

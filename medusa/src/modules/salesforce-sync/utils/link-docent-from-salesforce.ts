@@ -7,6 +7,7 @@ import type { SfCourseProductShape } from "../mappings/course-product"
 import type { SfProductgroupShape } from "../mappings/productgroup"
 import SalesforceSyncModuleService from "../service"
 import { fetchTeacherAccountProfile } from "./fetch-teacher-account"
+import type { BulkImportContext } from "./import-context"
 
 const ENTITY_DOCENT = "docent"
 
@@ -122,14 +123,17 @@ type ResolvedTeacher = {
 async function resolveTeacherForDocent(
   sync: InstanceType<typeof SalesforceSyncModuleService>,
   group: SfProductgroupShape,
-  child?: SfCourseProductShape | null
+  child?: SfCourseProductShape | null,
+  importContext?: BulkImportContext
 ): Promise<ResolvedTeacher> {
   const base = resolveTeacherFromProductgroup(group, child)
   if (!base.salesforceId) {
     return { ...base, role: "Docent" }
   }
 
-  const account = await fetchTeacherAccountProfile(sync, base.salesforceId)
+  const account = importContext
+    ? await importContext.getTeacherProfile(sync, base.salesforceId)
+    : await fetchTeacherAccountProfile(sync, base.salesforceId)
   if (!account) {
     return { ...base, role: "Docent" }
   }
@@ -192,12 +196,14 @@ export async function linkDocentFromSalesforce(
   container: MedusaContainer,
   productId: string,
   group: SfProductgroupShape,
-  child?: SfCourseProductShape | null
+  child?: SfCourseProductShape | null,
+  importContext?: BulkImportContext
 ): Promise<string | null> {
+  const run = async (): Promise<string | null> => {
   const sync = container.resolve("salesforceSync") as InstanceType<
     typeof SalesforceSyncModuleService
   >
-  const teacher = await resolveTeacherForDocent(sync, group, child)
+  const teacher = await resolveTeacherForDocent(sync, group, child, importContext)
   if (!teacher.salesforceId || !teacher.name) return null
 
   const people = container.resolve("people") as InstanceType<typeof PeopleModuleService>
@@ -224,13 +230,23 @@ export async function linkDocentFromSalesforce(
       docentId = created?.id ?? null
     }
   } else {
-    await people.updateDocents({
-      id: docentId,
-      name: teacher.name,
-      role: teacher.role,
-      photo_url: teacher.photoUrl,
-      bio: teacher.bio,
-    })
+    const people = container.resolve("people") as InstanceType<typeof PeopleModuleService>
+    const existingDocent = await people.retrieveDocent(docentId)
+    const docentUnchanged =
+      existingDocent.name === teacher.name &&
+      existingDocent.role === teacher.role &&
+      (existingDocent.photo_url ?? null) === (teacher.photoUrl ?? null) &&
+      (existingDocent.bio ?? null) === (teacher.bio ?? null)
+
+    if (!docentUnchanged) {
+      await people.updateDocents({
+        id: docentId,
+        name: teacher.name,
+        role: teacher.role,
+        photo_url: teacher.photoUrl,
+        bio: teacher.bio,
+      })
+    }
   }
 
   if (!docentId) return null
@@ -257,11 +273,25 @@ export async function linkDocentFromSalesforce(
         })
       }
     }
-    await link.create({
-      [Modules.PRODUCT]: { product_id: productId },
-      people: { docent_id: docentId },
-    })
+    try {
+      await link.create({
+        [Modules.PRODUCT]: { product_id: productId },
+        people: { docent_id: docentId },
+      })
+    } catch {
+      // already linked (concurrent import)
+    }
+  }
+
+  if (importContext?.skipSanitySync) {
+    importContext.trackDocent(docentId)
   }
 
   return docentId
+  }
+
+  if (importContext) {
+    return importContext.withDocentLinkLock(productId, run)
+  }
+  return run()
 }

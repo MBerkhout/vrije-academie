@@ -70,3 +70,4 @@ Columns Block (3 columns)
 - Test responsive behavior (columns stack on mobile)
 - Avoid deep nesting (2-3 levels max)
 - Use consistent spacing within columns
+- Match image uploads to column type — see [IMAGE_SIZES.md](../IMAGE_SIZES.md) (media: aspect ratio field; highlight/CTA cards: 1200×675px)

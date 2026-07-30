@@ -39,6 +39,7 @@ export type SfProductgroupShape = {
   CTA_Color_Hover__c?: string | null
   /** Editorial catalog sort order (PLP default). */
   Order__c?: number | null
+  SystemModstamp?: string | null
 }
 
 export const SF_PRODUCTGROUP_OBJECT = "vaProductgroup__c"
@@ -81,6 +82,7 @@ export const productgroupSalesforceFieldsForPull = [
   "CTA_Color__c",
   "CTA_Color_Hover__c",
   "Order__c",
+  "SystemModstamp",
 ] as const
 
 export function parseProductgroupSubjects(sf: SfProductgroupShape): string[] {

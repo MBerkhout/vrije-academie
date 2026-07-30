@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { defineImageField } from "../objects/imageField"
 
 export const vathuisHeroBlock = defineType({
   name: "vathuisHeroBlock",
@@ -18,10 +19,10 @@ export const vathuisHeroBlock = defineType({
       type: "text",
       rows: 3,
     }),
-    defineField({
+    defineImageField({
       name: "image",
       title: "Image",
-      type: "image",
+      spec: "vathuisHero",
       options: { hotspot: true },
     }),
   ],

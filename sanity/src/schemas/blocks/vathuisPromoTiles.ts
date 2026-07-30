@@ -1,5 +1,6 @@
 import { defineType, defineField, defineArrayMember } from "sanity"
 import { defineCtaUrlField } from "../objects/ctaUrl"
+import { defineImageField } from "../objects/imageField"
 
 export const vathuisPromoTilesBlock = defineType({
   name: "vathuisPromoTilesBlock",
@@ -22,7 +23,12 @@ export const vathuisPromoTilesBlock = defineType({
               validation: (R) => R.required(),
             }),
             defineField({ name: "description", title: "Description", type: "text", rows: 2 }),
-            defineField({ name: "image", title: "Image", type: "image", options: { hotspot: true } }),
+            defineImageField({
+              name: "image",
+              title: "Image",
+              spec: "promoTile",
+              options: { hotspot: true },
+            }),
             defineCtaUrlField({ name: "href", title: "Link URL" }),
           ],
           preview: {

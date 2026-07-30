@@ -3,12 +3,14 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { deleteDoc } from "../modules/sanity-sync/service"
 import { syncProductById } from "../modules/sanity-sync/sync-product-by-id"
+import { isSanitySyncSuppressed } from "../modules/salesforce-sync/utils/suppress-sanity-sync"
 
 async function syncProductToSanity({
   event: { name, data },
   container,
 }: SubscriberArgs<{ id: string }>) {
   if (!process.env.SANITY_PROJECT_ID || !process.env.SANITY_WRITE_TOKEN) return
+  if (name === "product.updated" && isSanitySyncSuppressed()) return
 
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const productId = data.id

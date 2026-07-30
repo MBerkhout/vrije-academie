@@ -1,5 +1,6 @@
 import { defineType, defineField } from "sanity"
 import { defineCtaUrlField } from "../objects/ctaUrl"
+import { defineImageField } from "../objects/imageField"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
 import {
@@ -181,10 +182,11 @@ export const columnsBlock = defineType({
               components: { input: createButtonSelectInput([...COLUMN_MEDIA_TYPE_OPTIONS]) },
               hidden: ({ parent }) => parent?.columnType !== "media",
             }),
-            defineField({
+            defineImageField({
               name: "mediaImage",
               title: "Image",
-              type: "image",
+              spec: "blockImageAspectRatio",
+              extraDescription: "Kies beeldverhouding hieronder; upload past bij dat formaat.",
               hidden: ({ parent }) => parent?.columnType !== "media" || parent?.mediaType !== "image",
               validation: (Rule) =>
                 Rule.custom((img, ctx) => {
@@ -230,10 +232,11 @@ export const columnsBlock = defineType({
               initialValue: false,
               hidden: ({ parent }) => parent?.columnType !== "media",
             }),
-            defineField({
+            defineImageField({
               name: "mediaMobileImageAsset",
               title: "Mobile Image",
-              type: "image",
+              spec: "mobileMediaImage",
+              extraDescription: "Optioneel alternatief voor mobiel.",
               hidden: ({ parent }) =>
                 parent?.columnType !== "media" || !parent?.mediaMobileImage,
             }),
@@ -250,10 +253,10 @@ export const columnsBlock = defineType({
               components: { input: createButtonSelectInput([...ASPECT_RATIO_OPTIONS]) },
             }),
             // Highlight card
-            defineField({
+            defineImageField({
               name: "highlightImage",
               title: "Image",
-              type: "image",
+              spec: "blockImage16x9",
               hidden: ({ parent }) => parent?.columnType !== "highlightCard",
               validation: (Rule) =>
                 Rule.custom((img, ctx) => {
@@ -345,10 +348,10 @@ export const columnsBlock = defineType({
                 parent?.columnType !== "productCards" || !parent?.productCardsFooterCtaEnabled,
             }),
             // CTA card
-            defineField({
+            defineImageField({
               name: "ctaCardBgImage",
               title: "Background Image",
-              type: "image",
+              spec: "blockImage16x9",
               hidden: ({ parent }) => parent?.columnType !== "ctaCard",
               validation: (Rule) =>
                 Rule.custom((img, ctx) => {

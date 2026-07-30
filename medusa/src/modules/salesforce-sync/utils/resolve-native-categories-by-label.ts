@@ -2,17 +2,31 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { batchLinkProductsToCategoryWorkflow } from "@medusajs/medusa/core-flows"
 
-import { slugFromLabel } from "./slug-from-label"
 import { syncProductCategoryById } from "../../sanity-sync/sync-product-category-by-id"
+import type { BulkImportContext } from "./import-context"
+import { slugFromLabel } from "./slug-from-label"
 
 /** Find or create native Medusa product categories and link them to a product. */
 export async function linkNativeProductCategoriesByLabels(
   container: MedusaContainer,
   productId: string,
-  labels: string[]
+  labels: string[],
+  importContext?: BulkImportContext
 ): Promise<string[]> {
-  const productModule = container.resolve(Modules.PRODUCT)
-  const all = await productModule.listProductCategories({}, { take: 1000 })
+  const productModule = container.resolve(Modules.PRODUCT) as {
+    listProductCategories: (
+      f?: Record<string, unknown>,
+      o?: { take?: number }
+    ) => Promise<{ id?: string; name?: string | null; handle?: string }[]>
+    createProductCategories: (d: {
+      name: string
+      handle: string
+    }) => Promise<{ id?: string; name?: string | null; handle?: string } | { id?: string; name?: string | null; handle?: string }[]>
+  }
+
+  const all = importContext
+    ? await importContext.getNativeCategories(container)
+    : await productModule.listProductCategories({}, { take: 1000 })
   const ids: string[] = []
 
   for (const label of labels) {
@@ -35,12 +49,21 @@ export async function linkNativeProductCategoriesByLabels(
         const [existing] = await productModule.listProductCategories({ handle })
         match = existing
       }
-      if (match) all.push(match)
+      if (match) {
+        if (importContext) importContext.addNativeCategory(match)
+        else all.push(match)
+      }
     }
     if (!match?.id) continue
 
     ids.push(match.id)
-    await syncProductCategoryById(match.id, container).catch(() => undefined)
+
+    if (importContext?.skipSanitySync) {
+      importContext.trackNativeCategory(match.id)
+    } else {
+      await syncProductCategoryById(match.id, container).catch(() => undefined)
+    }
+
     await batchLinkProductsToCategoryWorkflow(container).run({
       input: { id: match.id, add: [productId] },
     })
