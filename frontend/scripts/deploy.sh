@@ -20,13 +20,12 @@ cd "$APP_DIR"
 npm ci
 npm run build
 
-if pm2 describe "$PM2_APP_NAME" >/dev/null 2>&1; then
-  echo "==> Reloading PM2 process: $PM2_APP_NAME"
-  pm2 reload "$PM2_APP_NAME" --update-env
-else
-  echo "==> Starting PM2 process for the first time: $PM2_APP_NAME"
-  pm2 start ecosystem.config.cjs
-  pm2 save
-fi
+# startOrReload re-applies ecosystem.config.cjs (instances, exec_mode, etc.) on every
+# deploy instead of blindly reloading whatever process object already exists in PM2 —
+# `pm2 reload <name>` alone can leave a process stuck in a stale mode (e.g. fork instead
+# of cluster) if it was ever started outside this config.
+echo "==> startOrReload PM2 process from ecosystem.config.cjs: $PM2_APP_NAME"
+pm2 startOrReload ecosystem.config.cjs --update-env
+pm2 save
 
 echo "==> Frontend deploy complete"

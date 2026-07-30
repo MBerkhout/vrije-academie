@@ -1,4 +1,5 @@
 import type SalesforceSyncModuleService from "../service"
+import { isUsablePhotoUrl } from "./photo-url"
 
 /** Fields on Salesforce Person Account used for public docent profiles (when readable). */
 export const TEACHER_ACCOUNT_FIELDS = [
@@ -46,7 +47,10 @@ export async function fetchTeacherAccountProfile(
       salesforceId: String(row.Id),
       name: typeof row.Name === "string" ? row.Name.trim() || null : null,
       bio: typeof row.Description === "string" ? row.Description.trim() || null : null,
-      photoUrl: typeof row.PhotoUrl === "string" ? row.PhotoUrl.trim() || null : null,
+      photoUrl:
+        typeof row.PhotoUrl === "string" && isUsablePhotoUrl(row.PhotoUrl.trim())
+          ? row.PhotoUrl.trim()
+          : null,
       role: typeof row.PersonTitle === "string" ? row.PersonTitle.trim() || null : null,
       website: typeof row.Website === "string" ? row.Website.trim() || null : null,
       email,

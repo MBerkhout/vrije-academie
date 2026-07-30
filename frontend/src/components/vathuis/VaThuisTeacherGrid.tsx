@@ -10,6 +10,11 @@ interface VaThuisTeacherGridProps {
   teachers: TeacherOption[]
 }
 
+/** Guards against stale synced data containing relative/session-only URLs (e.g. Salesforce paths) that next/image can't fetch. */
+function isRenderableImageUrl(url: string | null | undefined): url is string {
+  return !!url && /^https?:\/\//i.test(url)
+}
+
 export function VaThuisTeacherGrid({ title, intro, teachers }: VaThuisTeacherGridProps) {
   if (!teachers.length) return null
 
@@ -32,7 +37,7 @@ export function VaThuisTeacherGrid({ title, intro, teachers }: VaThuisTeacherGri
               className="flex items-center gap-3 rounded-lg bg-va-darkgray-900 border border-va-darkgray-700 px-3 py-2 hover:border-va-yellow/50 transition-colors"
             >
               <div className="relative h-10 w-10 shrink-0 rounded-full overflow-hidden bg-va-darkgray-800">
-                {teacher.photoUrl ? (
+                {isRenderableImageUrl(teacher.photoUrl) ? (
                   <Image
                     src={teacher.photoUrl}
                     alt=""

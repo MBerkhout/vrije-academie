@@ -26,7 +26,7 @@ The three jobs run **in parallel**.
 ## Zero-downtime approach
 
 1. **Build before restart** — deploy scripts run `npm ci` and `npm run build` while the old PM2 process keeps serving traffic.
-2. **PM2 reload** — after a successful build (and `npm run migrate` for Medusa), `pm2 reload` replaces the process gracefully instead of a hard restart.
+2. **`pm2 startOrReload ecosystem.config.cjs`** — after a successful build (and `npm run migrate` for Medusa), this re-applies `ecosystem.config.cjs` (instances, `exec_mode`, etc.) and reloads gracefully instead of a hard restart. Unlike `pm2 reload <name>`, it re-syncs config on every deploy so the process can't silently drift from what's checked into git (see Frontend troubleshooting below).
 3. **Failed deploys** — if build or migrate fails, the script exits before reload; the running process is unchanged.
 
 ## One-time server setup
@@ -211,7 +211,7 @@ sudo -u medusa bash ~/app/medusa/scripts/deploy.sh
 Optional overrides:
 
 ```bash
-DEPLOY_BRANCH=staging REPO_DIR=~/app PM2_APP_NAME=frontend bash ~/app/frontend/scripts/deploy.sh
+DEPLOY_BRANCH=staging REPO_DIR=~/app bash ~/app/frontend/scripts/deploy.sh
 ```
 
 ## Logs and status
@@ -233,6 +233,13 @@ Future deploys should not hit this after the ignore is on `staging`.
 ## Frontend troubleshooting
 
 **Category tiles without images on staging, but correct locally** — The homepage is built during `npm run build`. If Sanity category images were added after the last deploy, redeploy the frontend (push to `staging` or run `frontend/scripts/deploy.sh`). The home route revalidates every 60s after deploy; see `frontend/docs/components.md` (troubleshooting §6).
+
+**Frontend keeps restarting every 15–40 min, breaks Sanity Presentation/live preview** — PM2 `error log path` will show `App [frontend] exceeds --max-memory-restart value`. Two independent causes, both fixed:
+
+1. **Next.js 16.1.x server `fetch` memory leak** — only one of two tee'd `Response` clones was registered with `FinalizationRegistry` in `next@16.1.6`, so ArrayBuffers backing every server-side `fetch` (Sanity `sanityFetch`, Medusa calls) were never reclaimed, growing RSS ~5 MB/s until PM2's 512 MB cap was hit. Fixed upstream in `next@16.2.12` ([vercel/next.js#90897](https://github.com/vercel/next.js/pull/90897)) — keep `frontend` on `next@^16.2.12` or newer, never pin back to `16.1.x`.
+2. **PM2 process stuck in `fork` mode** — if `frontend` was ever started with `pm2 start` outside `ecosystem.config.cjs` (or `pm2 reload <name>` on a pre-existing process), it stays single-instance/fork forever; `pm2 reload`/`startOrReload` on an *existing* process does not change `exec_mode`/`instances`, so every crash-restart was a full outage instead of one cluster worker cycling. Verify with `pm2 jlist | grep -A2 exec_mode`; if it says `fork_mode` while `ecosystem.config.cjs` says `cluster`, fix with `pm2 delete frontend && pm2 start ecosystem.config.cjs && pm2 save`.
+
+**Broken docent/teacher photos, `⨯ The requested resource isn't a valid image ... received null` in logs** — `docent.photoUrl` was sometimes a Salesforce session-relative path (e.g. `/services/images/photo/001...`) extracted from a rich-text field or `Account.PhotoUrl`. Those only resolve inside an authenticated Salesforce session, so Next's image optimizer fetches them from our own origin and gets a 404/login page instead of image bytes. `medusa/src/modules/salesforce-sync/utils/photo-url.ts` (`isUsablePhotoUrl`) now rejects non-absolute and `salesforce.com`/`force.com` URLs before they're synced to Sanity; `VaThuisTeacherGrid` also guards at render time as a defense-in-depth fallback.
 
 ## Medusa troubleshooting
 

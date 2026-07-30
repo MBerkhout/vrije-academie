@@ -8,6 +8,7 @@ import type { SfProductgroupShape } from "../mappings/productgroup"
 import SalesforceSyncModuleService from "../service"
 import { fetchTeacherAccountProfile } from "./fetch-teacher-account"
 import type { BulkImportContext } from "./import-context"
+import { isUsablePhotoUrl } from "./photo-url"
 
 const ENTITY_DOCENT = "docent"
 
@@ -21,7 +22,7 @@ function extractImgSrcFromHtml(html: string | null | undefined): string | null {
   const match = html.match(/src=["']([^"']+)["']/i)
   const src = match?.[1]?.trim()
   if (!src || src === " " || src === "/img/msg_icons/confirm16.png") return null
-  return src
+  return isUsablePhotoUrl(src) ? src : null
 }
 
 function slugifyTeacher(name: string): string {
