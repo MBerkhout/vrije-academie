@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { sanityPreviewClient } from './sanity-preview-client'
 import { SEO_FIELD } from './seo-fragment'
 import type { ProductSeoSource } from './seo-metadata'
@@ -60,6 +61,14 @@ export const PLP_PAGE_QUERY = `coalesce(
     ${SEO_FIELD}
   }
 )`
+
+/** PLP/agenda filter sidebar — slug + label only (no SEO/images). */
+export const CATEGORIES_FILTER_QUERY = `*[_type == "category"] | order(sortOrder asc) {
+  _id,
+  slug,
+  label,
+  sortOrder
+}`
 
 /** All categories ordered by sortOrder (for filter sidebar) */
 export const CATEGORIES_QUERY = `*[_type == "category"] | order(sortOrder asc) {
@@ -158,19 +167,19 @@ export type CityOption = {
   seo?: SEO | null
 }
 
-export async function getPlpPage(): Promise<PlpPageData | null> {
+export const getPlpPage = cache(async (): Promise<PlpPageData | null> => {
   return staticFetch<PlpPageData>(PLP_PAGE_QUERY)
-}
+})
 
-export async function getCategoriesForFilter(): Promise<CategoryOption[]> {
-  const rows = (await staticFetch<CategoryOption[]>(CATEGORIES_QUERY)) ?? []
+export const getCategoriesForFilter = cache(async (): Promise<CategoryOption[]> => {
+  const rows = (await staticFetch<CategoryOption[]>(CATEGORIES_FILTER_QUERY)) ?? []
   return dedupeBySlug(rows)
-}
+})
 
-export async function getTeachersForFilter(): Promise<TeacherOption[]> {
+export const getTeachersForFilter = cache(async (): Promise<TeacherOption[]> => {
   const rows = (await staticFetch<TeacherOption[]>(TEACHERS_QUERY)) ?? []
   return dedupeBySlug(rows)
-}
+})
 
 export async function getCityBySlug(slug: string): Promise<CityOption | null> {
   return staticFetch<CityOption>(CITY_BY_SLUG_QUERY, { slug })

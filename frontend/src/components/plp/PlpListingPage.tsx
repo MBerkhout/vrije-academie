@@ -18,7 +18,7 @@ import { PLP_BASE_PATH, plpProductPath } from '@/lib/routes'
 export type PlpBreadcrumbCrumb = { label: string; href: string }
 
 export type PlpListingPageProps = {
-  pageTitle: string
+  pageTitle?: string
   basePath: string
   filterState: PlpFilterState
   /** Extra crumbs after "Ons aanbod" (e.g. category or city). */
@@ -65,6 +65,7 @@ export async function PlpListingPage({
 
   const stockThreshold = settings?.pdp?.lowStockThreshold ?? 5
   const plpCopy = settings?.plp
+  const resolvedPageTitle = pageTitle ?? settings?.plp?.pageTitle ?? 'Ons aanbod'
   const breadcrumbCrumbs: PlpBreadcrumbCrumb[] = [
     { label: 'Home', href: '/' },
     { label: 'Ons aanbod', href: PLP_BASE_PATH },
@@ -77,7 +78,7 @@ export async function PlpListingPage({
 
   const itemListJsonLd = events.length
       ? buildItemListJsonLd({
-          name: pageTitle,
+          name: resolvedPageTitle,
           numberOfItems: count,
           items: events.slice(0, 24).map((event) => ({
             path: plpProductPath(event.handle),
@@ -90,7 +91,7 @@ export async function PlpListingPage({
       : null
 
   const collectionPageJsonLd = buildCollectionPageJsonLd({
-    name: pageTitle,
+    name: resolvedPageTitle,
     description: introText,
     url: basePath,
   })
@@ -109,7 +110,7 @@ export async function PlpListingPage({
         {plpData?.banner?.enabled && <PlpBanner banner={plpData.banner} />}
 
         <div className={`${CONTAINER_CLASS} mt-1 md:mt-2`}>
-          <PlpHeader title={pageTitle} intro={plpData?.intro} introText={introText} />
+          <PlpHeader title={resolvedPageTitle} intro={plpData?.intro} introText={introText} />
         </div>
 
         <div className={`${CONTAINER_CLASS} mt-2 md:mt-4`}>

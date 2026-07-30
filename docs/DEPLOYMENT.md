@@ -241,7 +241,11 @@ Future deploys should not hit this after the ignore is on `staging`.
 
 **Broken docent/teacher photos, `⨯ The requested resource isn't a valid image ... received null` in logs** — `docent.photoUrl` was sometimes a Salesforce session-relative path (e.g. `/services/images/photo/001...`) extracted from a rich-text field or `Account.PhotoUrl`. Those only resolve inside an authenticated Salesforce session, so Next's image optimizer fetches them from our own origin and gets a 404/login page instead of image bytes. `medusa/src/modules/salesforce-sync/utils/photo-url.ts` (`isUsablePhotoUrl`) now rejects non-absolute and `salesforce.com`/`force.com` URLs before they're synced to Sanity; `VaThuisTeacherGrid` also guards at render time as a defense-in-depth fallback.
 
+**PLP (`/ons-aanbod`) feels slow on first load** — `/store/events` builds a Redis-backed listing snapshot (~3–4 s cold, ~80 ms warm). Cold hits happen after deploy, cache expiry (300 s), or `invalidateStoreListingCache`. `medusa/scripts/deploy.sh` warms the cache after reload. Frontend-side: `getGeneralSettings` uses Sanity CDN (not live double-fetch) outside draft mode; React `cache()` dedupes CMS calls per request; category filter query is slimmed to slug/label only.
+
 ## Medusa troubleshooting
+
+**Stuck in `fork` mode instead of `cluster`** — same drift as the frontend issue above (see Frontend troubleshooting §2); check with `pm2 jlist | grep -A2 exec_mode` and fix with `pm2 delete medusa && pm2 start ecosystem.config.cjs && pm2 save`.
 
 **`ecosystem.config.cjs not found`** — The server checkout is behind `staging`. As the `medusa` user:
 
@@ -314,7 +318,7 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 
 ### Medusa API caching
 
-PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized listing snapshots** stored in Redis (60 s TTL), shared across all PM2 cluster workers:
+PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized listing snapshots** stored in Redis (300 s TTL), shared across all PM2 cluster workers:
 
 | Layer | File | Role |
 |-------|------|------|

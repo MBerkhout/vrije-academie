@@ -50,12 +50,8 @@ export default async function OnsAanbodPage({ searchParams }: PlpPageProps) {
     redirect(query ? `${PLP_BASE_PATH}?${query}` : PLP_BASE_PATH)
   }
 
-  const settings = await cmsClient.getGeneralSettings()
-  const pageTitle = settings?.plp?.pageTitle ?? 'Ons aanbod'
-
   return (
     <PlpListingPage
-      pageTitle={pageTitle}
       basePath={PLP_BASE_PATH}
       filterState={filterState}
     />

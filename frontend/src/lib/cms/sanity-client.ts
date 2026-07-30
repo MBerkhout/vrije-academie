@@ -4,7 +4,10 @@
  */
 
 import type { CMSClient, Page, GeneralSettings, Menu, SiteSearchHit, SearchSuggestionsResult, SearchSuggestion } from './types'
+import { cache } from 'react'
+import { draftMode } from 'next/headers'
 import { sanityFetch } from './live'
+import { sanityPreviewClient } from './sanity-preview-client'
 import { PAGE_QUERY } from './page-query'
 import { PLP_BASE_PATH, plpCategoryHref, plpCityHref, plpProductPath } from '@/lib/routes'
 import { isExternalHref } from '@/lib/menu-href'
@@ -19,6 +22,12 @@ import {
   type SiteSearchRow,
   type PlaceSuggestRow,
 } from './search-query'
+
+/** CDN-backed client for published settings (PLP/layout); draft mode still uses sanityFetch. */
+const staticSettingsClient = sanityPreviewClient.withConfig({
+  useCdn: true,
+  stega: { enabled: false },
+})
 
 function truncateExcerpt(s: string | null | undefined, max: number): string | undefined {
   if (!s) return undefined
@@ -413,8 +422,16 @@ export const sanityClient: CMSClient = {
       }
     }`
 
-    const { data } = await sanityFetch({ query })
-    return data || null
+    const { isEnabled } = await draftMode()
+    if (isEnabled) {
+      const { data } = await sanityFetch({ query })
+      return data || null
+    }
+    try {
+      return (await staticSettingsClient.fetch<GeneralSettings | null>(query)) ?? null
+    } catch {
+      return null
+    }
   },
 
   async getMenu(id: string): Promise<Menu | null> {

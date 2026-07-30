@@ -5,7 +5,8 @@ export const REDIS_KEY_AGENDA = "store:listing:agenda"
 export const REDIS_KEY_VATHUIS = "store:listing:vathuis"
 export const REDIS_KEY_REGISTRATIONS = "store:listing:registrations"
 
-export const LISTING_CACHE_TTL_SEC = 60
+/** PLP/agenda snapshot TTL — keep high enough to avoid ~3–4s cold rebuilds under traffic. */
+export const LISTING_CACHE_TTL_SEC = 300
 
 type RedisClient = ReturnType<typeof createClient>
 

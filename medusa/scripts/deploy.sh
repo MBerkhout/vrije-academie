@@ -35,4 +35,17 @@ echo "==> startOrReload PM2 process from ecosystem.config.cjs: $PM2_APP_NAME"
 pm2 startOrReload ecosystem.config.cjs --update-env
 pm2 save
 
+# Warm PLP listing snapshot so the first visitor after deploy avoids a ~3–4s cold build.
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+  PUBLISHABLE_KEY="$(psql "$DATABASE_URL" -t -A -c "select token from api_key where type='publishable' limit 1" 2>/dev/null | grep '^pk_' || true)"
+  if [ -n "$PUBLISHABLE_KEY" ]; then
+    curl -sf -o /dev/null "http://127.0.0.1:${PORT:-9000}/store/events?limit=1" \
+      -H "x-publishable-api-key: $PUBLISHABLE_KEY" || true
+  fi
+fi
+
 echo "==> Medusa deploy complete"
