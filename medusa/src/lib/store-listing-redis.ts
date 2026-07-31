@@ -5,8 +5,16 @@ export const REDIS_KEY_AGENDA = "store:listing:agenda"
 export const REDIS_KEY_VATHUIS = "store:listing:vathuis"
 export const REDIS_KEY_REGISTRATIONS = "store:listing:registrations"
 
-/** PLP/agenda snapshot TTL — keep high enough to avoid ~3–4s cold rebuilds under traffic. */
-export const LISTING_CACHE_TTL_SEC = 300
+/** Hard cache for PLP/agenda snapshots and event detail (10 minutes). */
+export const LISTING_CACHE_TTL_SEC = 600
+export const EVENT_CACHE_TTL_SEC = LISTING_CACHE_TTL_SEC
+
+/** First page size on default `/ons-aanbod` — bust listing cache when these products change. */
+export const PLP_TOP_SLOT_COUNT = 24
+
+export function eventDetailRedisKey(handle: string): string {
+  return `store:event:detail:${handle}`
+}
 
 type RedisClient = ReturnType<typeof createClient>
 
@@ -60,7 +68,17 @@ export async function redisSetJson(key: string, value: unknown, ttlSec = LISTING
   }
 }
 
-/** Drop all storefront listing caches (PLP, agenda, registration counts). */
+export async function redisDeleteKey(key: string): Promise<void> {
+  const client = await getRedisClient()
+  if (!client) return
+  try {
+    await client.del(key)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Drop PLP/agenda/vathuis listing caches + in-memory fallbacks. */
 export async function invalidateStoreListingCache(): Promise<void> {
   const client = await getRedisClient()
   if (client) {
@@ -69,13 +87,29 @@ export async function invalidateStoreListingCache(): Promise<void> {
         REDIS_KEY_PLP,
         REDIS_KEY_AGENDA,
         REDIS_KEY_VATHUIS,
-        REDIS_KEY_REGISTRATIONS,
       ])
     } catch {
       /* ignore */
     }
   }
   invalidateMemoryListingCaches()
+}
+
+/** Drop registration-count cache only (orders); PLP default sort does not use counts. */
+export async function invalidateRegistrationCountsCache(): Promise<void> {
+  const client = await getRedisClient()
+  if (client) {
+    try {
+      await client.del([REDIS_KEY_REGISTRATIONS])
+    } catch {
+      /* ignore */
+    }
+  }
+  memoryCaches.registrations = null
+}
+
+export async function invalidateEventDetailCache(handle: string): Promise<void> {
+  await redisDeleteKey(eventDetailRedisKey(handle))
 }
 
 /** In-process fallback when Redis is unavailable (also cleared on invalidation). */

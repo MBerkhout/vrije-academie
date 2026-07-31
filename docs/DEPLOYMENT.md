@@ -241,7 +241,7 @@ Future deploys should not hit this after the ignore is on `staging`.
 
 **Broken docent/teacher photos, `⨯ The requested resource isn't a valid image ... received null` in logs** — `docent.photoUrl` was sometimes a Salesforce session-relative path (e.g. `/services/images/photo/001...`) extracted from a rich-text field or `Account.PhotoUrl`. Those only resolve inside an authenticated Salesforce session, so Next's image optimizer fetches them from our own origin and gets a 404/login page instead of image bytes. `medusa/src/modules/salesforce-sync/utils/photo-url.ts` (`isUsablePhotoUrl`) now rejects non-absolute and `salesforce.com`/`force.com` URLs before they're synced to Sanity; `VaThuisTeacherGrid` also guards at render time as a defense-in-depth fallback.
 
-**PLP (`/ons-aanbod`) feels slow on first load** — `/store/events` builds a Redis-backed listing snapshot (~3–4 s cold, ~80 ms warm). Cold hits happen after deploy, cache expiry (300 s), or `invalidateStoreListingCache`. `medusa/scripts/deploy.sh` warms the cache after reload. Frontend-side: `getGeneralSettings` uses Sanity CDN (not live double-fetch) outside draft mode; React `cache()` dedupes CMS calls per request; category filter query is slimmed to slug/label only.
+**PLP (`/ons-aanbod`) feels slow on first load** — `/store/events` builds a Redis-backed listing snapshot (~3–4 s cold, ~80 ms warm). Cold hits happen after deploy, cache expiry (600 s), or selective invalidation when a first-page product changes. Default `/ons-aanbod` (no filters) also uses a Next.js hard cache (`unstable_cache`, 600 s) via `frontend/src/lib/plp/cached-default-listing.ts`. `medusa/scripts/deploy.sh` warms the cache after reload. Frontend-side: `getGeneralSettings` uses Sanity CDN outside draft mode; React `cache()` dedupes CMS/PDP calls per request.
 
 ## Medusa troubleshooting
 
@@ -312,26 +312,36 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 | Route type | Caching |
 |------------|---------|
 | CMS pages (`[...slug]`) | ISR, `revalidate = 60` — first hit renders fresh, subsequent hits serve from cache |
-| PLP / Agenda pages | `force-dynamic` — must be dynamic due to `searchParams` filters and live Medusa data |
+| PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 600 s hard cache |
+| PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail + similar cached in Redis (600 s); React `cache()` dedupes per request |
 | Homepage | `sanityFetch` with CDN, no explicit revalidate |
 | Redirect rules | In-memory, 60 s TTL |
 
 ### Medusa API caching
 
-PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized listing snapshots** stored in Redis (300 s TTL), shared across all PM2 cluster workers:
+PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized listing snapshots** stored in Redis (**600 s TTL**), shared across all PM2 cluster workers:
 
 | Layer | File | Role |
 |-------|------|------|
-| Redis keys | `medusa/src/lib/store-listing-redis.ts` | `store:listing:plp`, `store:listing:agenda`, `store:listing:registrations` |
+| Redis keys | `medusa/src/lib/store-listing-redis.ts` | `store:listing:plp`, `store:listing:agenda`, `store:listing:registrations`, `store:event:detail:{handle}` |
 | Snapshot build | `medusa/src/lib/store-listing-snapshot.ts` | Loads + enriches full catalog once; routes only filter/facet/sort/paginate in memory |
+| Event detail | `medusa/src/lib/store-event-detail.ts` | Redis cache for `GET /store/events/:handle` |
+| Similar courses | `medusa/src/lib/store-similar-events.ts` | Derives siblings from PLP snapshot (no per-sibling Postgres graph) |
 | Base query cache | `medusa/src/lib/store-query-cache.ts` | Product ids + event-group links (used when building snapshots) |
-| Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Clears keys on `product.*`, `order.completed`, `order.placed` |
+| Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart bust: full PLP on create/delete; on update only when product is in first 24 slots; orders bust registration counts only |
+| Frontend PLP hard cache | `frontend/src/lib/plp/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/ons-aanbod`; bust via `POST /api/revalidate/plp` |
 
 Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an in-process fallback is used per worker.
 
-`GET /store/events/:handle/similar` uses a cached registration-count map (`store:listing:registrations`) instead of scanning all completed orders per request.
+**Optional env for immediate PLP bust on catalog changes** (same secret on both sides):
 
-Responses also carry `Cache-Control: public, s-maxage=30, stale-while-revalidate=60` for CDN/reverse-proxy caching.
+| Service | Variable | Example |
+|---------|----------|---------|
+| Frontend | `REVALIDATE_SECRET` | random string |
+| Medusa | `STOREFRONT_REVALIDATE_PLP_URL` | `https://v2.vrijeacademie.nl/api/revalidate/plp` |
+| Medusa | `STOREFRONT_REVALIDATE_SECRET` | same as `REVALIDATE_SECRET` |
+
+Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600` on listing and event detail routes.
 
 ### PM2 cluster mode
 
@@ -354,4 +364,8 @@ Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set
 | `medusa/ecosystem.config.cjs` | PM2 config (Medusa, port 9000, cluster mode) |
 | `medusa/src/lib/store-listing-redis.ts` | Redis listing cache keys + invalidation |
 | `medusa/src/lib/store-listing-snapshot.ts` | PLP/agenda snapshot builders |
-| `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Cache bust on catalog/order changes |
+| `medusa/src/lib/store-event-detail.ts` | PDP event detail Redis cache |
+| `medusa/src/lib/store-similar-events.ts` | Similar courses from PLP snapshot |
+| `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart cache bust on catalog/order changes |
+| `frontend/src/lib/plp/cached-default-listing.ts` | Next.js hard cache for default PLP |
+| `frontend/src/app/api/revalidate/plp/route.ts` | Webhook to bust PLP hard cache |

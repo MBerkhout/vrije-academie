@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { commerceClient } from '@/lib/commerce'
+import { getCachedEvent } from '@/lib/commerce/server'
 import {
   getCategoryBySlug,
   categoryDisplayTitle,
@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: HandlePageProps): Promise<Met
   }
 
   const [event, productSeo] = await Promise.all([
-    commerceClient.getEvent(handle),
+    getCachedEvent(handle),
     getProductSeoByHandle(handle),
   ])
   if (!event) return {}
@@ -147,10 +147,10 @@ export default async function HandlePage({ params, searchParams }: HandlePagePro
     )
   }
 
-  const event = await commerceClient.getEvent(handle)
+  const event = await getCachedEvent(handle)
   if (event?.purchase_mode === 'bundle_only') {
     redirect(vathuisProductPath(handle))
   }
 
-  return <PdpPageContent handle={handle} />
+  return <PdpPageContent handle={handle} event={event} />
 }

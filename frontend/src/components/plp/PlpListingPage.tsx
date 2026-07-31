@@ -3,7 +3,8 @@ import { cmsClient } from '@/lib/cms/server'
 import { getPlpPage, getCategoriesForFilter, getTeachersForFilter } from '@/lib/cms/sanity-refs'
 import { CONTAINER_CLASS } from '@/lib/cms'
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
-import { PAGE_SIZE } from '@/app/(main)/ons-aanbod/_state/url'
+import { PAGE_SIZE, hasActiveFilters } from '@/app/(main)/ons-aanbod/_state/url'
+import { getHardCachedDefaultPlpListing } from '@/lib/plp/cached-default-listing'
 
 import { PlpBreadcrumbs } from '@/components/plp/PlpBreadcrumbs'
 import { PlpBanner } from '@/components/plp/PlpBanner'
@@ -38,20 +39,26 @@ export async function PlpListingPage({
   introText,
 }: PlpListingPageProps) {
   const sort = filterState.sort ?? (filterState.q ? 'relevance' : 'order')
+  const useHardPlpCache =
+    basePath === PLP_BASE_PATH && !hasActiveFilters(filterState) && sort === 'order'
+
+  const eventsPromise = useHardPlpCache
+    ? getHardCachedDefaultPlpListing().catch(() => null)
+    : commerceClient
+        .getEventsPaginated({
+          ...filterState,
+          sort,
+          limit: PAGE_SIZE,
+          offset: 0,
+        })
+        .catch(() => null)
 
   const [plpData, settings, categories, teachers, eventsResult] = await Promise.all([
     getPlpPage(),
     cmsClient.getGeneralSettings(),
     getCategoriesForFilter(),
     getTeachersForFilter(),
-    commerceClient
-      .getEventsPaginated({
-        ...filterState,
-        sort,
-        limit: PAGE_SIZE,
-        offset: 0,
-      })
-      .catch(() => null),
+    eventsPromise,
   ])
 
   const events = eventsResult?.events ?? []

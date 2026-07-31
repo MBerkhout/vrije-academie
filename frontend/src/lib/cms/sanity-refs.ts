@@ -185,9 +185,9 @@ export async function getCityBySlug(slug: string): Promise<CityOption | null> {
   return staticFetch<CityOption>(CITY_BY_SLUG_QUERY, { slug })
 }
 
-export async function getCategoryBySlug(slug: string): Promise<CategoryOption | null> {
-  return staticFetch<CategoryOption>(CATEGORY_BY_SLUG_QUERY, { slug })
-}
+export const getCategoryBySlug = cache(async (slug: string): Promise<CategoryOption | null> =>
+  staticFetch<CategoryOption>(CATEGORY_BY_SLUG_QUERY, { slug })
+)
 
 // ── PDP editorial extras ──────────────────────────────────────────────────────
 
@@ -306,9 +306,10 @@ const PRODUCT_EXTRAS_QUERY = `*[_type == "product" && medusaId == $medusaId][0] 
   }
 }`
 
-export async function getSanityProductExtras(medusaId: string): Promise<SanityProductExtras | null> {
-  return staticFetch<SanityProductExtras>(PRODUCT_EXTRAS_QUERY, { medusaId })
-}
+export const getSanityProductExtras = cache(
+  async (medusaId: string): Promise<SanityProductExtras | null> =>
+    staticFetch<SanityProductExtras>(PRODUCT_EXTRAS_QUERY, { medusaId })
+)
 
 const PRODUCT_SEO_BY_HANDLE_QUERY = `*[_type == "product" && handle == $handle][0] {
   ${SEO_FIELD},
@@ -318,6 +319,7 @@ const PRODUCT_SEO_BY_HANDLE_QUERY = `*[_type == "product" && handle == $handle][
 
 export interface ProductSeoByHandle extends ProductSeoSource {}
 
-export async function getProductSeoByHandle(handle: string): Promise<ProductSeoByHandle | null> {
-  return staticFetch<ProductSeoByHandle>(PRODUCT_SEO_BY_HANDLE_QUERY, { handle })
-}
+export const getProductSeoByHandle = cache(
+  async (handle: string): Promise<ProductSeoByHandle | null> =>
+    staticFetch<ProductSeoByHandle>(PRODUCT_SEO_BY_HANDLE_QUERY, { handle })
+)

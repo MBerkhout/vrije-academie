@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
-import { commerceClient } from '@/lib/commerce'
+import { getCachedEvent, getCachedSimilarEvents } from '@/lib/commerce/server'
+import type { EventCard } from '@/lib/commerce/types'
 import { cmsClient } from '@/lib/cms/server'
 import { getSanityProductExtras } from '@/lib/cms/sanity-refs'
 import { CONTAINER_CLASS } from '@/lib/cms'
@@ -22,11 +23,17 @@ import { PdpRelatedProducts } from '@/components/pdp/PdpRelatedProducts'
 import { PdpRecentViewed } from '@/components/pdp/PdpRecentViewed'
 import { PdpAnalytics } from '@/components/analytics/PdpAnalytics'
 
-export async function PdpPageContent({ handle }: { handle: string }) {
+export async function PdpPageContent({
+  handle,
+  event: prefetchedEvent,
+}: {
+  handle: string
+  event?: EventCard | null
+}) {
   const [event, settings, similar] = await Promise.all([
-    commerceClient.getEvent(handle),
+    prefetchedEvent ?? getCachedEvent(handle),
     cmsClient.getGeneralSettings(),
-    commerceClient.getSimilarEvents(handle).catch(() => []),
+    getCachedSimilarEvents(handle),
   ])
 
   if (!event) notFound()

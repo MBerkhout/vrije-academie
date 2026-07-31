@@ -34,13 +34,18 @@ import {
   LISTING_CACHE_TTL_SEC,
   memoryGet,
   memorySet,
+  PLP_TOP_SLOT_COUNT,
   redisGetJson,
+  REDIS_KEY_PLP,
   redisSetJson,
   REDIS_KEY_AGENDA,
-  REDIS_KEY_PLP,
   REDIS_KEY_REGISTRATIONS,
   REDIS_KEY_VATHUIS,
 } from "./store-listing-redis"
+import {
+  sortListingBySalesforceOrder,
+  tieBreakEventsByStartThenTitle,
+} from "./listing-sort"
 
 export type PlpListingSnapshot = {
   list: Record<string, unknown>[]
@@ -568,4 +573,21 @@ export async function getVathuisListingSnapshot(
     () => buildVathuisSnapshot(scope),
     vathuisInflight
   )
+}
+
+/** Product ids shown on the first page of default `/ons-aanbod` (Salesforce order sort). */
+export function topPlpProductIds(
+  snapshot: PlpListingSnapshot,
+  limit = PLP_TOP_SLOT_COUNT
+): string[] {
+  return sortListingBySalesforceOrder(snapshot.list, tieBreakEventsByStartThenTitle)
+    .slice(0, limit)
+    .map((p) => p.id as string)
+}
+
+/** True when `productId` is in the cached PLP snapshot's first page (no rebuild). */
+export async function isProductInCachedPlpTopSlots(productId: string): Promise<boolean> {
+  const snapshot = await redisGetJson<PlpListingSnapshot>(REDIS_KEY_PLP)
+  if (!snapshot?.list?.length) return false
+  return topPlpProductIds(snapshot).includes(productId)
 }

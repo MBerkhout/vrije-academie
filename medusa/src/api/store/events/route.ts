@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { getPlpListingSnapshot, getRegistrationCountsByProduct } from "../../../lib/store-listing-snapshot"
+import { LISTING_CACHE_TTL_SEC } from "../../../lib/store-listing-redis"
 import { filterProductsBySearchQuery, sortByRelevanceRank } from "../../../lib/search-query"
 import {
   incrementCityFacetCounts,
@@ -20,7 +21,10 @@ function parseArrayParam(val: string | string[] | undefined): string[] {
 }
 
 function setListingCacheHeaders(res: MedusaResponse): void {
-  res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60")
+  res.setHeader(
+    "Cache-Control",
+    `public, s-maxage=${LISTING_CACHE_TTL_SEC}, stale-while-revalidate=${LISTING_CACHE_TTL_SEC}`
+  )
 }
 
 /**
