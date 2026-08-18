@@ -307,6 +307,7 @@
     "shareEmailAria": "Deel via e-mail",
     "shareLinkedInAria": "Deel op LinkedIn",
     "bookingFeaturedInstructorHeading": "Docent",
+    "instructorHoverAria": "Meer over {name}",
     "bookingFreeTrial": "Gratis proefles",
     "bookingSoldOutLabel": "Volgeboekt",
     "bookingAdding": "Bezig…",

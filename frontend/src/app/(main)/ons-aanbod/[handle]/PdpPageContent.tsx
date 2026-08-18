@@ -129,11 +129,7 @@ export async function PdpPageContent({
               variants={event.variants ?? []}
               settings={settings}
               externalRegistrationUrl={event.external_registration_url}
-              instructors={event.instructors?.map((i) => ({
-                id: i.id,
-                name: i.name,
-                photo_url: i.photo_url ?? undefined,
-              }))}
+              instructors={event.instructors}
             />
           </div>
         ) : null}

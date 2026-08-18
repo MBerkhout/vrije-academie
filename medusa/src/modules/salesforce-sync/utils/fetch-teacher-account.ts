@@ -1,3 +1,4 @@
+import { stripHtmlToPlainText } from "../mappings/productgroup"
 import type SalesforceSyncModuleService from "../service"
 import { isUsablePhotoUrl } from "./photo-url"
 
@@ -6,6 +7,8 @@ export const TEACHER_ACCOUNT_FIELDS = [
   "Id",
   "Name",
   "Description",
+  "Web_Body__c",
+  "Web_Primary_1_Url__c",
   "PhotoUrl",
   "Website",
   "PersonEmail",
@@ -21,6 +24,24 @@ export type TeacherAccountProfile = {
   role: string | null
   website: string | null
   email: string | null
+}
+
+function firstUsablePhoto(...candidates: unknown[]): string | null {
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && isUsablePhotoUrl(candidate.trim())) {
+      return candidate.trim()
+    }
+  }
+  return null
+}
+
+export function teacherBioFromAccount(row: Record<string, unknown>): string | null {
+  const webBody = stripHtmlToPlainText(
+    typeof row.Web_Body__c === "string" ? row.Web_Body__c : null
+  )
+  if (webBody) return webBody
+  const description = typeof row.Description === "string" ? row.Description.trim() : ""
+  return description || null
 }
 
 export async function fetchTeacherAccountProfile(
@@ -46,11 +67,8 @@ export async function fetchTeacherAccountProfile(
     return {
       salesforceId: String(row.Id),
       name: typeof row.Name === "string" ? row.Name.trim() || null : null,
-      bio: typeof row.Description === "string" ? row.Description.trim() || null : null,
-      photoUrl:
-        typeof row.PhotoUrl === "string" && isUsablePhotoUrl(row.PhotoUrl.trim())
-          ? row.PhotoUrl.trim()
-          : null,
+      bio: teacherBioFromAccount(row),
+      photoUrl: firstUsablePhoto(row.Web_Primary_1_Url__c, row.PhotoUrl),
       role: typeof row.PersonTitle === "string" ? row.PersonTitle.trim() || null : null,
       website: typeof row.Website === "string" ? row.Website.trim() || null : null,
       email,

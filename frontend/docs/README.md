@@ -141,7 +141,7 @@ The commerce client also exposes `getWishlistHandles`, `addWishlistHandle`, and 
 
 Labels: **Sanity → General settings → PDP → UI labels** (`wishlist`, `wishlistSaved`, `inviteSomeone`); the header share control still uses `share`. Defaults and account copy live in `src/locales/nl.json` (`pdp`, `accountPage`).
 
-Below the wishlist control, the panel adds **Nodig iemand uit** (`mailto:` with a prefilled subject/body) and **Deel** (copy: `pdp.bookingShare`) with Facebook, e-mail, and LinkedIn actions (canonical product URL from `NEXT_PUBLIC_SITE_URL` / `plpProductPath`). When the event API returns **`featured_instructor`** (photo and/or bio), **`PdpFeaturedInstructor`** renders below the share row with name, role, and description (`pdp.bookingFeaturedInstructorHeading`).
+Below the wishlist control, the panel adds **Nodig iemand uit** (`mailto:` with a prefilled subject/body) and **Deel** (copy: `pdp.bookingShare`) with Facebook, e-mail, and LinkedIn actions (canonical product URL from `NEXT_PUBLIC_SITE_URL` / `plpProductPath`). **VA Thuis** shows **`PdpFeaturedInstructor`** in the booking panel (right column): photo left, name + title right (`pdp.bookingFeaturedInstructorHeading`). Bio comes from Salesforce teacher `Web_Body__c` (plain text); photo from `Web_Primary_1_Url__c` when that URL is publicly reachable. On **regular courses** (fysiek and online), the sidebar omits that block; session instructor names in `PdpLocationTabs` are hoverable (`PdpInstructorHoverCard`) and show photo, name, and description.
 
 ### Development
 

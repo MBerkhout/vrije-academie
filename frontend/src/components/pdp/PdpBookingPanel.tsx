@@ -326,7 +326,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
         </div>
       </div>
 
-      {event.featured_instructor ? (
+      {event.purchase_mode === 'bundle_only' && event.featured_instructor ? (
         <PdpFeaturedInstructor instructor={event.featured_instructor} variant={variant} />
       ) : null}
     </div>

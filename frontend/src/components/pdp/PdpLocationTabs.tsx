@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { DeliveryTypeIcon } from '@/components/ui/DeliveryTypeIcon'
 import { addVariantToCart } from '@/lib/commerce/cart'
 import { trackFilterChange } from '@/lib/analytics/events/ecommerce'
-import type { EventCard, EventVariant } from '@/lib/commerce/types'
+import type { EventCard, EventInstructor, EventVariant } from '@/lib/commerce/types'
+import { PdpInstructorHoverCard } from '@/components/pdp/PdpInstructorHoverCard'
+import { resolveSessionInstructor } from '@/components/pdp/resolve-session-instructor'
 import type { GeneralSettings } from '@/lib/cms/types'
 import {
   minVariantPriceCents,
@@ -23,7 +25,7 @@ interface PdpLocationTabsProps {
   event: EventCard
   variants: EventVariant[]
   settings: GeneralSettings | null
-  instructors?: { id: string; name: string; photo_url?: string | null }[]
+  instructors?: EventInstructor[]
   externalRegistrationUrl?: string | null
 }
 
@@ -116,6 +118,36 @@ function filterVariantsByDeliveryAndCity(
   return [...onlineVariants, ...filteredOffline]
 }
 
+function sessionInstructorLabel(
+  eventItem: EventVariant['event_item'],
+  instructors: EventInstructor[],
+  featured?: EventInstructor | null
+): string | null {
+  return (
+    eventItem?.instructor_name?.trim() ||
+    instructors[0]?.name?.trim() ||
+    featured?.name?.trim() ||
+    null
+  )
+}
+
+function SessionInstructorName({
+  eventItem,
+  instructors,
+  featured,
+  className,
+}: {
+  eventItem: EventVariant['event_item']
+  instructors: EventInstructor[]
+  featured?: EventInstructor | null
+  className?: string
+}) {
+  const label = sessionInstructorLabel(eventItem, instructors, featured)
+  if (!label) return <span className={className}>—</span>
+  const profile = resolveSessionInstructor(eventItem?.instructor_name, instructors, featured)
+  return <PdpInstructorHoverCard name={label} instructor={profile} className={className} />
+}
+
 export function PdpLocationTabs({
   event,
   variants,
@@ -123,6 +155,7 @@ export function PdpLocationTabs({
   instructors = [],
   externalRegistrationUrl,
 }: PdpLocationTabsProps) {
+  const profiles = instructors.length > 0 ? instructors : (event.instructors ?? [])
   const labels = settings?.pdp?.labels
   const t = defaultMessages.pdp
   const threshold = settings?.pdp?.lowStockThreshold ?? 5
@@ -452,8 +485,7 @@ export function PdpLocationTabs({
               const price = minVariantPriceCents(variant)
               const city = sessionCityLabel(ei, isOnline)
               const venue = sessionVenueLine(ei, isOnline)
-              const instructor =
-                ei?.instructor_name?.trim() || instructors[0]?.name?.trim() || null
+              const instructor = sessionInstructorLabel(ei, profiles, event.featured_instructor)
 
               return (
                 <li key={variant.id} className="py-6 first:pt-6">
@@ -480,7 +512,14 @@ export function PdpLocationTabs({
                           )}
                         </div>
                       ) : null}
-                      {instructor ? <p className="text-va-gray">{instructor}</p> : null}
+                      {instructor ? (
+                        <SessionInstructorName
+                          eventItem={ei}
+                          instructors={profiles}
+                          featured={event.featured_instructor}
+                          className="text-va-gray"
+                        />
+                      ) : null}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       {price ? (
@@ -555,9 +594,11 @@ export function PdpLocationTabs({
                         {ei?.start_at ? formatTimeRange(ei.start_at, ei?.end_at) : '—'}
                       </td>
                       <td className="py-4 pr-4 align-middle hidden lg:table-cell">
-                        <span className="text-va-gray">
-                          {ei?.instructor_name?.trim() || instructors[0]?.name?.trim() || '—'}
-                        </span>
+                        <SessionInstructorName
+                          eventItem={ei}
+                          instructors={profiles}
+                          featured={event.featured_instructor}
+                        />
                       </td>
                       <td className="py-4 pr-4 align-middle font-medium">
                         {price ? formatPriceEur(price) : '—'}

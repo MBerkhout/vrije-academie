@@ -78,7 +78,7 @@ export interface EventCard {
   tags?: { id: string; value: string }[]
   categories?: { id: string; slug: string; label: string }[]
   instructors?: EventInstructor[]
-  /** Highlighted docent for PDP sidebar (product link or earliest session docent). */
+  /** Highlighted docent for the VA Thuis PDP sidebar (product link or earliest session docent). */
   featured_instructor?: EventInstructor | null
   teachers?: { id: string; slug: string; name: string }[]
   cities?: string[]
