@@ -29,6 +29,7 @@ import type {
   VathuisListResult,
   VathuisAccessItem,
   VathuisAccessStatus,
+  VathuisPlaybackConfig,
   AgendaFilters,
   AgendaListResult,
   EventFacets,
@@ -460,23 +461,22 @@ export const medusaClient: CommerceClient = {
   },
 
   async getEvent(handle: string): Promise<EventCard | null> {
-    try {
-      const response = await fetch(
-        `${BACKEND_URL}/store/events/${handle}`,
-        { headers: storeHeaders() }
-      )
-      if (!response.ok) return null
-      const data = await response.json()
-      const ev = data.event
-      if (!ev) return null
-      const normalized = normalizeDocentenRow(ev as Record<string, unknown>) as unknown as EventCard
-      const variants = filterFutureEventVariants(normalized.variants ?? [])
-      return variants.length === (normalized.variants ?? []).length
-        ? normalized
-        : { ...normalized, variants }
-    } catch (error) {
-      return null
+    const response = await fetch(
+      `${BACKEND_URL}/store/events/${handle}`,
+      { headers: storeHeaders() }
+    )
+    if (response.status === 404) return null
+    if (!response.ok) {
+      throw new Error(`Failed to fetch event: ${response.status}`)
     }
+    const data = await response.json()
+    const ev = data.event
+    if (!ev) return null
+    const normalized = normalizeDocentenRow(ev as Record<string, unknown>) as unknown as EventCard
+    const variants = filterFutureEventVariants(normalized.variants ?? [])
+    return variants.length === (normalized.variants ?? []).length
+      ? normalized
+      : { ...normalized, variants }
   },
 
   async getSimilarEvents(handle: string): Promise<EventCard[]> {
@@ -1187,15 +1187,41 @@ export const medusaClient: CommerceClient = {
     return (await res.json()) as VathuisAccessStatus
   },
 
-  async getVathuisEpisodeEmbed(handle: string, episodeKey: string): Promise<string | null> {
+  async getVathuisEpisodePlayback(
+    handle: string,
+    episodeKey: string
+  ): Promise<VathuisPlaybackConfig | null> {
     const encodedHandle = encodeURIComponent(handle)
     const encodedKey = encodeURIComponent(episodeKey)
     const res = await storeFetch(
       `/store/customer/me/vathuis-access/${encodedHandle}/episodes/${encodedKey}/embed`
     )
     if (!res.ok) return null
-    const data = (await res.json()) as { embedUrl?: string }
-    return data.embedUrl ?? null
+    const data = (await res.json()) as { playback?: VathuisPlaybackConfig }
+    return data.playback ?? null
+  },
+
+  async getVathuisPreviewPlayback(
+    handle: string,
+    episodeKey: string
+  ): Promise<VathuisPlaybackConfig | null> {
+    const encodedHandle = encodeURIComponent(handle)
+    const encodedKey = encodeURIComponent(episodeKey)
+    const res = await fetch(
+      `${BACKEND_URL}/store/events/${encodedHandle}/episodes/${encodedKey}/preview-playback`,
+      {
+        headers: PUBLISHABLE_KEY ? { 'x-publishable-api-key': PUBLISHABLE_KEY } : {},
+      }
+    )
+    if (!res.ok) return null
+    const data = (await res.json()) as { playback?: VathuisPlaybackConfig }
+    return data.playback ?? null
+  },
+
+  async getVathuisEpisodeEmbed(handle: string, episodeKey: string): Promise<string | null> {
+    const playback = await this.getVathuisEpisodePlayback(handle, episodeKey)
+    if (!playback) return null
+    return `https://embed.audienceplayer.com/${playback.projectId}/article/${playback.articleId}/asset/${playback.assetId}`
   },
 
   async searchSite(query: string): Promise<SiteSearchHit[]> {

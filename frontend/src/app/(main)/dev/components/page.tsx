@@ -16,6 +16,7 @@ import {
 } from '@/lib/va-colors.js'
 import { PlpEventCard } from '@/components/plp/PlpEventCard'
 import { PlpEmptyState } from '@/components/plp/PlpEmptyState'
+import { ErrorView } from '@/components/ErrorView'
 
 export const metadata: Metadata = noIndexMetadata('Component library – Vrije Academie')
 
@@ -305,6 +306,17 @@ export default function DevComponentsPage() {
             <button className="text-xs text-va-gray underline hover:text-va-black">
               Wis alle filters
             </button>
+          </div>
+        </Section>
+
+        <Section title="500 — Server error">
+          <p className="text-sm text-va-gray mb-4">
+            Preview of <code className="font-mono text-xs">ErrorView</code> (used by{' '}
+            <code className="font-mono text-xs">error.tsx</code> /{' '}
+            <code className="font-mono text-xs">global-error.tsx</code>).
+          </p>
+          <div className="bg-white">
+            <ErrorView onRetry={() => undefined} digest="abc123" />
           </div>
         </Section>
 

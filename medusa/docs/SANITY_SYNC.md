@@ -92,6 +92,7 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | `recordType` | `EventGroup.record_type` | No |
 | `thumbnailUrl` | `Product.thumbnail` | No |
 | `imageUrls` | `Product.images[].url` | No |
+| `imageCaptions` | `Product.metadata.salesforce_gallery_images[].caption` (Salesforce `Image_N_Source__c`, same order as `imageUrls`) | No |
 | `description` | `Product.description` | No |
 | `tags` | `Product.tags[].value` | No |
 | `categories` | category links | No |

@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { PdpGalleryImage } from '@/components/pdp/pdp-gallery-images'
+import { formatPdpGalleryCaption, type PdpGalleryImage } from '@/components/pdp/pdp-gallery-images'
 import { cn } from '@/lib/utils'
 
 export type { PdpGalleryImage } from '@/components/pdp/pdp-gallery-images'
@@ -67,51 +67,46 @@ function GalleryTile({
   index,
   title,
   openIndex,
-  onToggleCaption,
 }: {
   image: PdpGalleryImage
   index: number
   title: string
   openIndex: number | null
-  onToggleCaption: (index: number) => void
 }) {
-  const hasCaption = Boolean(image.caption?.trim())
+  const rawCaption = image.caption?.trim() ?? ''
+  const hasCaption = Boolean(rawCaption)
   const isOpen = openIndex === index
+  const captionId = `pdp-gallery-caption-${index}`
+  const captionText = hasCaption ? formatPdpGalleryCaption(rawCaption) : ''
 
   return (
-    <div className={TILE_CLASS}>
-      <Image
-        src={image.url}
-        alt={`${title} ${index + 1}`}
-        fill
-        className="object-cover"
-        sizes="(max-width: 640px) 60vw, 25vw"
-        priority={index === 0}
-      />
+    <div className="group relative">
+      <div className={TILE_CLASS}>
+        <Image
+          src={image.url}
+          alt={captionText ? captionText.replace(/\n/g, ' — ') : `${title} ${index + 1}`}
+          fill
+          className="object-cover"
+          sizes="(max-width: 640px) 60vw, 25vw"
+          priority={index === 0}
+        />
+      </div>
 
       {hasCaption && (
-        <div className="absolute bottom-1.5 right-1.5">
-          <button
-            type="button"
-            aria-label={`Informatie bij afbeelding ${index + 1}`}
-            aria-expanded={isOpen}
-            onClick={(e) => {
-              e.stopPropagation()
-              onToggleCaption(index)
-            }}
-            className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] font-sans font-bold leading-none text-va-black shadow-sm transition-colors hover:bg-va-yellow"
-          >
-            i
-          </button>
-
-          {isOpen && (
-            <div
-              role="tooltip"
-              className="absolute bottom-full right-0 z-10 mb-1.5 w-48 rounded-none border border-va-lightgray bg-white p-2 text-left text-xs leading-snug text-va-black shadow-md"
-            >
-              {image.caption}
-            </div>
+        <div
+          id={captionId}
+          aria-hidden
+          className={cn(
+            'bg-white p-2 text-left text-[14px] leading-snug text-va-black',
+            'whitespace-pre-line line-clamp-4 shadow-[0_2px_10px_rgba(0,0,0,0.08)]',
+            isOpen ? 'mt-2 max-sm:block' : 'max-sm:hidden',
+            'sm:pointer-events-none sm:absolute sm:left-0 sm:right-0 sm:top-full sm:z-20 sm:mt-1.5 sm:opacity-0',
+            'sm:transition-opacity sm:duration-200',
+            'sm:group-hover:pointer-events-auto sm:group-hover:opacity-100',
+            'sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100',
           )}
+        >
+          {captionText}
         </div>
       )}
     </div>
@@ -238,6 +233,10 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
   }, [openIndex])
 
   useEffect(() => {
+    setOpenIndex(null)
+  }, [activeIndex])
+
+  useEffect(() => {
     const el = scrollerRef.current
     if (!el) return
 
@@ -351,6 +350,8 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
         >
           {images.map((image, i) => {
             const isActive = i === activeIndex
+            const hasCaption = Boolean(image.caption?.trim())
+            const isCaptionOpen = openIndex === i
             return (
             <div
               key={`${image.url}-${i}`}
@@ -358,17 +359,36 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
               data-gallery-index={i}
               role="button"
               tabIndex={0}
-              aria-label={`Ga naar afbeelding ${i + 1}`}
+              aria-label={
+                isActive && hasCaption
+                  ? isCaptionOpen
+                    ? `Verberg bijschrift bij afbeelding ${i + 1}`
+                    : `Toon bijschrift bij afbeelding ${i + 1}`
+                  : `Ga naar afbeelding ${i + 1}`
+              }
               aria-current={isActive ? 'true' : undefined}
+              aria-expanded={isActive && hasCaption ? isCaptionOpen : undefined}
               onClick={(e) => {
                 e.stopPropagation()
                 if (didDragRef.current) return
-                scrollToIndex(i)
+                if (!isActive) {
+                  scrollToIndex(i)
+                  return
+                }
+                if (hasCaption) {
+                  setOpenIndex(isCaptionOpen ? null : i)
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
-                  scrollToIndex(i)
+                  if (!isActive) {
+                    scrollToIndex(i)
+                    return
+                  }
+                  if (hasCaption) {
+                    setOpenIndex(isCaptionOpen ? null : i)
+                  }
                 }
               }}
               className={cn(
@@ -381,7 +401,6 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
                 index={i}
                 title={title}
                 openIndex={openIndex}
-                onToggleCaption={(index) => setOpenIndex(openIndex === index ? null : index)}
               />
             </div>
             )
@@ -431,7 +450,7 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
       </div>
 
       {/* Tablet/desktop: side-by-side row */}
-      <div className="hidden sm:grid sm:grid-cols-4 sm:gap-4 md:gap-5">
+      <div className="hidden sm:grid sm:grid-cols-4 sm:gap-4 sm:overflow-visible md:gap-5">
         {images.map((image, i) => (
           <GalleryTile
             key={`${image.url}-${i}`}
@@ -439,7 +458,6 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
             index={i}
             title={title}
             openIndex={openIndex}
-            onToggleCaption={(index) => setOpenIndex(openIndex === index ? null : index)}
           />
         ))}
       </div>

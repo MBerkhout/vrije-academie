@@ -52,6 +52,16 @@ export interface EventMetadata {
   category?: string
 }
 
+/** Instructor profile on PDP / listing cards. */
+export interface EventInstructor {
+  id: string
+  slug: string
+  name: string
+  role?: string | null
+  photo_url?: string | null
+  bio?: string | null
+}
+
 /** Card-ready shape returned by /store/events */
 export interface EventCard {
   id: string
@@ -60,12 +70,16 @@ export interface EventCard {
   description?: string | null
   thumbnail?: string | null
   image_urls?: string[]
+  /** Artwork credits for `image_urls` / gallery tiles (Salesforce `Image_N_Source__c`). */
+  gallery_images?: { url: string; caption?: string | null }[]
   record_type?: string | null
   /** Medusa product type label from Salesforce `Productgroup_Record_Type_Developer_Name__c`. */
   product_type?: string | null
   tags?: { id: string; value: string }[]
   categories?: { id: string; slug: string; label: string }[]
-  instructors?: { id: string; slug: string; name: string; photo_url?: string | null }[]
+  instructors?: EventInstructor[]
+  /** Highlighted docent for PDP sidebar (product link or earliest session docent). */
+  featured_instructor?: EventInstructor | null
   teachers?: { id: string; slug: string; name: string }[]
   cities?: string[]
   delivery_types?: string[]
@@ -91,6 +105,15 @@ export interface EventCard {
   bundle_variant_id?: string | null
   vathuis?: VathuisBundleInfo | null
   variants?: EventVariant[]
+}
+
+export interface VathuisPlaybackConfig {
+  projectId: number
+  apiBaseUrl: string
+  articleId: number
+  assetId: number
+  token: string
+  durationSeconds?: number | null
 }
 
 export interface VathuisEpisode {
@@ -409,6 +432,7 @@ export interface CommerceClient {
   getProducts(filters?: ProductFilters): Promise<Product[]>
   getProduct(handle: string): Promise<Product | null>
   getEvents(filters?: EventFilters): Promise<EventCard[]>
+  /** `null` only when Medusa responds 404. Network / 5xx failures throw. */
   getEvent(handle: string): Promise<EventCard | null>
   getSimilarEvents(handle: string): Promise<EventCard[]>
   getEventsPaginated(filters?: PaginatedEventFilters): Promise<EventListResult>
@@ -481,6 +505,9 @@ export interface CommerceClient {
   /** VA Thuis entitlements for the logged-in customer. */
   listVathuisAccess(): Promise<VathuisAccessItem[]>
   getVathuisAccess(handle: string): Promise<VathuisAccessStatus>
+  getVathuisEpisodePlayback(handle: string, episodeKey: string): Promise<VathuisPlaybackConfig | null>
+  getVathuisPreviewPlayback(handle: string, episodeKey: string): Promise<VathuisPlaybackConfig | null>
+  /** @deprecated Use getVathuisEpisodePlayback — bare embed URLs return 403 */
   getVathuisEpisodeEmbed(handle: string, episodeKey: string): Promise<string | null>
   /** Change password (with current) or set initial password (with OTP when passwordless). */
   setPassword(input: {

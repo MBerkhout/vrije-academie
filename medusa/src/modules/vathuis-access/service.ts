@@ -1,16 +1,13 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, MedusaError, MedusaService } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import type { ICustomerModuleService } from "@medusajs/framework/types"
 
 import productEventGroupLink from "../../links/product-event-group"
 import {
-  buildAudiencePlayerEmbedUrl,
-  type VathuisEpisode,
-} from "../salesforce-sync/clients/audience-player"
-import {
-  findVathuisEpisode,
-  parseEpisodeKey,
-  type VathuisMetadataShape,
-} from "../../lib/vathuis-episode-lookup"
+  loadVathuisEpisodeByKey,
+  resolveVathuisEpisodePlayback,
+} from "../../lib/vathuis-playback"
+import type { AudiencePlayerPlaybackConfig } from "../../lib/audience-player/types"
 import {
   isAccessActive,
   parseIsoDate,
@@ -279,72 +276,47 @@ class VathuisAccessModuleService extends MedusaService({
     }
   }
 
-  private episodeEmbedUrl(
-    episode: VathuisEpisode,
-    vathuis: VathuisMetadataShape
-  ): string | null {
-    if (episode.embed_url) return episode.embed_url
+  async resolvePlaybackConfig(
+    container: MedusaContainer,
+    customerId: string,
+    productHandle: string,
+    episodeKey: string
+  ): Promise<AudiencePlayerPlaybackConfig> {
+    const access = await this.getAccess(customerId, productHandle)
+    if (!access.hasAccess) {
+      throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "No active access for this course")
+    }
 
-    const audience = vathuis.audience_player
-    const projectId =
-      typeof audience?.project_id === "number" && Number.isFinite(audience.project_id)
-        ? audience.project_id
-        : Number(process.env.AUDIENCE_PLAYER_PROJECT_ID ?? 14)
+    const { vathuis, episode } = await loadVathuisEpisodeByKey(
+      container,
+      productHandle,
+      episodeKey
+    )
 
-    return buildAudiencePlayerEmbedUrl({
-      projectId,
-      previewUrl: audience?.preview_url ?? null,
-      iframeUrl: audience?.iframe_url ?? null,
-      articleId: episode.audience_article_id,
-      assetId: episode.audience_asset_id ?? null,
-      previewEpisode: false,
-    })
+    const customerService = container.resolve(Modules.CUSTOMER) as ICustomerModuleService
+    const customer = await customerService.retrieveCustomer(customerId, { select: ["email"] })
+    const email = customer.email?.trim()
+    if (!email) {
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, "Customer email is required for playback")
+    }
+
+    return resolveVathuisEpisodePlayback({ email, episode, vathuis })
   }
 
+  /** @deprecated Use resolvePlaybackConfig — bare embed URLs return 403 from Audience Player */
   async resolveEmbedUrl(
     container: MedusaContainer,
     customerId: string,
     productHandle: string,
     episodeKey: string
   ): Promise<string> {
-    const access = await this.getAccess(customerId, productHandle)
-    if (!access.hasAccess) {
-      throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "No active access for this course")
-    }
-
-    const parsed = parseEpisodeKey(episodeKey)
-    if (!parsed) {
-      throw new MedusaError(MedusaError.Types.INVALID_DATA, "Invalid episode key")
-    }
-
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
-    const { data: products } = await query.graph({
-      entity: "product",
-      fields: ["id", "metadata"],
-      filters: { handle: productHandle },
-    })
-    const product = products?.[0] as Record<string, unknown> | undefined
-    if (!product) {
-      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Product not found")
-    }
-
-    const vathuis = (product.metadata as Record<string, unknown> | null | undefined)
-      ?.vathuis as VathuisMetadataShape | undefined
-    const episode = findVathuisEpisode(
-      vathuis,
-      parsed.chapterNumber,
-      parsed.episodeNumber
+    const playback = await this.resolvePlaybackConfig(
+      container,
+      customerId,
+      productHandle,
+      episodeKey
     )
-    if (!episode) {
-      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Episode not found")
-    }
-
-    const embedUrl = this.episodeEmbedUrl(episode, vathuis ?? {})
-    if (!embedUrl) {
-      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Episode embed unavailable")
-    }
-
-    return embedUrl
+    return `https://embed.audienceplayer.com/${playback.projectId}/article/${playback.articleId}/asset/${playback.assetId}`
   }
 }
 

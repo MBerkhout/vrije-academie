@@ -21,6 +21,12 @@ export const EventItem = model.define("event_item", {
   city: model.text().nullable(),
   city_slug: model.text().nullable(),
   location_name: model.text().nullable(),
+  /** Linked catalog_city row (for filtering). */
+  catalog_city_id: model.text().nullable(),
+  /** Linked catalog_location row (for filtering). */
+  catalog_location_id: model.text().nullable(),
+  /** Linked docent row (session instructor, for filtering). */
+  docent_id: model.text().nullable(),
   registration_deadline_at: model.dateTime().nullable(),
   is_free_trial: model.boolean().default(false),
   /** Display name from Salesforce child `Account_Teacher__c` / `Main_Teacher_Name__c` (per variant). */

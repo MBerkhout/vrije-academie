@@ -20,6 +20,7 @@ import { formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
 import type { GeneralSettings } from '@/lib/cms/types'
 import type { EventCard } from '@/lib/commerce/types'
+import { PdpFeaturedInstructor } from '@/components/pdp/PdpFeaturedInstructor'
 
 interface PdpBookingPanelProps {
   event: EventCard
@@ -324,6 +325,10 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
           </a>
         </div>
       </div>
+
+      {event.featured_instructor ? (
+        <PdpFeaturedInstructor instructor={event.featured_instructor} variant={variant} />
+      ) : null}
     </div>
   )
 }

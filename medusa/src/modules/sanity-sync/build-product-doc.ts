@@ -8,6 +8,7 @@ export type MirrorProductInput = {
   record_type?: string
   thumbnail?: string | null
   image_urls?: string[]
+  image_captions?: (string | null)[]
   description?: string | null
   tags?: { value: string }[]
   categories?: { id: string; slug: string; label: string }[]
@@ -56,6 +57,7 @@ export function buildProductMirrorDoc(
     recordType: product.record_type ?? null,
     thumbnailUrl: product.thumbnail ?? null,
     imageUrls: product.image_urls ?? [],
+    imageCaptions: (product.image_captions ?? []).map((caption) => caption ?? ""),
     description: product.description ?? null,
     tags: (product.tags ?? []).map((t) => t.value),
     categories: (product.categories ?? []).map((c) => ({
@@ -111,6 +113,7 @@ export function productMirrorDocChanged(
     "recordType",
     "thumbnailUrl",
     "imageUrls",
+    "imageCaptions",
     "description",
     "tags",
     "categories",
@@ -148,6 +151,7 @@ export const SANITY_PRODUCT_BATCH_FETCH_FIELDS = `
   recordType,
   thumbnailUrl,
   imageUrls,
+  imageCaptions,
   description,
   tags,
   categories,

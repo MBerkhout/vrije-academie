@@ -1,13 +1,15 @@
 /**
  * Node does not load `.env` files by default. Studio reads `sanity/.env` via Vite; CLI scripts do not.
  * Loads the first file found: `sanity/.env` (relative to this file), then `process.cwd()/.env`.
- * Does not override variables already set in the environment.
+ * By default does not override variables already set in the environment.
+ * Pass `{ override: true }` for deploy scripts so sanity/.env wins over stale shell exports.
  */
 import { readFileSync, existsSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
-export function loadEnvFromSanityDir() {
+export function loadEnvFromSanityDir(options = {}) {
+  const { override = false } = options
   const scriptDir = dirname(fileURLToPath(import.meta.url))
   const paths = [join(scriptDir, "..", ".env"), join(process.cwd(), ".env")]
 
@@ -27,7 +29,7 @@ export function loadEnvFromSanityDir() {
       ) {
         val = val.slice(1, -1)
       }
-      if (process.env[key] === undefined) process.env[key] = val
+      if (override || process.env[key] === undefined) process.env[key] = val
     }
     return
   }

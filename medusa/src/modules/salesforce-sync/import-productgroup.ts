@@ -54,6 +54,7 @@ import {
   linkDocentFromSalesforce,
   resolveInstructorFromChild,
 } from "./utils/link-docent-from-salesforce"
+import { resolveEventItemFacetIdsFromSalesforce } from "./utils/link-event-item-facets-from-salesforce"
 import { buildVathuisMetadata } from "./utils/vathuis-metadata"
 import { deepEqual, sameDate } from "./utils/deep-equal"
 
@@ -268,7 +269,8 @@ async function upsertEventItemForVariant(
   variantId: string,
   child: SfCourseProductShape,
   group: SfProductgroupShape,
-  groupRecordType?: string | null
+  groupRecordType?: string | null,
+  importContext?: BulkImportContext
 ): Promise<void> {
   const events = container.resolve("events") as InstanceType<typeof EventsModuleService>
   const catalog = container.resolve("catalog") as InstanceType<typeof CatalogModuleService>
@@ -290,6 +292,13 @@ async function upsertEventItemForVariant(
 
   const instructor = resolveInstructorFromChild(group, child)
   const locationName = child.Product_Location_Name__c?.trim() || null
+  const facetIds = await resolveEventItemFacetIdsFromSalesforce(
+    container,
+    child,
+    group,
+    groupRecordType,
+    importContext
+  )
   const patch = {
     delivery_type: delivery,
     available_quantity: qty,
@@ -301,6 +310,9 @@ async function upsertEventItemForVariant(
     is_free_trial: !!child.Free_Product__c,
     instructor_name: instructor.name,
     instructor_salesforce_id: instructor.salesforceId,
+    catalog_city_id: facetIds.catalog_city_id,
+    catalog_location_id: facetIds.catalog_location_id,
+    docent_id: facetIds.docent_id,
   }
 
   const { data: existing } = await query.graph({
@@ -322,7 +334,10 @@ async function upsertEventItemForVariant(
       existingItem.location_name === patch.location_name &&
       existingItem.is_free_trial === patch.is_free_trial &&
       existingItem.instructor_name === patch.instructor_name &&
-      existingItem.instructor_salesforce_id === patch.instructor_salesforce_id
+      existingItem.instructor_salesforce_id === patch.instructor_salesforce_id &&
+      existingItem.catalog_city_id === patch.catalog_city_id &&
+      existingItem.catalog_location_id === patch.catalog_location_id &&
+      existingItem.docent_id === patch.docent_id
 
     if (!unchanged) {
       await events.updateEventItems({
@@ -371,16 +386,32 @@ async function resolveVariantForChildOnProduct(
   sync: InstanceType<typeof SalesforceSyncModuleService>,
   productId: string,
   variantSyncKey: string,
-  importContext?: BulkImportContext
+  importContext?: BulkImportContext,
+  skuFallback?: string
 ): Promise<{ medusaId: string } | null> {
   const cachedMedusaId = importContext?.getVariantMedusaId(variantSyncKey) ?? null
-  const medusaIdFromState =
+  let medusaIdFromState =
     cachedMedusaId ??
     (await sync.getStateBySalesforceId(ENTITY_VARIANT, variantSyncKey))?.medusa_id ??
     null
-  if (!medusaIdFromState) return null
 
   const productModule = container.resolve(Modules.PRODUCT)
+
+  if (!medusaIdFromState && skuFallback) {
+    try {
+      const product = await productModule.retrieveProduct(productId, { relations: ["variants"] })
+      const variant = product.variants?.find((v) => v.sku === skuFallback)
+      if (variant?.id) {
+        medusaIdFromState = variant.id
+        importContext?.setVariantMedusaId(variantSyncKey, variant.id)
+      }
+    } catch {
+      /* product missing */
+    }
+  }
+
+  if (!medusaIdFromState) return null
+
   try {
     const variant = await productModule.retrieveProductVariant(medusaIdFromState, {
       select: ["id", "product_id"],
@@ -434,17 +465,18 @@ async function syncChildVariantsBatch(
     if (!child.Id) continue
     const sfId = child.Id
     const variantSyncKey = variantSyncSalesforceId(sfId, productgroupSfId, { isLinkedOnlineSlave })
+    const sku = variantSkuForChild(sfId, { isLinkedOnlineSlave })
     const resolved = await resolveVariantForChildOnProduct(
       container,
       sync,
       productId,
       variantSyncKey,
-      importContext
+      importContext,
+      sku
     )
     const priceAmount = courseProductPriceAmount(child)
     const optionLabel = courseProductOptionLabel(child)
     const title = courseProductVariantTitle(child)
-    const sku = variantSkuForChild(sfId, { isLinkedOnlineSlave })
 
     if (resolved?.medusaId) {
       const existingMedusaId = resolved.medusaId
@@ -513,8 +545,52 @@ async function syncChildVariantsBatch(
       task.variantId,
       task.child,
       group,
-      task.groupRecordType
+      task.groupRecordType,
+      importContext
     )
+  }
+
+  return variantIds
+}
+
+/** Re-apply session location/docent fields from Salesforce without touching product metadata. */
+export async function refreshEventItemsFromChildRows(
+  container: MedusaContainer,
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  productId: string,
+  productgroupSfId: string,
+  childRows: Array<{ child: SfCourseProductShape; groupRecordType?: string | null }>,
+  group: SfProductgroupShape,
+  isLinkedOnlineSlave: boolean,
+  importContext?: BulkImportContext
+): Promise<string[]> {
+  const variantIds: string[] = []
+
+  for (const { child, groupRecordType } of childRows) {
+    if (!child.Id) continue
+    const variantSyncKey = variantSyncSalesforceId(child.Id, productgroupSfId, {
+      isLinkedOnlineSlave,
+    })
+    const sku = variantSkuForChild(child.Id, { isLinkedOnlineSlave })
+    const resolved = await resolveVariantForChildOnProduct(
+      container,
+      sync,
+      productId,
+      variantSyncKey,
+      importContext,
+      sku
+    )
+    if (!resolved?.medusaId) continue
+
+    await upsertEventItemForVariant(
+      container,
+      resolved.medusaId,
+      child,
+      group,
+      groupRecordType,
+      importContext
+    )
+    variantIds.push(resolved.medusaId)
   }
 
   return variantIds
@@ -594,13 +670,25 @@ export async function importProductgroupFromSalesforce(
   if (importContext?.skipUnchanged) {
     const state = importContext.getProductgroupState(input.salesforceId)
     if (state?.mapping_version === contentFingerprint && state.medusa_id) {
+      const parentIdsForSlave = importContext.getLinkedOnlineParentIds(input.salesforceId)
+      const isLinkedOnlineSlave = parentIdsForSlave.length > 0
+      const variantIds = await refreshEventItemsFromChildRows(
+        container,
+        sync,
+        state.medusa_id,
+        input.salesforceId,
+        childRows,
+        group,
+        isLinkedOnlineSlave,
+        importContext
+      )
       return {
         medusaId: state.medusa_id,
         created: false,
         updated: false,
         skipped: true,
         skipReason: "unchanged",
-        variantIds: [],
+        variantIds,
       }
     }
   }
@@ -808,7 +896,8 @@ export async function importProductgroupFromSalesforce(
         variant.id,
         child,
         group,
-        groupRecordType
+        groupRecordType,
+        importContext
       )
       variantIds.push(variant.id)
     }

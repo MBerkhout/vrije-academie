@@ -1,4 +1,5 @@
 import type { VathuisEpisode } from "../modules/salesforce-sync/clients/audience-player"
+import { isPublicPreviewEmbedUrl } from "./audience-player/public-embed-url"
 
 export type VathuisMetadataShape = {
   episodes?: VathuisEpisode[]
@@ -50,14 +51,22 @@ export function findVathuisEpisode(
   )
 }
 
+export function stripEmbedUrls<T extends { preview_available?: boolean; embed_url?: string | null }>(
+  episodes: T[]
+): T[] {
+  return episodes.map((episode) => {
+    if (episode.preview_available && isPublicPreviewEmbedUrl(episode.embed_url)) {
+      return episode
+    }
+    return { ...episode, embed_url: null }
+  })
+}
+
+/** @deprecated Use stripEmbedUrls */
 export function stripNonPreviewEmbedUrls<T extends { preview_available?: boolean; embed_url?: string | null }>(
   episodes: T[]
 ): T[] {
-  return episodes.map((episode) =>
-    episode.preview_available
-      ? episode
-      : { ...episode, embed_url: null }
-  )
+  return stripEmbedUrls(episodes)
 }
 
 export function stripVathuisPublicEmbeds(

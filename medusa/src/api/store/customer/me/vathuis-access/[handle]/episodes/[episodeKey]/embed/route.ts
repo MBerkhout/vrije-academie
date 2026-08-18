@@ -5,6 +5,7 @@ import type VathuisAccessModuleService from "../../../../../../../../../modules/
 
 /**
  * GET /store/customer/me/vathuis-access/:handle/episodes/:episodeKey/embed
+ * Returns Audience Player playback config (token + article/asset ids).
  */
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse): Promise<void> {
   const customerId = req.auth_context.actor_id
@@ -14,11 +15,11 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse):
     typeof VathuisAccessModuleService
   >
 
-  const embedUrl = await vathuisAccess.resolveEmbedUrl(
+  const playback = await vathuisAccess.resolvePlaybackConfig(
     req.scope,
     customerId,
     handle,
     episodeKey
   )
-  res.json({ embedUrl })
+  res.json({ playback })
 }

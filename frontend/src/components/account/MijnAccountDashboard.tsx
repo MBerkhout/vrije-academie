@@ -172,7 +172,7 @@ function RecentSavedPanel() {
     let cancelled = false
     setLoading(true)
     void (async () => {
-      const ev = await commerceClient.getEvent(latestHandle)
+      const ev = await commerceClient.getEvent(latestHandle).catch(() => null)
       if (!cancelled) {
         setEvent(ev)
         setLoading(false)

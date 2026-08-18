@@ -79,7 +79,9 @@ Medusa stores money in the **smallest currency unit** (e.g. EUR **cents**), incl
 
 ## Catalog cities (plaatsen)
 
-Canonical cities live in the **`catalog`** module as `catalog_city` (`slug`, `label`, `sort_order`). Each offline `event_item` stores `city_slug` (canonical) plus `city` (display label). Admin CRUD: `GET/POST /admin/catalog/cities`, `GET/PATCH/DELETE /admin/catalog/cities/:id`.
+Canonical cities live in the **`catalog`** module as `catalog_city` (`slug`, `label`, `sort_order`). Each offline `event_item` stores `city_slug` (canonical) plus `city` (display label), and `catalog_city_id` for filtering. Admin CRUD: `GET/POST /admin/catalog/cities`, `GET/PATCH/DELETE /admin/catalog/cities/:id`.
+
+Venues/locations are **`catalog_location`** (`slug`, `name`, `city_slug`, optional `room_name`, Salesforce account/room ids). Each offline `event_item` stores `catalog_location_id`. Session instructors are referenced by `event_item.docent_id` (plus product-level **`product-docenten`** for the highlighted docent). Populated on Salesforce product-group import (`resolveEventItemFacetIdsFromSalesforce`).
 
 **Backfill** existing free-text cities:
 

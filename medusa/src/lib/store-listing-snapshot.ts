@@ -16,6 +16,16 @@ import {
   type CityRef,
 } from "./city-refs"
 import {
+  cityRefsByEventItemId,
+  docentenByEventItemId,
+  eventItemDocentLinksForProducts,
+  loadFacetEntitiesForEventItems,
+  locationsByEventItemId,
+  mergeCityRefsForProduct,
+  mergeDocentenForProduct,
+  uniqueLocationsForVariants,
+} from "./event-item-facet-links"
+import {
   futureAvailableSessionsForListing,
   futureOfflineSessionsForListing,
   productHasFutureAvailableSession,
@@ -186,6 +196,10 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
     filters: { id: eligibleProductIds },
   })
 
+  const allVariants = ((products ?? []) as Record<string, unknown>[]).flatMap(
+    (p) => (p.variants ?? []) as Array<{ id?: string; event_item?: Record<string, unknown> | null }>
+  )
+
   const [catLinksAll, { data: docLinksAll }] = await Promise.all([
     listProductCatalogCategoryLinks(scope, { product_id: eligibleProductIds }),
     query.graph({
@@ -194,6 +208,14 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
       filters: { product_id: eligibleProductIds },
     }),
   ])
+
+  const { cityById, locationById, docentById } = await loadFacetEntitiesForEventItems(
+    scope,
+    allVariants
+  )
+  const docentByEventItem = docentenByEventItemId(allVariants, docentById)
+  const cityByEventItem = cityRefsByEventItemId(allVariants, cityById)
+  const locationByEventItem = locationsByEventItemId(allVariants, locationById)
 
   const categoryByProduct: Record<string, unknown[]> = {}
   for (const row of catLinksAll) {
@@ -224,7 +246,15 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
         .filter(Boolean)
         .sort()[0] ?? null
 
-    const cities = uniqueCityRefsFromEventItems(futureOfflineItems, cityLabelMap)
+    const cities = mergeCityRefsForProduct(
+      uniqueCityRefsFromEventItems(futureOfflineItems, cityLabelMap),
+      variants as Array<{ event_item?: { id?: string } | null }>,
+      cityByEventItem
+    )
+    const locations = uniqueLocationsForVariants(
+      variants as Array<{ event_item?: { id?: string } | null }>,
+      locationByEventItem
+    )
 
     const deliveryTypesOnProduct = [
       ...new Set(
@@ -257,8 +287,13 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
       record_type: eventGroupByProduct[id]?.record_type ?? null,
       product_type: (p.type as { value?: string } | null | undefined)?.value ?? null,
       categories: categoryByProduct[id] ?? [],
-      docenten: docentByProduct[id] ?? [],
+      docenten: mergeDocentenForProduct(
+        docentByProduct[id] ?? [],
+        variants as Array<{ event_item?: { id?: string } | null }>,
+        docentByEventItem
+      ),
       cities,
+      locations,
       delivery_types: deliveryTypesOnProduct,
       earliest_start_at: earliestStartAt,
       day_part_of_earliest: dayPartFromStartAt(earliestStartAt),
@@ -277,11 +312,32 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
     )
   })
 
+  const variantIdToProductId: Record<string, string> = {}
+  for (const p of list) {
+    const productId = p.id as string
+    for (const variant of (p.variants ?? []) as Array<{ id?: string }>) {
+      if (variant.id) variantIdToProductId[variant.id] = productId
+    }
+  }
+
+  const mergedDocLinksAll = [
+    ...((docLinksAll ?? []) as PlpListingSnapshot["docLinksAll"]),
+    ...eventItemDocentLinksForProducts(
+      list.flatMap((p) =>
+        ((p.variants ?? []) as Array<{ id?: string; event_item?: Record<string, unknown> | null }>).map(
+          (variant) => ({ ...variant })
+        )
+      ),
+      docentByEventItem,
+      variantIdToProductId
+    ),
+  ]
+
   return {
     list,
     eventGroupLinks,
     catLinksAll,
-    docLinksAll: (docLinksAll ?? []) as PlpListingSnapshot["docLinksAll"],
+    docLinksAll: mergedDocLinksAll,
     eventGroupByProduct,
     builtAt: Date.now(),
   }

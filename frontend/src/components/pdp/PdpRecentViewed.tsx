@@ -40,7 +40,7 @@ export function PdpRecentViewed({
 
       if (displayHandles.length > 0) {
         const results = await Promise.all(
-          displayHandles.map((handle) => commerceClient.getEvent(handle))
+          displayHandles.map((handle) => commerceClient.getEvent(handle).catch(() => null))
         )
         const valid = results.filter((e): e is EventCard => e != null)
         if (!cancelled && valid.length > 0) {

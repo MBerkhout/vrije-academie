@@ -263,7 +263,7 @@ Vrije Academie product groups are **`vaProductgroup__c`** (prefix `a05…`); chi
 
 **Pricing:** Salesforce gross price is source of truth (`Price__c` on each `vaProduct__c`, e.g. `19.5` → EUR `19.5` on the variant — Medusa v2 major currency units).
 
-**Organization:** imported products are linked to the **default sales channel**, get a Medusa **product type** from `Productgroup_Record_Type_Developer_Name__c` (e.g. `Lezing`), and **categories** from `Productgroup_Subject__c` (native Medusa categories + catalog category links for storefront/Sanity). **Docenten** are resolved from `Highlighted_Teacher__c` (+ `Highlighted_Teacher__r.Name` when readable); when the related Account is not accessible, the name is parsed from `Samenvatting__c` / `Productgroup_Description__c` (e.g. “Frederike Upmeijer”). Linked via `product-docenten`; sync state entity type `docent`. Logic: `utils/link-docent-from-salesforce.ts`.
+**Organization:** imported products are linked to the **default sales channel**, get a Medusa **product type** from `Productgroup_Record_Type_Developer_Name__c` (e.g. `Lezing`), and **categories** from `Productgroup_Subject__c` (native Medusa categories + catalog category links for storefront/Sanity). **Docenten** are resolved from `Highlighted_Teacher__c` (+ `Highlighted_Teacher__r.Name` when readable); when the related Account is not accessible, the name is parsed from `Samenvatting__c` / `Productgroup_Description__c` (e.g. “Frederike Upmeijer”). Linked via `product-docenten`; sync state entity type `docent`. Per-session city, location, and docent are stored on each `EventItem` as `catalog_city_id`, `catalog_location_id`, and `docent_id` (resolved during import via `resolveEventItemFacetIdsFromSalesforce`). Logic: `utils/link-docent-from-salesforce.ts`.
 
 **External registration (reizen):** when `External_Registration_URL__c` is set on the product group, Medusa stores it as `metadata.salesforce_external_registration_url`, mirrors it to Sanity as `externalRegistrationUrl`, and the storefront exposes `external_registration_url` on `GET /store/events/:handle`. PDP **Direct inschrijven** opens that URL in a new tab instead of adding to cart.
 
@@ -299,8 +299,8 @@ Salesforce record types **`Lezingen_Thuis`** and **`Thuis_College`** map to on-d
 - **`EventItem.available_quantity`** — always unlimited on import; VA Thuis colleges cannot sell out (see `src/lib/vathuis-availability.ts`)
 - **`metadata.vathuis`** — chapters + episodes fetched from Audience Player (`Audience_Player_Article_Id__c` on the child product), plus `purchase_mode: bundle_only`
 - **`metadata.vathuis.chapters[]`** — each Audience Player season → `{ number, title, episodes[] }` (e.g. “1. Inleiding”, “2. Engeland”)
-- **Episode preview** — first episode of chapter 1 gets `preview_available: true` and an `embed_url` (from `Audience_Preview_Url__c`, `IFrame_URL_1__c`, or `AUDIENCE_PLAYER_IFRAME_URL` template)
-- Optional env: `AUDIENCE_PLAYER_PROJECT_ID` (default `14`), `AUDIENCE_PLAYER_API_URL` (default `https://api.audienceplayer.com`), `AUDIENCE_PLAYER_IFRAME_URL` (default `https://embed.audienceplayer.com/{projectId}/article/{articleId}/asset/{assetId}`)
+- **Episode preview** — first episode of chapter 1 gets `preview_available: true`. Playback config (SDK + token) is fetched at runtime via `GET /store/events/:handle/episodes/:episodeKey/preview-playback`.
+- Optional env: `AUDIENCE_PLAYER_PROJECT_ID` (default `14`), `AUDIENCE_PLAYER_API_URL`, `AUDIENCE_PLAYER_CLIENT_ID`, `AUDIENCE_PLAYER_CLIENT_SECRET`, `AUDIENCE_PLAYER_PREVIEW_EMAIL`
 
 Storefront: `GET /store/events/:handle` exposes `purchase_mode`, `bundle_variant_id`, `vathuis.chapters`, `vathuis.episodes`, and `vathuis.audience_player`. PDP shows a chapter dropdown, episode table (aflevering / duur / beschrijving), **Bekijk aflevering** (preview modal with iframe) or **Koop alle lessen** per row, plus the bundle CTA in `PdpBookingPanel`.
 
@@ -327,7 +327,7 @@ Bulk CLI scripts (`import-future`, `import-linked-vathuis`, `import-all`) prefet
 |------|---------|---------|
 | `--concurrency=N` | `1` | Import up to N product groups in parallel (Salesforce + Medusa only). Sanity mirroring runs once after the pool. With batched Sanity sync and import caches, **8–10** is usually safe — watch Salesforce 429s or DB load. |
 | `--skip-search` | off | Skip per-product OpenSearch reindex during import; reindex imported products once at the end. Or run `npm run search:reindex` afterward. |
-| `--skip-unchanged` | off | Skip product groups whose Salesforce fingerprint matches `salesforce_sync_state.mapping_version` (fast re-runs when nothing changed). |
+| `--skip-unchanged` | off | Skip product metadata when Salesforce fingerprint matches; **session location/docent facets are still refreshed** from child rows. |
 | `--since=<ISO>` | off | Only fetch groups (and parents of modified children) with `SystemModstamp >= since`. Example: `--since=2026-03-01T00:00:00.000Z`. |
 | `--limit=N` | unlimited | Stop after N import attempts (after guard filtering). |
 | `--dry-run` | off | List candidates only. |
@@ -350,6 +350,19 @@ npm run salesforce:import-all -- --since=2026-03-01T00:00:00.000Z --skip-unchang
 ```
 
 Replace the ISO timestamp with when you last synced (or the date of your Salesforce bulk update).
+
+**Backfill session location/docent** (after deploying `event_item` facet fields):
+
+```bash
+npm run salesforce:backfill-facets -- --concurrency=10
+```
+
+This skips unchanged product metadata but **always refreshes** session location/docent from Salesforce child rows. Variant lookup falls back to `sf-{salesforceChildId}` SKU when sync state is missing.
+
+```bash
+npm run salesforce:backfill-facets -- --concurrency=8
+npm run salesforce:audit-facets   # check coverage after
+```
 
 After deploying `Order__c` → `salesforce_order`, re-import product groups so PLP default sort is populated: `npm run salesforce:import-all -- --skip-search --concurrency=5` (or a narrower import). Products without `salesforce_order` sort last until re-imported.
 
@@ -376,7 +389,8 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | SEO title | `SEO_Title__c` | metadata → Sanity `seoTitle` |
 | SEO meta description | `SEO_Meta_Description__c` | metadata → Sanity `seoDescription` |
 | Thumbnail | `Primary_1_Url__c` | `Product.thumbnail` → Sanity `thumbnailUrl` |
-| Gallery | `Image_1_Url__c` … `Image_4_Url__c` | `Product.images` → Sanity `imageUrls` |
+| Gallery | `Image_1_Url__c` … `Image_4_Url__c` | `Product.images` → Sanity `imageUrls`; store `image_urls` / `gallery_images` |
+| Gallery captions | `Image_1_Source__c` … `Image_4_Source__c` (Afbeelding N Tekst) | `Product.metadata.salesforce_gallery_images` → Sanity `imageCaptions`; store `gallery_images[].caption` (PDP hover) |
 | Short / PDP description | `Productgroup_Description__c` | `Product.description` (plain text) |
 | Web body / trigger / description HTML | `Productgroup_Web_Body__c`, `Productgroup_Web_Trigger__c`, `Productgroup_Description__c` | metadata → Sanity `body` (quote, section titles, bullet footer) unless `pageBodyOwnedBySanity` |
 | Subtitle | `Productgroup_Subtitle__c` | metadata `salesforce_subtitle` |
@@ -385,13 +399,13 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Child products | `vaProduct__c` (lookup `Productgroup__c`) | `ProductVariant` + linked `EventItem` |
 | Occurrence start / end | `Start_date_time__c`, `End_date_time__c` | `EventItem.start_at` / `end_at` |
 | Occurrence price | `Price__c` | variant EUR price → Sanity `priceFrom` |
-| Occurrence city | `Product_City__c` | `EventItem.city` (+ city slug via catalog) |
-| Occurrence location / venue | `Product_Location_Name__c` | `EventItem.location_name` (PDP session table) |
+| Occurrence city | `Product_City__c` | `EventItem.city` / `city_slug` + `catalog_city_id` |
+| Occurrence location / venue | `Product_Location_Name__c`, `Account__c`, `Account__r.Name`, `Product_Location_Room__c`, `Product_Location_Room_Name__c` | `EventItem.location_name` + `catalog_location_id` |
 | Capacity / free trial | `Capacity__c`, `Free_Product__c` | `EventItem.available_quantity`, `is_free_trial` |
 | Latest start (group) | `Latest_Product_Start_Date__c` | future-only auto-import guard |
 | VAthuis episodes label | `Audience_Player_Episodes__c` | `metadata.vathuis.episode_count_label` |
 | VAthuis play time | `Audience_Player_Play_Time__c` | `metadata.vathuis.play_time` |
 | Audience Player article / product | `Audience_Player_Article_Id__c`, `Audience_Player_Product_Id__c` on child | chapter/episode fetch + `metadata.vathuis.audience_player` |
 | Highlighted docent | `Highlighted_Teacher__c`, `Highlighted_Teacher__r.Name`, `Highlighted_Teacher_Teaser__c`, `Highlighted_Teacher_Image__c` | `Docent` + `product-docenten` link (name fallback from `Samenvatting__c` / `Productgroup_Description__c`). When the linked **Account** is readable, also maps `Description` → `bio`, `PhotoUrl` → `photo_url`, `PersonTitle` → `role` (`utils/fetch-teacher-account.ts`). `photo_url` is dropped unless it's an absolute, non-`salesforce.com`/`force.com` URL (`utils/photo-url.ts`) — Salesforce session-relative image paths (e.g. `/services/images/photo/001...`) aren't publicly fetchable and were causing broken images on the frontend. Mirrored to Sanity `docent` on `people.docent.*` events. |
-| Variant instructor | Child `Account_Teacher__c`, `Account_Teacher__r.Name`, `Main_Teacher_Name__c` | `EventItem.instructor_name` + `instructor_salesforce_id` (child teacher first; falls back to group highlighted docent) |
+| Variant instructor | Child `Account_Teacher__c`, `Account_Teacher__r.Name`, `Main_Teacher_Name__c` | `EventItem.instructor_name` / `instructor_salesforce_id` + `docent_id` |
 | Preview / iframe | `Audience_Preview_Url__c`, `IFrame_URL_1__c` on group | first-episode `embed_url` in `metadata.vathuis.episodes[]` |

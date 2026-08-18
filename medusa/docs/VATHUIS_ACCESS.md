@@ -30,9 +30,12 @@ Skips gift-card lines. Only products with `event_group.record_type === 'vathuis'
 |----------|----------|
 | `GET /store/customer/me/vathuis-access` | `{ items: VathuisAccessItem[] }` |
 | `GET /store/customer/me/vathuis-access/:handle` | `{ hasAccess, grantedAt, expiresAt }` |
-| `GET /store/customer/me/vathuis-access/:handle/episodes/:episodeKey/embed` | `{ embedUrl }` — `episodeKey` = `{chapter}-{episode}` |
+| `GET /store/customer/me/vathuis-access/:handle/episodes/:episodeKey/embed` | `{ playback: AudiencePlayerPlaybackConfig }` — `episodeKey` = `{chapter}-{episode}` |
+| `GET /store/events/:handle/episodes/:episodeKey/preview-playback` | `{ playback: AudiencePlayerPlaybackConfig }` — OAuth token for preview via `AUDIENCE_PLAYER_PREVIEW_EMAIL`; only when `preview_available: true` |
 
-Public `GET /store/events/:handle` strips `embed_url` from non-preview episodes.
+Preview and purchased episodes both use the **embed-player SDK** in the frontend modal. Autoplay requires `play()` to run in the same user-gesture chain as the click (see Audience Player embed-player README).
+
+Public `GET /store/events/:handle` may still expose tenant `/_embed/video-player` URLs in `embed_url` for reference; the storefront modal does not iframe them.
 
 ## Salesforce alignment
 

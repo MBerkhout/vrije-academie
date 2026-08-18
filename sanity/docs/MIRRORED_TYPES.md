@@ -4,7 +4,7 @@ Three document types in the Studio are managed by Medusa and mirrored here autom
 
 | Type | Source | Sanity `_id` prefix | Editable fields |
 |------|--------|---------------------|-----------------|
-| `product` | Medusa Product Group | `medusa-product-` | `pageBodyOwnedBySanity`, `body`, `onlineBadge`, `customUrgencyMessage`, `relatedProducts` (catalog fields are read-only). Mirror fields include Salesforce product-card CTA bar: `badge` (label), `ctaColor`, `ctaColorHover`. |
+| `product` | Medusa Product Group | `medusa-product-` | `pageBodyOwnedBySanity`, `body`, `onlineBadge`, `customUrgencyMessage`, `relatedProducts` (catalog fields are read-only). Mirror fields include Salesforce product-card CTA bar: `badge` (label), `ctaColor`, `ctaColorHover`. Gallery captions: `imageCaptions` from Salesforce `Image_N_Source__c`. |
 | `category` | Medusa native product category (`/app/categories/:id`; legacy `catalog_category` also syncs) | `medusa-category-` | `title`, `description`, `image`, `linkUrl`, `seo` (editorial; preserved on sync) |
 | `docent` | Medusa `people.docent` | `medusa-docent-` | None (all read-only) |
 

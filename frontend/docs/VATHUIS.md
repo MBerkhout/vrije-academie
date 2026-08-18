@@ -17,7 +17,7 @@ Route constants: `frontend/src/lib/routes.ts` (`VATHUIS_BASE_PATH`, `VATHUIS_CAT
 ## Data
 
 - **Listing:** Medusa `GET /store/vathuis` via `commerceClient.getVathuisPaginated()`
-- **PDP:** shared `GET /store/events/:handle` (404 on VA Thuis route if not `bundle_only`)
+- **PDP:** shared `GET /store/events/:handle` (404 if missing or not `bundle_only`; 500 if Medusa is down)
 - **Similar:** `GET /store/vathuis/:handle/similar` via `commerceClient.getSimilarVathuis()`
 - **CSR pagination:** `GET /api/plp/vathuis`
 
@@ -33,7 +33,7 @@ All under `frontend/src/components/vathuis/`:
 - `VaThuisPdpPageContent` — dark PDP (episodes table, booking panel)
 - `VaThuisCmsPage` — renders CMS `page.blocks` via `BlockRenderer` (`tone="onDark"`)
 
-**Purchase access:** after buying a bundle, logged-in customers can watch all episodes for **3 months** (`PdpEpisodesTable` unlock + `/mijn-account/collectie`). Full embed URLs are served only via authenticated Medusa APIs — see `medusa/docs/VATHUIS_ACCESS.md`.
+**Purchase access:** after buying a bundle, logged-in customers can watch all episodes for **3 months** (`PdpEpisodesTable` unlock + `/mijn-account/collectie`). Preview and purchased playback both use the Audience Player **embed-player SDK** (not iframes) so `play()` can run in the user’s click gesture; tokens come from Medusa — see `medusa/docs/VATHUIS_ACCESS.md`.
 
 Dark shell: `app/(main)/va-thuis/layout.tsx` (`bg-va-black`).
 

@@ -1,8 +1,10 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
-import type { VathuisChapter, VathuisEpisode } from '@/lib/commerce/types'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
+import type { VathuisChapter, VathuisEpisode, VathuisPlaybackConfig } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
+import { preloadAudiencePlayer } from '@/lib/audience-player/runtime'
 import { commerceClient } from '@/lib/commerce'
 import { useVathuisAccess } from '@/lib/commerce/use-vathuis-access'
 import { defaultMessages } from '@/lib/i18n/messages'
@@ -80,8 +82,15 @@ export function PdpEpisodesTable({
     () => resolvedChapters[0]?.number ?? 1,
   )
   const [previewEpisode, setPreviewEpisode] = useState<VathuisEpisode | null>(null)
+  const [playback, setPlayback] = useState<VathuisPlaybackConfig | null>(null)
+  const [playSignal, setPlaySignal] = useState(0)
   const [playlistIndex, setPlaylistIndex] = useState<number | null>(null)
   const [loadingEpisodeKey, setLoadingEpisodeKey] = useState<string | null>(null)
+  const previewPlaybackCache = useRef(new Map<string, VathuisPlaybackConfig>())
+
+  useEffect(() => {
+    void preloadAudiencePlayer()
+  }, [])
 
   const canWatchEpisode = useCallback(
     (episode: VathuisEpisode) => Boolean(episode.preview_available) || hasPurchasedAccess,
@@ -99,6 +108,17 @@ export function PdpEpisodesTable({
     }
     return items
   }, [resolvedChapters, canWatchEpisode])
+
+  useEffect(() => {
+    for (const item of playlist) {
+      if (!item.episode.preview_available) continue
+      const key = episodeKey(item.chapterNumber, item.episode.number)
+      if (previewPlaybackCache.current.has(key)) continue
+      void commerceClient.getVathuisPreviewPlayback(productHandle, key).then((config) => {
+        if (config) previewPlaybackCache.current.set(key, config)
+      })
+    }
+  }, [playlist, productHandle])
 
   const selectedChapter =
     resolvedChapters.find((chapter) => chapter.number === selectedChapterNumber) ??
@@ -121,18 +141,19 @@ export function PdpEpisodesTable({
     setSelectedChapterNumber(resolvedChapters[selectedChapterIndex + 1].number)
   }
 
-  const resolveEpisodeEmbed = useCallback(
-    async (item: PlaylistItem): Promise<VathuisEpisode | null> => {
-      if (item.episode.preview_available && item.episode.embed_url) {
-        return item.episode
+  const resolveEpisodePlayback = useCallback(
+    async (item: PlaylistItem): Promise<VathuisPlaybackConfig | null> => {
+      const key = episodeKey(item.chapterNumber, item.episode.number)
+
+      if (item.episode.preview_available) {
+        return (
+          previewPlaybackCache.current.get(key) ??
+          (await commerceClient.getVathuisPreviewPlayback(productHandle, key))
+        )
       }
 
       if (!hasPurchasedAccess) return null
-
-      const key = episodeKey(item.chapterNumber, item.episode.number)
-      const embedUrl = await commerceClient.getVathuisEpisodeEmbed(productHandle, key)
-      if (!embedUrl) return null
-      return { ...item.episode, embed_url: embedUrl }
+      return commerceClient.getVathuisEpisodePlayback(productHandle, key)
     },
     [hasPurchasedAccess, productHandle],
   )
@@ -144,17 +165,28 @@ export function PdpEpisodesTable({
 
       setPlaylistIndex(index)
       setSelectedChapterNumber(item.chapterNumber)
+      setPreviewEpisode(item.episode)
+      setPlayback(null)
+      setPlaySignal(0)
 
       const key = episodeKey(item.chapterNumber, item.episode.number)
       setLoadingEpisodeKey(key)
       try {
-        const resolved = await resolveEpisodeEmbed(item)
-        if (resolved) setPreviewEpisode(resolved)
+        const resolvedPlayback = await resolveEpisodePlayback(item)
+        if (resolvedPlayback) {
+          if (item.episode.preview_available) {
+            previewPlaybackCache.current.set(key, resolvedPlayback)
+          }
+          flushSync(() => {
+            setPlayback(resolvedPlayback)
+            setPlaySignal((current) => current + 1)
+          })
+        }
       } finally {
         setLoadingEpisodeKey(null)
       }
     },
-    [playlist, resolveEpisodeEmbed],
+    [playlist, resolveEpisodePlayback],
   )
 
   async function handleWatchEpisode(episode: VathuisEpisode, chapterNumber: number) {
@@ -179,6 +211,8 @@ export function PdpEpisodesTable({
 
   function closePreview() {
     setPreviewEpisode(null)
+    setPlayback(null)
+    setPlaySignal(0)
     setPlaylistIndex(null)
   }
 
@@ -356,6 +390,8 @@ export function PdpEpisodesTable({
 
       <PdpEpisodePreviewModal
         episode={previewEpisode}
+        playback={playback}
+        playSignal={playSignal}
         productHandle={productHandle}
         productTitle={chapterTitle ?? undefined}
         open={previewEpisode != null}

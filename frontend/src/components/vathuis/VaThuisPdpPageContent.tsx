@@ -76,7 +76,7 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
         {(event.image_urls?.length ?? 0) > 0 && (
           <div className={`${CONTAINER_CLASS} mb-3`}>
             <PdpImageGallery
-              images={toPdpGalleryImages(event.image_urls ?? [])}
+              images={toPdpGalleryImages(event.gallery_images ?? event.image_urls ?? [])}
               title={event.title}
             />
           </div>

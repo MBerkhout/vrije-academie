@@ -53,7 +53,9 @@ export function ProductRowBlockPersonalized({ block }: ProductRowBlockPersonaliz
         return
       }
 
-      const results = await Promise.all(handles.map((handle) => commerceClient.getEvent(handle)))
+      const results = await Promise.all(
+        handles.map((handle) => commerceClient.getEvent(handle).catch(() => null))
+      )
       const valid = results.filter((e): e is EventCard => e != null)
 
       if (!cancelled) {

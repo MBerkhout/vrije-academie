@@ -21,6 +21,10 @@ export type SfProductgroupShape = {
   Image_2_Url__c?: string | null
   Image_3_Url__c?: string | null
   Image_4_Url__c?: string | null
+  Image_1_Source__c?: string | null
+  Image_2_Source__c?: string | null
+  Image_3_Source__c?: string | null
+  Image_4_Source__c?: string | null
   VAT_Rate__c?: string | null
   Latest_Product_Start_Date__c?: string | null
   Free_Product__c?: boolean | null
@@ -64,6 +68,10 @@ export const productgroupSalesforceFieldsForPull = [
   "Image_2_Url__c",
   "Image_3_Url__c",
   "Image_4_Url__c",
+  "Image_1_Source__c",
+  "Image_2_Source__c",
+  "Image_3_Source__c",
+  "Image_4_Source__c",
   "VAT_Rate__c",
   "Latest_Product_Start_Date__c",
   "Free_Product__c",
@@ -114,13 +122,29 @@ export function productTypeValueFromSalesforce(
   return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
 }
 
+export type ProductgroupGalleryImage = {
+  url: string
+  caption: string | null
+}
+
+/** Gallery slots 1–4: URL required, caption from Salesforce `Image_N_Source__c` (Afbeelding N Tekst). */
+export function productgroupGalleryImages(sf: SfProductgroupShape): ProductgroupGalleryImage[] {
+  const slots: Array<{ url?: string | null; caption?: string | null }> = [
+    { url: sf.Image_1_Url__c, caption: sf.Image_1_Source__c },
+    { url: sf.Image_2_Url__c, caption: sf.Image_2_Source__c },
+    { url: sf.Image_3_Url__c, caption: sf.Image_3_Source__c },
+    { url: sf.Image_4_Url__c, caption: sf.Image_4_Source__c },
+  ]
+  return slots
+    .map((slot) => ({
+      url: slot.url?.trim() ?? "",
+      caption: slot.caption?.trim() || null,
+    }))
+    .filter((slot): slot is ProductgroupGalleryImage => Boolean(slot.url))
+}
+
 export function productgroupGalleryUrls(sf: SfProductgroupShape): string[] {
-  return [
-    sf.Image_1_Url__c,
-    sf.Image_2_Url__c,
-    sf.Image_3_Url__c,
-    sf.Image_4_Url__c,
-  ].filter((u): u is string => !!u?.trim())
+  return productgroupGalleryImages(sf).map((img) => img.url)
 }
 
 export function productgroupMetadataFromSalesforce(
@@ -145,6 +169,7 @@ export function productgroupMetadataFromSalesforce(
     salesforce_cta_color: sf.CTA_Color__c?.trim() || null,
     salesforce_cta_color_hover: sf.CTA_Color_Hover__c?.trim() || null,
     salesforce_order: sf.Order__c ?? null,
+    salesforce_gallery_images: productgroupGalleryImages(sf),
     ...extra,
   }
 }

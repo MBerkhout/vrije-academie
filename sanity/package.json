@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "sanity dev",
     "build": "sanity build",
-    "deploy": "sanity deploy",
+    "deploy": "node ./scripts/studio-deploy.mjs",
     "schema:deploy": "node ./scripts/schema-deploy.mjs",
     "migrate:person-type": "node ./scripts/migrate-person-type.mjs",
     "migrate:usp-inline": "node ./scripts/migrate-usp-inline.mjs",

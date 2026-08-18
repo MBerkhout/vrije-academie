@@ -129,6 +129,16 @@ export const product = defineType({
       readOnly: true,
     }),
     defineField({
+      name: "imageCaptions",
+      title: "Image captions",
+      type: "array",
+      group: "mirror",
+      of: [{ type: "text" }],
+      readOnly: true,
+      description:
+        "Synced from Salesforce Afbeelding N Tekst (`Image_N_Source__c`), same order as Image URLs. Shown on hover on the PDP gallery.",
+    }),
+    defineField({
       name: "description",
       title: "Description",
       type: "text",

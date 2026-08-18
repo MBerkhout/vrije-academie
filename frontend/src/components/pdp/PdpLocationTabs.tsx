@@ -530,16 +530,18 @@ export function PdpLocationTabs({
                       key={variant.id}
                       className="border-b border-va-lightgray/60 hover:bg-va-lightgray/20 transition-colors"
                     >
-                      <td className="py-4 pr-4 align-middle text-va-gray">
+                      <td className="py-4 pr-4 align-middle">
                         <div className="flex items-start gap-1.5">
                           <DeliveryTypeIcon
                             variant={isOnline ? 'online' : 'offline'}
                             className="mt-0.5"
                           />
                           <div>
-                            <div>{sessionCityLabel(ei, isOnline)}</div>
+                            <div className="text-va-black">{sessionCityLabel(ei, isOnline)}</div>
                             {sessionVenueLine(ei, isOnline) ? (
-                              <div className="text-xs mt-0.5">{sessionVenueLine(ei, isOnline)}</div>
+                              <div className="text-xs mt-0.5 text-va-gray">
+                                {sessionVenueLine(ei, isOnline)}
+                              </div>
                             ) : null}
                           </div>
                         </div>

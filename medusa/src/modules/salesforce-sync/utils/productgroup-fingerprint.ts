@@ -2,6 +2,9 @@ import type { SfCourseProductShape } from "../mappings/course-product"
 import type { SfProductgroupShape } from "../mappings/productgroup"
 import { stableStringify } from "./deep-equal"
 
+/** Bump when Medusa-side session facet mapping changes (forces re-import / invalidates skip-unchanged). */
+export const MEDUSA_FACET_SYNC_VERSION = 1
+
 const GROUP_FINGERPRINT_KEYS = [
   "Name",
   "Productgroup_URL__c",
@@ -20,6 +23,10 @@ const GROUP_FINGERPRINT_KEYS = [
   "Image_2_Url__c",
   "Image_3_Url__c",
   "Image_4_Url__c",
+  "Image_1_Source__c",
+  "Image_2_Source__c",
+  "Image_3_Source__c",
+  "Image_4_Source__c",
   "Latest_Product_Start_Date__c",
   "Highlighted_Teacher__c",
   "Highlighted_Teacher_Teaser__c",
@@ -39,6 +46,10 @@ const CHILD_FINGERPRINT_KEYS = [
   "End_date_time__c",
   "Product_City__c",
   "Product_Location_Name__c",
+  "Product_Location__c",
+  "Product_Location_Room__c",
+  "Product_Location_Room_Name__c",
+  "Account__c",
   "Capacity__c",
   "Maximum_capacity__c",
   "Availability_capacity__c",
@@ -62,6 +73,7 @@ export function productgroupImportFingerprint(
   children: SfCourseProductShape[]
 ): string {
   const payload = {
+    medusa_facet_sync_version: MEDUSA_FACET_SYNC_VERSION,
     group: pickKeys(group as Record<string, unknown>, GROUP_FINGERPRINT_KEYS),
     children: children
       .filter((c) => c.Id)

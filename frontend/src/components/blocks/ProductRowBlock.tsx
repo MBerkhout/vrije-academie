@@ -12,7 +12,9 @@ async function resolveHandpickedEvents(block: ProductRowBlockType) {
     .filter(Boolean)
   if (handles.length === 0) return []
 
-  const results = await Promise.all(handles.map((handle) => commerceClient.getEvent(handle)))
+  const results = await Promise.all(
+    handles.map((handle) => commerceClient.getEvent(handle).catch(() => null))
+  )
   return results.filter((e): e is NonNullable<typeof e> => e != null)
 }
 

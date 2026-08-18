@@ -121,6 +121,14 @@ type ResolvedTeacher = {
   role: string
 }
 
+export type DocentTeacherInput = {
+  salesforceId: string
+  name: string
+  bio?: string | null
+  photoUrl?: string | null
+  role?: string | null
+}
+
 async function resolveTeacherForDocent(
   sync: InstanceType<typeof SalesforceSyncModuleService>,
   group: SfProductgroupShape,
@@ -191,25 +199,20 @@ async function upsertDocentSyncState(
 }
 
 /**
- * Resolve or create a Medusa Docent from Salesforce teacher fields and link to the product group.
+ * Resolve or create a Medusa Docent from Salesforce teacher account fields.
  */
-export async function linkDocentFromSalesforce(
+export async function ensureDocentFromSalesforceTeacher(
   container: MedusaContainer,
-  productId: string,
-  group: SfProductgroupShape,
-  child?: SfCourseProductShape | null,
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  teacher: DocentTeacherInput,
   importContext?: BulkImportContext
 ): Promise<string | null> {
-  const run = async (): Promise<string | null> => {
-  const sync = container.resolve("salesforceSync") as InstanceType<
-    typeof SalesforceSyncModuleService
-  >
-  const teacher = await resolveTeacherForDocent(sync, group, child, importContext)
   if (!teacher.salesforceId || !teacher.name) return null
 
   const people = container.resolve("people") as InstanceType<typeof PeopleModuleService>
-  const link = container.resolve(ContainerRegistrationKeys.LINK)
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const role = teacher.role?.trim() || "Docent"
+  const bio = teacher.bio ?? null
+  const photoUrl = teacher.photoUrl ?? null
 
   let docentId = (await findDocentBySalesforceId(container, sync, teacher.salesforceId))?.id
 
@@ -223,29 +226,28 @@ export async function linkDocentFromSalesforce(
       const created = await people.createDocents({
         slug,
         name: teacher.name,
-        role: teacher.role,
-        photo_url: teacher.photoUrl,
-        bio: teacher.bio,
+        role,
+        photo_url: photoUrl,
+        bio,
         subject_tags: null,
       })
       docentId = created?.id ?? null
     }
   } else {
-    const people = container.resolve("people") as InstanceType<typeof PeopleModuleService>
     const existingDocent = await people.retrieveDocent(docentId)
     const docentUnchanged =
       existingDocent.name === teacher.name &&
-      existingDocent.role === teacher.role &&
-      (existingDocent.photo_url ?? null) === (teacher.photoUrl ?? null) &&
-      (existingDocent.bio ?? null) === (teacher.bio ?? null)
+      existingDocent.role === role &&
+      (existingDocent.photo_url ?? null) === (photoUrl ?? null) &&
+      (existingDocent.bio ?? null) === (bio ?? null)
 
     if (!docentUnchanged) {
       await people.updateDocents({
         id: docentId,
         name: teacher.name,
-        role: teacher.role,
-        photo_url: teacher.photoUrl,
-        bio: teacher.bio,
+        role,
+        photo_url: photoUrl,
+        bio,
       })
     }
   }
@@ -253,42 +255,78 @@ export async function linkDocentFromSalesforce(
   if (!docentId) return null
 
   await upsertDocentSyncState(sync, docentId, teacher.salesforceId)
+  return docentId
+}
 
-  const { data: existingLinks } = await query.graph({
-    entity: productDocentenLink.entryPoint,
-    fields: ["docent_id"],
-    filters: { product_id: productId },
-  })
+/**
+ * Resolve or create a Medusa Docent from Salesforce teacher fields and link to the product group.
+ */
+export async function linkDocentFromSalesforce(
+  container: MedusaContainer,
+  productId: string,
+  group: SfProductgroupShape,
+  child?: SfCourseProductShape | null,
+  importContext?: BulkImportContext
+): Promise<string | null> {
+  const run = async (): Promise<string | null> => {
+    const sync = container.resolve("salesforceSync") as InstanceType<
+      typeof SalesforceSyncModuleService
+    >
+    const teacher = await resolveTeacherForDocent(sync, group, child, importContext)
+    if (!teacher.salesforceId || !teacher.name) return null
 
-  const alreadyLinked = (existingLinks ?? []).some(
-    (row: { docent_id?: string }) => row.docent_id === docentId
-  )
+    const docentId = await ensureDocentFromSalesforceTeacher(
+      container,
+      sync,
+      {
+        salesforceId: teacher.salesforceId,
+        name: teacher.name,
+        bio: teacher.bio,
+        photoUrl: teacher.photoUrl,
+        role: teacher.role,
+      },
+      importContext
+    )
+    if (!docentId) return null
 
-  if (!alreadyLinked) {
-    for (const row of existingLinks ?? []) {
-      const existingDocentId = (row as { docent_id?: string }).docent_id
-      if (existingDocentId && existingDocentId !== docentId) {
-        await link.dismiss({
+    const link = container.resolve(ContainerRegistrationKeys.LINK)
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+
+    const { data: existingLinks } = await query.graph({
+      entity: productDocentenLink.entryPoint,
+      fields: ["docent_id"],
+      filters: { product_id: productId },
+    })
+
+    const alreadyLinked = (existingLinks ?? []).some(
+      (row: { docent_id?: string }) => row.docent_id === docentId
+    )
+
+    if (!alreadyLinked) {
+      for (const row of existingLinks ?? []) {
+        const existingDocentId = (row as { docent_id?: string }).docent_id
+        if (existingDocentId && existingDocentId !== docentId) {
+          await link.dismiss({
+            [Modules.PRODUCT]: { product_id: productId },
+            people: { docent_id: existingDocentId },
+          })
+        }
+      }
+      try {
+        await link.create({
           [Modules.PRODUCT]: { product_id: productId },
-          people: { docent_id: existingDocentId },
+          people: { docent_id: docentId },
         })
+      } catch {
+        // already linked (concurrent import)
       }
     }
-    try {
-      await link.create({
-        [Modules.PRODUCT]: { product_id: productId },
-        people: { docent_id: docentId },
-      })
-    } catch {
-      // already linked (concurrent import)
+
+    if (importContext?.skipSanitySync) {
+      importContext.trackDocent(docentId)
     }
-  }
 
-  if (importContext?.skipSanitySync) {
-    importContext.trackDocent(docentId)
-  }
-
-  return docentId
+    return docentId
   }
 
   if (importContext) {

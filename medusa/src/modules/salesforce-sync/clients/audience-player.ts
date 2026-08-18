@@ -51,6 +51,10 @@ const ARTICLE_WITH_CHAPTERS_QUERY = `
   }
 `
 
+import {
+  buildPublicPreviewEmbedUrl,
+} from "../../../lib/audience-player/public-embed-url"
+
 function metaValue(metas: AudienceArticleNode["metas"], key: string): string | null {
   const row = metas?.find((m) => m.key === key)
   const value = row?.value?.trim()
@@ -76,7 +80,9 @@ export function buildAudiencePlayerEmbedUrl(
     previewEpisode?: boolean
   }
 ): string | null {
-  if (options.previewEpisode && options.previewUrl?.trim()) {
+  if (!options.previewEpisode) return null
+
+  if (options.previewUrl?.trim()) {
     return options.previewUrl.trim()
   }
   if (options.iframeUrl?.trim()) {
@@ -84,14 +90,7 @@ export function buildAudiencePlayerEmbedUrl(
   }
   if (!options.assetId) return null
 
-  const template =
-    process.env.AUDIENCE_PLAYER_IFRAME_URL?.trim() ||
-    "https://embed.audienceplayer.com/{projectId}/article/{articleId}/asset/{assetId}"
-
-  return template
-    .replace("{projectId}", String(options.projectId))
-    .replace("{articleId}", String(options.articleId))
-    .replace("{assetId}", String(options.assetId))
+  return buildPublicPreviewEmbedUrl(options.articleId, options.assetId)
 }
 
 function mapEpisode(

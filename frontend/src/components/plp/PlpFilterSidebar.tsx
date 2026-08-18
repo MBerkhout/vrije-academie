@@ -16,6 +16,7 @@ import { PLP_PRODUCT_TYPES } from '@/lib/plp-product-types'
 import { cn } from '@/lib/utils'
 import { PLP_BASE_PATH } from '@/lib/routes'
 import { trackFilterChange } from '@/lib/analytics/events/ecommerce'
+import { sortFacetsByCount } from '@/lib/commerce/city-facets'
 
 interface PlpFilterSidebarProps {
   filterState: PlpFilterState
@@ -84,6 +85,7 @@ function FilterGroupCollapsible({
   defaultOpen = true,
   activeCount = 0,
   showActiveCount = false,
+  openWhenActive = false,
   largeTitle = false,
   variant = 'light',
 }: {
@@ -92,11 +94,19 @@ function FilterGroupCollapsible({
   defaultOpen?: boolean
   activeCount?: number
   showActiveCount?: boolean
+  /** Keep the group expanded while it has active filter values. */
+  openWhenActive?: boolean
   largeTitle?: boolean
   variant?: FilterVariant
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const theme = filterTheme(variant)
+
+  useEffect(() => {
+    if (openWhenActive && activeCount > 0) {
+      setOpen(true)
+    }
+  }, [openWhenActive, activeCount])
   return (
     <div className={cn('border-b py-4', theme.groupBorder)}>
       <button
@@ -146,9 +156,9 @@ function ToggleCheckbox({
   )
 }
 
-/** Plaats: first 5; Meer bekijken reveals up to ~10 rows then scroll. */
-const PLAATS_COLLAPSED_COUNT = 5
-const PLAATS_SCROLL_AT_COUNT = 10
+/** Plaats / docent: first 5; Meer bekijken reveals up to ~10 rows then scroll. */
+const SEARCHABLE_COLLAPSED_COUNT = 5
+const SEARCHABLE_SCROLL_AT_COUNT = 10
 
 /** Categorie: first 6 with fade; Meer tonen reveals the full list. */
 const CATEGORY_COLLAPSED_COUNT = 6
@@ -195,17 +205,26 @@ function groupDefaultOpen(
   return desktopDefault ?? true
 }
 
-function PlaatsSearchableMultiSelectChecklist({
+function SearchableMultiSelectChecklist({
   options,
   selected,
   onToggle,
   placeholder = 'Zoeken…',
+  collapsedCount = SEARCHABLE_COLLAPSED_COUNT,
+  scrollAtCount = SEARCHABLE_SCROLL_AT_COUNT,
+  expandLabel = 'Meer bekijken',
+  variant = 'light',
 }: {
   options: { value: string; label: string; count?: number }[]
   selected: string[]
   onToggle: (v: string) => void
   placeholder?: string
+  collapsedCount?: number
+  scrollAtCount?: number
+  expandLabel?: string
+  variant?: FilterVariant
 }) {
+  const theme = filterTheme(variant)
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState(false)
 
@@ -214,13 +233,12 @@ function PlaatsSearchableMultiSelectChecklist({
     : options
 
   const hasSearch = query.trim().length > 0
-  const needsCollapse = !hasSearch && filtered.length > PLAATS_COLLAPSED_COUNT
+  const needsCollapse = !hasSearch && filtered.length > collapsedCount
   const showFullList = hasSearch || expanded || !needsCollapse
   const visibleOptions =
-    needsCollapse && !showFullList ? filtered.slice(0, PLAATS_COLLAPSED_COUNT) : filtered
+    needsCollapse && !showFullList ? filtered.slice(0, collapsedCount) : filtered
 
-  const needsScroll =
-    showFullList && visibleOptions.length > PLAATS_SCROLL_AT_COUNT
+  const needsScroll = showFullList && visibleOptions.length > scrollAtCount
 
   return (
     <div className="space-y-2">
@@ -244,13 +262,21 @@ function PlaatsSearchableMultiSelectChecklist({
             setQuery(e.target.value)
           }}
           placeholder={placeholder}
-          className="w-full pl-7 pr-2 py-1.5 text-sm border border-va-lightgray focus:outline-none focus:ring-2 focus:ring-va-yellow placeholder:text-va-gray"
+          className={cn(
+            'w-full pl-7 pr-2 py-1.5 text-sm border focus:outline-none focus:ring-2 focus:ring-va-yellow placeholder:text-va-gray',
+            variant === 'dark'
+              ? 'border-va-darkgray-600 bg-va-darkgray-900 text-white'
+              : 'border-va-lightgray bg-white text-va-black',
+          )}
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-va-gray hover:text-va-black text-base leading-none"
+            className={cn(
+              'absolute right-2 top-1/2 -translate-y-1/2 text-base leading-none',
+              variant === 'dark' ? 'text-va-gray-400 hover:text-white' : 'text-va-gray hover:text-va-black',
+            )}
           >
             ×
           </button>
@@ -259,42 +285,45 @@ function PlaatsSearchableMultiSelectChecklist({
       {filtered.length === 0 ? (
         <p className="text-xs text-va-gray py-1">Geen resultaten</p>
       ) : (
-        <>
-          <div>
-            <div
-              className={cn(
-                'relative',
-                needsScroll && 'max-h-[17.5rem] overflow-y-auto pr-0.5',
-                needsCollapse && !showFullList && 'max-h-[9.25rem] overflow-hidden',
-              )}
-            >
-              <MultiSelectChecklist
-                options={visibleOptions}
-                selected={selected}
-                onToggle={onToggle}
-              />
-              {needsCollapse && !showFullList && (
-                <div
-                  className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white via-white/95 to-transparent"
-                  aria-hidden
-                />
-              )}
-            </div>
+        <div>
+          <div
+            className={cn(
+              'relative',
+              needsScroll && 'max-h-[17.5rem] overflow-y-auto pr-0.5',
+              needsCollapse && !showFullList && 'max-h-[9.25rem] overflow-hidden',
+            )}
+          >
+            <MultiSelectChecklist
+              options={visibleOptions}
+              selected={selected}
+              onToggle={onToggle}
+              variant={variant}
+            />
             {needsCollapse && !showFullList && (
-              <button
-                type="button"
-                onClick={() => setExpanded(true)}
+              <div
                 className={cn(
-                  'group mt-1 flex w-full items-center justify-center gap-1.5 py-1 text-sm font-medium transition-colors',
-                  filterTheme('light').expandBtn,
+                  'pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t to-transparent',
+                  theme.gradientFrom,
+                  variant === 'dark' ? 'via-va-darkgray-950/95' : 'via-white/95',
                 )}
-              >
-                Meer bekijken
-                <ChevronDownIcon className={cn('w-4 h-4 shrink-0', filterTheme('light').expandIcon)} />
-              </button>
+                aria-hidden
+              />
             )}
           </div>
-        </>
+          {needsCollapse && !showFullList && (
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className={cn(
+                'group mt-1 flex w-full items-center justify-center gap-1.5 py-1 text-sm font-medium transition-colors',
+                theme.expandBtn,
+              )}
+            >
+              {expandLabel}
+              <ChevronDownIcon className={cn('w-4 h-4 shrink-0', theme.expandIcon)} />
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
@@ -665,9 +694,11 @@ export function PlpFilterSidebar({
     count: facetCount.productType(t.slug),
   })).filter((opt) => isVisible(opt.value, filterState.productTypes ?? [], opt.count))
 
-  const teacherOptions = teachers
-    .map((t) => ({ value: t.slug, label: t.name, count: facetCount.teacher(t.slug) }))
-    .filter((opt) => isVisible(opt.value, filterState.teachers ?? [], opt.count))
+  const teacherOptions = sortFacetsByCount(
+    teachers
+      .map((t) => ({ value: t.slug, label: t.name, count: facetCount.teacher(t.slug) }))
+      .filter((opt) => isVisible(opt.value, filterState.teachers ?? [], opt.count)),
+  )
 
   const dayPartOptions = DAY_PARTS
     .map((opt) => ({ ...opt, count: facetCount.dayPart(opt.value) }))
@@ -740,17 +771,23 @@ export function PlpFilterSidebar({
           <FilterGroupCollapsible
             title="Docent"
             defaultOpen={
-              catalogOnly ? true : groupDefaultOpen(false, collapseGroups, true)
+              (filterState.teachers?.length ?? 0) > 0
+                ? true
+                : catalogOnly
+                  ? true
+                  : groupDefaultOpen(false, collapseGroups, true)
             }
+            openWhenActive
             showActiveCount={groupBadge}
             largeTitle={largeTitle}
             activeCount={filterState.teachers?.length ?? 0}
             variant={variant}
           >
-            <MultiSelectChecklist
+            <SearchableMultiSelectChecklist
               options={teacherOptions}
               selected={filterState.teachers ?? []}
               onToggle={(v) => toggleArray('teachers', v)}
+              placeholder="Zoek op docent…"
               variant={variant}
             />
           </FilterGroupCollapsible>
@@ -764,11 +801,12 @@ export function PlpFilterSidebar({
             largeTitle={largeTitle}
             activeCount={filterState.cities?.length ?? 0}
           >
-            <PlaatsSearchableMultiSelectChecklist
+            <SearchableMultiSelectChecklist
               options={citiesFromFacets}
               selected={filterState.cities ?? []}
               onToggle={(v) => toggleArray('cities', v)}
               placeholder="Zoek op plaats…"
+              variant={variant}
             />
           </FilterGroupCollapsible>
         )}

@@ -25,7 +25,7 @@ export function WishlistList() {
     void (async () => {
       const results = await Promise.all(
         handles.map(async (handle) => {
-          const event = await commerceClient.getEvent(handle)
+          const event = await commerceClient.getEvent(handle).catch(() => null)
           return { handle, event }
         }),
       )

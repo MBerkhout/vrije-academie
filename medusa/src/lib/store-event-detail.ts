@@ -3,8 +3,10 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import productDocentenLink from "../links/product-docenten"
 import productEventGroupLink from "../links/product-event-group"
+import PeopleModuleService from "../modules/people/service"
 import { externalRegistrationUrlFromMetadata } from "./external-registration-url"
 import { filterVariantsWithFutureSessions } from "./event-session-eligibility"
+import { zipImageUrlsWithCaptions } from "./gallery-images"
 import { ctaBarFieldsFromMetadata } from "./product-cta-bar"
 import {
   minPriceCentsFromVariants,
@@ -24,6 +26,55 @@ import {
 } from "./vathuis-availability"
 
 const detailInflight = new Map<string, Promise<Record<string, unknown> | null>>()
+
+type StoreInstructor = {
+  id: string
+  slug: string
+  name: string
+  role: string | null
+  photo_url: string | null
+  bio: string | null
+}
+
+function toStoreInstructor(docent: Record<string, unknown>): StoreInstructor {
+  return {
+    id: String(docent.id),
+    slug: String(docent.slug),
+    name: String(docent.name),
+    role: typeof docent.role === "string" ? docent.role : null,
+    photo_url: typeof docent.photo_url === "string" ? docent.photo_url : null,
+    bio: typeof docent.bio === "string" ? docent.bio : null,
+  }
+}
+
+function resolveFeaturedInstructor(
+  productInstructors: StoreInstructor[],
+  sessionInstructors: StoreInstructor[],
+  variants: Record<string, unknown>[]
+): StoreInstructor | null {
+  if (productInstructors.length > 0) return productInstructors[0]
+
+  const sessionById = new Map(sessionInstructors.map((docent) => [docent.id, docent]))
+  const earliestDocentId = variants
+    .map((variant) => {
+      const eventItem = variant.event_item as Record<string, unknown> | undefined
+      const docentId = eventItem?.docent_id
+      if (typeof docentId !== "string" || !docentId) return null
+      return {
+        docentId,
+        startAt: typeof eventItem.start_at === "string" ? eventItem.start_at : null,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const aTime = a!.startAt ? new Date(a!.startAt).getTime() : Number.POSITIVE_INFINITY
+      const bTime = b!.startAt ? new Date(b!.startAt).getTime() : Number.POSITIVE_INFINITY
+      return aTime - bTime
+    })[0]?.docentId
+
+  if (!earliestDocentId) return null
+  return sessionById.get(earliestDocentId) ?? null
+}
 
 function dayPart(startAt: string | null | undefined): string | null {
   if (!startAt) return null
@@ -86,12 +137,41 @@ export async function buildStoreEventDetail(
   ])
 
   const categories = categoryByProduct[product.id as string] ?? []
-  const instructors = (docLinks ?? [])
-    .map((r) => (r as { docent?: unknown }).docent)
-    .filter(Boolean)
 
   const variants = filterVariantsWithFutureSessions(
     (product.variants ?? []) as Record<string, unknown>[]
+  )
+
+  const productInstructors = (docLinks ?? [])
+    .map((r) => (r as { docent?: Record<string, unknown> }).docent)
+    .filter((docent): docent is Record<string, unknown> => Boolean(docent?.id))
+    .map(toStoreInstructor)
+
+  const sessionDocentIds = [
+    ...new Set(
+      variants
+        .map((variant) => {
+          const eventItem = variant.event_item as Record<string, unknown> | undefined
+          return typeof eventItem?.docent_id === "string" ? eventItem.docent_id : null
+        })
+        .filter(Boolean) as string[]
+    ),
+  ].filter((id) => !productInstructors.some((docent) => docent.id === id))
+
+  const people = scope.resolve("people") as InstanceType<typeof PeopleModuleService>
+  const sessionDocentRows =
+    sessionDocentIds.length > 0
+      ? await people.listDocents({ id: sessionDocentIds })
+      : []
+  const sessionInstructors = sessionDocentRows.map((docent) =>
+    toStoreInstructor(docent as unknown as Record<string, unknown>)
+  )
+
+  const instructors = [...productInstructors, ...sessionInstructors]
+  const featuredInstructor = resolveFeaturedInstructor(
+    productInstructors,
+    sessionInstructors,
+    variants
   )
   const eventItems = variants.map((v) => v.event_item).filter(Boolean) as Record<string, unknown>[]
 
@@ -179,6 +259,7 @@ export async function buildStoreEventDetail(
     has_free_trial_group: eventGroup?.has_free_trial ?? false,
     categories,
     instructors,
+    featured_instructor: featuredInstructor,
     cities,
     delivery_types: deliveryTypes,
     earliest_start_at: earliestStartAt,
@@ -187,6 +268,7 @@ export async function buildStoreEventDetail(
     min_available_quantity: minAvailableQuantity,
     has_free_trial: hasFreeTrial || (eventGroup?.has_free_trial ?? false),
     image_urls: imageUrls,
+    gallery_images: zipImageUrlsWithCaptions(imageUrls, productMetadata),
     external_registration_url: externalRegistrationUrlFromMetadata(productMetadata),
     has_linked_online_sessions: hasLinkedOnlineSessions,
     purchase_mode: purchaseMode,

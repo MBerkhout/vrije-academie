@@ -6,6 +6,7 @@ import productDocentenLink from "../../links/product-docenten"
 import productEventGroupLink from "../../links/product-event-group"
 import { minPriceCentsFromVariants } from "../../lib/medusa-price-to-cents"
 import { externalRegistrationUrlFromMetadata } from "../../lib/external-registration-url"
+import { imageCaptionsForUrls } from "../../lib/gallery-images"
 import { ctaBarFieldsFromMetadata } from "../../lib/product-cta-bar"
 import CatalogModuleService from "../catalog/service"
 import type { MirrorProductInput } from "./build-product-doc"
@@ -146,6 +147,7 @@ export async function loadProductMirrorInputs(
       record_type: recordTypeByProduct.get(productId),
       thumbnail: (product.thumbnail as string | null | undefined) ?? null,
       image_urls: imageUrls,
+      image_captions: imageCaptionsForUrls(imageUrls, metadata),
       description: (product.description as string | null | undefined) ?? null,
       tags: (product.tags ?? []) as { value: string }[],
       categories: categoriesByProduct.get(productId) ?? [],

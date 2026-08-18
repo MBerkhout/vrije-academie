@@ -68,7 +68,7 @@ src/components/
 
 **City pages**: `/ons-aanbod/plaats/{city}` — filtered PLP with title “Ons aanbod in {city}”. City slugs are resolved from Medusa event facets (same source as Ons aanbod filters); Sanity `city` mirrors are used when present for the label.
 
-**PDP shape**: Buttons, badges, cards, gallery tiles, and related/similar product tiles on the product detail route use **square corners** (`rounded-none`); see **Design principles** in `docs/DESIGN_SYSTEM.md`.
+**PDP shape**: Buttons, badges, cards, gallery tiles, and related/similar product tiles on the product detail route use **square corners** (`rounded-none`); see **Design principles** in `docs/DESIGN_SYSTEM.md`. Gallery artwork credits (Salesforce **Afbeelding N Tekst**) appear under each tile on hover (tap the image on mobile) — see **Image gallery** in `docs/components.md`.
 
 ## Setup
 
@@ -141,7 +141,7 @@ The commerce client also exposes `getWishlistHandles`, `addWishlistHandle`, and 
 
 Labels: **Sanity → General settings → PDP → UI labels** (`wishlist`, `wishlistSaved`, `inviteSomeone`); the header share control still uses `share`. Defaults and account copy live in `src/locales/nl.json` (`pdp`, `accountPage`).
 
-Below the wishlist control, the panel adds **Nodig iemand uit** (`mailto:` with a prefilled subject/body) and **Deel** (copy: `pdp.bookingShare`) with Facebook, e-mail, and LinkedIn actions (canonical product URL from `NEXT_PUBLIC_SITE_URL` / `plpProductPath`).
+Below the wishlist control, the panel adds **Nodig iemand uit** (`mailto:` with a prefilled subject/body) and **Deel** (copy: `pdp.bookingShare`) with Facebook, e-mail, and LinkedIn actions (canonical product URL from `NEXT_PUBLIC_SITE_URL` / `plpProductPath`). When the event API returns **`featured_instructor`** (photo and/or bio), **`PdpFeaturedInstructor`** renders below the share row with name, role, and description (`pdp.bookingFeaturedInstructorHeading`).
 
 ### Development
 
@@ -193,12 +193,14 @@ If `SANITY_API_READ_TOKEN` is missing, `/api/draft` returns 503 with a helpful e
 
 **Block paths**: CMS blocks are inline objects on `page.blocks[]`. The frontend identifies blocks by `_key` (with `_id` coalesced in GROQ for React keys). Legacy separate block documents must be inlined with `npm run migrate:blocks-inline --prefix sanity` or Presentation logs `No field could be resolved at path: blocks[…]`.
 
-## 404
+## 404 & 500
 
 - `app/not-found.tsx` wraps the shared [`NotFoundView`](../src/components/NotFoundView.tsx) with header/footer for routes outside `(main)`.
 - `app/(main)/not-found.tsx` renders the same content inside the main layout (e.g. missing CMS slug).
-- The secondary CTA links to `/vragen`; adjust the `href` in `NotFoundView` if that page uses another slug.
-- CTAs use [`Button`](../src/components/ui/Button.tsx): `variant="primary"` (homepage) and `variant="outline"` (vragen), matching [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) (serif title, sans body, `rounded-sm`).
+- Activity PDPs (`/ons-aanbod/[handle]`, `/va-thuis/[handle]`) use `app/(main)/ons-aanbod/[handle]/not-found.tsx` only when Medusa returns **404**. If Medusa is unreachable, those pages **500** instead of pretending the activity does not exist.
+- **500:** [`ErrorView`](../src/components/ErrorView.tsx) via `app/(main)/error.tsx` (keeps header/footer), `app/(checkout)/error.tsx`, `app/error.tsx` (standalone logo), and `app/global-error.tsx` (root layout failures). Copy in `src/locales/nl.json` (`serverError`). Primary CTA retries the render; outline links go home and `/vragen`.
+- The secondary CTA on 404 links to `/vragen`; adjust the `href` in `NotFoundView` if that page uses another slug.
+- CTAs use [`Button`](../src/components/ui/Button.tsx): `variant="primary"` and `variant="outline"`, matching [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) (serif title, sans body, `rounded-sm`).
 
 ## SEO & JSON-LD
 

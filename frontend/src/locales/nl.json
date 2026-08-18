@@ -56,6 +56,14 @@
     "ctaHome": "Naar de homepage",
     "ctaQuestions": "Naar vragen"
   },
+  "serverError": {
+    "title": "Er is iets misgegaan",
+    "body": "Deze pagina kon nu niet worden geladen. Probeer het opnieuw, of ga terug naar de homepage. Onze excuses voor het ongemak.",
+    "ctaRetry": "Probeer opnieuw",
+    "ctaHome": "Naar de homepage",
+    "ctaQuestions": "Naar vragen",
+    "digest": "Foutcode: {digest}"
+  },
   "cart": {
     "loadError": "Kon de winkelwagen niet laden. Probeer het opnieuw.",
     "quantityUpdateError": "Kon het aantal niet bijwerken. Probeer het opnieuw.",
@@ -298,6 +306,7 @@
     "shareFacebookAria": "Deel op Facebook",
     "shareEmailAria": "Deel via e-mail",
     "shareLinkedInAria": "Deel op LinkedIn",
+    "bookingFeaturedInstructorHeading": "Docent",
     "bookingFreeTrial": "Gratis proefles",
     "bookingSoldOutLabel": "Volgeboekt",
     "bookingAdding": "Bezig…",
