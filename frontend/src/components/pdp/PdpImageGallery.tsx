@@ -2,7 +2,11 @@
 
 import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { formatPdpGalleryCaption, type PdpGalleryImage } from '@/components/pdp/pdp-gallery-images'
+import {
+  formatPdpGalleryCaptionHtml,
+  stripPdpGalleryCaptionHtml,
+  type PdpGalleryImage,
+} from '@/components/pdp/pdp-gallery-images'
 import { cn } from '@/lib/utils'
 
 export type { PdpGalleryImage } from '@/components/pdp/pdp-gallery-images'
@@ -77,7 +81,8 @@ function GalleryTile({
   const hasCaption = Boolean(rawCaption)
   const isOpen = openIndex === index
   const captionId = `pdp-gallery-caption-${index}`
-  const captionText = hasCaption ? formatPdpGalleryCaption(rawCaption) : ''
+  const captionText = hasCaption ? stripPdpGalleryCaptionHtml(rawCaption) : ''
+  const captionHtml = hasCaption ? formatPdpGalleryCaptionHtml(rawCaption) : ''
 
   return (
     <div className="group relative">
@@ -105,9 +110,8 @@ function GalleryTile({
             'sm:group-hover:pointer-events-auto sm:group-hover:opacity-100',
             'sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100',
           )}
-        >
-          {captionText}
-        </div>
+          dangerouslySetInnerHTML={{ __html: captionHtml }}
+        />
       )}
     </div>
   )

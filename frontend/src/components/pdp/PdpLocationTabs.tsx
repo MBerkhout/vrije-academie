@@ -392,22 +392,22 @@ export function PdpLocationTabs({
           <button
             type="button"
             role="tab"
-            aria-selected={deliveryFilter === 'online'}
-            onClick={() => setDeliveryFilter('online')}
-            className={deliveryFilterButtonClass(deliveryFilter === 'online')}
-          >
-            <DeliveryTypeIcon variant="online" className="w-4 h-4" />
-            {deliveryFilterOnlineLabel}
-          </button>
-          <button
-            type="button"
-            role="tab"
             aria-selected={deliveryFilter === 'offline'}
             onClick={() => setDeliveryFilter('offline')}
             className={deliveryFilterButtonClass(deliveryFilter === 'offline')}
           >
             <DeliveryTypeIcon variant="offline" className="w-4 h-4" />
             {deliveryFilterOfflineLabel}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={deliveryFilter === 'online'}
+            onClick={() => setDeliveryFilter('online')}
+            className={deliveryFilterButtonClass(deliveryFilter === 'online')}
+          >
+            <DeliveryTypeIcon variant="online" className="w-4 h-4" />
+            {deliveryFilterOnlineLabel}
           </button>
         </div>
       )}
