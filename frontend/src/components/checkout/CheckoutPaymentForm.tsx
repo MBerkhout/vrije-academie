@@ -28,6 +28,7 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
   'pp_mollie-apple-pay_mollie': 'Apple Pay',
   'pp_mollie-giftcard_mollie': 'Cadeaukaart',
   'pp_mollie-hosted-checkout_mollie': 'Mollie Checkout',
+  'pp_mollie-klarna_mollie': 'Klarna',
 }
 
 
@@ -307,14 +308,14 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-8">
       {paymentFailed && (
-        <div className="px-4 py-4 bg-amber-50 border border-amber-300 font-sans text-sm text-amber-900 space-y-1" role="alert">
+        <div className="rounded-lg px-4 py-4 bg-amber-50 border border-amber-300 font-sans text-sm text-amber-900 space-y-1" role="alert">
           <p className="font-semibold">Je betaling is niet voltooid</p>
           <p>Je kunt hieronder een andere betaalmethode kiezen en het opnieuw proberen.</p>
         </div>
       )}
 
       {toast && (
-        <div className="px-4 py-3 bg-red-50 border border-red-200 font-sans text-sm text-red-700" role="alert">
+        <div className="rounded-lg px-4 py-3 bg-red-50 border border-red-200 font-sans text-sm text-red-700" role="alert">
           {toast}
         </div>
       )}
@@ -335,7 +336,7 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
             <span className="underline underline-offset-2">Gegevens aanpassen</span>
           </Link>
         </div>
-        <div className="border border-va-lightgray-300 bg-va-lightgray-100 px-4 py-3 font-sans text-sm">
+        <div className="rounded-lg border border-va-lightgray-300 bg-va-lightgray-100 px-4 py-3 font-sans text-sm">
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
             <dt className="text-va-gray">Naam</dt>
             <dd className="text-va-black">
@@ -425,12 +426,12 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
               }
             }}
             placeholder="Voer je code in"
-            className="flex-1 border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black"
+            className="flex-1 rounded-lg border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black"
           />
           <button
             type="button"
             onClick={handleApplyGiftCode}
-            className="px-4 py-2 border border-va-black font-sans text-sm font-medium hover:bg-va-black hover:text-white transition-colors"
+            className="rounded-lg px-4 py-2 border border-va-black font-sans text-sm font-medium hover:bg-va-black hover:text-white transition-colors"
           >
             {settings.payment?.giftCodeApplyLabel ?? 'Code toepassen'}
           </button>
@@ -472,7 +473,7 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
       <button
         type="submit"
         disabled={busy || (!isFreeCheckout && !selectedMethod)}
-        className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-4 hover:bg-va-yellow/90 transition-colors disabled:opacity-60"
+        className="w-full rounded-lg bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-4 hover:bg-va-yellow/90 transition-colors disabled:opacity-60"
       >
         {busy
           ? isFreeCheckout

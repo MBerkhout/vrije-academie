@@ -30,7 +30,7 @@ All under `frontend/src/components/vathuis/`:
 - `VaThuisSubNav` — section sub-navigation (landing / catalog)
 - `VaThuisEventCard` — dark card with play overlay + episode meta
 - `VaThuisListingPage` / `VaThuisLiveListing` — catalog shell
-- `VaThuisPdpPageContent` — dark PDP (episodes table, booking panel). Featured docent stays in the right-hand booking panel: photo left, name + title right.
+- `VaThuisPdpPageContent` — dark PDP (episodes table, booking panel). Shows only the **VA Thuis – on demand** badge (no category badges). Featured docent stays in the right-hand booking panel: photo left, name + title right.
 - `VaThuisCmsPage` — renders CMS `page.blocks` via `BlockRenderer` (`tone="onDark"`)
 
 **Purchase access:** after buying a bundle, logged-in customers can watch all episodes for **3 months** (`PdpEpisodesTable` unlock + `/mijn-account/collectie`). Preview and purchased playback both use the Audience Player **embed-player SDK** (not iframes) so `play()` can run in the user’s click gesture; tokens come from Medusa — see `medusa/docs/VATHUIS_ACCESS.md`.

@@ -169,7 +169,7 @@ export function CartView({ settings }: CartViewProps) {
     return (
       <div className="animate-pulse space-y-4">
         {[1, 2].map((i) => (
-          <div key={i} className="h-24 rounded bg-va-lightgray-200" />
+          <div key={i} className="h-24 rounded-lg bg-va-lightgray-200" />
         ))}
       </div>
     )
@@ -205,13 +205,13 @@ export function CartView({ settings }: CartViewProps) {
               <span className="font-sans text-xs font-semibold text-va-darkgray">Product</span>
             </div>
             <div className="shrink-0 flex items-center gap-2">
-              <span className="font-sans text-xs font-semibold text-va-darkgray w-24 text-left whitespace-nowrap">Aantal personen</span>
+              <span className="font-sans text-xs font-semibold text-va-darkgray min-w-[7.25rem] text-left whitespace-nowrap">Aantal personen</span>
               <span className="font-sans text-xs font-semibold text-va-darkgray w-16 text-right">Prijs</span>
             </div>
           </div>
 
           {/* Cart items */}
-          <div className="divide-y divide-va-lightgray-300 border-b border-va-lightgray-300">
+          <div className="divide-y divide-va-lightgray-300 overflow-hidden rounded-lg border border-va-lightgray-300 bg-white">
             {items.map((item) => {
               const itemExtras = extras.find((e) => e.line_item_id === item.id) ?? null
               return (

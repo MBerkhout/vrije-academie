@@ -12,6 +12,7 @@ export interface ValidatedInputProps {
   type?: string
   autoComplete?: string
   placeholder?: string
+  description?: string
   min?: number | string
   max?: number | string
   step?: number | string
@@ -31,6 +32,7 @@ export function ValidatedInput({
   type = 'text',
   autoComplete,
   placeholder,
+  description,
   min,
   max,
   step,
@@ -44,6 +46,8 @@ export function ValidatedInput({
   const isInvalid = validity.state === 'invalid'
   const isValid = validity.state === 'valid'
   const inputId = id ?? name
+  const descriptionId = description ? `${inputId}-description` : undefined
+  const errorId = isInvalid ? `${inputId}-error` : undefined
   return (
     <div>
       <label className="block font-sans text-sm font-medium text-va-black mb-1" htmlFor={inputId}>
@@ -66,8 +70,9 @@ export function ValidatedInput({
           onBlur={onBlur}
           disabled={disabled}
           aria-invalid={isInvalid || undefined}
+          aria-describedby={[descriptionId, errorId].filter(Boolean).join(' ') || undefined}
           className={clsx(
-            'w-full border px-3 py-2 pr-9 font-sans text-sm focus:outline-none transition-colors',
+            'w-full rounded-lg border px-3 py-2 pr-9 font-sans text-sm focus:outline-none transition-colors',
             isInvalid && 'border-red-500 focus:border-red-600',
             isValid && 'border-green-500 focus:border-green-600',
             !isInvalid && !isValid && 'border-va-lightgray-300 focus:border-va-black'
@@ -99,7 +104,16 @@ export function ValidatedInput({
           </span>
         )}
       </div>
-      {isInvalid && <p className="font-sans text-xs text-red-600 mt-1">{validity.message}</p>}
+      {description && (
+        <p id={descriptionId} className="mt-1 font-sans text-xs text-va-darkgray">
+          {description}
+        </p>
+      )}
+      {isInvalid && (
+        <p id={errorId} className="mt-1 font-sans text-xs text-red-600">
+          {validity.message}
+        </p>
+      )}
     </div>
   )
 }
@@ -155,7 +169,7 @@ export function ValidatedTextarea({
           disabled={disabled}
           aria-invalid={isInvalid || undefined}
           className={clsx(
-            'w-full min-h-[100px] resize-y border px-3 py-2 pr-9 font-sans text-sm focus:outline-none transition-colors',
+            'w-full min-h-[100px] resize-y rounded-lg border px-3 py-2 pr-9 font-sans text-sm focus:outline-none transition-colors',
             isInvalid && 'border-red-500 focus:border-red-600',
             isValid && 'border-green-500 focus:border-green-600',
             !isInvalid && !isValid && 'border-va-lightgray-300 focus:border-va-black'

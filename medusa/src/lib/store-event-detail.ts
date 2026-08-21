@@ -119,6 +119,8 @@ export async function buildStoreEventDetail(
   const product = products?.[0] as Record<string, unknown> | undefined
   if (!product?.id) return null
 
+  const productMetadata = product.metadata as Record<string, unknown> | null | undefined
+
   const { data: groupLinks } = await query.graph({
     entity: productEventGroupLink.entryPoint,
     fields: ["product_id", "event_group.*"],
@@ -173,6 +175,12 @@ export async function buildStoreEventDetail(
     sessionInstructors,
     variants
   )
+  const highlightedTeacherSfId =
+    typeof productMetadata?.salesforce_highlighted_teacher_id === "string"
+      ? productMetadata.salesforce_highlighted_teacher_id.trim()
+      : ""
+  const highlightedInstructor =
+    highlightedTeacherSfId && productInstructors.length > 0 ? productInstructors[0] : null
   const eventItems = variants.map((v) => v.event_item).filter(Boolean) as Record<string, unknown>[]
 
   const earliestStartAt =
@@ -202,7 +210,6 @@ export async function buildStoreEventDetail(
   ] as string[]
 
   const { metadata, ...productFields } = product
-  const productMetadata = metadata as Record<string, unknown> | null | undefined
   const ctaFields = ctaBarFieldsFromMetadata(productMetadata)
   const hasLinkedOnlineSessions = Boolean(productMetadata?.salesforce_linked_online_productgroup_id)
 
@@ -260,6 +267,7 @@ export async function buildStoreEventDetail(
     categories,
     instructors,
     featured_instructor: featuredInstructor,
+    highlighted_instructor: highlightedInstructor,
     cities,
     delivery_types: deliveryTypes,
     earliest_start_at: earliestStartAt,

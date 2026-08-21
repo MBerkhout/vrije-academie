@@ -265,7 +265,7 @@ function SummaryContent({
 /** Desktop sticky sidebar — shown inline on lg+ screens */
 export function CheckoutOrderSummaryDesktop({ trust, helpContact, ...rest }: CheckoutOrderSummaryProps) {
   return (
-    <aside className="hidden lg:block bg-va-lightgray-100 p-5">
+    <aside className="hidden lg:block rounded-lg bg-va-lightgray-100 p-5">
       <SummaryContent {...rest} />
       <CheckoutHelpAndTrust trust={trust} helpContact={helpContact} />
     </aside>
@@ -278,7 +278,7 @@ export function CheckoutOrderSummaryHelpTrustOnly({
   helpContact,
 }: Pick<CheckoutOrderSummaryProps, 'trust' | 'helpContact'>) {
   return (
-    <aside className="bg-va-lightgray-100 p-5">
+    <aside className="rounded-lg bg-va-lightgray-100 p-5">
       <CheckoutHelpAndTrust trust={trust} helpContact={helpContact} topDivider={false} />
     </aside>
   )
@@ -296,7 +296,7 @@ export function CheckoutOrderSummaryMobile({
   if (!cart || cart.items.length === 0) return null
 
   return (
-    <div className="lg:hidden border border-va-lightgray-300 mb-6 overflow-hidden">
+    <div className="lg:hidden rounded-lg border border-va-lightgray-300 mb-6 overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

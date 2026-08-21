@@ -17,7 +17,7 @@ export function OrderSummary({ cart, labels }: OrderSummaryProps) {
   const hasCredit = typeof creditCents === 'number' && creditCents > 0
 
   return (
-    <div className="border border-va-lightgray-300 p-4 font-sans text-sm space-y-2">
+    <div className="rounded-lg border border-va-lightgray-300 p-4 font-sans text-sm space-y-2">
       <div className="flex justify-between text-va-darkgray">
         <span>{labels?.subtotal ?? 'Producten'}</span>
         <span>{formatPriceEur(cart.subtotal ?? 0)}</span>

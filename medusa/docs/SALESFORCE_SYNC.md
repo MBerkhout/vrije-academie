@@ -223,7 +223,7 @@ Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push
 
 | Medusa | Salesforce object | Notes |
 |--------|-------------------|--------|
-| Order header | `Order` | `Website_Order__c`, `Order_Origin__c: Website`, `Payment_Method__c`, `Ideal_Transaction_Id__c` (Mollie) |
+| Order header | `Order` | `Website_Order__c`, `Order_Origin__c: Website`, `Payment_Method__c` (`IDEAL`, `CREDITCARD`, `PAYPAL`, `BANCONTACT`, `GIFTCARD`, `KLARNA`, `GRATIS`), `Ideal_Transaction_Id__c` (Mollie) |
 | Event line (per seat) | `Registration__c` + product `OrderItem` | Links `vaProduct__c` via variant sync state; `Status__c: Ingeschreven` |
 | Promotion discount | discount `OrderItem` | `Is_Discount__c: true`, negative `UnitPrice`, same `Registration__c` |
 | Gift card purchase | `OrderItem` + `Voucher__c` | `Is_Voucher__c`, `Giftcard_*` fields; voucher sync state `entity_type: voucher` |
@@ -406,6 +406,6 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | VAthuis episodes label | `Audience_Player_Episodes__c` | `metadata.vathuis.episode_count_label` |
 | VAthuis play time | `Audience_Player_Play_Time__c` | `metadata.vathuis.play_time` |
 | Audience Player article / product | `Audience_Player_Article_Id__c`, `Audience_Player_Product_Id__c` on child | chapter/episode fetch + `metadata.vathuis.audience_player` |
-| Highlighted docent | `Highlighted_Teacher__c`, `Highlighted_Teacher__r.Name`, `Highlighted_Teacher_Teaser__c`, `Highlighted_Teacher_Image__c` | `Docent` + `product-docenten` link (name fallback from `Samenvatting__c` / `Productgroup_Description__c`). When the linked **Account** is readable, maps `Web_Body__c` (HTML stripped to plain text) → `bio`, else `Description`; `Web_Primary_1_Url__c` → `photo_url`, else a usable `PhotoUrl`; `PersonTitle` → `role` (`utils/fetch-teacher-account.ts`). Salesforce session-relative `PhotoUrl` paths (e.g. `/services/images/photo/001...`) are dropped (`utils/photo-url.ts`). Mirrored to Sanity `docent` on `people.docent.*` events. |
+| Highlighted docent | `Highlighted_Teacher__c`, `Highlighted_Teacher__r.Name`, `Highlighted_Teacher_Teaser__c`, `Highlighted_Teacher_Image__c` | `metadata.salesforce_highlighted_teacher_id`, `Docent` + `product-docenten` link (name fallback from `Samenvatting__c` / `Productgroup_Description__c`). Store API exposes `highlighted_instructor` for the PDP booking panel when this field is set. When the linked **Account** is readable, maps `Web_Body__c` (HTML stripped to plain text) → `bio`, else `Description`; `Web_Primary_1_Url__c` → `photo_url`, else a usable `PhotoUrl`; `PersonTitle` → `role` (`utils/fetch-teacher-account.ts`). Salesforce session-relative `PhotoUrl` paths (e.g. `/services/images/photo/001...`) are dropped (`utils/photo-url.ts`). Mirrored to Sanity `docent` on `people.docent.*` events. |
 | Variant instructor | Child `Account_Teacher__c`, `Account_Teacher__r.Name`, `Main_Teacher_Name__c` | `EventItem.instructor_name` / `instructor_salesforce_id` + `docent_id` |
 | Preview / iframe | `Audience_Preview_Url__c`, `IFrame_URL_1__c` on group | first-episode `embed_url` in `metadata.vathuis.episodes[]` |

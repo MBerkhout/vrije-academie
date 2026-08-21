@@ -568,7 +568,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     <div className="w-full max-w-none lg:max-w-lg">
       {toast && (
         <div
-          className="mb-4 px-4 py-3 bg-red-50 border border-red-200 font-sans text-sm text-red-700"
+          className="mb-4 rounded-lg px-4 py-3 bg-red-50 border border-red-200 font-sans text-sm text-red-700"
           role="alert"
         >
           {toast}

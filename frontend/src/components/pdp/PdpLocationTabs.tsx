@@ -167,7 +167,9 @@ export function PdpLocationTabs({
   const showDeliveryFilter = hasOnline && hasOffline
 
   const groups = groupOfflineVariantsByCity(offlineVariants)
-  const cities = Object.keys(groups)
+  const cities = Object.keys(groups).sort((a, b) =>
+    a.localeCompare(b, 'nl', { sensitivity: 'base' }),
+  )
   const showDate = shouldShowEventDates({
     delivery_types: [
       ...new Set(variants.map((v) => v.event_item?.delivery_type).filter(Boolean)),
@@ -206,17 +208,9 @@ export function PdpLocationTabs({
     'text-sm font-bold px-4 py-2 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-block text-center'
 
   const sessionsHeading = labels?.sessionsHeading ?? t.locationSessions ?? 'Sessies'
-  const deliveryFilterBothLabel = t.deliveryFilterBoth ?? 'Beide'
+  const deliveryFilterBothLabel = t.deliveryFilterBoth ?? 'Alle'
   const deliveryFilterOnlineLabel = t.deliveryFilterOnline ?? 'Online'
   const deliveryFilterOfflineLabel = t.deliveryFilterOffline ?? 'Fysiek'
-  const onlineZoomInfo =
-    labels?.onlineSessionsZoomInfo ??
-    t.onlineSessionsZoomInfo ??
-    'Je ontvangt 1 uur voor aanvang een link waarmee je de activiteit via het programma Zoom kunt bijwonen.'
-  const onlineReplayInfo =
-    labels?.onlineSessionsReplayInfo ??
-    t.onlineSessionsReplayInfo ??
-    'Binnen 2 werkdagen ontvang je een link waarmee je de registratie van de lezing nog 7 dagen kunt terugkijken.'
   const sortLabel = labels?.sessionsSortLabel ?? t.sessionsSortLabel ?? 'Sorteren op'
   const sortDateLabel = labels?.sessionsSortDate ?? t.sessionsSortDate ?? t.tableDate
   const sortLocationLabel = labels?.sessionsSortLocation ?? t.sessionsSortLocation ?? t.tableLocation
@@ -276,11 +270,6 @@ export function PdpLocationTabs({
     cities.length > 1 &&
     deliveryFilter !== 'online'
 
-  const showOnlineInfo =
-    hasOnline &&
-    deliveryFilter !== 'offline' &&
-    sortedVariants.some(isOnlineVariant)
-
   const deliveryFilterButtonClass = (active: boolean) =>
     `inline-flex shrink-0 items-center gap-1.5 px-4 py-2 rounded-none text-sm font-medium transition-colors ${
       active
@@ -304,6 +293,11 @@ export function PdpLocationTabs({
   const handleSortDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSortField(e.target.value as SessionSortField)
     setSortDirection('asc')
+  }
+
+  const handleLocationChange = (city: string) => {
+    setActiveCity(city)
+    if (showDeliveryFilter) setDeliveryFilter('offline')
   }
 
   const renderSessionCta = (
@@ -429,7 +423,7 @@ export function PdpLocationTabs({
             type="button"
             role="tab"
             aria-selected={activeCity === ALL_LOCATIONS}
-            onClick={() => setActiveCity(ALL_LOCATIONS)}
+            onClick={() => handleLocationChange(ALL_LOCATIONS)}
             className={`shrink-0 px-4 py-2 rounded-none text-sm font-medium transition-colors ${activeCity === ALL_LOCATIONS ? 'bg-va-yellow text-va-black' : 'border border-va-lightgray text-va-gray hover:bg-va-lightgray'}`}
           >
             {allLocationsLabel}
@@ -440,7 +434,7 @@ export function PdpLocationTabs({
               role="tab"
               key={city}
               aria-selected={activeCity === city}
-              onClick={() => setActiveCity(city)}
+              onClick={() => handleLocationChange(city)}
               className={`shrink-0 px-4 py-2 rounded-none text-sm font-medium transition-colors ${activeCity === city ? 'bg-va-yellow text-va-black' : 'border border-va-lightgray text-va-gray hover:bg-va-lightgray'}`}
             >
               {city}
@@ -620,11 +614,6 @@ export function PdpLocationTabs({
             </table>
           </div>
 
-          {showOnlineInfo && (
-            <p className="mt-6 text-sm leading-relaxed text-va-gray">
-              {onlineZoomInfo} {onlineReplayInfo}
-            </p>
-          )}
         </>
       )}
     </section>

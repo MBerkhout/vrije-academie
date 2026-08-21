@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import { commerceClient } from '@/lib/commerce'
 import { cmsClient } from '@/lib/cms/server'
 import { getSanityProductExtras } from '@/lib/cms/sanity-refs'
@@ -8,7 +7,7 @@ import { CONTAINER_CLASS } from '@/lib/cms'
 import { Breadcrumbs } from '@/components/common/Breadcrumbs'
 import { JsonLd } from '@/components/common/JsonLd'
 import { buildPdpEventOrCourseJsonLd } from '@/lib/json-ld'
-import { VATHUIS_BASE_PATH, VATHUIS_CATALOG_PATH, vathuisProductPath } from '@/lib/routes'
+import { VATHUIS_BASE_PATH, vathuisProductPath } from '@/lib/routes'
 import { PromoBanner } from '@/components/common/PromoBanner'
 import { PdpImageGallery } from '@/components/pdp/PdpImageGallery'
 import { toPdpGalleryImages } from '@/components/pdp/pdp-gallery-images'
@@ -33,17 +32,9 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
   const pdpLabels = settings?.pdp?.labels
   const stockThreshold = settings?.pdp?.lowStockThreshold ?? 5
 
-  const primaryCategory = event.categories?.[0]
-  const categoryCatalogHref = primaryCategory?.slug
-    ? `${VATHUIS_CATALOG_PATH}?category=${encodeURIComponent(primaryCategory.slug)}`
-    : VATHUIS_CATALOG_PATH
-
   const crumbs = [
     { label: 'Home', href: '/' },
     { label: 'VA Thuis', href: VATHUIS_BASE_PATH },
-    ...(primaryCategory
-      ? [{ label: primaryCategory.label, href: categoryCatalogHref }]
-      : []),
     { label: event.title, href: vathuisProductPath(handle) },
   ]
 
@@ -87,23 +78,6 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
             <div className="lg:col-span-2 flex flex-col">
               <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  {event.categories?.map((cat) =>
-                    cat.slug ? (
-                      <Link
-                        key={cat.slug}
-                        href={`${VATHUIS_CATALOG_PATH}?category=${encodeURIComponent(cat.slug)}`}
-                        className="inline-flex hover:opacity-80 transition-opacity"
-                      >
-                        <Badge variant="category" size="sm">
-                          {cat.label}
-                        </Badge>
-                      </Link>
-                    ) : (
-                      <Badge key={cat.id ?? cat.label} variant="category" size="sm">
-                        {cat.label}
-                      </Badge>
-                    )
-                  )}
                   <Badge variant="yellow" size="sm">
                     VA Thuis – on demand
                   </Badge>

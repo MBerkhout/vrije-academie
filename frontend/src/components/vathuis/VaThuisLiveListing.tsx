@@ -26,7 +26,6 @@ import { VATHUIS_CATALOG_PATH } from '@/lib/routes'
 const VATHUIS_SORT_OPTIONS = [
   { value: 'order', label: 'Aanbevolen' },
   { value: 'newest', label: 'Nieuwste eerst' },
-  { value: 'relevance', label: 'Meest relevant' },
   { value: 'price_asc', label: 'Prijs: laag–hoog' },
   { value: 'price_desc', label: 'Prijs: hoog–laag' },
 ]

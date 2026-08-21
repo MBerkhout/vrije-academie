@@ -289,8 +289,6 @@ export const sanityClient: CMSClient = {
           sessionsHeading,
           physicalSessionsHeading,
           onlineSessionsHeading,
-          onlineSessionsZoomInfo,
-          onlineSessionsReplayInfo,
           sessionsSortLabel,
           sessionsSortDate,
           sessionsSortLocation,

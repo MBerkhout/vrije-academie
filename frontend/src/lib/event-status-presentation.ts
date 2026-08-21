@@ -373,10 +373,10 @@ export function presentationForAvailabilityStatus(
   const cityLabel = options?.city?.trim() ?? ''
   const a = defaultMessages.agenda
   switch (status) {
-    case 'waitlist':
+    case 'sold_out':
       return {
-        label: a.availabilityWaitlist,
-        className: 'bg-va-gray text-white hover:bg-va-darkgray',
+        label: a.availabilitySoldOut,
+        className: 'bg-va-gray text-white',
       }
     case 'almost_full':
       return {

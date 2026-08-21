@@ -509,8 +509,6 @@ export interface GeneralSettings {
       sessionsHeading?: string
       physicalSessionsHeading?: string
       onlineSessionsHeading?: string
-      onlineSessionsZoomInfo?: string
-      onlineSessionsReplayInfo?: string
       sessionsSortLabel?: string
       sessionsSortDate?: string
       sessionsSortLocation?: string

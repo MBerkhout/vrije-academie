@@ -125,6 +125,7 @@ export function CheckoutGuestDetailsStep({
       <ValidatedInput
         name="phone"
         label={settings.unknownEmail?.phoneLabel ?? 'Telefoonnummer'}
+        description="Deze wordt alleen gebruikt voor updates over de bestelling"
         type="tel"
         autoComplete="tel"
         value={phone}
@@ -179,14 +180,14 @@ export function CheckoutGuestDetailsStep({
         />
         <span className="font-sans text-sm text-va-black">
           {settings.unknownEmail?.newsletterOptInLabel ??
-            'Blijf op de hoogte van de laatste cursussen'}
+            'Blijf op de hoogte van ons nieuwste aanbod'}
         </span>
       </label>
 
       <button
         type="submit"
         disabled={busy}
-        className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60"
+        className="w-full rounded-lg bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60"
       >
         {busy ? '…' : (settings.unknownEmail?.continueLabel ?? 'Doorgaan')}
       </button>

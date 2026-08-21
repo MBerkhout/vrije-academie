@@ -26,7 +26,6 @@ import {
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
 
 const AGENDA_SORT_OPTIONS = [
-  { value: 'relevance', label: 'Meest relevant' },
   { value: 'start_date', label: 'Eerstvolgende eerst' },
   { value: 'start_date_desc', label: 'Laatste eerst' },
   { value: 'price_asc', label: 'Prijs: laag–hoog' },

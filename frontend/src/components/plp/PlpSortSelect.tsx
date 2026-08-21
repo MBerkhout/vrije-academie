@@ -10,7 +10,6 @@ const DEFAULT_SORT_OPTIONS = [
   { value: 'order', label: 'Aanbevolen' },
   { value: 'start_date', label: 'Vroegste startdatum' },
   { value: 'newest', label: 'Nieuwste eerst' },
-  { value: 'relevance', label: 'Meest relevant' },
   { value: 'price_asc', label: 'Prijs: laag–hoog' },
   { value: 'price_desc', label: 'Prijs: hoog–laag' },
 ]

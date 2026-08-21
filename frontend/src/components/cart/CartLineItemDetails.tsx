@@ -74,6 +74,7 @@ function BlockFragment({
       )
     }
     case 'instructors':
+      if (variant === 'cart') return null
       return (
         <p className={clsx(detailText, variant === 'summary' && 'mt-0.5')}>
           {block.names.join(', ')}

@@ -19,7 +19,7 @@ export function CartToast({ message }: CartToastProps) {
     <div
       role="alert"
       aria-live="assertive"
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-va-black text-va-white font-sans text-sm px-5 py-3 shadow-lg"
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-lg bg-va-black text-va-white font-sans text-sm px-5 py-3 shadow-lg"
     >
       {message}
     </div>

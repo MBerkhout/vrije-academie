@@ -97,6 +97,11 @@ export default defineConfig({
             id: "mollie",
             options: mollieOpts,
           },
+          {
+            resolve: "./src/providers/mollie-klarna",
+            id: "mollie",
+            options: mollieOpts,
+          },
         ],
       },
     },

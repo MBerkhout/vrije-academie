@@ -11,6 +11,7 @@ const MOLLIE_PROVIDER_IDS = [
   "pp_mollie-giftcard_mollie",
   "pp_mollie-paypal_mollie",
   "pp_mollie-apple-pay_mollie",
+  "pp_mollie-klarna_mollie",
 ]
 
 function generateId(): string {

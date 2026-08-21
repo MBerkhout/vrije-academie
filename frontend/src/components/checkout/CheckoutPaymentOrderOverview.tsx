@@ -81,7 +81,7 @@ export function CheckoutPaymentOrderOverview({ labels }: CheckoutPaymentOrderOve
           <span className="underline underline-offset-2">{changeLinkLabel}</span>
         </Link>
       </div>
-      <div className="border border-va-lightgray-300 bg-va-lightgray-100 px-4 py-3 font-sans text-sm space-y-4">
+      <div className="rounded-lg border border-va-lightgray-300 bg-va-lightgray-100 px-4 py-3 font-sans text-sm space-y-4">
         <OrderSummaryLineItems cart={cart} extras={extras} />
         <OrderSummaryTotalsBlock cart={cart} labels={labels} />
       </div>

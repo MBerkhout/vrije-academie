@@ -141,7 +141,7 @@
     "addressFoundEdit": "Adres aanpassen",
     "addressManualHint": "Komt je adres niet overeen?",
     "addressEnterManual": "Vul handmatig in",
-    "newsletterOptIn": "Blijf op de hoogte van de laatste cursussen",
+    "newsletterOptIn": "Blijf op de hoogte van ons nieuwste aanbod",
     "createAccountCheckbox": "Account aanmaken (optioneel)",
     "fieldFirstName": "Voornaam",
     "fieldLastName": "Achternaam",
@@ -224,7 +224,6 @@
     "sortOptions": [
       { "value": "start_date", "label": "Vroegste startdatum" },
       { "value": "newest", "label": "Nieuwste eerst" },
-      { "value": "relevance", "label": "Meest relevant" },
       { "value": "price_asc", "label": "Prijs: laag–hoog" },
       { "value": "price_desc", "label": "Prijs: hoog–laag" }
     ],
@@ -315,13 +314,11 @@
     "bookingWatchEpisodes": "Afleveringen bekijken",
     "bookingFor": "Voor",
     "locationSessions": "Sessies",
-    "deliveryFilterBoth": "Beide",
+    "deliveryFilterBoth": "Alle",
     "deliveryFilterOnline": "Online",
     "deliveryFilterOffline": "Fysiek",
     "physicalSessionsHeading": "Fysieke sessies",
     "onlineSessionsHeading": "Bezoek deze lezing online",
-    "onlineSessionsZoomInfo": "Je ontvangt 1 uur voor aanvang een link waarmee je de activiteit via het programma Zoom kunt bijwonen.",
-    "onlineSessionsReplayInfo": "Binnen 2 werkdagen ontvang je een link waarmee je de registratie van de lezing nog 7 dagen kunt terugkijken.",
     "sessionsSortLabel": "Sorteren op",
     "sessionsSortDate": "Datum",
     "sessionsSortLocation": "Locatie",
@@ -352,7 +349,7 @@
     "episodePreviewUnavailable": "Deze preview is momenteel niet beschikbaar."
   },
   "agenda": {
-    "availabilityWaitlist": "Wachtlijst",
+    "availabilitySoldOut": "Vol",
     "availabilityAlmostFull": "Bijna vol",
     "availabilityExclusive": "Exclusief",
     "availabilityExclusiveInCity": "Exclusief in {city}",

@@ -80,7 +80,7 @@ export function NlAddressFields({
         <select
           value={country}
           onChange={(e) => onCountryChange(e.target.value)}
-          className="w-full border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-lg border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black bg-white disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={busy}
         >
           <option value="NL">Nederland</option>
@@ -129,7 +129,7 @@ export function NlAddressFields({
       )}
 
       {nlAddress && !manualAddress && addressLookup === 'found' && (
-        <div className="flex items-center gap-2.5 px-3 py-2.5 bg-va-lightgray-100 border border-va-lightgray-300">
+        <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 bg-va-lightgray-100 border border-va-lightgray-300">
           <svg
             width="14"
             height="14"

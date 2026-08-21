@@ -66,7 +66,7 @@ export function DiscountCodeForm({
   }
 
   return (
-    <div className="border border-va-lightgray-300 p-4 space-y-3">
+    <div className="rounded-lg border border-va-lightgray-300 p-4 space-y-3">
       <h2 className="font-sans font-semibold text-sm text-va-black">Kortingscode</h2>
 
       {instructions && (
@@ -81,7 +81,7 @@ export function DiscountCodeForm({
         <ul className="space-y-1">
           {applied.map((entry) => (
             <li key={`${entry.kind}-${entry.code}`} className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-sm text-va-black bg-va-lightgray-200 px-2 py-0.5">
+              <span className="rounded font-mono text-sm text-va-black bg-va-lightgray-200 px-2 py-0.5">
                 {entry.code}
               </span>
               {entry.kind === 'gift' && (
@@ -117,14 +117,14 @@ export function DiscountCodeForm({
           }}
           onKeyDown={(e) => e.key === 'Enter' && handleApply()}
           placeholder={labels?.placeholder ?? 'Voer je code in...'}
-          className="flex-1 min-w-0 border border-va-gray-300 px-3 py-2 font-sans text-sm outline-none focus-visible:ring-2 focus-visible:ring-va-yellow"
+          className="flex-1 min-w-0 rounded-lg border border-va-gray-300 px-3 py-2 font-sans text-sm outline-none focus-visible:ring-2 focus-visible:ring-va-yellow"
           disabled={loading}
         />
         <button
           type="button"
           onClick={handleApply}
           disabled={loading}
-          className="shrink-0 bg-va-black text-va-white font-sans text-sm px-4 py-2 hover:bg-va-darkgray transition-colors disabled:opacity-60"
+          className="shrink-0 rounded-lg bg-va-black text-va-white font-sans text-sm px-4 py-2 hover:bg-va-darkgray transition-colors disabled:opacity-60"
         >
           {loading ? '...' : (labels?.apply ?? 'Toevoegen')}
         </button>

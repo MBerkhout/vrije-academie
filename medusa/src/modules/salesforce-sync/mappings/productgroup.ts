@@ -169,6 +169,7 @@ export function productgroupMetadataFromSalesforce(
     salesforce_cta_color: sf.CTA_Color__c?.trim() || null,
     salesforce_cta_color_hover: sf.CTA_Color_Hover__c?.trim() || null,
     salesforce_order: sf.Order__c ?? null,
+    salesforce_highlighted_teacher_id: sf.Highlighted_Teacher__c?.trim() || null,
     salesforce_gallery_images: productgroupGalleryImages(sf),
     ...extra,
   }

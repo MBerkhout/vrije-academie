@@ -19,9 +19,11 @@ const PROVIDER_TO_SF_METHOD: Record<string, string> = {
   "pp_mollie-giftcard_mollie": "GIFTCARD",
   hosted: "IDEAL",
   "pp_mollie-hosted-checkout_mollie": "IDEAL",
+  klarna: "KLARNA",
+  "pp_mollie-klarna_mollie": "KLARNA",
 }
 
-function mapProviderToSfMethod(providerId: string | null | undefined): string {
+export function mapProviderToSfMethod(providerId: string | null | undefined): string {
   if (!providerId) return "IDEAL"
   const lower = providerId.toLowerCase()
   for (const [key, value] of Object.entries(PROVIDER_TO_SF_METHOD)) {

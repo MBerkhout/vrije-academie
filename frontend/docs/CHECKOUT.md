@@ -48,8 +48,8 @@ email  ──(lookup)──► known ──(password or OTP)──► /checkout/
 |-------|-------------|
 | `email` | Single email field + Volgende; `GET /store/customer/lookup` → `{ exists, hasPassword }` |
 | `known` | **Has password:** password login or OTP button → 6-digit code. **No password:** OTP sent automatically. No guest bypass. |
-| `unknown` | Address form + newsletter opt-in. Always `POST /store/customer/register-passwordless` (passwordless account + JWT). |
-| `logged_in_details` | Same address form for **logged-in** users; e-mail read-only. Saves to **Medusa customer** first, then syncs the cart. |
+| `unknown` | Address form + newsletter opt-in. The phone field explains that the number is only used for order updates. Always `POST /store/customer/register-passwordless` (passwordless account + JWT). |
+| `logged_in_details` | Same address form for **logged-in** users; e-mail read-only. The phone field has the same order-update explanation. Saves to **Medusa customer** first, then syncs the cart. |
 
 **Data ownership**
 
@@ -123,7 +123,7 @@ Mollie also POSTs webhooks to: `{MEDUSA_URL}/hooks/payment/pp_mollie-<method>_mo
 Listed via Medusa's built-in endpoint `GET /store/payment-providers?region_id=...`.  
 Enabled per region in **Medusa Admin → Settings → Regions → [Region] → Payment**.
 
-`PaymentMethodTiles` maps each provider ID to a human label and Mollie icon using a built-in lookup table. Labels can be overridden per provider in Sanity `siteSettings.checkout` (planned).
+`PaymentMethodTiles` maps each provider ID to a human label and Mollie icon using a built-in lookup table (iDEAL, Creditcard, Bancontact, PayPal, Apple Pay, Cadeaukaart, Mollie Checkout, **Klarna**). Labels can be overridden per provider in Sanity `siteSettings.checkout` (planned).
 
 ## Sanity CMS fields
 

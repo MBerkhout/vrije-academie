@@ -82,32 +82,13 @@ function SuccessIcon() {
 }
 
 function ParticipationNotices({ notices }: { notices: CheckoutConfirmationPayload['notices'] }) {
-  if (!notices.show_offline && !notices.show_online) return null
+  if (!notices.show_offline) return null
 
   return (
-    <div className="space-y-3 text-sm text-va-darkgray leading-relaxed">
-      {notices.show_offline ? (
-        <p className="text-sm text-va-darkgray leading-relaxed">
-          Je ontvangt uiterlijk 7 dagen voor aanvang per e-mail je bewijs van deelname met de
-          benodigde informatie.
-        </p>
-      ) : null}
-      {notices.show_online ? (
-        <div className="bg-va-lightgray-50 border border-va-lightgray-300 px-4 py-4 space-y-2">
-          <p className="font-semibold text-va-black">
-            Sta je ingeschreven voor een ONLINE activiteit?
-          </p>
-          <p>
-            Je ontvangt 1 uur voor aanvang een link waarmee je de activiteit via het programma Zoom
-            kunt bijwonen.
-          </p>
-          <p>
-            Binnen 2 werkdagen ontvang je een link waarmee je de registratie van de lezing nog 7
-            dagen kunt terugkijken.
-          </p>
-        </div>
-      ) : null}
-    </div>
+    <p className="text-sm text-va-darkgray leading-relaxed">
+      Je ontvangt uiterlijk 7 dagen voor aanvang per e-mail je bewijs van deelname met de
+      benodigde informatie.
+    </p>
   )
 }
 

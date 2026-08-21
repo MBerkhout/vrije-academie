@@ -13,7 +13,7 @@ export function TrustSignals({ secure, cancellation, support, cancellationDays =
   ].filter(Boolean)
 
   return (
-    <ul className="font-sans text-xs text-va-darkgray space-y-1.5 border border-va-lightgray-300 p-4">
+    <ul className="rounded-lg font-sans text-xs text-va-darkgray space-y-1.5 border border-va-lightgray-300 p-4">
       {signals.map((s, i) => (
         <li key={i} className="flex items-start gap-2">
           <svg className="w-3.5 h-3.5 mt-0.5 shrink-0 text-va-black" viewBox="0 0 14 14" fill="none" aria-hidden>

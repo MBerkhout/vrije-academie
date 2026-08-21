@@ -78,8 +78,10 @@ export interface EventCard {
   tags?: { id: string; value: string }[]
   categories?: { id: string; slug: string; label: string }[]
   instructors?: EventInstructor[]
-  /** Highlighted docent for the VA Thuis PDP sidebar (product link or earliest session docent). */
+  /** Product-linked docent or docent of the earliest future session (session table hover). */
   featured_instructor?: EventInstructor | null
+  /** Highlighted docent from Salesforce `Highlighted_Teacher__c` (PDP booking panel). */
+  highlighted_instructor?: EventInstructor | null
   teachers?: { id: string; slug: string; name: string }[]
   cities?: string[]
   delivery_types?: string[]
@@ -232,7 +234,7 @@ export interface AgendaItem {
   registration_deadline_at?: string | null
   price?: number | null
   day_part?: 'ochtend' | 'middag' | 'avond' | null
-  status: 'open' | 'almost_full' | 'waitlist' | 'exclusief'
+  status: 'open' | 'almost_full' | 'sold_out' | 'exclusief'
 }
 
 export interface AgendaListResult {

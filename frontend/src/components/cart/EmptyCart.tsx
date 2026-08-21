@@ -27,7 +27,7 @@ export function EmptyCart({ heading, subtext, ctaLabel, ctaUrl }: EmptyCartProps
       )}
       <Link
         href={ctaUrl ?? PLP_BASE_PATH}
-        className="mt-2 inline-flex items-center justify-center bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors"
+        className="mt-2 inline-flex items-center justify-center rounded-lg bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors"
       >
         {ctaLabel ?? 'Bekijk ons aanbod'}
       </Link>

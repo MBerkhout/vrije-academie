@@ -111,7 +111,7 @@ export function CheckoutLoginKnownStep({
       <button
         type="submit"
         disabled={busy}
-        className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60"
+        className="w-full rounded-lg bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60"
       >
         {busy
           ? '…'

@@ -32,6 +32,14 @@ All user-facing copy is stored here. Change copy without touching code.
 | **Wishlist** | Primary CTA beside “Bewaren” when the course is not saved. |
 | **Wishlist — saved state** | Label when the course is already on the customer’s wishlist (e.g. “Verwijderen uit bewaard”). |
 
+## Session filters
+
+For activities with online and physical sessions, the modality filters are **Alle**, **Online**, and **Fysiek**. Physical location tabs are sorted alphabetically. Selecting a location, including **Alle locaties**, automatically activates **Fysiek**.
+
+## Highlighted docent (Salesforce)
+
+When **`Highlighted_Teacher__c`** is set on the Salesforce product group (`vaProductgroup__c`), the PDP booking panel shows the linked docent below the price and primary CTA (same layout as VA Thuis). Synced on product-group import via `product-docenten`; storefront reads `highlighted_instructor` from `GET /store/events/:handle`.
+
 ## Block surface registry
 
 Each block schema in `sanity/src/schemas/blocks/` exports `surfaces`. PDP-allowed blocks:

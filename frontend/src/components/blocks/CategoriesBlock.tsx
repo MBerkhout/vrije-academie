@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
-import { PortableText } from '@/components/cms/PortableText'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { Button } from '@/components/ui'
 import {
@@ -56,62 +55,20 @@ export function CategoriesBlock({ block }: { block: CategoriesBlockType }) {
 
   const Tag = getTitleTag(block.titleSize)
 
-  const hasLead = Boolean(block.title) || Boolean(block.introText?.length)
   const hasCta = Boolean(block.ctaEnabled && block.ctaLabel && block.ctaUrl)
-  const hasSidebar = hasLead || hasCta
 
   return (
     <BlockWrapper block={block}>
       <div className="space-y-6">
-        <div
-          className={cn(
-            'flex flex-col gap-6',
-            hasSidebar && 'lg:flex-row lg:items-start lg:gap-8 xl:gap-10',
-          )}
-        >
-          {hasSidebar && (
-            <div className="shrink-0 space-y-4 lg:w-[250px]">
-              {block.title && (
-                <div className="space-y-3">
-                  <Tag className={cn(getTitleSizeClass(block.titleSize), 'font-sans font-bold text-va-black')}>
-                    {block.title}
-                  </Tag>
-                  <div
-                    className="h-1 max-w-[100px] bg-va-yellow"
-                    aria-hidden
-                  />
-                </div>
-              )}
-              {block.introText && block.introText.length > 0 && (
-                <PortableText value={block.introText} />
-              )}
-              {hasCta && (
-                <Button
-                  variant="ghost"
-                  href={block.ctaUrl}
-                  className={cn(
-                    'h-auto w-full justify-start rounded-none px-0 py-0 text-left',
-                    'font-sans text-sm font-bold uppercase tracking-wide',
-                    'bg-transparent text-va-black underline decoration-va-black decoration-1 underline-offset-[5px]',
-                    'hover:bg-transparent hover:text-va-orange hover:underline hover:decoration-va-yellow',
-                    'active:bg-transparent',
-                    'focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2',
-                    'lg:w-auto',
-                  )}
-                >
-                  {block.ctaLabel}
-                  {' >'}
-                </Button>
-              )}
-            </div>
-          )}
-          <div
-            className={cn(
-              'grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 md:gap-3',
-              cols,
-              hasSidebar && 'min-w-0 flex-1',
-            )}
-          >
+        {block.title && (
+          <div className="space-y-3">
+            <Tag className={cn(getTitleSizeClass(block.titleSize), 'font-sans font-bold text-va-black')}>
+              {block.title}
+            </Tag>
+            <div className="h-1 max-w-[100px] bg-va-yellow" aria-hidden />
+          </div>
+        )}
+        <div className={cn('grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-3 md:gap-3', cols)}>
           {items.map((item, i) => {
             const url = getItemUrl(item)
             const label = getItemLabel(item)
@@ -168,8 +125,26 @@ export function CategoriesBlock({ block }: { block: CategoriesBlockType }) {
               </Link>
             )
           })}
-          </div>
         </div>
+        {hasCta && (
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              href={block.ctaUrl}
+              className={cn(
+                'h-auto rounded-none px-0 py-0',
+                'font-sans text-sm font-bold uppercase tracking-wide',
+                'bg-transparent text-va-black underline decoration-va-black decoration-1 underline-offset-[5px]',
+                'hover:bg-transparent hover:text-va-orange hover:underline hover:decoration-va-yellow',
+                'active:bg-transparent',
+                'focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2',
+              )}
+            >
+              {block.ctaLabel}
+              {' >'}
+            </Button>
+          </div>
+        )}
       </div>
     </BlockWrapper>
   )

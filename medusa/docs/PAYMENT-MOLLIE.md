@@ -60,6 +60,9 @@ The plugin registers one provider per payment method. All share the plugin's `id
 | `pp_mollie-giftcard_mollie` | Cadeaukaart (**Mollie** betaalmethode, o.a. nationale cadeaukaarten — niet hetzelfde als de **interne** Vrije Academie digitale cadeaubon; die gebruikt cart credit lines + module `giftCard`. Zie [GIFT-CARDS.md](./GIFT-CARDS.md).) |
 | `pp_mollie-paypal_mollie` | PayPal |
 | `pp_mollie-apple-pay_mollie` | Apple Pay |
+| `pp_mollie-klarna_mollie` | Klarna (unified Mollie method `klarna`; project-owned provider in `src/providers/mollie-klarna`) |
+
+Klarna requires complete billing details (name, e-mail, address) and order lines. The local provider builds a single digital line matching the Medusa payment amount and sends the billing address from `context.customer` (same as other Mollie methods — see [Billing address](#billing-address-storefront)).
 
 ## Region setup
 
@@ -70,7 +73,7 @@ After starting Medusa with the plugin for the first time:
 
 ## Adding a new Mollie method later
 
-The plugin already includes all services. Just enable the provider in Medusa Admin for the relevant region. No code changes needed.
+Methods included in `@variablevic/mollie-payments-medusa` can be enabled in Medusa Admin only. **Klarna** is not part of that plugin; it is registered separately via `./src/providers/mollie-klarna` in `medusa-config.ts`. After code deploy, run `npm run seed:region` (or enable `pp_mollie-klarna_mollie` in Admin) and activate **Klarna** in the [Mollie dashboard](https://my.mollie.com/dashboard/settings/payment-methods).
 
 ## Webhook flow
 

@@ -281,20 +281,6 @@ export const generalSettings = defineType({
               initialValue: "Bezoek deze lezing online",
             }),
             defineField({
-              name: "onlineSessionsZoomInfo",
-              title: "Online sessions Zoom info",
-              type: "text",
-              initialValue:
-                "Je ontvangt 1 uur voor aanvang een link waarmee je de activiteit via het programma Zoom kunt bijwonen.",
-            }),
-            defineField({
-              name: "onlineSessionsReplayInfo",
-              title: "Online sessions replay info",
-              type: "text",
-              initialValue:
-                "Binnen 2 werkdagen ontvang je een link waarmee je de registratie van de lezing nog 7 dagen kunt terugkijken.",
-            }),
-            defineField({
               name: "sessionsSortLabel",
               title: "Sessions sort label (aria)",
               type: "string",
@@ -694,7 +680,7 @@ export const generalSettings = defineType({
               name: "newsletterOptInLabel",
               type: "string",
               title: "Nieuwsbrief checkbox",
-              initialValue: "Blijf op de hoogte van de laatste cursussen",
+              initialValue: "Blijf op de hoogte van ons nieuwste aanbod",
             }),
             defineField({ name: "continueLabel", type: "string", title: "Doorgaan knop", initialValue: "Doorgaan" }),
           ],

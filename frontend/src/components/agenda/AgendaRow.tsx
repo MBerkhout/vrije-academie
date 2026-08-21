@@ -6,6 +6,7 @@ import {
   presentationForAvailabilityStatus,
   shouldShowOnlineDeliveryIcon,
 } from '@/lib/event-status-presentation'
+import { formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
 
 interface AgendaRowProps {
@@ -47,9 +48,18 @@ export function AgendaRow({ item }: AgendaRowProps) {
     .split(' ')
     .filter((c) => !c.startsWith('hover:'))
     .join(' ')
+  const priceLabel = item.price ? formatPriceEur(item.price) : null
+  const isSoldOut = item.status === 'sold_out'
 
   return (
-    <article className="group relative grid grid-cols-[76px_1fr_auto_auto] items-stretch gap-0 bg-white border border-va-lightgray rounded-lg overflow-hidden hover:border-va-gray hover:shadow-md transition-[box-shadow,border-color]">
+    <article
+      className={cn(
+        'group relative grid grid-cols-[76px_1fr_auto_auto] sm:grid-cols-[76px_1fr_auto_auto_auto] items-stretch gap-0 bg-white border border-va-lightgray rounded-lg overflow-hidden transition-[box-shadow,border-color,opacity]',
+        isSoldOut
+          ? 'opacity-70 hover:border-va-lightgray'
+          : 'hover:border-va-gray hover:shadow-md',
+      )}
+    >
       <Link
         href={href}
         className="absolute inset-0 z-10 rounded-lg"
@@ -57,31 +67,84 @@ export function AgendaRow({ item }: AgendaRowProps) {
       />
 
       {/* Date cell */}
-      <div className="bg-va-lightgray/50 flex flex-col items-center justify-center py-3 px-2 text-center">
-        <div className="font-bold text-va-black text-sm leading-none">
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center py-3 px-2 text-center',
+          isSoldOut ? 'bg-va-lightgray/80' : 'bg-va-lightgray/50',
+        )}
+      >
+        <div
+          className={cn(
+            'font-bold text-sm leading-none',
+            isSoldOut ? 'text-va-gray' : 'text-va-black',
+          )}
+        >
           {dayNum} {monthLabel}
         </div>
         {timeRange ? (
-          <div className="mt-1 text-xs text-va-black leading-snug sm:hidden">{timeRange}</div>
+          <div
+            className={cn(
+              'mt-1 text-xs leading-snug sm:hidden',
+              isSoldOut ? 'text-va-gray' : 'text-va-black',
+            )}
+          >
+            {timeRange}
+          </div>
         ) : null}
         <div className="text-xs text-va-gray mt-1 capitalize">{weekday}</div>
       </div>
 
       {/* Title + location */}
       <div className="flex flex-col justify-center px-4 py-3 min-w-0">
-        <p className="font-sans font-semibold text-va-black text-sm leading-snug group-hover:underline underline-offset-2 decoration-va-black line-clamp-1">
+        <p
+          className={cn(
+            'font-sans font-semibold text-sm leading-snug line-clamp-1',
+            isSoldOut
+              ? 'text-va-gray'
+              : 'text-va-black group-hover:underline underline-offset-2 decoration-va-black',
+          )}
+        >
           {item.product_title}
         </p>
         <div className="flex items-center gap-1 text-xs text-va-gray mt-0.5">
           <DeliveryTypeIcon isOnline={isOnline} />
           <span className="truncate">{locationLabel}</span>
         </div>
+        {priceLabel ? (
+          <p
+            className={cn(
+              'mt-1 text-xs font-semibold sm:hidden',
+              isSoldOut ? 'text-va-gray' : 'text-va-black',
+            )}
+          >
+            {priceLabel}
+          </p>
+        ) : null}
       </div>
 
       {/* Time */}
-      <div className="hidden sm:flex items-center px-4 py-3 text-sm text-va-black whitespace-nowrap">
+      <div
+        className={cn(
+          'hidden sm:flex items-center px-4 py-3 text-sm whitespace-nowrap',
+          isSoldOut ? 'text-va-gray' : 'text-va-black',
+        )}
+      >
         {timeRange}
       </div>
+
+      {/* Price */}
+      {priceLabel ? (
+        <div
+          className={cn(
+            'hidden sm:flex items-center px-4 py-3 text-sm font-semibold whitespace-nowrap',
+            isSoldOut ? 'text-va-gray' : 'text-va-black',
+          )}
+        >
+          {priceLabel}
+        </div>
+      ) : (
+        <div className="hidden sm:block" aria-hidden />
+      )}
 
       {/* Availability label */}
       <div

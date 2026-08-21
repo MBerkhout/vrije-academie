@@ -18,6 +18,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   'pp_mollie-apple-pay_mollie': 'Apple Pay',
   'pp_mollie-giftcard_mollie': 'Cadeaukaart',
   'pp_mollie-hosted-checkout_mollie': 'Mollie Checkout',
+  'pp_mollie-klarna_mollie': 'Klarna',
 }
 
 const PROVIDER_ICONS: Record<string, string> = {
@@ -28,6 +29,7 @@ const PROVIDER_ICONS: Record<string, string> = {
   'pp_mollie-apple-pay_mollie': 'https://www.mollie.com/external/icons/payment-methods/applepay.svg',
   'pp_mollie-giftcard_mollie': 'https://www.mollie.com/external/icons/payment-methods/giftcard.svg',
   'pp_mollie-hosted-checkout_mollie': 'https://www.mollie.com/external/icons/payment-methods/mollie.svg',
+  'pp_mollie-klarna_mollie': 'https://www.mollie.com/external/icons/payment-methods/klarna.svg',
 }
 
 interface PaymentMethodTilesProps {
@@ -71,7 +73,7 @@ export function PaymentMethodTiles({ providers, selected, onSelect, labelOverrid
   }
 
   return (
-    <div className="flex flex-col divide-y divide-va-lightgray-300 border border-va-lightgray-300" role="radiogroup">
+    <div className="flex flex-col divide-y divide-va-lightgray-300 overflow-hidden rounded-lg border border-va-lightgray-300" role="radiogroup">
       {visible.map((provider) => {
         const label =
           (labelOverrides ?? {})[provider.id] ??

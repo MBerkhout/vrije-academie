@@ -38,20 +38,24 @@ function CartQuantityStepper({
   }
 
   return (
-    <div className="flex items-center" role="group" aria-label="Aantal">
+    <div
+      className="inline-flex w-fit shrink-0 items-stretch overflow-hidden rounded-md border border-va-gray-300 divide-x divide-va-gray-300"
+      role="group"
+      aria-label="Aantal"
+    >
       <button
         type="button"
         aria-label="Minder"
         disabled={updating || item.quantity <= 1}
         onClick={() => onQuantityChange(item.id, item.quantity - 1)}
-        className="flex h-8 w-8 shrink-0 items-center justify-center border border-r-0 border-va-gray-300 font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40"
+        className="flex h-8 w-8 shrink-0 items-center justify-center font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         −
       </button>
       <span
         aria-live="polite"
         aria-atomic="true"
-        className="flex h-8 w-11 shrink-0 items-center justify-center border border-va-gray-300 bg-white font-sans text-sm tabular-nums text-va-black"
+        className="flex h-8 min-w-[2.75rem] shrink-0 items-center justify-center bg-white px-2 font-sans text-sm tabular-nums text-va-black"
       >
         {item.quantity}
       </span>
@@ -60,7 +64,7 @@ function CartQuantityStepper({
         aria-label="Meer"
         disabled={updating || item.quantity >= 12}
         onClick={() => onQuantityChange(item.id, item.quantity + 1)}
-        className="flex h-8 w-8 shrink-0 items-center justify-center border border-l-0 border-va-gray-300 font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40"
+        className="flex h-8 w-8 shrink-0 items-center justify-center font-sans text-base text-va-black transition-colors hover:bg-va-lightgray-200 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         +
       </button>
@@ -90,7 +94,7 @@ export function CartItemRow({
   return (
     <div
       className={clsx(
-        'grid grid-cols-[4rem_1fr] gap-x-3 gap-y-3 py-4 sm:gap-x-4 md:grid-cols-[5rem_1fr_auto]',
+        'grid grid-cols-[4rem_1fr] gap-x-3 gap-y-3 px-4 py-4 sm:gap-x-4 md:grid-cols-[5rem_1fr_auto]',
         updating && 'pointer-events-none opacity-60'
       )}
     >
@@ -125,18 +129,16 @@ export function CartItemRow({
 
       <div className="col-span-2 flex flex-col gap-2 md:col-span-1 md:col-start-3 md:row-start-1 md:items-end">
         <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-end md:gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <span className="shrink-0 font-sans text-xs font-semibold text-va-darkgray md:hidden">
               Aantal
             </span>
-            <div className="md:flex md:w-24 md:justify-center">
-              <CartQuantityStepper
-                item={item}
-                updating={updating}
-                isGiftPurchase={isGiftPurchase}
-                onQuantityChange={onQuantityChange}
-              />
-            </div>
+            <CartQuantityStepper
+              item={item}
+              updating={updating}
+              isGiftPurchase={isGiftPurchase}
+              onQuantityChange={onQuantityChange}
+            />
           </div>
           <span className="font-sans text-sm font-semibold whitespace-nowrap text-va-black md:w-16 md:text-right">
             {formatPriceEur(lineTotal, 'standard')}
@@ -147,7 +149,7 @@ export function CartItemRow({
             type="button"
             onClick={() => onRemove(item.id)}
             disabled={updating}
-            className="font-sans text-xs text-va-darkgray underline underline-offset-2 transition-colors hover:text-red-600 md:w-24 md:text-left"
+            className="font-sans text-xs text-va-darkgray underline underline-offset-2 transition-colors hover:text-red-600 md:text-left"
           >
             Verwijderen
           </button>
