@@ -562,9 +562,13 @@ export const medusaClient: CommerceClient = {
       throw new Error(`Failed to fetch events: ${response.status}`)
     }
     const data = await response.json()
-    const events = (data.events ?? []).map((e: Record<string, unknown>) =>
-      normalizeDocentenRow(e)
-    ) as unknown as EventCard[]
+    // PLP cards never read `variants` (only the pre-computed price_from / earliest_start_at /
+    // min_available_quantity summary fields) — dropping it here avoids shipping every raw
+    // session's full variant/prices/properties data (huge for recurring courses) to the browser.
+    const events = (data.events ?? []).map((e: Record<string, unknown>) => {
+      const { variants: _variants, ...rest } = normalizeDocentenRow(e)
+      return rest
+    }) as unknown as EventCard[]
     return {
       events,
       count: data.count ?? 0,
