@@ -241,7 +241,7 @@ Future deploys should not hit this after the ignore is on `staging`.
 
 **Broken docent/teacher photos, `⨯ The requested resource isn't a valid image ... received null` in logs** — `docent.photoUrl` was sometimes a Salesforce session-relative path (e.g. `/services/images/photo/001...`) extracted from a rich-text field or `Account.PhotoUrl`. Those only resolve inside an authenticated Salesforce session, so Next's image optimizer fetches them from our own origin and gets a 404/login page instead of image bytes. `medusa/src/modules/salesforce-sync/utils/photo-url.ts` (`isUsablePhotoUrl`) now rejects non-absolute and `salesforce.com`/`force.com` URLs before they're synced to Sanity; `VaThuisTeacherGrid` also guards at render time as a defense-in-depth fallback.
 
-**PLP (`/ons-aanbod`) feels slow on first load** — `/store/events` builds a Redis-backed listing snapshot (~3–4 s cold, ~80 ms warm). Cold hits happen after deploy, cache expiry (600 s), or selective invalidation when a first-page product changes. Default `/ons-aanbod` (no filters) also uses a Next.js hard cache (`unstable_cache`, 600 s) via `frontend/src/lib/plp/cached-default-listing.ts`. `medusa/scripts/deploy.sh` warms the cache after reload. Frontend-side: `getGeneralSettings` uses Sanity CDN outside draft mode; React `cache()` dedupes CMS/PDP calls per request.
+**PLP (`/ons-aanbod`) felt slow for ~1 in every ~600s window (fixed)** — `medusa/src/lib/store-listing-snapshot.ts` (`loadCached`) used a hard-TTL cache-aside pattern: whichever request happened to arrive right after the 600 s TTL expired blocked on a full snapshot rebuild (~3–4 s, confirmed live via `redis-cli -p 6378 del store:listing:plp` + timing the next request). This hit real visitors essentially at random (any filtered/sorted PLP view, Agenda, or VA Thuis request), not just after deploys — staff testing repeatedly just rarely landed on the unlucky request. Fixed with stale-while-revalidate: a snapshot is now stored as `{ value, builtAt }` with a long physical Redis TTL (`LISTING_CACHE_HARD_TTL_SEC`, 1 h) and is always served instantly once it exists — even past `LISTING_CACHE_TTL_SEC` (600 s) — while a background rebuild refreshes it. Only the very first call ever (nothing cached anywhere) blocks. Default `/ons-aanbod` (no filters) additionally uses a Next.js hard cache (`unstable_cache`, 600 s, itself SWR) via `frontend/src/lib/plp/cached-default-listing.ts`. `medusa/scripts/deploy.sh` still warms the cache after reload. Frontend-side: `getGeneralSettings` uses Sanity CDN outside draft mode; React `cache()` dedupes CMS/PDP calls per request. Note: PDP event detail (`getCachedStoreEventDetail` in `medusa/src/lib/store-event-detail.ts`) still uses the older blocking pattern and could see the same class of cold-hit latency; not yet migrated to SWR.
 
 ## Medusa troubleshooting
 
@@ -319,7 +319,7 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 
 ### Medusa API caching
 
-PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized listing snapshots** stored in Redis (**600 s TTL**), shared across all PM2 cluster workers:
+PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized listing snapshots** stored in Redis, shared across all PM2 cluster workers:
 
 | Layer | File | Role |
 |-------|------|------|
@@ -331,7 +331,9 @@ PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized li
 | Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart bust: full PLP on create/delete; on update only when product is in first 24 slots; orders bust registration counts only |
 | Frontend PLP hard cache | `frontend/src/lib/plp/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/ons-aanbod`; bust via `POST /api/revalidate/plp` |
 
-Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an in-process fallback is used per worker.
+**PLP/Agenda/VA Thuis/registration-counts snapshots (`loadCached` in `store-listing-snapshot.ts`) use stale-while-revalidate**: each entry is stored as `{ value, builtAt }` with a 1 h physical Redis TTL (`LISTING_CACHE_HARD_TTL_SEC`), but is treated as due-for-refresh once `builtAt` is older than `LISTING_CACHE_TTL_SEC` (600 s). A stale entry is still returned instantly; a background rebuild refreshes it without blocking the request. Only a true cold start (nothing cached anywhere yet) blocks. Event detail caching (`store-event-detail.ts`) does **not** use this pattern yet — it still blocks on a cache miss.
+
+Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an in-process fallback is used per worker (holds the same envelope, never auto-expires — always superseded by the next successful rebuild).
 
 **Optional env for immediate PLP bust on catalog changes** (same secret on both sides):
 

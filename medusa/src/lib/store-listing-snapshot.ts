@@ -41,6 +41,7 @@ import { filterStoreListingProductIds } from "./store-listing-eligibility"
 import { getBaseEventData } from "./store-query-cache"
 import {
   invalidateMemoryListingCaches,
+  LISTING_CACHE_HARD_TTL_SEC,
   LISTING_CACHE_TTL_SEC,
   memoryGet,
   memorySet,
@@ -471,28 +472,58 @@ async function buildRegistrationCounts(scope: MedusaContainer): Promise<Record<s
   return counts
 }
 
+type CachedEnvelope<T> = { value: T; builtAt: number }
+
+/** Guards against a pre-deploy, un-enveloped snapshot still sitting in Redis/memory. */
+function isCachedEnvelope<T>(candidate: unknown): candidate is CachedEnvelope<T> {
+  return (
+    !!candidate &&
+    typeof candidate === "object" &&
+    typeof (candidate as CachedEnvelope<T>).builtAt === "number" &&
+    "value" in (candidate as CachedEnvelope<T>)
+  )
+}
+
+/**
+ * Stale-while-revalidate cache: once a snapshot exists (Redis or in-memory), it is always
+ * returned immediately — even past `LISTING_CACHE_TTL_SEC` — while a background rebuild
+ * refreshes it for next time. Only the very first call ever (nothing cached anywhere yet)
+ * blocks on `build()`. This is what keeps `/ons-aanbod` fast for every visitor instead of
+ * whichever unlucky request lands right after the 10-minute TTL expires.
+ */
 async function loadCached<T>(
   redisKey: string,
   memorySlot: "plp" | "agenda" | "vathuis" | "registrations",
   build: () => Promise<T>,
   inflightRef: { current: Promise<T> | null }
 ): Promise<T> {
-  const fromRedis = await redisGetJson<T>(redisKey)
-  if (fromRedis) return fromRedis
+  const candidate =
+    (await redisGetJson<CachedEnvelope<T>>(redisKey)) ?? memoryGet<CachedEnvelope<T>>(memorySlot)
+  const cached = isCachedEnvelope<T>(candidate) ? candidate : null
 
-  const fromMemory = memoryGet<T>(memorySlot)
-  if (fromMemory) return fromMemory
-
-  if (!inflightRef.current) {
-    inflightRef.current = build().finally(() => {
-      inflightRef.current = null
-    })
+  const refresh = (): Promise<T> => {
+    if (!inflightRef.current) {
+      inflightRef.current = build()
+        .then((value) => {
+          const envelope: CachedEnvelope<T> = { value, builtAt: Date.now() }
+          memorySet(memorySlot, envelope)
+          void redisSetJson(redisKey, envelope, LISTING_CACHE_HARD_TTL_SEC)
+          return value
+        })
+        .finally(() => {
+          inflightRef.current = null
+        })
+    }
+    return inflightRef.current
   }
-  const value = await inflightRef.current
 
-  await redisSetJson(redisKey, value, LISTING_CACHE_TTL_SEC)
-  memorySet(memorySlot, value)
-  return value
+  if (cached) {
+    const isStale = Date.now() - cached.builtAt >= LISTING_CACHE_TTL_SEC * 1000
+    if (isStale) refresh().catch(() => {})
+    return cached.value
+  }
+
+  return refresh()
 }
 
 const plpInflight = { current: null as Promise<PlpListingSnapshot> | null }
@@ -643,7 +674,10 @@ export function topPlpProductIds(
 
 /** True when `productId` is in the cached PLP snapshot's first page (no rebuild). */
 export async function isProductInCachedPlpTopSlots(productId: string): Promise<boolean> {
-  const snapshot = await redisGetJson<PlpListingSnapshot>(REDIS_KEY_PLP)
+  const candidate =
+    (await redisGetJson<CachedEnvelope<PlpListingSnapshot>>(REDIS_KEY_PLP)) ??
+    memoryGet<CachedEnvelope<PlpListingSnapshot>>("plp")
+  const snapshot = isCachedEnvelope<PlpListingSnapshot>(candidate) ? candidate.value : null
   if (!snapshot?.list?.length) return false
   return topPlpProductIds(snapshot).includes(productId)
 }

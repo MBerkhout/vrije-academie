@@ -9,6 +9,13 @@ export const REDIS_KEY_REGISTRATIONS = "store:listing:registrations"
 export const LISTING_CACHE_TTL_SEC = 600
 export const EVENT_CACHE_TTL_SEC = LISTING_CACHE_TTL_SEC
 
+/**
+ * Physical Redis TTL for listing snapshots — well past `LISTING_CACHE_TTL_SEC` so a snapshot
+ * that just went stale is still in Redis (and can be served instantly) while `loadCached`
+ * refreshes it in the background. See `loadCached` in `store-listing-snapshot.ts`.
+ */
+export const LISTING_CACHE_HARD_TTL_SEC = LISTING_CACHE_TTL_SEC * 6
+
 /** First page size on default `/ons-aanbod` — bust listing cache when these products change. */
 export const PLP_TOP_SLOT_COUNT = 24
 
@@ -112,25 +119,25 @@ export async function invalidateEventDetailCache(handle: string): Promise<void> 
   await redisDeleteKey(eventDetailRedisKey(handle))
 }
 
-/** In-process fallback when Redis is unavailable (also cleared on invalidation). */
+/**
+ * In-process fallback when Redis is unavailable (also cleared on invalidation). Holds the same
+ * `{ value, builtAt }` envelope written to Redis by `loadCached`; it never expires on its own —
+ * it's always superseded by the next successful rebuild, so a stale entry can still be served
+ * instantly while that rebuild runs.
+ */
 const memoryCaches = {
-  plp: null as { value: unknown; expiresAt: number } | null,
-  agenda: null as { value: unknown; expiresAt: number } | null,
-  vathuis: null as { value: unknown; expiresAt: number } | null,
-  registrations: null as { value: unknown; expiresAt: number } | null,
+  plp: null as unknown,
+  agenda: null as unknown,
+  vathuis: null as unknown,
+  registrations: null as unknown,
 }
 
 export function memoryGet<T>(slot: keyof typeof memoryCaches): T | null {
-  const entry = memoryCaches[slot]
-  if (entry && Date.now() < entry.expiresAt) return entry.value as T
-  return null
+  return (memoryCaches[slot] as T | null) ?? null
 }
 
 export function memorySet(slot: keyof typeof memoryCaches, value: unknown): void {
-  memoryCaches[slot] = {
-    value,
-    expiresAt: Date.now() + LISTING_CACHE_TTL_SEC * 1000,
-  }
+  memoryCaches[slot] = value
 }
 
 export function invalidateMemoryListingCaches(): void {
