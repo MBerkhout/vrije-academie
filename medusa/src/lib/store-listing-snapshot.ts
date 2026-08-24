@@ -38,6 +38,7 @@ import {
   type ProductCatalogCategoryLink,
 } from "./product-catalog-category-links"
 import { filterStoreListingProductIds } from "./store-listing-eligibility"
+import { filterStorefrontVisibleVariants } from "./salesforce-visible-on-website"
 import { getBaseEventData } from "./store-query-cache"
 import {
   invalidateMemoryListingCaches,
@@ -131,11 +132,18 @@ async function resolveEligibleProductIds(
 
   const productHandleById: Record<string, string | undefined> = {}
   const productMetadataById: Record<string, Record<string, unknown> | null | undefined> = {}
+  const productStatusById: Record<string, string | undefined> = {}
   for (const p of allProducts ?? []) {
-    const row = p as { id?: string; handle?: string; metadata?: Record<string, unknown> | null }
+    const row = p as {
+      id?: string
+      handle?: string
+      metadata?: Record<string, unknown> | null
+      status?: string
+    }
     if (row.id) {
       productHandleById[row.id] = row.handle
       productMetadataById[row.id] = row.metadata ?? null
+      productStatusById[row.id] = row.status
     }
   }
 
@@ -143,7 +151,8 @@ async function resolveEligibleProductIds(
     (allProducts ?? []).map((p) => (p as { id: string }).id).filter(Boolean),
     productHandleById,
     eventGroupByProduct,
-    productMetadataById
+    productMetadataById,
+    productStatusById
   )
 
   return {
@@ -194,7 +203,7 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
       "variants.properties.*",
       "variants.properties.property.*",
     ],
-    filters: { id: eligibleProductIds },
+    filters: { id: eligibleProductIds, status: "published" },
   })
 
   const allVariants = ((products ?? []) as Record<string, unknown>[]).flatMap(
@@ -234,7 +243,9 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
   let list = (products ?? []) as Record<string, unknown>[]
 
   list = list.map((p) => {
-    const variants = (p.variants ?? []) as Record<string, unknown>[]
+    const variants = filterStorefrontVisibleVariants(
+      (p.variants ?? []) as Array<Record<string, unknown> & { metadata?: Record<string, unknown> | null }>
+    )
     const eventItems = variants.map((v) => v.event_item).filter(Boolean)
     const futureOfflineItems = futureOfflineSessionsForListing(
       eventItems as Parameters<typeof futureOfflineSessionsForListing>[0],
@@ -279,10 +290,11 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
       : null
 
     const id = p.id as string
-    const { metadata, ...productFields } = p
+    const { metadata, variants: _rawVariants, ...productFields } = p
     const ctaFields = ctaBarFieldsFromMetadata(metadata as Record<string, unknown> | undefined)
     return {
       ...productFields,
+      variants,
       ...ctaFields,
       salesforce_order: salesforceOrderFromMetadata(metadata as Record<string, unknown> | undefined),
       record_type: eventGroupByProduct[id]?.record_type ?? null,
@@ -367,9 +379,10 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
       "variants.id",
       "variants.title",
       "variants.prices.*",
+      "variants.metadata",
       "variants.event_item.*",
     ],
-    filters: { id: eligibleProductIds },
+    filters: { id: eligibleProductIds, status: "published" },
   })
 
   const [catLinksAll, { data: docLinksAll }] = await Promise.all([
@@ -395,7 +408,9 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
 
   const items = (products ?? []).flatMap((product) => {
     const p = product as Record<string, unknown>
-    const variants = (p.variants ?? []) as Record<string, unknown>[]
+    const variants = filterStorefrontVisibleVariants(
+      (p.variants ?? []) as Array<Record<string, unknown> & { metadata?: Record<string, unknown> | null }>
+    )
     const categories = categoryByProduct[p.id as string] ?? []
     const docenten = docentByProduct[p.id as string] ?? []
     const productTagValues = ((p.tags ?? []) as { value?: string }[])

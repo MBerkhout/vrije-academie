@@ -103,7 +103,7 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | `startAt` | earliest `EventItem.start_at` | No |
 | `seoTitle` | `Product.metadata.salesforce_seo_title` (SF import) | No |
 | `seoDescription` | `Product.metadata.salesforce_seo_description` (SF import) | No |
-| `externalRegistrationUrl` | `Product.metadata.salesforce_external_registration_url` (`External_Registration_URL__c`) | No |
+| `externalRegistrationUrl` | `Product.metadata.salesforce_external_registration_url` (SF group `External_Registration_URL__c`), else first variant `External_Registration_URL_Product__c` | No |
 | `badge` | computed | No |
 | `body` | Seeded from `Product.description` (plain text, one `textBlock` per paragraph). SF product groups seed from metadata in order: `salesforce_web_trigger` (quote) → `salesforce_description_html` (intro + `<strong>` section titles as `textBlock.title`) → `salesforce_web_body` (bullets + bold subheadings). Imported blocks use `width: wide`. Skipped when `pageBodyOwnedBySanity` is true. | **Yes** |
 | `pageBodyOwnedBySanity` | — | **Yes** — when off, each sync rebuilds `body` from the Medusa description; when on, sync leaves `body` unchanged |

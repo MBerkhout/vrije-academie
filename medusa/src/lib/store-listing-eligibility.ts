@@ -18,18 +18,23 @@ export function isLinkedOnlineSlaveProduct(
  * `show_in_plp` is still stored in admin but not enforced here yet — SF imports
  * default to hidden and bulk enable is done separately (`enable-show-in-plp.ts`).
  * Linked-online slaves are always excluded via metadata so they never duplicate
- * the parent hybrid card on Ons aanbod.
+ * the parent hybrid card on Ons aanbod. Unpublished (draft) products are excluded
+ * when status is provided — Salesforce **Zichtbaar op Website** uncheck drafts the product.
  */
 export function filterStoreListingProductIds(
   productIds: string[],
   productHandleById: Record<string, string | undefined>,
   eventGroupByProduct: Record<string, EventGroupListingRow | null | undefined>,
-  productMetadataById: Record<string, Record<string, unknown> | null | undefined> = {}
+  productMetadataById: Record<string, Record<string, unknown> | null | undefined> = {},
+  productStatusById: Record<string, string | undefined> = {}
 ): string[] {
   const giftCardHandle = giftCardProductHandle()
   return productIds.filter((id) => {
     const handle = productHandleById[id]
     if (handle === giftCardHandle) return false
+
+    const status = productStatusById[id]
+    if (status && status !== "published") return false
 
     const metadata = productMetadataById[id]
     if (isLinkedOnlineSlaveProduct(metadata)) return false

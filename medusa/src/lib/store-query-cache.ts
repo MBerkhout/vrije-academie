@@ -4,7 +4,12 @@
  */
 
 interface BaseEventData {
-  allProducts: Array<{ id: string; handle?: string; metadata?: Record<string, unknown> | null }>
+  allProducts: Array<{
+    id: string
+    handle?: string
+    metadata?: Record<string, unknown> | null
+    status?: string
+  }>
   eventGroupLinks: Array<{ product_id: string; event_group_id: string; event_group: any }>
 }
 
@@ -48,7 +53,7 @@ export async function getBaseEventData(
   if (!inflightBaseData) {
     inflightBaseData = (async () => {
       const [{ data: allProducts }, { data: eventGroupLinks }] = await Promise.all([
-        query.graph({ entity: "product", fields: ["id", "handle", "metadata"] }),
+        query.graph({ entity: "product", fields: ["id", "handle", "metadata", "status"] }),
         query.graph({
           entity: productEventGroupLinkEntryPoint,
           fields: ["product_id", "event_group_id", "event_group.*"],

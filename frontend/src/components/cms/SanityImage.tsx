@@ -1,5 +1,3 @@
-'use client'
-
 import Image from 'next/image'
 import { urlFor } from '@/lib/cms'
 import { cn } from '@/lib/utils'
@@ -14,6 +12,8 @@ interface SanityImageProps {
   objectFit?: 'cover' | 'contain'
   fill?: boolean
   sizes?: string
+  /** LCP candidate: eager load with high fetch priority and Next.js preload. */
+  priority?: boolean
 }
 
 export function SanityImage({
@@ -25,8 +25,12 @@ export function SanityImage({
   objectFit = 'cover',
   fill,
   sizes = '100vw',
+  priority = false,
 }: SanityImageProps) {
   if (!source?.asset) return null
+
+  const defaultWidth = priority ? 1920 : 1200
+  const defaultHeight = priority ? 1080 : 675
 
   /**
    * Default urlFor uses width+height, which makes Sanity's CDN *crop* to that box.
@@ -34,10 +38,14 @@ export function SanityImage({
    */
   const src =
     objectFit === 'contain'
-      ? urlFor(source).maxWidth(width ?? 1920).auto('format').url()
-      : urlFor(source).width(width ?? 1200).height(height ?? 675).url()
+      ? urlFor(source).maxWidth(width ?? defaultWidth).auto('format').url()
+      : urlFor(source).width(width ?? defaultWidth).height(height ?? defaultHeight).url()
   const alt = source.alt ?? ''
   const objectClass = objectFit === 'contain' ? 'object-contain' : 'object-cover'
+
+  const loadingProps = priority
+    ? { priority: true as const, fetchPriority: 'high' as const }
+    : { loading: 'lazy' as const }
 
   if (fill) {
     return (
@@ -56,7 +64,7 @@ export function SanityImage({
           fill
           sizes={sizes}
           className={cn(objectClass, 'object-center')}
-          loading="lazy"
+          {...loadingProps}
         />
       </div>
     )
@@ -66,10 +74,11 @@ export function SanityImage({
     <Image
       src={src}
       alt={alt}
-      width={width ?? 1200}
-      height={height ?? 675}
+      width={width ?? defaultWidth}
+      height={height ?? defaultHeight}
       className={cn(aspectRatio, objectClass, 'object-center', className)}
-      loading="lazy"
+      sizes={sizes !== '100vw' ? sizes : undefined}
+      {...loadingProps}
     />
   )
 }

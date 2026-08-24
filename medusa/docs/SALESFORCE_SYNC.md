@@ -243,15 +243,15 @@ Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push
 
 | Medusa | Salesforce object | Notes |
 |--------|-------------------|--------|
-| Order header | `Order` | `Website_Order__c`, `Order_Origin__c: Website`, `Payment_Method__c` (`IDEAL`, `CREDITCARD`, `PAYPAL`, `BANCONTACT`, `GIFTCARD`, `KLARNA`, `GRATIS`), `Ideal_Transaction_Id__c` (Mollie) |
-| Event line (per seat) | `Registration__c` + product `OrderItem` | Links `vaProduct__c` via variant sync state; `Status__c: Ingeschreven` |
-| Promotion discount | discount `OrderItem` | `Is_Discount__c: true`, negative `UnitPrice`, same `Registration__c` |
-| Gift card purchase | `OrderItem` + `Voucher__c` | `Is_Voucher__c`, `Giftcard_*` fields; voucher sync state `entity_type: voucher` |
+| Order header | `Order` | `Website_Order__c`, `Order_Origin__c: Website`, `Payment_Method__c` (`IDEAL`, `CREDITCARD`, `PAYPAL`, `BANCONTACT`, `GIFTCARD`, `KLARNA`, `GRATIS`), `Ideal_Transaction_Id__c` (Mollie). After lines: `Product__c` (vaProduct), `Registration__c`, `Product2__c` from the first seat (Lightning header lookups). |
+| Event line (per seat) | `Registration__c` + product `OrderItem` | Links `vaProduct__c` via variant sync state; `Status__c: Ingeschreven`; `Order_Item__c` points at the product `OrderItem`. Writable name on the line is `ProductName__c` (`Product_Name__c` / `Is_Discount__c` are formulas). |
+| Promotion discount | discount `OrderItem` | Negative `UnitPrice`, `ProductName__c: Korting`, `Discount_Code__c`, same `Registration__c` |
+| Gift card purchase | `OrderItem` + `Voucher__c` | `Giftcard_*` fields; voucher sync state `entity_type: voucher` |
 | Gift card redemption | voucher `OrderItem` | negative amount, `Voucher__c` lookup |
 
 **Requirements:** customer must exist in Medusa (checkout login); event variants must have been imported from Salesforce (`salesforce_sync_state` variant → `vaProduct__c`). Amounts: order graph fields (`unit_price`, `total`, adjustments) are in **major EUR**; the loader converts to cents, then mappings write SF major units (`centsToMajorEur`). When `order.total` is `0` in the graph API, the loader derives the total from line items.
 
-With `SALESFORCE_MEDUSA_CUSTOM_FIELDS=false`, re-pushes resolve existing `Registration__c` / `OrderItem` rows via `salesforce_sync_state` or SOQL (order + `vaProduct__c`), then patch prices in place.
+With `SALESFORCE_MEDUSA_CUSTOM_FIELDS=false`, re-pushes resolve existing `Registration__c` / `OrderItem` rows via `salesforce_sync_state` only (not “first row for this vaProduct”) so extra seats stay separate. New `OrderItem` rows on an already **Activated** order set the header back to **Draft** first; the activate step then re-activates.
 
 **Manual push / inspect:**
 
@@ -279,13 +279,17 @@ Vrije Academie product groups are **`vaProductgroup__c`** (prefix `a05…`); chi
 
 **Workflow:** `pull-productgroup-salesforce` — fetch group + children, apply Medusa product / event group / categories / variants / event items / media / sync state, then Sanity mirror.
 
-**Visibility:** imported groups are **published** with **`show_in_plp=false`** by default (hidden from PLP until enabled). Enable one product: `npx medusa exec ./src/scripts/enable-show-in-plp.ts -- {handle}`. Enable all Salesforce imports: `npx medusa exec ./src/scripts/enable-show-in-plp.ts -- --all-sf`.
+**Visibility:** Salesforce **Zichtbaar op Website** (`Visible_on_website__c` on the group, `Visible_On_Website__c` on each child) is the catalog gate. Unchecked (`false`) groups are **not imported**. If they were imported earlier, bulk import / webhooks **draft** the Medusa product so Ons aanbod, Agenda, VA Thuis, PDP, and search drop it. Unchecked children are omitted from imported sessions. Missing/null checkboxes stay visible so a field rollout does not hide the catalog.
+
+To unpublish products already on the site after this change, run a bulk import once (`npm run salesforce:import-future` or `import-all`). Already-imported hidden groups are still processed (not skipped) so they can be drafted.
+
+Imported groups that **are** visible are **published**. `EventGroup.show_in_plp` still defaults to **`false`** (admin flag, currently ignored on the storefront). Enable that flag one product at a time: `npx medusa exec ./src/scripts/enable-show-in-plp.ts -- {handle}`. Enable all Salesforce imports: `npx medusa exec ./src/scripts/enable-show-in-plp.ts -- --all-sf`.
 
 **Pricing:** Salesforce gross price is source of truth (`Price__c` on each `vaProduct__c`, e.g. `19.5` → EUR `19.5` on the variant — Medusa v2 major currency units).
 
 **Organization:** imported products are linked to the **default sales channel**, get a Medusa **product type** from `Productgroup_Record_Type_Developer_Name__c` (e.g. `Lezing`), and **categories** from `Productgroup_Subject__c` (native Medusa categories + catalog category links for storefront/Sanity). **Docenten** are resolved from `Highlighted_Teacher__c` (+ `Highlighted_Teacher__r.Name` when readable); when the related Account is not accessible, the name is parsed from `Samenvatting__c` / `Productgroup_Description__c` (e.g. “Frederike Upmeijer”). Linked via `product-docenten`; sync state entity type `docent`. Per-session city, location, and docent are stored on each `EventItem` as `catalog_city_id`, `catalog_location_id`, and `docent_id` (resolved during import via `resolveEventItemFacetIdsFromSalesforce`). Logic: `utils/link-docent-from-salesforce.ts`.
 
-**External registration (reizen):** when `External_Registration_URL__c` is set on the product group, Medusa stores it as `metadata.salesforce_external_registration_url`, mirrors it to Sanity as `externalRegistrationUrl`, and the storefront exposes `external_registration_url` on `GET /store/events/:handle`. PDP **Direct inschrijven** opens that URL in a new tab instead of adding to cart.
+**External registration (reizen):** Medusa stores the product-group URL as `metadata.salesforce_external_registration_url` (`External_Registration_URL__c`) and each child URL on the variant (`External_Registration_URL_Product__c`). Sanity `externalRegistrationUrl` is the group URL, or the first child URL when the group field is empty. Storefront: `GET /store/events/:handle` exposes `external_registration_url` on the event and on each variant (child URL, else group). PDP session **Direct inschrijven** opens that variant’s URL; the booking panel does the same when all sessions share one URL.
 
 **Manual import:**
 
@@ -306,7 +310,7 @@ curl -X POST /admin/salesforce/productgroups/import -d '{"salesforce_id":"a05Mz0
 | `vaProductgroup__c` | `productgroup` | Pull (+ linked-online parents) |
 | `vaProduct__c` | parent `productgroup` | Pull parent group |
 
-`method: delete` — soft-archive (`draft` product / `is_active=false` docent) for **product**, **productgroup**, **docent** only; **customer** and **order** deletes are logged as `skipped` (no destructive action). Unsupported types (`OrderItem`, `Registration__c`, `Voucher__c`, …) are logged and skipped. Auto-import uses the **future-only guard** (see below); manual CLI/API always runs.
+`method: delete` — soft-archive (`draft` product / `is_active=false` docent) for **product**, **productgroup**, **docent** only; **customer** and **order** deletes are logged as `skipped` (no destructive action). Unsupported types (`OrderItem`, `Registration__c`, `Voucher__c`, …) are logged and skipped. Auto-import uses the **future-only guard** and **Zichtbaar op Website** (see below). Manual CLI/API ignores the date guard but still skips hidden groups.
 
 Mappings: `src/modules/salesforce-sync/mappings/productgroup.ts`, `course-product.ts`. Core logic: `import-productgroup.ts`.
 
@@ -341,12 +345,13 @@ Storefront: `GET /store/events/:handle` exposes `purchase_mode`, `bundle_variant
 
 Webhooks enqueue product group pulls with `manual: false`. Import is **skipped** when:
 
+- `Visible_on_website__c` is unchecked on the group, or every child `Visible_On_Website__c` is unchecked (`skipReason: not_visible_on_website` — including manual CLI/API; already-imported products are drafted). Bulk CLI still **enqueues** those already-imported groups so they are removed from the storefront.
 - `Latest_Product_Start_Date__c` is in the past, or
-- all child `Start_date_time__c` values are in the past (when latest start is unset).
+- all child `Start_date_time__c` values are in the past (when latest start is unset) (`skipReason: past_dates`).
 
-**Exceptions:** VAthuis record types (`Lezingen_Thuis`, `Thuis_College`) always import (on-demand). Bulk CLI also includes online-only groups (see `shouldBulkImportProductgroup`).
+**Exceptions:** VAthuis record types (`Lezingen_Thuis`, `Thuis_College`) always import when visible (on-demand). Bulk CLI also includes online-only groups (see `shouldBulkImportProductgroup`).
 
-Manual CLI/API imports **ignore** this guard. Logic: `shouldImportProductgroup()` in `src/modules/salesforce-sync/utils/future-import-guard.ts`.
+Manual CLI/API imports **ignore** the date guard, not **Zichtbaar op Website**. Logic: `shouldImportProductgroup()` in `src/modules/salesforce-sync/utils/future-import-guard.ts`.
 
 **Bulk historical import:** `npm run salesforce:import-all` (or `import-future-productgroups.ts -- --all`) imports **every** `vaProductgroup__c` with `manual: true` (no date filter). Use `--dry-run` and `--limit=N` first. VAthuis imports call Audience Player per group and can take a long time on a full catalog.
 
@@ -359,7 +364,7 @@ Bulk CLI scripts (`import-future`, `import-linked-vathuis`, `import-all`) prefet
 | `--concurrency=N` | `1` | Import up to N product groups in parallel (Salesforce + Medusa only). Sanity mirroring runs once after the pool. With batched Sanity sync and import caches, **8–10** is usually safe — watch Salesforce 429s or DB load. |
 | `--skip-search` | off | Skip per-product OpenSearch reindex during import; reindex imported products once at the end. Or run `npm run search:reindex` afterward. |
 | `--skip-unchanged` | off | Skip product metadata when Salesforce fingerprint matches; **session location/docent facets are still refreshed** from child rows. |
-| `--since=<ISO>` | off | Only fetch groups (and parents of modified children) with `SystemModstamp >= since`. Example: `--since=2026-03-01T00:00:00.000Z`. |
+| `--since=<ISO>` | off | Only fetch groups (and parents of modified children) with `SystemModstamp >= since`. Already-imported Salesforce ids missing from that window are still loaded so hidden products can be drafted. Example: `--since=2026-03-01T00:00:00.000Z`. |
 | `--limit=N` | unlimited | Stop after N import attempts (after guard filtering). |
 | `--dry-run` | off | List candidates only. |
 
@@ -415,7 +420,8 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Onderwerp (categories) | `Productgroup_Subject__c` (`;`-separated) | native `category_ids` + catalog category links → Sanity `categories` |
 | Record type | `Productgroup_Record_Type_Developer_Name__c` | `EventGroup.record_type` + Medusa `product.type` (`Lezingen_Thuis` / `Thuis_College` → `vathuis`) |
 | Linked online catalog | `Linked_Online_Productgroup__c` | merged child variants on parent; metadata `salesforce_linked_online_productgroup_id` |
-| PLP visibility | — | `EventGroup.show_in_plp=false` (linked-online slave groups always hidden) |
+| Zichtbaar op Website | `Visible_on_website__c` | Skip import when unchecked; existing product → `draft` |
+| PLP admin flag | — | `EventGroup.show_in_plp=false` (linked-online slave groups always hidden) |
 | Sales channel | — | default store sales channel |
 | SEO title | `SEO_Title__c` | metadata → Sanity `seoTitle` |
 | SEO meta description | `SEO_Meta_Description__c` | metadata → Sanity `seoDescription` |
@@ -428,6 +434,7 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Product card CTA bar | `CTA_Label__c`, `CTA_Color__c`, `CTA_Color_Hover__c` | metadata `salesforce_cta_*` → store `badge`, `cta_color`, `cta_color_hover`; Sanity `badge`, `ctaColor`, `ctaColorHover`; PLP card bar in `PlpEventCard` |
 | Catalog sort order | `Order__c` | metadata `salesforce_order` → default PLP / VA Thuis sort (`sort=order`, ascending; nulls last) |
 | Child products | `vaProduct__c` (lookup `Productgroup__c`) | `ProductVariant` + linked `EventItem` |
+| Child zichtbaar op website | `Visible_On_Website__c` | Session omitted when unchecked; leftover variants get `metadata.salesforce_visible_on_website: false` |
 | Occurrence start / end | `Start_date_time__c`, `End_date_time__c` | `EventItem.start_at` / `end_at` |
 | Occurrence price | `Price__c` | variant EUR price → Sanity `priceFrom` |
 | Occurrence city | `Product_City__c` | `EventItem.city` / `city_slug` + `catalog_city_id` |

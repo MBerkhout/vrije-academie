@@ -1,3 +1,4 @@
+import { resolveExternalRegistrationUrl } from "../../../lib/external-registration-url"
 import type { RecordType } from "../../events/types"
 
 /** Salesforce `vaProductgroup__c` */
@@ -37,6 +38,8 @@ export type SfProductgroupShape = {
   IFrame_URL_1__c?: string | null
   Samenvatting__c?: string | null
   External_Registration_URL__c?: string | null
+  /** Zichtbaar op Website. Unchecked (`false`) → do not import / hide on the site. */
+  Visible_on_website__c?: boolean | null
   Linked_Online_Productgroup__c?: string | null
   CTA_Label__c?: string | null
   CTA_Color__c?: string | null
@@ -85,6 +88,7 @@ export const productgroupSalesforceFieldsForPull = [
   "IFrame_URL_1__c",
   "Samenvatting__c",
   "External_Registration_URL__c",
+  "Visible_on_website__c",
   "Linked_Online_Productgroup__c",
   "CTA_Label__c",
   "CTA_Color__c",
@@ -162,7 +166,7 @@ export function productgroupMetadataFromSalesforce(
     salesforce_subtitle: sf.Productgroup_Subtitle__c ?? null,
     salesforce_vat_rate: vatRateLabel ?? null,
     salesforce_group_price: sf.Productgroup_Price__c ?? null,
-    salesforce_external_registration_url: sf.External_Registration_URL__c?.trim() || null,
+    salesforce_external_registration_url: resolveExternalRegistrationUrl(sf, []),
     salesforce_linked_online_productgroup_id:
       sf.Linked_Online_Productgroup__c?.trim() || null,
     salesforce_cta_label: sf.CTA_Label__c?.trim() || null,

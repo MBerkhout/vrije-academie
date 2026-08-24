@@ -17,6 +17,7 @@ import { formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
 import type { GeneralSettings } from '@/lib/cms/types'
 import type { EventCard } from '@/lib/commerce/types'
+import { bookingPanelExternalRegistrationUrl } from '@/lib/commerce/external-registration-url'
 import { PdpFeaturedInstructor } from '@/components/pdp/PdpFeaturedInstructor'
 
 interface PdpBookingPanelProps {
@@ -115,8 +116,9 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
       scrollToEpisodes()
       return
     }
-    if (event.external_registration_url?.trim()) {
-      window.open(event.external_registration_url.trim(), '_blank', 'noopener,noreferrer')
+    const panelExternalUrl = bookingPanelExternalRegistrationUrl(event)
+    if (panelExternalUrl) {
+      window.open(panelExternalUrl, '_blank', 'noopener,noreferrer')
       return
     }
     if (singleVariant && !isSoldOut) {
@@ -154,7 +156,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
       ? 'w-full border border-va-darkgray-600 text-white font-medium py-3 px-4 rounded-lg hover:bg-va-darkgray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
       : 'w-full border border-va-lightgray text-va-black font-medium py-3 px-4 rounded-lg hover:bg-va-lightgray transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
 
-  const externalRegistrationUrl = event.external_registration_url?.trim() || null
+  const externalRegistrationUrl = bookingPanelExternalRegistrationUrl(event)
   const usesExternalRegistration = Boolean(externalRegistrationUrl)
   const primaryCtaClassName =
     'w-full bg-va-yellow text-va-black font-bold py-3 px-4 rounded-lg hover:bg-va-yellow/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'

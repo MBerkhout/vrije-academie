@@ -14,16 +14,11 @@ export type SfRegistrationShape = {
   WebOrder__c?: boolean
   Number_Of_People__c?: number
   Total_Price__c?: number
-  Order_Amount__c?: number
+  Amount__c?: number
+  Unit_Price__c?: number
   Total_Net_Price__c?: number
-  Product_Start_Date__c?: string | null
-  Product_End_Date__c?: string | null
-  Product_Code__c?: string | null
-  Product_City__c?: string | null
-  Billing_Street__c?: string | null
-  Billing_City__c?: string | null
-  Billing_PostalCode__c?: string | null
-  Billing_Country__c?: string | null
+  EmailParticipant__c?: string | null
+  Order_Item__c?: string
   Total_Quantity__c?: number
 }
 
@@ -34,21 +29,17 @@ export type RegistrationLineContext = {
   contactId: string
   vaProductId: string
   lineTotalCents: number
-  orderTotalCents: number
-  productStartAt?: string | null
-  productEndAt?: string | null
-  productCode?: string | null
-  productCity?: string | null
-  billingStreet?: string | null
-  billingCity?: string | null
-  billingPostalCode?: string | null
-  billingCountry?: string | null
+  unitPriceCents: number
+  participantEmail?: string | null
 }
 
 export function registrationToSalesforce(input: RegistrationLineContext): Partial<SfRegistrationShape> {
-  const useMedusaFields = usesSalesforceMedusaCustomFields()
-  const core: Partial<SfRegistrationShape> = {
-    ...(useMedusaFields ? { Medusa_Registration_Id__c: input.externalId } : {}),
+  const price = centsToMajorEur(input.lineTotalCents)
+  const unit = centsToMajorEur(input.unitPriceCents)
+  return {
+    ...(usesSalesforceMedusaCustomFields()
+      ? { Medusa_Registration_Id__c: input.externalId }
+      : {}),
     Order__c: input.orderId,
     Account__c: input.accountId,
     Contact_Lookup__c: input.contactId,
@@ -56,23 +47,12 @@ export function registrationToSalesforce(input: RegistrationLineContext): Partia
     Status__c: "Ingeschreven",
     WebOrder__c: true,
     Number_Of_People__c: 1,
-    Total_Price__c: centsToMajorEur(input.lineTotalCents),
+    Total_Price__c: price,
+    Amount__c: price,
+    Unit_Price__c: unit,
+    Total_Net_Price__c: price,
     Total_Quantity__c: 1,
-  }
-  if (!useMedusaFields) return core
-
-  return {
-    ...core,
-    Origin__c: "Website",
-    Order_Amount__c: centsToMajorEur(input.orderTotalCents),
-    Product_Start_Date__c: input.productStartAt ?? undefined,
-    Product_End_Date__c: input.productEndAt ?? undefined,
-    Product_Code__c: input.productCode ?? undefined,
-    Product_City__c: input.productCity ?? undefined,
-    Billing_Street__c: input.billingStreet ?? undefined,
-    Billing_City__c: input.billingCity ?? undefined,
-    Billing_PostalCode__c: input.billingPostalCode ?? undefined,
-    Billing_Country__c: input.billingCountry ?? undefined,
+    EmailParticipant__c: input.participantEmail ?? undefined,
   }
 }
 

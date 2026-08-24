@@ -100,6 +100,14 @@ export class BulkImportContext {
     return this.productgroupStateBySfId.get(salesforceId) ?? null
   }
 
+  importedSalesforceIds(): string[] {
+    const ids: string[] = []
+    for (const [salesforceId, state] of this.productgroupStateBySfId) {
+      if (state.medusa_id) ids.push(salesforceId)
+    }
+    return ids
+  }
+
   getVariantMedusaId(variantSyncKey: string): string | null {
     return this.variantStateBySfId.get(variantSyncKey)?.medusa_id ?? null
   }

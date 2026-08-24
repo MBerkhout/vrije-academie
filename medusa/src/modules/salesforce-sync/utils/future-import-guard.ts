@@ -3,6 +3,7 @@ import type { SfCourseProductShape } from "../mappings/course-product"
 import type { SfProductgroupShape } from "../mappings/productgroup"
 import { isVathuisRecordType } from "../clients/audience-player"
 import { linkedOnlineProductgroupId } from "./linked-online-productgroup"
+import { isProductgroupVisibleOnWebsite } from "./visible-on-website"
 
 export type FutureImportGuardInput = {
   group: SfProductgroupShape
@@ -12,8 +13,10 @@ export type FutureImportGuardInput = {
   isLinkedOnlineSlave?: boolean
 }
 
-/** Skip auto-import when all occurrence dates are in the past. Manual imports always run. */
+/** Skip auto-import when the group is hidden on the website or all occurrence dates are in the past. Manual imports ignore the date guard, not visibility. */
 export function shouldImportProductgroup(input: FutureImportGuardInput): boolean {
+  if (!isProductgroupVisibleOnWebsite(input.group, input.children)) return false
+
   if (input.manual) return true
 
   if (isVathuisRecordType(input.group.Productgroup_Record_Type_Developer_Name__c)) {
@@ -44,6 +47,8 @@ function isOnlineOnlyProductgroup(children: SfCourseProductShape[]): boolean {
 
 /** Bulk CLI: import future groups, VAthuis on-demand, linked-online parents/slaves, or online-only. */
 export function shouldBulkImportProductgroup(input: FutureImportGuardInput): boolean {
+  if (!isProductgroupVisibleOnWebsite(input.group, input.children)) return false
+
   if (shouldImportProductgroup({ ...input, manual: false })) return true
 
   if (isVathuisRecordType(input.group.Productgroup_Record_Type_Developer_Name__c)) {
@@ -61,8 +66,37 @@ export function shouldBulkImportProductgroup(input: FutureImportGuardInput): boo
 
 /** Targeted backfill: VAthuis + linked-online parents and slave catalogs only. */
 export function shouldLinkedVathuisBulkImport(input: FutureImportGuardInput): boolean {
+  if (!isProductgroupVisibleOnWebsite(input.group, input.children)) return false
+  return isLinkedVathuisBulkScope(input)
+}
+
+function isLinkedVathuisBulkScope(input: FutureImportGuardInput): boolean {
   if (isVathuisRecordType(input.group.Productgroup_Record_Type_Developer_Name__c)) return true
   if (input.isLinkedOnlineSlave) return true
   if (linkedOnlineProductgroupId(input.group)) return true
   return false
+}
+
+/**
+ * Bulk CLI enqueue: import visible groups per the usual guards, and still process
+ * already-imported hidden groups so they can be drafted off the storefront.
+ */
+export function shouldEnqueueBulkProductgroup(
+  input: FutureImportGuardInput,
+  options: {
+    importAll?: boolean
+    linkedVathuisOnly?: boolean
+    alreadyImported?: boolean
+  } = {}
+): boolean {
+  const visible = isProductgroupVisibleOnWebsite(input.group, input.children)
+  if (!visible) {
+    if (!options.alreadyImported) return false
+    if (options.linkedVathuisOnly) return isLinkedVathuisBulkScope(input)
+    return true
+  }
+
+  if (options.importAll) return true
+  if (options.linkedVathuisOnly) return shouldLinkedVathuisBulkImport(input)
+  return shouldBulkImportProductgroup(input)
 }

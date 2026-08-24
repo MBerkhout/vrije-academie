@@ -19,10 +19,8 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { importProductgroupFromSalesforce } from "../modules/salesforce-sync/import-productgroup"
 import type { SfProductgroupShape } from "../modules/salesforce-sync/mappings/productgroup"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
-import {
-  shouldBulkImportProductgroup,
-  shouldLinkedVathuisBulkImport,
-} from "../modules/salesforce-sync/utils/future-import-guard"
+import { shouldEnqueueBulkProductgroup } from "../modules/salesforce-sync/utils/future-import-guard"
+import { isProductgroupVisibleOnWebsite } from "../modules/salesforce-sync/utils/visible-on-website"
 import {
   BulkImportContext,
   parseSinceArg,
@@ -30,6 +28,7 @@ import {
 } from "../modules/salesforce-sync/utils/import-context"
 import {
   linkedRecordsForGroup,
+  mergeSalesforceIdsIntoPrefetch,
   prefetchProductgroupsForImport,
 } from "../modules/salesforce-sync/utils/prefetch-productgroups-for-import"
 import { runPool } from "../modules/salesforce-sync/utils/run-pool"
@@ -45,7 +44,7 @@ type ImportCandidate = {
   group: SfProductgroupShape
 }
 
-type ImportOutcome = "imported" | "skipped" | "failed"
+type ImportOutcome = "imported" | "skipped" | "hidden" | "failed"
 
 export default async function importFutureProductgroups({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
@@ -101,6 +100,21 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
       `[${logTag}] Prefetched ${prefetch.groups.length} group(s), ${prefetch.linkedOnlineSlaveIds.size} linked-online slave catalog(s)`
     )
 
+    const importContext = await BulkImportContext.create(container, sync, {
+      skipSanitySync: true,
+      skipUnchanged,
+      linkedOnlineParentIdsBySlave,
+    })
+    const extraImported = await mergeSalesforceIdsIntoPrefetch(
+      prefetch,
+      importContext.importedSalesforceIds()
+    )
+    if (extraImported) {
+      logger.info(
+        `[${logTag}] Loaded ${extraImported} already-imported group(s) missing from prefetch (visibility cleanup)`
+      )
+    }
+
     let skipped = 0
     const candidates: ImportCandidate[] = []
 
@@ -109,17 +123,18 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
 
       const { children } = linkedRecordsForGroup(prefetch, group)
 
-      const guardInput = {
-        group,
-        children,
-        isLinkedOnlineSlave: prefetch.linkedOnlineSlaveIds.has(group.Id),
-      }
-
-      const shouldImport = importAll
-        ? true
-        : linkedVathuisOnly
-          ? shouldLinkedVathuisBulkImport(guardInput)
-          : shouldBulkImportProductgroup(guardInput)
+      const shouldImport = shouldEnqueueBulkProductgroup(
+        {
+          group,
+          children,
+          isLinkedOnlineSlave: prefetch.linkedOnlineSlaveIds.has(group.Id),
+        },
+        {
+          importAll,
+          linkedVathuisOnly,
+          alreadyImported: Boolean(importContext.getProductgroupState(group.Id)?.medusa_id),
+        }
+      )
 
       if (!shouldImport) {
         skipped++
@@ -131,21 +146,22 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
     }
 
     if (dryRun) {
+      let wouldHide = 0
       for (const { group } of candidates) {
         const label = group.Name?.trim() || group.Id
-        logger.info(`[${logTag}] would import ${label} (${group.Id})`)
+        const { children } = linkedRecordsForGroup(prefetch, group)
+        if (!isProductgroupVisibleOnWebsite(group, children)) {
+          wouldHide++
+          logger.info(`[${logTag}] would hide ${label} (${group.Id}) (not visible on website)`)
+        } else {
+          logger.info(`[${logTag}] would import ${label} (${group.Id})`)
+        }
       }
       logger.info(
-        `[${logTag}] Done. would import=${candidates.length} skipped=${skipped} (scanned ${prefetch.groups.length} groups)`
+        `[${logTag}] Done. would import=${candidates.length - wouldHide} would hide=${wouldHide} skipped=${skipped} (scanned ${prefetch.groups.length} groups)`
       )
       return
     }
-
-    const importContext = await BulkImportContext.create(container, sync, {
-      skipSanitySync: true,
-      skipUnchanged,
-      linkedOnlineParentIdsBySlave,
-    })
 
     const reindexProductIds: string[] = []
     const sanitySyncProductIds: string[] = []
@@ -172,6 +188,12 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
         })
 
         if (result.skipped) {
+          if (result.skipReason === "not_visible_on_website" && result.medusaId) {
+            logger.info(
+              `[${logTag}] hid ${label} (${salesforceId}) → ${result.medusaId} (not visible on website)`
+            )
+            return "hidden" as ImportOutcome
+          }
           logger.warn(
             `[${logTag}] skipped ${label} (${salesforceId}): ${result.skipReason ?? "skipped"}`
           )
@@ -195,6 +217,7 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
     })
 
     const imported = outcomes.filter((o) => o === "imported").length
+    const hidden = outcomes.filter((o) => o === "hidden").length
     const failed = outcomes.filter((o) => o === "failed").length
     skipped += outcomes.filter((o) => o === "skipped").length
 
@@ -247,7 +270,7 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
     }
 
     logger.info(
-      `[${logTag}] Done. imported=${imported} skipped=${skipped} failed=${failed} (scanned ${prefetch.groups.length} groups)`
+      `[${logTag}] Done. imported=${imported} hid=${hidden} skipped=${skipped} failed=${failed} (scanned ${prefetch.groups.length} groups)`
     )
   } finally {
     if (previousSuppressPush === undefined) {

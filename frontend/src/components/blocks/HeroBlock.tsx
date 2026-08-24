@@ -89,7 +89,16 @@ function SlideLinkShell({
   )
 }
 
-export function HeroBlock({ block }: { block: HeroBlockType }) {
+const HERO_SLIDE_SIZES = '(max-width: 1024px) 100vw, 66vw'
+
+export function HeroBlock({
+  block,
+  lcpImage,
+}: {
+  block: HeroBlockType
+  /** Server-rendered LCP image for slide 0 (from BlockRenderer). */
+  lcpImage?: ReactNode
+}) {
   const slides = block.slides ?? []
   const [slideIndex, setSlideIndex] = useState(0)
   const slide = slides[slideIndex]
@@ -140,12 +149,17 @@ export function HeroBlock({ block }: { block: HeroBlockType }) {
             const slideBody = (
               <>
                 <div className="absolute inset-0" aria-hidden>
-                  <SanityImage
-                    source={slide.backgroundImage}
-                    fill
-                    sizes="100vw"
-                    className="object-cover"
-                  />
+                  {slideIndex === 0 && lcpImage ? (
+                    lcpImage
+                  ) : (
+                    <SanityImage
+                      source={slide.backgroundImage}
+                      fill
+                      sizes={HERO_SLIDE_SIZES}
+                      className="object-cover"
+                      priority={slideIndex === 0}
+                    />
+                  )}
                 </div>
                 {(() => {
                   const overlay = cleanBlockValue(slide.overlayOpacity)

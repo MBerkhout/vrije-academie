@@ -11,6 +11,7 @@ import { TabsBlock } from './TabsBlock'
 import { FormBlock } from './FormBlock'
 import { DemandNearbyBlock } from './DemandNearbyBlock'
 import { HeroBlock } from './HeroBlock'
+import { SanityImage } from '@/components/cms/SanityImage'
 import { ProductRowBlock } from './ProductRowBlock'
 import { ProductRowBlockPersonalized } from './ProductRowBlockPersonalized'
 import { CategoriesBlock } from './CategoriesBlock'
@@ -25,7 +26,7 @@ import { VathuisCategoriesBlock } from './VathuisCategoriesBlock'
 import { VathuisProductRowBlock } from './VathuisProductRowBlock'
 import { VathuisTeachersBlock } from './VathuisTeachersBlock'
 import { VathuisPromoTilesBlock } from './VathuisPromoTilesBlock'
-import { cleanBlockValue, type Block } from '@/lib/cms'
+import { cleanBlockValue, type Block, type HeroBlock as HeroBlockType } from '@/lib/cms'
 
 interface BlockRendererProps {
   block: Block
@@ -50,8 +51,21 @@ export function BlockRenderer({ block, tone = 'default' }: BlockRendererProps) {
       return <FormBlock block={block as any} />
     case 'demandNearbyBlock':
       return <DemandNearbyBlock block={block as any} />
-    case 'heroBlock':
-      return <HeroBlock block={block as any} />
+    case 'heroBlock': {
+      const heroBlock = block as HeroBlockType
+      const firstSlide = heroBlock.slides?.[0]
+      const lcpImage =
+        firstSlide?.backgroundImage?.asset != null ? (
+          <SanityImage
+            source={firstSlide.backgroundImage}
+            fill
+            sizes="(max-width: 1024px) 100vw, 66vw"
+            className="object-cover"
+            priority
+          />
+        ) : undefined
+      return <HeroBlock block={heroBlock} lcpImage={lcpImage} />
+    }
     case 'productRowBlock': {
       const sourceType = cleanBlockValue((block as { sourceType?: string }).sourceType)
       if (sourceType === 'personalized') {

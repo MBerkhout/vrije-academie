@@ -4,7 +4,11 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import productDocentenLink from "../links/product-docenten"
 import productEventGroupLink from "../links/product-event-group"
 import PeopleModuleService from "../modules/people/service"
-import { externalRegistrationUrlFromMetadata } from "./external-registration-url"
+import {
+  externalRegistrationUrlFromMetadata,
+  resolveProductExternalRegistrationUrl,
+  resolveSessionExternalRegistrationUrl,
+} from "./external-registration-url"
 import { filterVariantsWithFutureSessions } from "./event-session-eligibility"
 import { zipImageUrlsWithCaptions } from "./gallery-images"
 import { ctaBarFieldsFromMetadata } from "./product-cta-bar"
@@ -118,6 +122,7 @@ export async function buildStoreEventDetail(
 
   const product = products?.[0] as Record<string, unknown> | undefined
   if (!product?.id) return null
+  if (product.status && product.status !== "published") return null
 
   const productMetadata = product.metadata as Record<string, unknown> | null | undefined
 
@@ -215,6 +220,7 @@ export async function buildStoreEventDetail(
   ] as string[]
 
   const { metadata, ...productFields } = product
+  const groupExternalRegistrationUrl = externalRegistrationUrlFromMetadata(productMetadata)
   const ctaFields = ctaBarFieldsFromMetadata(productMetadata)
   const hasLinkedOnlineSessions = Boolean(productMetadata?.salesforce_linked_online_productgroup_id)
 
@@ -256,14 +262,21 @@ export async function buildStoreEventDetail(
         unlimitedAvailability && eventItem
           ? { ...eventItem, available_quantity: VATHUIS_UNLIMITED_AVAILABILITY }
           : eventItem
+      const { metadata: variantMetadata, ...variantFields } = v as Record<string, unknown> & {
+        metadata?: Record<string, unknown> | null
+      }
 
       return {
-        ...v,
+        ...variantFields,
         event_item: normalizedEventItem,
         prices: normalizeVariantPricesForStorefront(
           v.prices as Parameters<typeof normalizeVariantPricesForStorefront>[0]
         ),
         purchasable: purchaseMode === "bundle_only" ? v.id === bundleVariant?.id : true,
+        external_registration_url: resolveSessionExternalRegistrationUrl(
+          externalRegistrationUrlFromMetadata(variantMetadata),
+          groupExternalRegistrationUrl
+        ),
       }
     }),
     record_type: eventGroup?.record_type ?? null,
@@ -282,7 +295,10 @@ export async function buildStoreEventDetail(
     has_free_trial: hasFreeTrial || (eventGroup?.has_free_trial ?? false),
     image_urls: imageUrls,
     gallery_images: zipImageUrlsWithCaptions(imageUrls, productMetadata),
-    external_registration_url: externalRegistrationUrlFromMetadata(productMetadata),
+    external_registration_url: resolveProductExternalRegistrationUrl(
+      productMetadata,
+      variants.map((v) => (v as { metadata?: Record<string, unknown> | null }).metadata)
+    ),
     has_linked_online_sessions: hasLinkedOnlineSessions,
     purchase_mode: purchaseMode,
     bundle_variant_id: bundleVariant?.id ?? null,

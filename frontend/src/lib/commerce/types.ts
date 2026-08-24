@@ -95,7 +95,7 @@ export interface EventCard {
   cta_color?: string | null
   /** Hex background on hover (Salesforce `CTA_Color_Hover__c`). */
   cta_color_hover?: string | null
-  /** When set (e.g. reizen), Direct inschrijven opens this external purchase URL instead of cart. */
+  /** When set on the product group, Direct inschrijven opens this URL instead of cart. Session rows prefer the variant URL. */
   external_registration_url?: string | null
   /**
    * Hybrid studiedag-style products: online Zoom sessions were merged from a linked
@@ -170,6 +170,8 @@ export interface EventVariant {
   prices?: { amount: number; currency_code: string }[]
   /** False for non-bundle rows on VAthuis products. */
   purchasable?: boolean
+  /** When set, Direct inschrijven opens this URL instead of the cart. Child URL if present, else product-group URL. */
+  external_registration_url?: string | null
   event_item?: {
     id: string
     delivery_type: string

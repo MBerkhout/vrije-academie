@@ -1,5 +1,6 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
+import { orderLineLookupsToSalesforce } from "../../../modules/salesforce-sync/mappings/order"
 import {
   discountOrderItemFields,
   productOrderItemFields,
@@ -12,14 +13,13 @@ import {
 import {
   ORDER_ITEM_EXTERNAL_ID_FIELD,
   SF_ORDER_ITEM_OBJECT,
+  SF_ORDER_OBJECT,
   SALESFORCE_DISCOUNT_PRODUCT2_ID,
 } from "../../../modules/salesforce-sync/utils/salesforce-config"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 import { resolvePricebookEntryId } from "../../../modules/salesforce-sync/utils/resolve-pricebook-entry"
 import {
   ensureSyncState,
-  findOrderItemByOrderRegistration,
-  findRegistrationByOrderAndVaProduct,
   findSalesforceIdByExternalId,
   resolveExistingSalesforceId,
   upsertSalesforceRecordById,
@@ -86,10 +86,6 @@ export const pushOrderLinesSalesforceStep = createStep(
             SF_REGISTRATION_OBJECT,
             registrationExternalIdField,
             seat.registrationExternalId
-          ).then(
-            (id) =>
-              id ??
-              findRegistrationByOrderAndVaProduct(sync, orderId, seat.vaProductId)
           )
       )
 
@@ -100,14 +96,8 @@ export const pushOrderLinesSalesforceStep = createStep(
         contactId,
         vaProductId: seat.vaProductId,
         lineTotalCents: seat.lineTotalCents,
-        orderTotalCents: payload.totalCents,
-        productStartAt: seat.productStartAt,
-        productEndAt: seat.productEndAt,
-        productCity: seat.productCity,
-        billingStreet: payload.billingAddress?.address_1 ?? null,
-        billingCity: payload.billingAddress?.city ?? null,
-        billingPostalCode: payload.billingAddress?.postal_code ?? null,
-        billingCountry: payload.billingAddress?.country_code ?? null,
+        unitPriceCents: seat.unitPriceCents,
+        participantEmail: payload.email,
       })
 
       regSfId = await upsertSalesforceRecordById(
@@ -131,16 +121,6 @@ export const pushOrderLinesSalesforceStep = createStep(
             SF_ORDER_ITEM_OBJECT,
             ORDER_ITEM_EXTERNAL_ID_FIELD,
             seat.productLineExternalId
-          ).then(
-            (id) =>
-              id ??
-              findOrderItemByOrderRegistration(
-                sync,
-                orderId,
-                regSfId,
-                "product",
-                seat.vaProductId
-              )
           )
       )
       productItemId = await upsertSalesforceRecordById(
@@ -162,6 +142,9 @@ export const pushOrderLinesSalesforceStep = createStep(
       )
       orderItemIds[seat.productLineExternalId] = productItemId
       await ensureSyncState(sync, "order_item", seat.productLineExternalId, productItemId)
+      await sync.updateRecord(SF_REGISTRATION_OBJECT, regSfId, {
+        Order_Item__c: productItemId,
+      })
 
       if (seat.discountLineExternalId && seat.discountCents > 0) {
         let discountItemId = await resolveExistingSalesforceId(
@@ -174,10 +157,6 @@ export const pushOrderLinesSalesforceStep = createStep(
               SF_ORDER_ITEM_OBJECT,
               ORDER_ITEM_EXTERNAL_ID_FIELD,
               seat.discountLineExternalId!
-            ).then(
-              (id) =>
-                id ??
-                findOrderItemByOrderRegistration(sync, orderId, regSfId, "discount")
             )
         )
         discountItemId = await upsertSalesforceRecordById(
@@ -198,6 +177,22 @@ export const pushOrderLinesSalesforceStep = createStep(
         )
         orderItemIds[seat.discountLineExternalId] = discountItemId
         await ensureSyncState(sync, "order_item", seat.discountLineExternalId, discountItemId)
+      }
+    }
+
+    const firstSeat = payload.eventSeats[0]
+    if (firstSeat) {
+      const firstRegId = registrationIds[firstSeat.registrationExternalId]
+      if (firstRegId) {
+        await sync.updateRecord(
+          SF_ORDER_OBJECT,
+          orderId,
+          orderLineLookupsToSalesforce({
+            vaProductId: firstSeat.vaProductId,
+            registrationId: firstRegId,
+            product2Id: firstSeat.product2Id,
+          }) as Record<string, unknown>
+        )
       }
     }
 

@@ -94,6 +94,7 @@ function GalleryTile({
           className="object-cover"
           sizes="(max-width: 640px) 60vw, 25vw"
           priority={index === 0}
+          fetchPriority={index === 0 ? 'high' : undefined}
         />
       </div>
 

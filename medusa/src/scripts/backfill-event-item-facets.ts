@@ -23,6 +23,7 @@ import { runPool } from "../modules/salesforce-sync/utils/run-pool"
 import { prefetchLinkedOnlineParentIdsBySlave } from "../modules/salesforce-sync/utils/import-context"
 import { mergeProductgroupChildRows } from "../modules/salesforce-sync/utils/linked-online-productgroup"
 import { queryAllSalesforce } from "../modules/salesforce-sync/utils/query-all-salesforce"
+import { isCourseProductVisibleOnWebsite } from "../modules/salesforce-sync/utils/visible-on-website"
 
 function arg(name: string): string | undefined {
   const p = process.argv.find((a) => a.startsWith(`${name}=`))
@@ -144,10 +145,10 @@ export default async function backfillEventItemFacets({ container }: ExecArgs) {
       )
       const childRows = mergeProductgroupChildRows(
         children as never[],
-        group.Productgroup_Record_Type_Developer_Name__c,
+        group.Productgroup_Record_Type_Developer_Name__c as string | null | undefined,
         [],
         null
-      )
+      ).filter(({ child }) => isCourseProductVisibleOnWebsite(child))
       const isLinkedOnlineSlave =
         (linkedOnlineParentIdsBySlave.get(candidate.salesforceId) ?? []).length > 0
 

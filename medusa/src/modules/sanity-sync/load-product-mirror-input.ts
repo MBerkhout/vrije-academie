@@ -5,7 +5,7 @@ import productCategoriesLink from "../../links/product-categories"
 import productDocentenLink from "../../links/product-docenten"
 import productEventGroupLink from "../../links/product-event-group"
 import { minPriceCentsFromVariants } from "../../lib/medusa-price-to-cents"
-import { externalRegistrationUrlFromMetadata } from "../../lib/external-registration-url"
+import { resolveProductExternalRegistrationUrl } from "../../lib/external-registration-url"
 import { imageCaptionsForUrls } from "../../lib/gallery-images"
 import { ctaBarFieldsFromMetadata } from "../../lib/product-cta-bar"
 import CatalogModuleService from "../catalog/service"
@@ -134,7 +134,10 @@ export async function loadProductMirrorInputs(
       (typeof metadata.salesforce_seo_description === "string" &&
         metadata.salesforce_seo_description) ||
       null
-    const externalRegistrationUrl = externalRegistrationUrlFromMetadata(metadata)
+    const externalRegistrationUrl = resolveProductExternalRegistrationUrl(
+      metadata,
+      variants.map((v) => (v.metadata as Record<string, unknown> | null | undefined) ?? null)
+    )
     const importedBodyBlocks = buildSalesforceImportedBody(
       metadata,
       product.description as string | null | undefined

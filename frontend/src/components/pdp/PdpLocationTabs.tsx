@@ -15,6 +15,7 @@ import {
   shouldShowEventDates,
 } from '@/lib/event-status-presentation'
 import { defaultMessages } from '@/lib/i18n/messages'
+import { sessionExternalRegistrationUrl } from '@/lib/commerce/external-registration-url'
 import {
   formatDateWeekdayLong,
   formatPriceEur,
@@ -200,8 +201,7 @@ export function PdpLocationTabs({
     }
   }
 
-  const externalUrl = externalRegistrationUrl?.trim() || null
-  const usesExternalRegistration = Boolean(externalUrl)
+  const productExternalUrl = externalRegistrationUrl?.trim() || null
   const sessionCtaMobileClassName =
     'shrink-0 text-sm font-bold uppercase tracking-wide px-4 py-2 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'
   const sessionCtaDesktopClassName =
@@ -313,14 +313,12 @@ export function PdpLocationTabs({
           ? freeTrialLabel
           : primaryCtaLabel
 
-    if (variant.purchasable === false) {
-      return <span className="text-sm text-va-gray">—</span>
-    }
+    const sessionExternalUrl = sessionExternalRegistrationUrl(variant, productExternalUrl)
 
-    if (usesExternalRegistration && !isSoldOut) {
+    if (sessionExternalUrl && !isSoldOut) {
       return (
         <a
-          href={externalUrl!}
+          href={sessionExternalUrl}
           target="_blank"
           rel="noopener noreferrer"
           className={`${className} bg-va-yellow text-va-black hover:bg-va-yellow/90`}
@@ -328,6 +326,10 @@ export function PdpLocationTabs({
           {primaryCtaLabel}
         </a>
       )
+    }
+
+    if (variant.purchasable === false) {
+      return <span className="text-sm text-va-gray">—</span>
     }
 
     return (

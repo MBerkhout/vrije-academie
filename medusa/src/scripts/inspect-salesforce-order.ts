@@ -109,12 +109,15 @@ export default async function inspectSalesforceOrder({ container }: ExecArgs) {
     "Payment_Method__c",
     "Ideal_Transaction_Id__c",
     "Description",
+    "Product__c",
+    "Product2__c",
+    "Registration__c",
     ...(usesSalesforceMedusaCustomFields() ? [ORDER_EXTERNAL_ID_FIELD] : []),
   ])
 
   const orderItemFields = usesSalesforceMedusaCustomFields()
-    ? "Id, OrderItemNumber, Product_Name__c, UnitPrice, TotalPrice, Quantity, Is_Discount__c, Is_Voucher__c, vaProduct__c, Registration__c, Discount_Code__c, Voucher__c, Medusa_Order_Item_Id__c"
-    : "Id, OrderItemNumber, Product_Name__c, UnitPrice, TotalPrice, Quantity, Is_Discount__c, Is_Voucher__c, vaProduct__c, Registration__c, Discount_Code__c, Voucher__c"
+    ? "Id, OrderItemNumber, ProductName__c, Product_Name__c, UnitPrice, TotalPrice, Quantity, vaProduct__c, Registration__c, Discount_Code__c, Voucher__c, Medusa_Order_Item_Id__c"
+    : "Id, OrderItemNumber, ProductName__c, Product_Name__c, UnitPrice, TotalPrice, Quantity, vaProduct__c, Registration__c, Discount_Code__c, Voucher__c"
 
   const items = await sync.query<Record<string, unknown>>(
     `SELECT ${orderItemFields} FROM OrderItem WHERE OrderId = '${escapeSoql(salesforceId)}'`
@@ -137,6 +140,7 @@ export default async function inspectSalesforceOrder({ container }: ExecArgs) {
       "Origin__c",
       "vaProduct__c",
       "Order__c",
+      "Order_Item__c",
       "Total_Price__c",
       ...(usesSalesforceMedusaCustomFields() ? ["Medusa_Registration_Id__c"] : []),
     ])

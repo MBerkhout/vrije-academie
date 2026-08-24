@@ -1,3 +1,4 @@
+import '@/lib/suppress-i18next-support-notice'
 import type { Metadata } from 'next'
 import { draftMode } from 'next/headers'
 import { Source_Sans_3 } from 'next/font/google'

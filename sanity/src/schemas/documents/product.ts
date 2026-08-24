@@ -168,7 +168,7 @@ export const product = defineType({
       group: "mirror",
       readOnly: true,
       description:
-        "Synced from Salesforce via Medusa (`External_Registration_URL__c`). When set, storefront Direct inschrijven opens this URL.",
+        "Synced from Salesforce via Medusa: product-group `External_Registration_URL__c`, or the first child `External_Registration_URL_Product__c` when the group URL is empty. Session CTAs use the child URL when set.",
     }),
     defineField({
       name: "tags",

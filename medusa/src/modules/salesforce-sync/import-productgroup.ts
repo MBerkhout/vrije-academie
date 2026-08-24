@@ -15,7 +15,12 @@ import {
 
 import productEventGroupLink from "../../links/product-event-group"
 import variantEventItemLink from "../../links/variant-event-item"
+import { variantExternalRegistrationMetadata } from "../../lib/external-registration-url"
+import { SALESFORCE_VISIBLE_ON_WEBSITE_METADATA_KEY } from "../../lib/salesforce-visible-on-website"
 import { applyCityToEventItemPatch } from "../../lib/resolve-city"
+import { invalidateEventDetailForProductId } from "../../lib/store-listing-invalidation"
+import { invalidateStoreListingCache } from "../../lib/store-listing-redis"
+import { revalidateStorefrontPlpCache } from "../../lib/storefront-revalidate"
 import EventsModuleService from "../events/service"
 import CatalogModuleService from "../catalog/service"
 import type { SfCourseProductShape } from "./mappings/course-product"
@@ -42,6 +47,10 @@ import { linkNativeProductCategoriesByLabels } from "./utils/resolve-native-cate
 import { resolveProductTypeId } from "./utils/resolve-product-type-id"
 import { shouldImportProductgroup } from "./utils/future-import-guard"
 import {
+  isCourseProductVisibleOnWebsite,
+  isProductgroupVisibleOnWebsite,
+} from "./utils/visible-on-website"
+import {
   findParentProductgroupIdsForLinkedOnlineSlave,
   mergeProductgroupChildRows,
   variantSkuForChild,
@@ -61,6 +70,17 @@ import { deepEqual, sameDate } from "./utils/deep-equal"
 const INCOMING_LOCK_MS = 10_000
 const ENTITY_PRODUCTGROUP = "productgroup"
 const ENTITY_VARIANT = "variant"
+
+function variantSessionMetadata(
+  child: SfCourseProductShape,
+  visibleOnWebsite: boolean,
+  existing?: Record<string, unknown> | null
+): Record<string, unknown> {
+  return {
+    ...variantExternalRegistrationMetadata(child, existing),
+    [SALESFORCE_VISIBLE_ON_WEBSITE_METADATA_KEY]: visibleOnWebsite,
+  }
+}
 
 export type ImportProductgroupInput = {
   salesforceId: string
@@ -445,6 +465,7 @@ async function syncChildVariantsBatch(
     prices: { amount: number; currency_code: string }[]
     manage_inventory: boolean
     options: Record<string, string>
+    metadata: Record<string, unknown>
   }> = []
   const variantsToCreate: Array<{
     child: SfCourseProductShape
@@ -460,6 +481,20 @@ async function syncChildVariantsBatch(
     child: SfCourseProductShape
     groupRecordType?: string | null
   }> = []
+
+  const productModule = container.resolve(Modules.PRODUCT)
+  let existingMetadataByVariantId = new Map<string, Record<string, unknown>>()
+  try {
+    const product = await productModule.retrieveProduct(productId, { relations: ["variants"] })
+    existingMetadataByVariantId = new Map(
+      (product.variants ?? []).map((variant) => [
+        variant.id,
+        (variant.metadata ?? {}) as Record<string, unknown>,
+      ])
+    )
+  } catch {
+    /* product missing — variants will be created */
+  }
 
   for (const { child, groupRecordType } of childRows) {
     if (!child.Id) continue
@@ -488,6 +523,11 @@ async function syncChildVariantsBatch(
         prices: [{ amount: priceAmount, currency_code: "eur" }],
         manage_inventory: false,
         options: { [optionName]: optionLabel },
+        metadata: variantSessionMetadata(
+          child,
+          true,
+          existingMetadataByVariantId.get(existingMedusaId)
+        ),
       })
       eventItemTasks.push({ variantId: existingMedusaId, child, groupRecordType })
       variantIds.push(existingMedusaId)
@@ -520,6 +560,7 @@ async function syncChildVariantsBatch(
           manage_inventory: false,
           prices: [{ amount: v.priceAmount, currency_code: "eur" }],
           options: { [optionName]: v.optionLabel },
+          metadata: variantSessionMetadata(v.child, true),
         })),
       },
     })
@@ -596,6 +637,129 @@ export async function refreshEventItemsFromChildRows(
   return variantIds
 }
 
+async function hideHiddenChildVariants(
+  container: MedusaContainer,
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  productId: string,
+  productgroupSfId: string,
+  hiddenChildRows: Array<{ child: SfCourseProductShape }>,
+  isLinkedOnlineSlave: boolean,
+  importContext?: BulkImportContext
+): Promise<void> {
+  if (!hiddenChildRows.length) return
+
+  const events = container.resolve("events") as InstanceType<typeof EventsModuleService>
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const productModule = container.resolve(Modules.PRODUCT)
+  const variantUpdates: Array<{ id: string; metadata: Record<string, unknown> }> = []
+
+  for (const { child } of hiddenChildRows) {
+    if (!child.Id) continue
+    const variantSyncKey = variantSyncSalesforceId(child.Id, productgroupSfId, {
+      isLinkedOnlineSlave,
+    })
+    const sku = variantSkuForChild(child.Id, { isLinkedOnlineSlave })
+    const resolved = await resolveVariantForChildOnProduct(
+      container,
+      sync,
+      productId,
+      variantSyncKey,
+      importContext,
+      sku
+    )
+    if (!resolved?.medusaId) continue
+
+    let existingMetadata: Record<string, unknown> = {}
+    try {
+      const variant = await productModule.retrieveProductVariant(resolved.medusaId)
+      existingMetadata = (variant.metadata ?? {}) as Record<string, unknown>
+    } catch {
+      /* variant missing */
+    }
+
+    variantUpdates.push({
+      id: resolved.medusaId,
+      metadata: variantSessionMetadata(child, false, existingMetadata),
+    })
+
+    const { data: existing } = await query.graph({
+      entity: variantEventItemLink.entryPoint,
+      fields: ["event_item.id", "event_item.available_quantity"],
+      filters: { product_variant_id: resolved.medusaId },
+    })
+    const eventItem = (existing?.[0] as { event_item?: { id?: string; available_quantity?: number } | null })
+      ?.event_item
+    if (eventItem?.id && Number(eventItem.available_quantity ?? 0) !== 0) {
+      await events.updateEventItems({
+        id: eventItem.id,
+        available_quantity: 0,
+      })
+    }
+  }
+
+  if (variantUpdates.length) {
+    await updateProductVariantsWorkflow(container).run({
+      input: { product_variants: variantUpdates },
+    })
+  }
+}
+
+async function skipNotVisibleOnWebsite(
+  container: MedusaContainer,
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  salesforceId: string,
+  contentFingerprint: string,
+  importContext?: BulkImportContext
+): Promise<ImportProductgroupResult> {
+  const linked = importContext
+    ? importContext.getProductgroupState(salesforceId)
+    : await sync.getStateBySalesforceId(ENTITY_PRODUCTGROUP, salesforceId)
+  const productId = linked?.medusa_id ?? ""
+
+  if (productId) {
+    try {
+      await updateProductsWorkflow(container).run({
+        input: {
+          products: [{ id: productId, status: ProductStatus.DRAFT }],
+        },
+      })
+    } catch {
+      /* product already removed */
+    }
+
+    const now = new Date()
+    const pgRow = await sync.getStateByMedusaId(ENTITY_PRODUCTGROUP, productId)
+    if (pgRow) {
+      await sync.updateSalesforceSyncStates({
+        id: pgRow.id,
+        last_pulled_at: now,
+        last_status: "success",
+        last_error: null,
+        mapping_version: contentFingerprint,
+      })
+    }
+    importContext?.setProductgroupFingerprint(salesforceId, contentFingerprint, productId)
+
+    await invalidateStoreListingCache()
+    await invalidateEventDetailForProductId(container, productId)
+    await revalidateStorefrontPlpCache()
+
+    const search = container.resolve("search") as import("../search/service").default
+    if (search.isEnabled()) {
+      await search.deleteDoc(`product-${productId}`).catch(() => undefined)
+    }
+  }
+
+  return {
+    medusaId: productId,
+    created: false,
+    updated: false,
+    skipped: true,
+    skipReason: "not_visible_on_website",
+    variantIds: [],
+  }
+}
+
 function productUpdateNeedsApply(
   existing: {
     title?: string
@@ -605,6 +769,7 @@ function productUpdateNeedsApply(
     images?: { url?: string }[]
     metadata?: Record<string, unknown> | null
     type_id?: string | null
+    status?: string | null
   },
   update: {
     title: string
@@ -629,7 +794,8 @@ function productUpdateNeedsApply(
     (existing.thumbnail ?? undefined) !== update.thumbnail ||
     !deepEqual(existingImageUrls, nextImageUrls) ||
     !deepEqual(existing.metadata ?? {}, update.metadata) ||
-    (existing.type_id ?? null) !== update.typeId
+    (existing.type_id ?? null) !== update.typeId ||
+    existing.status !== ProductStatus.PUBLISHED
   )
 }
 
@@ -646,17 +812,27 @@ export async function importProductgroupFromSalesforce(
   const linkedGroup = (input.linkedGroupRecord ?? null) as SfProductgroupShape | null
   const linkedChildren = (input.linkedChildRecords ?? []) as SfCourseProductShape[]
 
-  const childRows = mergeProductgroupChildRows(
+  const allChildRows = mergeProductgroupChildRows(
     directChildren,
     group.Productgroup_Record_Type_Developer_Name__c,
     linkedChildren,
     linkedGroup?.Productgroup_Record_Type_Developer_Name__c
   )
-  const children = childRows.map((row) => row.child)
+  const allChildren = allChildRows.map((row) => row.child)
   const importContext = input.importContext
-  const contentFingerprint = productgroupImportFingerprint(group, children)
+  const contentFingerprint = productgroupImportFingerprint(group, allChildren)
 
-  if (!shouldImportProductgroup({ group, children, manual: input.manual })) {
+  if (!isProductgroupVisibleOnWebsite(group, allChildren)) {
+    return skipNotVisibleOnWebsite(
+      container,
+      sync,
+      input.salesforceId,
+      contentFingerprint,
+      importContext
+    )
+  }
+
+  if (!shouldImportProductgroup({ group, children: allChildren, manual: input.manual })) {
     return {
       medusaId: "",
       created: false,
@@ -667,11 +843,24 @@ export async function importProductgroupFromSalesforce(
     }
   }
 
+  const childRows = allChildRows.filter(({ child }) => isCourseProductVisibleOnWebsite(child))
+  const hiddenChildRows = allChildRows.filter(({ child }) => !isCourseProductVisibleOnWebsite(child))
+  const children = childRows.map((row) => row.child)
+
   if (importContext?.skipUnchanged) {
     const state = importContext.getProductgroupState(input.salesforceId)
     if (state?.mapping_version === contentFingerprint && state.medusa_id) {
       const parentIdsForSlave = importContext.getLinkedOnlineParentIds(input.salesforceId)
       const isLinkedOnlineSlave = parentIdsForSlave.length > 0
+      await hideHiddenChildVariants(
+        container,
+        sync,
+        state.medusa_id,
+        input.salesforceId,
+        hiddenChildRows,
+        isLinkedOnlineSlave,
+        importContext
+      )
       const variantIds = await refreshEventItemsFromChildRows(
         container,
         sync,
@@ -737,6 +926,7 @@ export async function importProductgroupFromSalesforce(
     images?: { url?: string }[]
     metadata?: Record<string, unknown> | null
     type_id?: string | null
+    status?: string | null
   } | null = null
 
   if (productId) {
@@ -810,6 +1000,7 @@ export async function importProductgroupFromSalesforce(
             manage_inventory: false,
             prices: [{ amount: courseProductPriceAmount(child), currency_code: "eur" as const }],
             options: { [optionName]: courseProductOptionLabel(child) },
+            metadata: variantSessionMetadata(child, true),
           }))
         : [
             {
@@ -916,6 +1107,16 @@ export async function importProductgroupFromSalesforce(
       ))
     )
   }
+
+  await hideHiddenChildVariants(
+    container,
+    sync,
+    productId,
+    input.salesforceId,
+    hiddenChildRows,
+    isLinkedOnlineSlave,
+    importContext
+  )
 
   const now = new Date()
   let pgRow = await sync.getStateByMedusaId(ENTITY_PRODUCTGROUP, productId)

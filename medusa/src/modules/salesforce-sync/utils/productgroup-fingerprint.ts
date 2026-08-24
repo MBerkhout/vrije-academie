@@ -2,8 +2,8 @@ import type { SfCourseProductShape } from "../mappings/course-product"
 import type { SfProductgroupShape } from "../mappings/productgroup"
 import { stableStringify } from "./deep-equal"
 
-/** Bump when Medusa-side session facet mapping changes (forces re-import / invalidates skip-unchanged). */
-export const MEDUSA_FACET_SYNC_VERSION = 1
+/** Bump when Medusa-side mapping changes (forces re-import / invalidates skip-unchanged). */
+export const MEDUSA_FACET_SYNC_VERSION = 3
 
 const GROUP_FINGERPRINT_KEYS = [
   "Name",
@@ -32,6 +32,7 @@ const GROUP_FINGERPRINT_KEYS = [
   "Highlighted_Teacher_Teaser__c",
   "Highlighted_Teacher_Image__c",
   "External_Registration_URL__c",
+  "Visible_on_website__c",
   "Linked_Online_Productgroup__c",
   "CTA_Label__c",
   "CTA_Color__c",
@@ -57,6 +58,8 @@ const CHILD_FINGERPRINT_KEYS = [
   "Account_Teacher__c",
   "Main_Teacher_Name__c",
   "Audience_Player_Article_Id__c",
+  "External_Registration_URL_Product__c",
+  "Visible_On_Website__c",
 ] as const
 
 function pickKeys<T extends Record<string, unknown>>(row: T, keys: readonly string[]): Record<string, unknown> {

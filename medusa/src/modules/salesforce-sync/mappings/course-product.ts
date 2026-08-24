@@ -28,6 +28,10 @@ export type SfCourseProductShape = {
   Account_Teacher__c?: string | null
   Main_Teacher_Name__c?: string | null
   Account_Teacher__r?: { Id?: string; Name?: string } | null
+  /** Partner booking URL (reizen). Used when the product group URL is empty. */
+  External_Registration_URL_Product__c?: string | null
+  /** Zichtbaar op Website on the child occurrence. Unchecked (`false`) → skip this session. */
+  Visible_On_Website__c?: boolean | null
   SystemModstamp?: string | null
 }
 
@@ -58,6 +62,8 @@ export const courseProductSalesforceFieldsForPull = [
   "Account_Teacher__c",
   "Account_Teacher__r.Name",
   "Main_Teacher_Name__c",
+  "External_Registration_URL_Product__c",
+  "Visible_On_Website__c",
   "SystemModstamp",
 ] as const
 

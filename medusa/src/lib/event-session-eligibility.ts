@@ -1,3 +1,5 @@
+import { isStorefrontVisibleVariant } from "./salesforce-visible-on-website"
+
 /** Event item row with fields used for storefront future/availability checks. */
 export type EventItemSessionRow = {
   start_at?: string | null
@@ -89,13 +91,18 @@ export function productHasFutureAvailableSession(
   })
 }
 
-/** Storefront variant rows: keep non-event variants; drop variants whose session is in the past. */
-export function filterVariantsWithFutureSessions<T extends { event_item?: EventItemSessionRow | null }>(
-  variants: T[],
-  now: Date = new Date()
-): T[] {
+/** Storefront variant rows: keep non-event variants; drop hidden and past sessions. */
+export function filterVariantsWithFutureSessions<
+  T extends {
+    event_item?: EventItemSessionRow | null
+    metadata?: Record<string, unknown> | null
+  },
+>(variants: T[], now: Date = new Date()): T[] {
   const nowMs = now.getTime()
-  return variants.filter((v) => !v.event_item || isFutureSession(v.event_item, nowMs))
+  return variants.filter((v) => {
+    if (!isStorefrontVisibleVariant(v)) return false
+    return !v.event_item || isFutureSession(v.event_item, nowMs)
+  })
 }
 
 /** Fisher–Yates shuffle (returns new array). */

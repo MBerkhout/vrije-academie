@@ -26,6 +26,9 @@ export type SfOrderShape = {
   Payment_Method__c?: string
   Ideal_Transaction_Id__c?: string
   Pricebook2Id?: string
+  Product__c?: string
+  Product2__c?: string
+  Registration__c?: string
   BillingStreet?: string
   BillingCity?: string
   BillingPostalCode?: string
@@ -130,6 +133,19 @@ export function orderHeaderToSalesforce(o: MedusaOrderPushShape): Partial<SfOrde
     Sync_With_Heroku__c: false,
     ...addressFields(o.billing_address, "Billing"),
     ...addressFields(o.shipping_address, "Shipping"),
+  }
+}
+
+/** Header lookups used by the Order Lightning page (single Product / Inschrijving). */
+export function orderLineLookupsToSalesforce(input: {
+  vaProductId: string
+  registrationId: string
+  product2Id: string
+}): Partial<SfOrderShape> {
+  return {
+    Product__c: input.vaProductId,
+    Registration__c: input.registrationId,
+    Product2__c: input.product2Id,
   }
 }
 

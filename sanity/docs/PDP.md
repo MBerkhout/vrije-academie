@@ -13,7 +13,7 @@ Open any **Product** document in Sanity Studio. The "Editorial content" tab cont
 | **Custom urgency message** | Short text (max 80 chars) shown in the promo banner above the page header. |
 | **Related products** | Up to 4 editor-curated product picks shown below the auto-generated Similar courses section. |
 
-All other fields are mirrors from Medusa and are read-only, including **SEO title** and **SEO description** (from Salesforce on import), and **Image captions** (`imageCaptions` from Salesforce `Image_N_Source__c`, shown on PDP gallery hover).
+All other fields are mirrors from Medusa and are read-only, including **SEO title** and **SEO description** (from Salesforce on import), **Image captions** (`imageCaptions` from Salesforce `Image_N_Source__c`, shown on PDP gallery hover), and **External registration URL** (`externalRegistrationUrl` from Salesforce group `External_Registration_URL__c`, or the first child `External_Registration_URL_Product__c`). Session **Direct inschrijven** uses that child’s URL when set.
 
 ## Conversion signal thresholds (`generalSettings › PDP`)
 

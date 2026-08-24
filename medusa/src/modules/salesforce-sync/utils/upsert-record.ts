@@ -2,6 +2,7 @@ import type SalesforceSyncModuleService from "../service"
 import {
   SALESFORCE_DISCOUNT_PRODUCT2_ID,
   SF_ORDER_ITEM_OBJECT,
+  SF_ORDER_OBJECT,
   SF_REGISTRATION_OBJECT,
 } from "./salesforce-config"
 import {
@@ -30,6 +31,19 @@ export async function upsertSalesforceRecord(
   return id
 }
 
+/** OrderItem fields that can only be set on insert. */
+const ORDER_ITEM_INSERT_ONLY_FIELDS = new Set(["OrderId", "PricebookEntryId", "Product2Id"])
+
+async function ensureSalesforceOrderDraft(
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  salesforceOrderId: string
+): Promise<void> {
+  const row = await sync.retrieve(SF_ORDER_OBJECT, salesforceOrderId, ["Status"])
+  if (String(row.Status ?? "") === "Activated") {
+    await sync.updateRecord(SF_ORDER_OBJECT, salesforceOrderId, { Status: "Draft" })
+  }
+}
+
 /** Create or patch when we already know the Salesforce Id (no external id field on object). */
 export async function upsertSalesforceRecordById(
   sync: InstanceType<typeof SalesforceSyncModuleService>,
@@ -40,15 +54,19 @@ export async function upsertSalesforceRecordById(
   fields: Record<string, unknown>
 ): Promise<string> {
   const cleanFields = stripMedusaCustomFields(fields)
-  if (salesforceId) {
-    let patchFields = cleanFields
-    if (sobject === SF_ORDER_ITEM_OBJECT && !usesSalesforceMedusaCustomFields()) {
-      patchFields = Object.fromEntries(
-        Object.entries(cleanFields).filter(([key]) =>
-          ["UnitPrice", "Quantity", "Registration__c", "vaProduct__c"].includes(key)
-        )
-      )
+  if (sobject === SF_ORDER_ITEM_OBJECT) {
+    const orderId = cleanFields.OrderId
+    if (typeof orderId === "string" && orderId) {
+      await ensureSalesforceOrderDraft(sync, orderId)
     }
+  }
+  if (salesforceId) {
+    const patchFields =
+      sobject === SF_ORDER_ITEM_OBJECT
+        ? Object.fromEntries(
+            Object.entries(cleanFields).filter(([key]) => !ORDER_ITEM_INSERT_ONLY_FIELDS.has(key))
+          )
+        : cleanFields
     await sync.updateRecord(sobject, salesforceId, patchFields)
     return salesforceId
   }

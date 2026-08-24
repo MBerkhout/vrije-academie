@@ -153,6 +153,34 @@ export async function prefetchProductgroupsForImport(
   }
 }
 
+/** Fetch extra Salesforce groups (e.g. already-imported ids missing from `--since`) into a prefetch. */
+export async function mergeSalesforceIdsIntoPrefetch(
+  prefetch: ProductgroupImportPrefetch,
+  salesforceIds: string[]
+): Promise<number> {
+  const missing = [
+    ...new Set(salesforceIds.map((id) => id.trim()).filter(Boolean)),
+  ].filter((id) => !prefetch.groupsById.has(id))
+  if (!missing.length) return 0
+
+  const extraGroups = await fetchGroupsByIds(missing)
+  for (const group of extraGroups) {
+    const id = group.Id?.trim()
+    if (!id) continue
+    prefetch.groupsById.set(id, group)
+    prefetch.groups.push(group)
+    const linkedId = linkedOnlineProductgroupId(group)
+    if (linkedId) prefetch.linkedOnlineSlaveIds.add(linkedId)
+  }
+
+  const extraChildren = await queryChildrenByGroupIds(missing)
+  for (const [id, rows] of extraChildren) {
+    prefetch.childrenByGroupId.set(id, rows)
+  }
+
+  return extraGroups.length
+}
+
 export function linkedRecordsForGroup(
   prefetch: ProductgroupImportPrefetch,
   group: SfProductgroupShape
