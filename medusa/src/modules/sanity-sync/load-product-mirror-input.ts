@@ -85,8 +85,9 @@ export async function loadProductMirrorInputs(
   const docentenByProduct = new Map<string, Record<string, unknown>[]>()
   for (const row of docLinks ?? []) {
     const productId = (row as { product_id?: string }).product_id
-    const docent = (row as { docent?: Record<string, unknown> }).docent
+    const docent = (row as { docent?: Record<string, unknown> & { is_active?: boolean } }).docent
     if (!productId || !docent) continue
+    if (docent.is_active === false) continue
     const list = docentenByProduct.get(productId) ?? []
     list.push(docent)
     docentenByProduct.set(productId, list)

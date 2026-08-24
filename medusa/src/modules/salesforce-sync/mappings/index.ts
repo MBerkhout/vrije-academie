@@ -34,6 +34,7 @@ export type * from "./types"
 export function entityTypeFromSalesforceObject(objectType: string): string | null {
   const t = objectType.trim()
   if (t === "Contact") return "customer"
+  if (t === "Account") return "account"
   if (t === "Order") return "order"
   if (t === "OrderItem") return "order_item"
   if (t === "Registration__c") return "registration"

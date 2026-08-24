@@ -52,7 +52,11 @@ export async function loadFacetEntitiesForEventItems(
   const [cities, locations, docents] = await Promise.all([
     cityIds.size ? catalog.listCities({ id: [...cityIds] }) : [],
     locationIds.size ? catalog.listLocations({ id: [...locationIds] }) : [],
-    docentIds.size ? people.listDocents({ id: [...docentIds] }) : [],
+    docentIds.size
+      ? (await people.listDocents({ id: [...docentIds] })).filter(
+          (docent) => docent.is_active !== false
+        )
+      : [],
   ])
 
   return {

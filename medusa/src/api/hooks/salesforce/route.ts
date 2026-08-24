@@ -1,17 +1,12 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import * as crypto from "node:crypto"
 
 import {
-  entityTypeFromSalesforceObject,
-  SF_COURSE_PRODUCT_OBJECT,
-  SF_PRODUCTGROUP_OBJECT,
-} from "../../../modules/salesforce-sync/mappings/index"
+  triggerSalesforceWebhookQueueProcessing,
+} from "../../../modules/salesforce-sync/process-webhook-events"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
-import { findParentProductgroupIdsForLinkedOnlineSlave } from "../../../modules/salesforce-sync/utils/linked-online-productgroup"
-import { runSalesforceWorkflow } from "../../../workflows/salesforce/report-failure"
-import { pullWorkflowIdForEntity } from "../../../workflows/salesforce/registry"
+import { isWebhookMethod } from "../../../modules/salesforce-sync/utils/webhook-queue-config"
 
 function timingSafeEqualString(a: string, b: string): boolean {
   try {
@@ -26,48 +21,19 @@ function timingSafeEqualString(a: string, b: string): boolean {
 
 type WebhookBody = {
   object_type?: string
-  salesforce_id?: string
-  /** When Salesforce sends Product2, disambiguate `product` vs `variant` using sync state row. */
-  entity_type?: string
+  method?: string
+  ids?: unknown
 }
 
-async function enqueueLinkedOnlineParentProductgroupPulls(
-  scope: MedusaContainer,
-  linkedOnlineSlaveGroupId: string
-): Promise<string[]> {
-  const sync = scope.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
-  const pullId = pullWorkflowIdForEntity("productgroup")
-  if (!pullId) return []
-
-  const parentIds = await findParentProductgroupIdsForLinkedOnlineSlave(
-    sync,
-    linkedOnlineSlaveGroupId
-  )
-  for (const parentId of parentIds) {
-    await runSalesforceWorkflow(
-      scope,
-      pullId,
-      { salesforceId: parentId, manual: false },
-      { eventGroupId: parentId, entityType: "productgroup", medusaId: parentId }
-    )
+function normalizeIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  const ids: string[] = []
+  for (const item of raw) {
+    if (typeof item !== "string") continue
+    const trimmed = item.trim()
+    if (trimmed) ids.push(trimmed)
   }
-  return parentIds
-}
-
-async function resolveProductgroupSalesforceId(
-  sync: InstanceType<typeof SalesforceSyncModuleService>,
-  objectType: string,
-  salesforceId: string
-): Promise<string | null> {
-  if (objectType === SF_PRODUCTGROUP_OBJECT) return salesforceId
-  if (objectType !== SF_COURSE_PRODUCT_OBJECT) return null
-  try {
-    const row = await sync.retrieve(SF_COURSE_PRODUCT_OBJECT, salesforceId, ["Productgroup__c"])
-    const parent = row.Productgroup__c
-    return typeof parent === "string" && parent.trim() ? parent.trim() : null
-  } catch {
-    return null
-  }
+  return [...new Set(ids)]
 }
 
 /** POST /hooks/salesforce */
@@ -86,146 +52,43 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
 
   const body = (req.body ?? {}) as WebhookBody
   const objectType = body.object_type?.trim()
-  const salesforceId = body.salesforce_id?.trim()
-  if (!objectType || !salesforceId) {
-    res.status(400).json({ message: "object_type and salesforce_id required" })
+  const method = body.method?.trim().toLowerCase()
+  const ids = normalizeIds(body.ids)
+
+  if (!objectType || !method || !isWebhookMethod(method)) {
+    res.status(400).json({ message: "object_type and method (create|update|delete) required" })
+    return
+  }
+  if (!ids.length) {
+    res.status(400).json({ message: "ids must be a non-empty array of Salesforce ids" })
     return
   }
 
   const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
   const sync = req.scope.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
+  const receivedAt = new Date()
 
-  let entityType: string | null = body.entity_type?.trim() ?? null
-  if (!entityType) {
-    entityType = entityTypeFromSalesforceObject(objectType)
-  }
-  if (!entityType && objectType === "Product2") {
-    const rows = await sync.listStatesBySalesforceId(salesforceId)
-    entityType = rows[0]?.entity_type ?? null
-  }
-
-  // vaProduct__c webhooks re-import the parent product group (future-only guard inside workflow).
-  if (entityType === "course_product") {
-    const parentId = await resolveProductgroupSalesforceId(sync, objectType, salesforceId)
-    if (!parentId) {
-      res.status(400).json({ message: "Could not resolve parent product group for course product" })
-      return
-    }
-    const pullId = pullWorkflowIdForEntity("productgroup")
-    if (!pullId) {
-      res.status(400).json({ message: "No pull workflow for productgroup" })
-      return
-    }
-    await runSalesforceWorkflow(
-      req.scope,
-      pullId,
-      { salesforceId: parentId, manual: false },
-      { eventGroupId: parentId, entityType: "productgroup", medusaId: parentId }
-    )
-    const linkedParents = await enqueueLinkedOnlineParentProductgroupPulls(req.scope, parentId)
-    res.status(202).json({
-      queued: true,
-      entity_type: "productgroup",
-      salesforce_id: parentId,
-      triggered_by: salesforceId,
-      linked_online_parents_reimported: linkedParents,
-    })
-    return
-  }
-
-  if (entityType === "productgroup") {
-    const pullId = pullWorkflowIdForEntity("productgroup")
-    if (!pullId) {
-      res.status(400).json({ message: "No pull workflow for productgroup" })
-      return
-    }
-    await runSalesforceWorkflow(
-      req.scope,
-      pullId,
-      { salesforceId, manual: false },
-      { eventGroupId: salesforceId, entityType: "productgroup", medusaId: salesforceId }
-    )
-    const linkedParents = await enqueueLinkedOnlineParentProductgroupPulls(req.scope, salesforceId)
-    res.status(202).json({
-      queued: true,
-      entity_type: "productgroup",
+  const created = await sync.createSalesforceWebhookEvents(
+    ids.map((salesforceId) => ({
+      object_type: objectType,
+      method,
       salesforce_id: salesforceId,
-      linked_online_parents_reimported: linkedParents,
-    })
-    return
-  }
-
-  if (!entityType) {
-    res.status(400).json({ message: "Could not resolve entity_type for webhook" })
-    return
-  }
-
-  const pullId = pullWorkflowIdForEntity(entityType)
-  if (!pullId) {
-    res.status(400).json({ message: `No pull workflow for ${entityType}` })
-    return
-  }
-
-  const row =
-    (await sync.getStateBySalesforceId(entityType, salesforceId)) ??
-    (await sync.listStatesBySalesforceId(salesforceId))[0]
-
-  if (!row?.medusa_id) {
-    if (entityType === "product") {
-      await runSalesforceWorkflow(
-        req.scope,
-        pullId,
-        { salesforceId },
-        {
-          eventGroupId: salesforceId,
-          entityType,
-          medusaId: salesforceId,
-        }
-      )
-      res.status(202).json({ queued: true, entity_type: entityType, import: true, salesforce_id: salesforceId })
-      return
-    }
-
-    if (entityType === "customer") {
-      await runSalesforceWorkflow(
-        req.scope,
-        pullId,
-        { salesforceId },
-        {
-          eventGroupId: salesforceId,
-          entityType,
-          medusaId: salesforceId,
-        }
-      )
-      res.status(202).json({
-        queued: true,
-        entity_type: entityType,
-        import: true,
-        salesforce_id: salesforceId,
-      })
-      return
-    }
-
-    logger.warn(`[salesforce-sync] webhook: no Medusa id for ${entityType} ${salesforceId}`)
-    res.status(202).json({ queued: false, reason: "no_linked_medusa_row" })
-    return
-  }
-
-  await sync.updateSalesforceSyncStates({
-    id: row.id,
-    last_status: "queued",
-  })
-
-  await runSalesforceWorkflow(
-    req.scope,
-    pullId,
-    { medusaId: row.medusa_id, salesforceId },
-    {
-      eventGroupId: row.medusa_id,
-      entityType,
-      medusaId: row.medusa_id,
-    }
+      status: "pending",
+      attempts: 0,
+      received_at: receivedAt,
+    }))
   )
 
-  res.status(202).json({ queued: true, entity_type: entityType, medusa_id: row.medusa_id })
+  const eventIds = created.map((row) => row.id)
+  logger.info(
+    `[salesforce-sync] webhook received object_type=${objectType} method=${method} count=${eventIds.length}`
+  )
+
+  triggerSalesforceWebhookQueueProcessing(req.scope)
+
+  res.status(202).json({
+    queued: true,
+    count: eventIds.length,
+    event_ids: eventIds,
+  })
 }

@@ -80,6 +80,13 @@ Create `.env` on the server (never commit these):
 | `~/app/frontend/.env` | [`frontend/.env.example`](../frontend/.env.example) |
 | `~/app/medusa/.env` | [`medusa/docs/README.md`](../medusa/docs/README.md) + [`medusa/.env.template`](../medusa/.env.template) |
 
+**Salesforce order push (staging)** — required in `~/app/medusa/.env`:
+
+- `SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID=0121t000000QIr0AAG` (sandbox Participant, not Teacher). Without it, new website customers cannot be created in Salesforce and completed orders never appear there.
+- `SALESFORCE_MEDUSA_CUSTOM_FIELDS=false` (default) — do not send `Medusa_Order_Id__c` / `Medusa_Product_Id__c` / other Medusa_* fields; they are not on this Salesforce org. Set `true` only after those External Id fields exist.
+
+After changing Medusa `.env`, reload PM2 (`pm2 startOrReload ecosystem.config.cjs`) and re-push the order: `npm run salesforce:push -- --type=order --action=push --display-id=N`.
+
 Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS origins, database, Redis, etc.
 
 **Visual editing (Presentation tool)** — required in `~/app/frontend/.env`:

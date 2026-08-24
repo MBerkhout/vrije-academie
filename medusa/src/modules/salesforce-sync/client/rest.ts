@@ -17,6 +17,7 @@ const NON_RETRYABLE_ERROR_CODES = new Set([
   "DUPLICATE_VALUE",
   "DUPLICATES_DETECTED",
   "INVALID_CROSS_REFERENCE_KEY",
+  "NOT_FOUND",
 ])
 
 function sleep(ms: number): Promise<void> {

@@ -4,6 +4,7 @@ import {
 import { pullOrderFromSalesforceWorkflowId } from "./pull-order-salesforce"
 import { pullProductFromSalesforceWorkflowId } from "./pull-product-salesforce"
 import { pullProductgroupFromSalesforceWorkflowId } from "./pull-productgroup-salesforce"
+import { pullDocentFromSalesforceWorkflowId } from "./pull-docent-salesforce"
 import {
   pushCustomerToSalesforceWorkflowId,
 } from "./push-customer-salesforce"
@@ -23,6 +24,8 @@ export function pullWorkflowIdForEntity(
       return pullProductFromSalesforceWorkflowId
     case "productgroup":
       return pullProductgroupFromSalesforceWorkflowId
+    case "docent":
+      return pullDocentFromSalesforceWorkflowId
     default:
       return null
   }

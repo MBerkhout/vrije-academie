@@ -47,6 +47,12 @@ SALESFORCE_WEBHOOK_SECRET=<random_long_string>
 SALESFORCE_SYNC_ALERT_WEBHOOK_URL=
 # Person Account record type for website registration (Customer, not Teacher)
 SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID=012...
+# Person Account record type for teacher/docent profiles (Account webhooks)
+SALESFORCE_TEACHER_ACCOUNT_RECORD_TYPE_ID=012...
+# Webhook queue tuning (optional)
+# SALESFORCE_WEBHOOK_QUEUE_BATCH_SIZE=50
+# SALESFORCE_WEBHOOK_QUEUE_CONCURRENCY=5
+# SALESFORCE_WEBHOOK_MAX_ATTEMPTS=5
 # OAuth (optional — dev proxy / tunnel)
 # SALESFORCE_OAUTH_CALLBACK_URL=https://your-tunnel.example.com/hooks/salesforce/oauth/callback
 # SALESFORCE_OAUTH_RETURN_URL=https://your-tunnel.example.com/app/salesforce-sync
@@ -55,7 +61,8 @@ SALESFORCE_DEFAULT_PRICEBOOK2_ID=01s1t000002j19kAAA
 SALESFORCE_DISCOUNT_PRODUCT2_ID=01t1t000001j7i9AAA
 # SALESFORCE_GIFTCARD_PRODUCT2_ID=   # Product2 "Cadeaubon"; auto-resolved if unset
 # SALESFORCE_VOUCHER_PRODUCT2_ID=    # Product2 "Voucher" for redemption lines
-# Omit Medusa_* custom fields + external-id upserts (use sync state for order/product idempotency)
+# Medusa_* External Id fields (Order, OrderItem, Product2, …). Off by default — VA Salesforce does not have them yet.
+# Set true only after those fields exist. Idempotency then uses salesforce_sync_state.
 # SALESFORCE_MEDUSA_CUSTOM_FIELDS=false
 ```
 
@@ -64,8 +71,18 @@ Admin **Open in Salesforce** (customer/order/product widgets + sync failures pag
 ## Salesforce setup (manual)
 
 1. **Connected App** — **JWT** (digital signature + certificate) *or* **refresh token** (OAuth scopes `api` + `refresh_token` / `offline_access`).
-2. **External Id** custom fields (optional when `SALESFORCE_MEDUSA_CUSTOM_FIELDS=false`): `Medusa_Order_Id__c` on `Order`, `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` on `Product2` — must match `mappings/*.ts` and `utils/salesforce-config.ts`. With custom fields disabled, orders/products create via standard SF fields only; Medusa stores the linked Salesforce Id in `salesforce_sync_state` (re-push updates the header; line items may duplicate without external ids). **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
-3. **Inbound webhook**: Flow or Apex `POST` to `{MEDUSA_URL}/hooks/salesforce` with body `{ object_type, salesforce_id }` and header `X-Salesforce-Webhook-Secret: <same as env>`.
+2. **External Id** custom fields — **off by default**. `SALESFORCE_MEDUSA_CUSTOM_FIELDS=true` enables `Medusa_Order_Id__c` on `Order`, `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` on `Product2`. Until those exist in Salesforce, leave the flag unset/false: payloads use standard SF fields only; Medusa stores the linked Salesforce Id in `salesforce_sync_state` (re-push updates the header; line items may duplicate without external ids). **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
+3. **Inbound webhook**: Flow or Apex `POST` to `{MEDUSA_URL}/hooks/salesforce` with header `X-Salesforce-Webhook-Secret: <same as env>` and JSON body:
+
+```json
+{
+  "object_type": "Account",
+  "method": "update",
+  "ids": ["001xxxxxxxxxxxxxxx", "003xxxxxxxxxxxxxxx"]
+}
+```
+
+Each id is logged as one row in `salesforce_webhook_event`, then processed asynchronously (immediate fire-and-forget + scheduled sweep every minute). Sanity writes during queue processing are batched at the end of each batch.
 
 ## Loop protection
 
@@ -97,7 +114,10 @@ Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries
 | `POST` | `/admin/salesforce/oauth/start` | Returns `{ authorizeUrl }` |
 | `GET` | `/hooks/salesforce/oauth/callback` | Salesforce redirect; saves refresh token (public, not under `/admin`) |
 | `POST` | `/admin/salesforce/oauth/disconnect` | Clears DB-stored token |
-| `POST` | `/hooks/salesforce` | Webhook; header secret; enqueues pull |
+| `POST` | `/hooks/salesforce` | Webhook; header secret; logs + queues pull/archive per id |
+| `GET` | `/admin/salesforce/webhook-queue` | Queue stats + recent events |
+| `POST` | `/admin/salesforce/webhook-queue/process` | Drain pending webhook rows now |
+| `POST` | `/admin/salesforce/webhook-queue/:id/retry` | Reset one event to `pending` and re-process |
 | `POST` | `/store/customer/me/sync-from-salesforce` | Authenticated; enqueue SF → Medusa pull after password login |
 | `GET` | `/admin/salesforce/customers/:id` | Status JSON |
 | `POST` | `/admin/salesforce/customers/:id/push` \| `/pull` | Manual run |
@@ -110,7 +130,7 @@ Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries
 
 ## Admin UI
 
-- **Salesforce sync** sidebar route: **Connect to Salesforce** (OAuth), failures table, retry, bulk retry.
+- **Salesforce sync** sidebar route: **Connect to Salesforce** (OAuth), **webhook queue** (pending/processing/failed/done stats, event log, retry), failures table, retry, bulk retry.
 - Widgets: customer / order detail; product group & variant panels (**Push** / **Pull** where supported).
 - **Order list** (`order.list.before`): banner when failures exist.
 
@@ -215,7 +235,7 @@ Salesforce **Person Accounts** (`Contact` + `Account`, `IsPersonAccount = true`)
 
 **Bulk import:** `npm run salesforce:import-customers` — SOQL `Contact WHERE IsPersonAccount = true AND Active__c = true AND Email != null`. Flags: `--dry-run`, `--limit=N`, `--all` (omit Active filter). Creates Medusa customers **without passwords** (OTP login). **Do not run full import until reviewed.**
 
-**Registration push** requires `SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID` (customer Person Account record type, not Teacher).
+**Registration push** requires `SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID` (customer Person Account record type, not Teacher). Staging sandbox Participant: `0121t000000QIr0AAG`. If this env var is missing, customer create fails (`SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID must be set…`) and the order push then fails with `has no Salesforce Person Account link after push` — the order stays in Medusa only. Set the var, reload Medusa, then `npm run salesforce:push -- --type=order --action=push --display-id=N`.
 
 ## Orders (Medusa → Salesforce)
 
@@ -275,7 +295,18 @@ npm run salesforce:pull -- --type=productgroup --action=pull --salesforce-id=a05
 curl -X POST /admin/salesforce/productgroups/import -d '{"salesforce_id":"a05Mz00000YEMptIAH"}'
 ```
 
-**Webhooks:** `POST /hooks/salesforce` with `object_type` `vaProductgroup__c` or `vaProduct__c` (child changes re-import the parent group). Auto-import uses the **future-only guard** (see below); manual CLI/API always runs.
+**Webhooks:** `POST /hooks/salesforce` with batched payload `{ object_type, method, ids[] }`. Supported `object_type` values in v1:
+
+| SF `object_type` | Resolved entity | Action |
+|------------------|-----------------|--------|
+| `Account` | `customer` or `docent` (RecordTypeId + sync state) | Pull |
+| `Contact` | `customer` | Pull |
+| `Order` | `order` | Pull when linked |
+| `Product2` | `product` / `variant` | Pull / import |
+| `vaProductgroup__c` | `productgroup` | Pull (+ linked-online parents) |
+| `vaProduct__c` | parent `productgroup` | Pull parent group |
+
+`method: delete` — soft-archive (`draft` product / `is_active=false` docent) for **product**, **productgroup**, **docent** only; **customer** and **order** deletes are logged as `skipped` (no destructive action). Unsupported types (`OrderItem`, `Registration__c`, `Voucher__c`, …) are logged and skipped. Auto-import uses the **future-only guard** (see below); manual CLI/API always runs.
 
 Mappings: `src/modules/salesforce-sync/mappings/productgroup.ts`, `course-product.ts`. Core logic: `import-productgroup.ts`.
 

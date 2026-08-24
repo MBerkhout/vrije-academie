@@ -14,10 +14,12 @@ import {
 import { sfRequest } from "./client/rest"
 import { SalesforceOAuthSettings } from "./models/salesforce-oauth-settings"
 import { SalesforceSyncState } from "./models/salesforce-sync-state"
+import { SalesforceWebhookEvent } from "./models/salesforce-webhook-event"
 
 class SalesforceSyncModuleService extends MedusaService({
   SalesforceSyncState,
   SalesforceOAuthSettings,
+  SalesforceWebhookEvent,
 }) {
   private oauthLoaderRegistered = false
   private oauthCacheBootstrapped = false
@@ -321,6 +323,14 @@ class SalesforceSyncModuleService extends MedusaService({
     return await this.listSalesforceSyncStates({
       salesforce_id: salesforceId,
     })
+  }
+
+  async getStateBySalesforceAccountId(entityType: string, salesforceAccountId: string) {
+    const [row] = await this.listSalesforceSyncStates({
+      entity_type: entityType,
+      salesforce_account_id: salesforceAccountId,
+    })
+    return row ?? null
   }
 }
 

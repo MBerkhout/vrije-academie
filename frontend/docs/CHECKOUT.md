@@ -48,7 +48,7 @@ email  ──(lookup)──► known ──(password or OTP)──► /checkout/
 |-------|-------------|
 | `email` | Single email field + Volgende; `GET /store/customer/lookup` → `{ exists, hasPassword }` |
 | `known` | **Has password:** password login or OTP button → 6-digit code. **No password:** OTP sent automatically. No guest bypass. |
-| `unknown` | Address form + newsletter opt-in. The phone field explains that the number is only used for order updates. Always `POST /store/customer/register-passwordless` (passwordless account + JWT). |
+| `unknown` | Address form + newsletter opt-in. The phone field helper (`#phone-description`) uses `font-sans text-xs text-va-gray` and explains the number is only used for order updates. Always `POST /store/customer/register-passwordless` (passwordless account + JWT). |
 | `logged_in_details` | Same address form for **logged-in** users; e-mail read-only. The phone field has the same order-update explanation. Saves to **Medusa customer** first, then syncs the cart. |
 
 **Data ownership**

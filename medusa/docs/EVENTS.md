@@ -32,6 +32,7 @@ Module path: `src/modules/events/`. Links: `src/links/` (`product-event-group`, 
 
 ## Admin
 
+- Built-in Medusa inventory nav/settings/product sections are hidden (`src/admin/widgets/hide-inventory-admin.tsx`); use the custom variant **Product** widget for capacity (**Available quantity**).
 - Widgets: `src/admin/widgets/` — Product Group (`record_type`, **`has_free_trial`**, **`show_in_plp`**, **categories**, **docenten**, properties), variant **Product** (`delivery_type`, `available_quantity`, **`start_at`**, **`end_at`**, **`city`**, **`registration_deadline_at`**, **`is_free_trial`**, properties).
 - API: `/admin/events/*` (variants, properties), `/admin/catalog/*` (categories), `/admin/people/*` (docenten). All authenticated with Zod validation.
 

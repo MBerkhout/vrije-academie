@@ -13,4 +13,6 @@ export const Docent = model.define("docent", {
   photo_url: model.text().nullable(),
   bio: model.text().nullable(),
   subject_tags: model.json().nullable(),
+  /** False when archived from a Salesforce delete webhook. */
+  is_active: model.boolean().default(true),
 })

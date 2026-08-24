@@ -105,7 +105,7 @@ export function ValidatedInput({
         )}
       </div>
       {description && (
-        <p id={descriptionId} className="mt-1 font-sans text-xs text-va-darkgray">
+        <p id={descriptionId} className="mt-1 font-sans text-xs text-va-gray">
           {description}
         </p>
       )}

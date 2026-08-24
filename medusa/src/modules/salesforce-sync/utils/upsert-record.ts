@@ -60,11 +60,11 @@ export async function upsertSalesforceRecordById(
     return await upsertSalesforceRecord(sync, sobject, externalIdField, externalId, cleanFields)
   } catch (err) {
     const msg = (err as Error).message ?? ""
-    if (/INVALID_FIELD|No such column/i.test(msg)) {
-      const { id } = await sync.createRecord(sobject, {
-        ...cleanFields,
-        [externalIdField]: externalId,
-      })
+    if (/INVALID_FIELD|No such column|external ID field does not exist/i.test(msg)) {
+      const withoutExternalId = Object.fromEntries(
+        Object.entries(cleanFields).filter(([key]) => key !== externalIdField && !key.startsWith("Medusa_"))
+      )
+      const { id } = await sync.createRecord(sobject, withoutExternalId)
       return id
     }
     throw err

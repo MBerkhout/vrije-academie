@@ -65,6 +65,8 @@ npm run dev
 - Store API: `http://localhost:9000/store`
 - Admin API: `http://localhost:9000/admin`
 
+Built-in Medusa inventory UI (sidebar **Inventory** / **Reservations**, Settings → **Locations**, product/variant inventory sections) is hidden via `src/admin/widgets/hide-inventory-admin.tsx`. Capacity is managed in the **Product** variant widget (**Available quantity**).
+
 ## Event / Product Group workflow
 
 1. Create a **product** (Product Group) in Admin.
@@ -100,8 +102,8 @@ See [SANITY_SYNC.md](./SANITY_SYNC.md). Cities sync as Sanity `city` documents (
 - `PATCH /admin/events/product-groups/:id`, `GET …`
 - `PATCH /admin/events/variants/:id`, `GET …`
 - `POST|GET /admin/events/properties`, `PATCH|DELETE /admin/events/properties/:id`
-- `POST /hooks/salesforce` — Salesforce outbound webhook (shared secret)
-- `/admin/salesforce/*` — sync status, push/pull, failure list & retry (authenticated). See [SALESFORCE_SYNC.md](./SALESFORCE_SYNC.md).
+- `POST /hooks/salesforce` — Salesforce outbound webhook (batched `{ object_type, method, ids[] }`, shared secret)
+- `/admin/salesforce/*` — sync status, push/pull, webhook queue, failure list & retry (authenticated). See [SALESFORCE_SYNC.md](./SALESFORCE_SYNC.md).
 
 ## Documentation
 

@@ -145,8 +145,11 @@ export async function buildStoreEventDetail(
   )
 
   const productInstructors = (docLinks ?? [])
-    .map((r) => (r as { docent?: Record<string, unknown> }).docent)
-    .filter((docent): docent is Record<string, unknown> => Boolean(docent?.id))
+    .map((r) => (r as { docent?: Record<string, unknown> & { is_active?: boolean } }).docent)
+    .filter((docent): docent is Record<string, unknown> & { is_active?: boolean } => {
+      if (!docent?.id) return false
+      return docent.is_active !== false
+    })
     .map(toStoreInstructor)
 
   const sessionDocentIds = [
@@ -163,7 +166,9 @@ export async function buildStoreEventDetail(
   const people = scope.resolve("people") as InstanceType<typeof PeopleModuleService>
   const sessionDocentRows =
     sessionDocentIds.length > 0
-      ? await people.listDocents({ id: sessionDocentIds })
+      ? (await people.listDocents({ id: sessionDocentIds })).filter(
+          (docent) => docent.is_active !== false
+        )
       : []
   const sessionInstructors = sessionDocentRows.map((docent) =>
     toStoreInstructor(docent as unknown as Record<string, unknown>)
