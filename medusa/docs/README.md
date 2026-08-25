@@ -65,6 +65,16 @@ npm run dev
 - Store API: `http://localhost:9000/store`
 - Admin API: `http://localhost:9000/admin`
 
+### Storefront Redis cache
+
+Ons aanbod, Agenda, VA Thuis listings, and event-detail payloads are cached in Redis (`store:listing:*`, `store:event:detail:*`). Drop them without restarting Medusa:
+
+```bash
+npm run cache:flush
+```
+
+Use the same `REDIS_URL` as the running server. Does not delete Medusa workflow/job keys. Also POSTs the optional storefront PLP revalidate webhook when `STOREFRONT_REVALIDATE_PLP_URL` is set.
+
 Built-in Medusa inventory UI (sidebar **Inventory** / **Reservations** items, Settings → **Locations**, product/variant inventory cards) is hidden via `src/admin/widgets/hide-inventory-admin.tsx`. The left admin menu itself stays visible. Capacity is managed in the **Product** variant widget (**Available quantity**).
 
 ## Event / Product Group workflow

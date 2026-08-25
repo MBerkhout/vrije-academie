@@ -1,4 +1,5 @@
 import { giftCardProductHandle } from "./gift-card-cart"
+import { isSalesforceExterneVerhuur } from "./salesforce-visible-on-website"
 
 export type EventGroupListingRow = {
   record_type?: string | null
@@ -20,13 +21,15 @@ export function isLinkedOnlineSlaveProduct(
  * Linked-online slaves are always excluded via metadata so they never duplicate
  * the parent hybrid card on Ons aanbod. Unpublished (draft) products are excluded
  * when status is provided — Salesforce **Zichtbaar op Website** uncheck drafts the product.
+ * **Externe verhuur** titles / record types are excluded even if still published.
  */
 export function filterStoreListingProductIds(
   productIds: string[],
   productHandleById: Record<string, string | undefined>,
   eventGroupByProduct: Record<string, EventGroupListingRow | null | undefined>,
   productMetadataById: Record<string, Record<string, unknown> | null | undefined> = {},
-  productStatusById: Record<string, string | undefined> = {}
+  productStatusById: Record<string, string | undefined> = {},
+  productTitleById: Record<string, string | undefined> = {}
 ): string[] {
   const giftCardHandle = giftCardProductHandle()
   return productIds.filter((id) => {
@@ -40,6 +43,7 @@ export function filterStoreListingProductIds(
     if (isLinkedOnlineSlaveProduct(metadata)) return false
 
     const eg = eventGroupByProduct[id]
+    if (isSalesforceExterneVerhuur(productTitleById[id], eg?.record_type)) return false
     if (!eg) return true
     if (eg.record_type === "vathuis") return false
     return true

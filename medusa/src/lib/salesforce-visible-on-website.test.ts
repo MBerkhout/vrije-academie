@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   filterStorefrontVisibleVariants,
+  isSalesforceExterneVerhuur,
   isSalesforceVisibleOnWebsite,
   isStorefrontVisibleVariant,
 } from "./salesforce-visible-on-website"
@@ -34,5 +35,13 @@ describe("isStorefrontVisibleVariant", () => {
         { id: "b", metadata: { salesforce_visible_on_website: true } },
       ]).map((v) => v.id)
     ).toEqual(["b"])
+  })
+})
+
+describe("isSalesforceExterneVerhuur", () => {
+  it("matches titles and record types that contain verhuur", () => {
+    expect(isSalesforceExterneVerhuur("Externe Verhuur")).toBe(true)
+    expect(isSalesforceExterneVerhuur(null, "zaalverhuur")).toBe(true)
+    expect(isSalesforceExterneVerhuur("Lunchlezing", "lezing")).toBe(false)
   })
 })

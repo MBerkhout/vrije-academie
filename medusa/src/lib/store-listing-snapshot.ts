@@ -38,7 +38,7 @@ import {
   type ProductCatalogCategoryLink,
 } from "./product-catalog-category-links"
 import { filterStoreListingProductIds } from "./store-listing-eligibility"
-import { filterStorefrontVisibleVariants } from "./salesforce-visible-on-website"
+import { filterStorefrontVisibleVariants, isSalesforceExterneVerhuur } from "./salesforce-visible-on-website"
 import { getBaseEventData } from "./store-query-cache"
 import {
   invalidateMemoryListingCaches,
@@ -133,10 +133,12 @@ async function resolveEligibleProductIds(
   const productHandleById: Record<string, string | undefined> = {}
   const productMetadataById: Record<string, Record<string, unknown> | null | undefined> = {}
   const productStatusById: Record<string, string | undefined> = {}
+  const productTitleById: Record<string, string | undefined> = {}
   for (const p of allProducts ?? []) {
     const row = p as {
       id?: string
       handle?: string
+      title?: string
       metadata?: Record<string, unknown> | null
       status?: string
     }
@@ -144,6 +146,7 @@ async function resolveEligibleProductIds(
       productHandleById[row.id] = row.handle
       productMetadataById[row.id] = row.metadata ?? null
       productStatusById[row.id] = row.status
+      productTitleById[row.id] = row.title
     }
   }
 
@@ -152,7 +155,8 @@ async function resolveEligibleProductIds(
     productHandleById,
     eventGroupByProduct,
     productMetadataById,
-    productStatusById
+    productStatusById,
+    productTitleById
   )
 
   return {
@@ -245,6 +249,13 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
   list = list.map((p) => {
     const variants = filterStorefrontVisibleVariants(
       (p.variants ?? []) as Array<Record<string, unknown> & { metadata?: Record<string, unknown> | null }>
+    ).filter(
+      (v) =>
+        !isSalesforceExterneVerhuur(
+          p.title as string | undefined,
+          (v.title as string | undefined) ?? null,
+          eventGroupByProduct[p.id as string]?.record_type
+        )
     )
     const eventItems = variants.map((v) => v.event_item).filter(Boolean)
     const futureOfflineItems = futureOfflineSessionsForListing(
@@ -281,13 +292,20 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
       listingNow
     )
 
+    const hasFutureSession = productEligibleForPlpListing(
+      eventItems as Parameters<typeof productEligibleForPlpListing>[0],
+      listingNow
+    )
+
     const minAvailableQty = futureAvailableItems.length
       ? Math.min(
           ...futureAvailableItems.map((ei) =>
             Number((ei as { available_quantity?: number }).available_quantity ?? 0)
           )
         )
-      : null
+      : hasFutureSession
+        ? 0
+        : null
 
     const id = p.id as string
     const { metadata, variants: _rawVariants, ...productFields } = p
@@ -410,6 +428,13 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
     const p = product as Record<string, unknown>
     const variants = filterStorefrontVisibleVariants(
       (p.variants ?? []) as Array<Record<string, unknown> & { metadata?: Record<string, unknown> | null }>
+    ).filter(
+      (v) =>
+        !isSalesforceExterneVerhuur(
+          p.title as string | undefined,
+          (v.title as string | undefined) ?? null,
+          eventGroupByProduct[p.id as string]?.record_type
+        )
     )
     const categories = categoryByProduct[p.id as string] ?? []
     const docenten = docentByProduct[p.id as string] ?? []

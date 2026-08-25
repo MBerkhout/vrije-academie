@@ -74,6 +74,19 @@ export function futureAvailableSessionsForListing(
 }
 
 /**
+ * True when the product has at least one future session (sold-out included):
+ * start_at is missing (on-demand) or start_at >= now.
+ */
+export function productHasFutureSession(
+  eventItems: EventItemSessionRow[],
+  now: Date = new Date()
+): boolean {
+  if (!eventItems.length) return false
+  const nowMs = now.getTime()
+  return eventItems.some((ei) => isFutureSession(ei, nowMs))
+}
+
+/**
  * True when the product has at least one bookable future session:
  * - available_quantity > 0
  * - start_at is missing (on-demand) or start_at >= now
@@ -92,16 +105,15 @@ export function productHasFutureAvailableSession(
 }
 
 /**
- * Ons aanbod listing: keep published groups that have no public sessions
- * (hidden Salesforce children / Externe verhuur only). Still require a
- * bookable future session when any public event items exist.
+ * Ons aanbod listing: require at least one future session (sold-out included).
+ * Products with no public sessions or only past sessions are hidden.
  */
 export function productEligibleForPlpListing(
   eventItems: EventItemSessionRow[],
   now: Date = new Date()
 ): boolean {
-  if (!eventItems.length) return true
-  return productHasFutureAvailableSession(eventItems, now)
+  if (!eventItems.length) return false
+  return productHasFutureSession(eventItems, now)
 }
 
 /** Storefront variant rows: keep non-event variants; drop hidden and past sessions. */

@@ -598,6 +598,7 @@ export const medusaClient: CommerceClient = {
 
     const response = await fetch(`${BACKEND_URL}/store/agenda?${params.toString()}`, {
       headers: storeHeaders(),
+      cache: 'no-store',
     })
     if (!response.ok) {
       throw new Error(`Failed to fetch agenda: ${response.status}`)

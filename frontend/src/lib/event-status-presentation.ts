@@ -189,11 +189,16 @@ export function bookableEventVariants(
  * this stays false when only some dates are volgeboekt.
  */
 export function eventIsFullySoldOut(
-  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id' | 'record_type'>,
+  event: Pick<
+    EventCard,
+    'variants' | 'purchase_mode' | 'bundle_variant_id' | 'record_type' | 'min_available_quantity'
+  >,
 ): boolean {
   if (eventHasUnlimitedAvailability(event)) return false
   const variants = bookableEventVariants(event)
-  if (variants.length === 0) return false
+  if (variants.length === 0) {
+    return event.min_available_quantity === 0
+  }
   return variants.every((variant) => variantAvailableQuantity(variant) === 0)
 }
 

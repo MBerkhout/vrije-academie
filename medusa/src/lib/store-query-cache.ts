@@ -7,6 +7,7 @@ interface BaseEventData {
   allProducts: Array<{
     id: string
     handle?: string
+    title?: string
     metadata?: Record<string, unknown> | null
     status?: string
   }>
@@ -28,6 +29,9 @@ function makeCache<T>(ttlMs: number) {
     },
     set(value: T): void {
       entry = { value, expiresAt: Date.now() + ttlMs }
+    },
+    clear(): void {
+      entry = null
     },
   }
 }
@@ -53,7 +57,7 @@ export async function getBaseEventData(
   if (!inflightBaseData) {
     inflightBaseData = (async () => {
       const [{ data: allProducts }, { data: eventGroupLinks }] = await Promise.all([
-        query.graph({ entity: "product", fields: ["id", "handle", "metadata", "status"] }),
+        query.graph({ entity: "product", fields: ["id", "handle", "title", "metadata", "status"] }),
         query.graph({
           entity: productEventGroupLinkEntryPoint,
           fields: ["product_id", "event_group_id", "event_group.*"],
@@ -72,4 +76,9 @@ export async function getBaseEventData(
   }
 
   return inflightBaseData
+}
+
+export function invalidateBaseEventDataCache(): void {
+  baseDataCache.clear()
+  inflightBaseData = null
 }

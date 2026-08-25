@@ -15,6 +15,19 @@ describe("filterStoreListingProductIds", () => {
     ).toEqual(["pub"])
   })
 
+  it("excludes Externe verhuur titles even when published", () => {
+    expect(
+      filterStoreListingProductIds(
+        ["pub", "rental"],
+        { pub: "visible-course", rental: "externe-verhuur" },
+        { pub: { record_type: "lezing" }, rental: { record_type: "lezing" } },
+        {},
+        { pub: "published", rental: "published" },
+        { pub: "Lunchlezing", rental: "Externe Verhuur" }
+      )
+    ).toEqual(["pub"])
+  })
+
   it("keeps products when status is not loaded", () => {
     expect(
       filterStoreListingProductIds(

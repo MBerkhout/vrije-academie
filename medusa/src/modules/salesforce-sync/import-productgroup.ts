@@ -701,6 +701,9 @@ async function hideHiddenChildVariants(
     await updateProductVariantsWorkflow(container).run({
       input: { product_variants: variantUpdates },
     })
+    await invalidateStoreListingCache()
+    await invalidateEventDetailForProductId(container, productId)
+    await revalidateStorefrontPlpCache()
   }
 }
 

@@ -4,7 +4,7 @@ import { createClient } from "@sanity/client"
 import CatalogModuleService from "../catalog/service"
 import PeopleModuleService from "../people/service"
 import { stripHtmlToPlainText } from "../salesforce-sync/mappings/productgroup"
-import { productHasFutureAvailableSession } from "../../lib/event-session-eligibility"
+import { productHasFutureSession } from "../../lib/event-session-eligibility"
 import { getPlpListingSnapshot } from "../../lib/store-listing-snapshot"
 import type { CityRef } from "../../lib/city-refs"
 import type { SearchDocument } from "./types"
@@ -75,8 +75,7 @@ function eventItemsFromProduct(row: Record<string, unknown>) {
 
 function productHasFutureActivity(row: Record<string, unknown>): boolean {
   const eventItems = eventItemsFromProduct(row)
-  if (!eventItems.length) return true
-  return productHasFutureAvailableSession(eventItems)
+  return productHasFutureSession(eventItems)
 }
 
 export function buildProductSearchDoc(row: Record<string, unknown>): SearchDocument | null {

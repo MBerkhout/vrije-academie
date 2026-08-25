@@ -281,7 +281,7 @@ Vrije Academie product groups are **`vaProductgroup__c`** (prefix `a05…`); chi
 
 **Visibility:** Salesforce **Zichtbaar op Website** on the **product group** (`Visible_on_website__c`) is the catalog gate. Unchecked (`false`) groups are **not imported**; already-imported ones are **drafted**. Hidden **child products** (`Visible_On_Website__c` unchecked, or **Externe verhuur** record type / name) are omitted as sessions — the group still lists **without upcoming events**. Missing/null checkboxes stay visible so a field rollout does not hide the catalog.
 
-To unpublish products already on the site after this change, run a bulk import once (`npm run salesforce:import-future` or `import-all`). Already-imported hidden groups are still processed (not skipped) so they can be drafted.
+To unpublish products already on the site after this change, run a bulk import once (`npm run salesforce:import-future` or `import-all`). Already-imported hidden groups are still processed (not skipped) so they can be drafted. Then flush listing snapshots on the Medusa host: `npm run cache:flush` (same `REDIS_URL` as the server). Without that, the PDP 404s (live product status) while `/agenda` can keep showing the old occurrence until the snapshot TTL (up to 60 min).
 
 Imported groups that **are** visible are **published**. `EventGroup.show_in_plp` still defaults to **`false`** (admin flag, currently ignored on the storefront). Enable that flag one product at a time: `npx medusa exec ./src/scripts/enable-show-in-plp.ts -- {handle}`. Enable all Salesforce imports: `npx medusa exec ./src/scripts/enable-show-in-plp.ts -- --all-sf`.
 

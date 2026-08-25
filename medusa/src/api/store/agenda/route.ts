@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
+import { isSalesforceExterneVerhuur } from "../../../lib/salesforce-visible-on-website"
 import {
   getAgendaListingSnapshot,
   type AgendaOccurrenceRow,
@@ -40,7 +41,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
 
   const snapshot = await getAgendaListingSnapshot(req.scope)
   const nowMs = Date.now()
-  let items: AgendaOccurrenceRow[] = [...snapshot.items]
+  let items: AgendaOccurrenceRow[] = [...snapshot.items].filter(
+    (it) => !isSalesforceExterneVerhuur(it.product_title, it.variant_title, it.record_type)
+  )
 
   if (recordTypes.length) {
     items = items.filter((it) => it.record_type && recordTypes.includes(it.record_type))

@@ -12,27 +12,30 @@ import { revalidateStorefrontPlpCache } from "./storefront-revalidate"
 export async function invalidateEventDetailForProductId(
   scope: MedusaContainer,
   productId: string
-): Promise<void> {
+): Promise<string | null> {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product",
-    fields: ["handle"],
+    fields: ["handle", "status"],
     filters: { id: productId },
   })
-  const handle = (data?.[0] as { handle?: string | null })?.handle
+  const row = data?.[0] as { handle?: string | null; status?: string | null } | undefined
+  const handle = row?.handle
   if (handle) await invalidateEventDetailCache(handle)
+  return row?.status ?? null
 }
 
 /**
  * PLP hard cache (10 min) is busted immediately when a product in the first-page
- * slots is updated; other product updates wait for TTL expiry.
+ * slots is updated; other product updates wait for TTL expiry. Drafting a product
+ * always busts listings so Agenda cannot keep serving the unpublished occurrence.
  */
 export async function handleProductCatalogChange(
   scope: MedusaContainer,
   eventName: string,
   productId: string
 ): Promise<void> {
-  await invalidateEventDetailForProductId(scope, productId)
+  const status = await invalidateEventDetailForProductId(scope, productId)
 
   if (eventName === "product.created" || eventName === "product.deleted") {
     await invalidateStoreListingCache()
@@ -41,7 +44,8 @@ export async function handleProductCatalogChange(
   }
 
   if (eventName === "product.updated") {
-    if (await isProductInCachedPlpTopSlots(productId)) {
+    const unpublished = !!status && status !== "published"
+    if (unpublished || (await isProductInCachedPlpTopSlots(productId))) {
       await invalidateStoreListingCache()
       await revalidateStorefrontPlpCache()
     }

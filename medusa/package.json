@@ -27,6 +27,7 @@
     "salesforce:inspect-order": "medusa exec ./src/scripts/inspect-salesforce-order.ts --",
     "order:complete": "medusa exec ./src/scripts/complete-order.ts --",
     "search:reindex": "medusa exec ./src/scripts/reindex-search.ts",
+    "cache:flush": "medusa exec ./src/scripts/flush-store-listing-cache.ts",
     "tunnel": "node scripts/cloudflare-tunnel.mjs"
   },
   "keywords": [

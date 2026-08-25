@@ -1,8 +1,13 @@
 import { createClient } from "redis"
 
-export const REDIS_KEY_PLP = "store:listing:plp"
-export const REDIS_KEY_AGENDA = "store:listing:agenda"
-export const REDIS_KEY_VATHUIS = "store:listing:vathuis"
+import { invalidateBaseEventDataCache } from "./store-query-cache"
+
+/** Bump when listing snapshot shape or eligibility rules change so stale Redis rows are ignored. */
+const LISTING_SNAPSHOT_VERSION = 3
+
+export const REDIS_KEY_PLP = `store:listing:plp:v${LISTING_SNAPSHOT_VERSION}`
+export const REDIS_KEY_AGENDA = `store:listing:agenda:v${LISTING_SNAPSHOT_VERSION}`
+export const REDIS_KEY_VATHUIS = `store:listing:vathuis:v${LISTING_SNAPSHOT_VERSION}`
 export const REDIS_KEY_REGISTRATIONS = "store:listing:registrations"
 
 /** Hard cache for PLP/agenda snapshots and event detail (10 minutes). */
@@ -22,6 +27,12 @@ export const PLP_TOP_SLOT_COUNT = 24
 export function eventDetailRedisKey(handle: string): string {
   return `store:event:detail:${handle}`
 }
+
+/** Prefixes flushed by `npm run cache:flush`. Does not touch Medusa workflow/job keys. */
+export const STOREFRONT_REDIS_KEY_PATTERNS = [
+  "store:listing:*",
+  "store:event:detail:*",
+] as const
 
 type RedisClient = ReturnType<typeof createClient>
 
@@ -90,16 +101,13 @@ export async function invalidateStoreListingCache(): Promise<void> {
   const client = await getRedisClient()
   if (client) {
     try {
-      await client.del([
-        REDIS_KEY_PLP,
-        REDIS_KEY_AGENDA,
-        REDIS_KEY_VATHUIS,
-      ])
+      await client.del(REDIS_KEY_PLP, REDIS_KEY_AGENDA, REDIS_KEY_VATHUIS)
     } catch {
       /* ignore */
     }
   }
   invalidateMemoryListingCaches()
+  invalidateBaseEventDataCache()
 }
 
 /** Drop registration-count cache only (orders); PLP default sort does not use counts. */
@@ -107,7 +115,7 @@ export async function invalidateRegistrationCountsCache(): Promise<void> {
   const client = await getRedisClient()
   if (client) {
     try {
-      await client.del([REDIS_KEY_REGISTRATIONS])
+      await client.del(REDIS_KEY_REGISTRATIONS)
     } catch {
       /* ignore */
     }
@@ -117,6 +125,65 @@ export async function invalidateRegistrationCountsCache(): Promise<void> {
 
 export async function invalidateEventDetailCache(handle: string): Promise<void> {
   await redisDeleteKey(eventDetailRedisKey(handle))
+}
+
+async function scanKeys(client: RedisClient, match: string): Promise<string[]> {
+  const keys: string[] = []
+  for await (const key of client.scanIterator({ MATCH: match, COUNT: 200 })) {
+    keys.push(String(key))
+  }
+  return keys
+}
+
+/**
+ * Delete all storefront listing + event-detail Redis keys (including legacy unversioned
+ * snapshots). In-memory fallbacks on this process are cleared too. Medusa workflow
+ * keys are left alone. Returns `redis: false` when `REDIS_URL` is unset.
+ */
+export async function flushStorefrontRedisCache(): Promise<{
+  redis: boolean
+  deleted: number
+  keys: string[]
+}> {
+  invalidateMemoryListingCaches()
+  invalidateBaseEventDataCache()
+  memoryCaches.registrations = null
+
+  const client = await getRedisClient()
+  if (!client) {
+    return { redis: false, deleted: 0, keys: [] }
+  }
+
+  const found = new Set<string>()
+  let scanned = false
+  try {
+    for (const pattern of STOREFRONT_REDIS_KEY_PATTERNS) {
+      for (const key of await scanKeys(client, pattern)) {
+        found.add(key)
+      }
+    }
+    scanned = true
+  } catch {
+    /* SCAN unavailable — still delete the known listing keys */
+  }
+  if (!scanned) {
+    found.add(REDIS_KEY_PLP)
+    found.add(REDIS_KEY_AGENDA)
+    found.add(REDIS_KEY_VATHUIS)
+    found.add(REDIS_KEY_REGISTRATIONS)
+  }
+
+  const keys = [...found]
+  for (let i = 0; i < keys.length; i += 100) {
+    const batch = keys.slice(i, i + 100)
+    try {
+      await client.del(...batch)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return { redis: true, deleted: keys.length, keys }
 }
 
 /**

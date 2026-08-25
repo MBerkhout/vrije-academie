@@ -1,13 +1,11 @@
-import { isSalesforceVisibleOnWebsite } from "../../../lib/salesforce-visible-on-website"
+import {
+  isSalesforceExterneVerhuur,
+  isSalesforceVisibleOnWebsite,
+} from "../../../lib/salesforce-visible-on-website"
 import type { SfCourseProductShape } from "../mappings/course-product"
 import type { SfProductgroupShape } from "../mappings/productgroup"
 
-/** Venue-rental record types / names are never public catalog sessions. */
-export function isSalesforceExterneVerhuur(
-  ...parts: Array<string | null | undefined>
-): boolean {
-  return parts.some((part) => (part ?? "").toLowerCase().includes("verhuur"))
-}
+export { isSalesforceExterneVerhuur } from "../../../lib/salesforce-visible-on-website"
 
 function childVisibleOnWebsiteFlag(child: SfCourseProductShape): unknown {
   if ("Visible_On_Website__c" in child) return child.Visible_On_Website__c

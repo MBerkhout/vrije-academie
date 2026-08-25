@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
+import { isSalesforceExterneVerhuur } from "../../../lib/salesforce-visible-on-website"
 import { getPlpListingSnapshot, getRegistrationCountsByProduct } from "../../../lib/store-listing-snapshot"
 import { LISTING_CACHE_TTL_SEC } from "../../../lib/store-listing-redis"
 import { filterProductsBySearchQuery, sortByRelevanceRank } from "../../../lib/search-query"
@@ -56,7 +57,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   }
 
   const snapshot = await getPlpListingSnapshot(req.scope)
-  let list = [...snapshot.list]
+  let list = [...snapshot.list].filter(
+    (p) => !isSalesforceExterneVerhuur(p.title as string | undefined, p.record_type as string | undefined)
+  )
 
   if (recordTypes.length) {
     list = list.filter((p) => {

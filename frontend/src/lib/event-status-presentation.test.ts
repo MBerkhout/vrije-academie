@@ -48,8 +48,12 @@ describe('eventIsFullySoldOut', () => {
     expect(eventIsFullySoldOut(makeEvent([0, 0]))).toBe(true)
   })
 
-  it('is false when there are no bookable variants', () => {
+  it('is false when there are no bookable variants and min_available_quantity is unset', () => {
     expect(eventIsFullySoldOut({ variants: [] })).toBe(false)
+  })
+
+  it('is true when variants are stripped but min_available_quantity is zero', () => {
+    expect(eventIsFullySoldOut({ variants: [], min_available_quantity: 0 })).toBe(true)
   })
 })
 
@@ -81,6 +85,15 @@ describe('plpListingStockPresentation', () => {
 
   it('marks a product sold out when every date is volgeboekt', () => {
     const result = plpListingStockPresentation(makeEvent([0, 0]), 5)
+    expect(result.soldOut).toBe(true)
+    expect(result.lowStock).toBeNull()
+  })
+
+  it('marks a product sold out from min_available_quantity when variants are stripped', () => {
+    const result = plpListingStockPresentation(
+      { variants: [], min_available_quantity: 0 },
+      5,
+    )
     expect(result.soldOut).toBe(true)
     expect(result.lowStock).toBeNull()
   })
