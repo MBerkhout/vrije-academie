@@ -4,7 +4,10 @@ import { getPlpPage, getCategoriesForFilter, getTeachersForFilter } from '@/lib/
 import { CONTAINER_CLASS } from '@/lib/cms'
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
 import { PAGE_SIZE, hasActiveFilters } from '@/app/(main)/ons-aanbod/_state/url'
-import { getHardCachedDefaultPlpListing } from '@/lib/plp/cached-default-listing'
+import {
+  getHardCachedPlpListing,
+  isHardCachedPlpSort,
+} from '@/lib/plp/cached-default-listing'
 
 import { PlpBreadcrumbs } from '@/components/plp/PlpBreadcrumbs'
 import { PlpBanner } from '@/components/plp/PlpBanner'
@@ -40,10 +43,10 @@ export async function PlpListingPage({
 }: PlpListingPageProps) {
   const sort = filterState.sort ?? (filterState.q ? 'relevance' : 'order')
   const useHardPlpCache =
-    basePath === PLP_BASE_PATH && !hasActiveFilters(filterState) && sort === 'order'
+    basePath === PLP_BASE_PATH && !hasActiveFilters(filterState) && isHardCachedPlpSort(sort)
 
   const eventsPromise = useHardPlpCache
-    ? getHardCachedDefaultPlpListing().catch(() => null)
+    ? getHardCachedPlpListing(sort).catch(() => null)
     : commerceClient
         .getEventsPaginated({
           ...filterState,

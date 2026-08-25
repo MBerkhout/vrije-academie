@@ -557,6 +557,7 @@ export const medusaClient: CommerceClient = {
 
     const response = await fetch(`${BACKEND_URL}/store/events?${params.toString()}`, {
       headers: storeHeaders(),
+      cache: 'no-store',
     })
     if (!response.ok) {
       throw new Error(`Failed to fetch events: ${response.status}`)

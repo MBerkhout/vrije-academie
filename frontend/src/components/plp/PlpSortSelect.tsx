@@ -42,8 +42,9 @@ export function PlpSortSelect({
     router.push(`${basePath}?${params.toString()}`)
   }
 
+  const sortFromUrl = searchParams.get('sort')
   const defaultSort = hasQuery ? 'relevance' : 'order'
-  const active = currentSort || defaultSort
+  const active = sortFromUrl ?? currentSort ?? defaultSort
 
   return (
     <select

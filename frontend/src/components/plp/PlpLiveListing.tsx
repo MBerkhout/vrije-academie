@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, type ReactNode } from 'react'
+import { Suspense, useEffect, useState, type ReactNode } from 'react'
 import type { EventCard, EventFacets } from '@/lib/commerce/types'
 import {
   hasActiveFilters,
@@ -64,6 +64,52 @@ export function PlpLiveListing({
   loadMoreLabel,
   loadError = false,
 }: PlpLiveListingProps) {
+  const [ssrRecovery, setSsrRecovery] = useState<{
+    events: EventCard[]
+    count: number
+  } | null>(null)
+  const [recoveringFromSsr, setRecoveringFromSsr] = useState(loadError)
+
+  useEffect(() => {
+    if (!loadError || ssrRecovery) return
+
+    let cancelled = false
+    const sortParam = plpSortForQuery('', filterState)
+
+    async function recover() {
+      setRecoveringFromSsr(true)
+      try {
+        const params = serializeFilterState({
+          ...filterState,
+          sort: sortParam as PlpFilterState['sort'],
+        })
+        params.set('limit', String(PAGE_SIZE))
+        params.set('offset', '0')
+
+        const response = await fetch(`/api/plp/events?${params.toString()}`)
+        if (!response.ok) return
+
+        const data = (await response.json()) as { events?: EventCard[]; count?: number }
+        if (cancelled) return
+        setSsrRecovery({
+          events: data.events ?? [],
+          count: typeof data.count === 'number' ? data.count : 0,
+        })
+      } finally {
+        if (!cancelled) setRecoveringFromSsr(false)
+      }
+    }
+
+    void recover()
+    return () => {
+      cancelled = true
+    }
+  }, [loadError, filterState, ssrRecovery])
+
+  const resolvedInitialEvents = ssrRecovery?.events ?? initialEvents
+  const resolvedInitialCount = ssrRecovery?.count ?? initialCount
+  const resolvedLoadError = loadError && !ssrRecovery && !recoveringFromSsr
+
   const {
     query,
     setQuery,
@@ -76,8 +122,8 @@ export function PlpLiveListing({
   } = useLiveListingSearch<EventCard, PlpFilterState>({
     basePath,
     serverFilterState: filterState,
-    initialItems: initialEvents,
-    initialCount,
+    initialItems: resolvedInitialEvents,
+    initialCount: resolvedInitialCount,
     fetchPath: '/api/plp/events',
     listKey: 'events',
     pageSize: PAGE_SIZE,
@@ -124,10 +170,17 @@ export function PlpLiveListing({
 
   let resultsBody: ReactNode
 
-  if (loadError) {
+  if (resolvedLoadError) {
     resultsBody = (
       <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
         Kon de activiteiten niet laden. Probeer het opnieuw.
+      </div>
+    )
+  } else if (recoveringFromSsr) {
+    resultsBody = (
+      <div className="flex items-center gap-2 text-sm text-va-darkgray py-8">
+        <Spinner size="sm" />
+        Activiteiten laden…
       </div>
     )
   } else if (events.length === 0 && !searching) {

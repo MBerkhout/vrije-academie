@@ -321,7 +321,7 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 | Route type | Caching |
 |------------|---------|
 | CMS pages (`[...slug]`) | ISR, `revalidate = 60` — first hit renders fresh, subsequent hits serve from cache |
-| PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 600 s hard cache |
+| PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 600 s hard cache for `sort=order` and `sort=start_date` |
 | PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail + similar cached in Redis (600 s); React `cache()` dedupes per request |
 | Homepage | `sanityFetch` with CDN, no explicit revalidate |
 | Redirect rules | In-memory, 60 s TTL |
@@ -338,7 +338,7 @@ PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized li
 | Similar courses | `medusa/src/lib/store-similar-events.ts` | Derives siblings from PLP snapshot (no per-sibling Postgres graph) |
 | Base query cache | `medusa/src/lib/store-query-cache.ts` | Product ids + event-group links (used when building snapshots) |
 | Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart bust: full PLP on create/delete; on update only when product is in first 24 slots; orders bust registration counts only |
-| Frontend PLP hard cache | `frontend/src/lib/plp/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/ons-aanbod`; bust via `POST /api/revalidate/plp` |
+| Frontend PLP hard cache | `frontend/src/lib/plp/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/ons-aanbod` with `sort=order` or `sort=start_date`; bust via `POST /api/revalidate/plp` |
 
 **PLP/Agenda/VA Thuis/registration-counts snapshots (`loadCached` in `store-listing-snapshot.ts`) use stale-while-revalidate**: each entry is stored as `{ value, builtAt }` with a 1 h physical Redis TTL (`LISTING_CACHE_HARD_TTL_SEC`), but is treated as due-for-refresh once `builtAt` is older than `LISTING_CACHE_TTL_SEC` (600 s). A stale entry is still returned instantly; a background rebuild refreshes it without blocking the request. Only a true cold start (nothing cached anywhere yet) blocks. Event detail caching (`store-event-detail.ts`) does **not** use this pattern yet — it still blocks on a cache miss.
 
