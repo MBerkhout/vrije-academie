@@ -13,8 +13,10 @@ echo "==> Deploying frontend from branch: $BRANCH"
 
 cd "$REPO_DIR"
 git fetch origin "$BRANCH"
-git checkout "$BRANCH"
-git pull --ff-only origin "$BRANCH"
+# Discard tracked local edits on the server so deploy cannot be blocked by a dirty tree.
+# Gitignored files (e.g. .env) are left untouched.
+git checkout -f "$BRANCH"
+git reset --hard "origin/$BRANCH"
 
 cd "$APP_DIR"
 npm ci

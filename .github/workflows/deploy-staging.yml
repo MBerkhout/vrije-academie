@@ -56,7 +56,13 @@ jobs:
           username: frontend
           key: ${{ secrets.SSH_DEPLOY_KEY }}
           script_stop: true
-          script: bash ~/app/frontend/scripts/deploy.sh
+          script: |
+            set -euo pipefail
+            cd ~/app
+            git fetch origin staging
+            git checkout -f staging
+            git reset --hard origin/staging
+            bash ~/app/frontend/scripts/deploy.sh
 
   deploy-medusa:
     name: Deploy Medusa
@@ -69,4 +75,10 @@ jobs:
           username: medusa
           key: ${{ secrets.SSH_DEPLOY_KEY }}
           script_stop: true
-          script: bash ~/app/medusa/scripts/deploy.sh
+          script: |
+            set -euo pipefail
+            cd ~/app
+            git fetch origin staging
+            git checkout -f staging
+            git reset --hard origin/staging
+            bash ~/app/medusa/scripts/deploy.sh

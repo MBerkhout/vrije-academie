@@ -25,7 +25,7 @@ The three jobs run **in parallel**.
 
 ## Zero-downtime approach
 
-1. **Build before restart** — deploy scripts run `npm ci` and `npm run build` while the old PM2 process keeps serving traffic.
+1. **Reset checkout, then build** — GitHub Actions resets `~/app` to `origin/staging` before running the deploy script (`git checkout -f` + `git reset --hard`). Tracked local edits on the server are discarded; gitignored files (`.env`) are not touched. Then `npm ci` and `npm run build` run while the old PM2 process keeps serving traffic.
 2. **`pm2 startOrReload ecosystem.config.cjs`** — after a successful build (and `npm run migrate` for Medusa), this re-applies `ecosystem.config.cjs` (instances, `exec_mode`, etc.) and reloads gracefully instead of a hard restart. Unlike `pm2 reload <name>`, it re-syncs config on every deploy so the process can't silently drift from what's checked into git (see Frontend troubleshooting below).
 3. **Failed deploys** — if build or migrate fails, the script exits before reload; the running process is unchanged.
 
@@ -229,13 +229,13 @@ pm2 logs frontend
 pm2 logs medusa
 ```
 
-**`local changes would be overwritten by merge` (e.g. `frontend/next-env.d.ts`)** — Next.js auto-regenerates `frontend/next-env.d.ts` on `dev`/`build`. That file is gitignored; if an older server checkout still tracks it, run once as the `frontend` user:
+**`local changes would be overwritten by merge`** — Deploys reset the server checkout to `origin/staging` (`git checkout -f` + `git reset --hard`) before install/build, so tracked local edits cannot block the update. Gitignored files (`.env`) are left in place.
+
+If a still-tracked gitignored file blocks checkout (e.g. old `frontend/next-env.d.ts`), run once as that app user:
 
 ```bash
-cd ~/app && git rm --cached frontend/next-env.d.ts && git pull --ff-only origin staging
+cd ~/app && git rm --cached frontend/next-env.d.ts && git reset --hard origin/staging
 ```
-
-Future deploys should not hit this after the ignore is on `staging`.
 
 ## Frontend troubleshooting
 
@@ -259,7 +259,7 @@ Future deploys should not hit this after the ignore is on `staging`.
 **`ecosystem.config.cjs not found`** — The server checkout is behind `staging`. As the `medusa` user:
 
 ```bash
-cd ~/app && git pull --ff-only origin staging
+cd ~/app && git fetch origin staging && git reset --hard origin/staging
 ```
 
 Then use `~/app/medusa/scripts/deploy.sh` (preferred) or `cd ~/app/medusa && pm2 start ecosystem.config.cjs`.
