@@ -150,7 +150,7 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
       for (const { group } of candidates) {
         const label = group.Name?.trim() || group.Id
         const { children } = linkedRecordsForGroup(prefetch, group)
-        if (!isProductgroupVisibleOnWebsite(group, children)) {
+        if (!isProductgroupVisibleOnWebsite(group)) {
           wouldHide++
           logger.info(`[${logTag}] would hide ${label} (${group.Id}) (not visible on website)`)
         } else {

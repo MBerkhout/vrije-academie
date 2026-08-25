@@ -1,9 +1,10 @@
 import type { SfCourseProductShape } from "../mappings/course-product"
 import type { SfProductgroupShape } from "../mappings/productgroup"
 import { stableStringify } from "./deep-equal"
+import { courseProductRecordTypeDeveloperName } from "./visible-on-website"
 
 /** Bump when Medusa-side mapping changes (forces re-import / invalidates skip-unchanged). */
-export const MEDUSA_FACET_SYNC_VERSION = 3
+export const MEDUSA_FACET_SYNC_VERSION = 4
 
 const GROUP_FINGERPRINT_KEYS = [
   "Name",
@@ -80,7 +81,10 @@ export function productgroupImportFingerprint(
     group: pickKeys(group as Record<string, unknown>, GROUP_FINGERPRINT_KEYS),
     children: children
       .filter((c) => c.Id)
-      .map((c) => pickKeys(c as Record<string, unknown>, CHILD_FINGERPRINT_KEYS))
+      .map((c) => ({
+        ...pickKeys(c as Record<string, unknown>, CHILD_FINGERPRINT_KEYS),
+        record_type: courseProductRecordTypeDeveloperName(c),
+      }))
       .sort((a, b) => String(a.Id).localeCompare(String(b.Id))),
   }
   return stableStringify(payload)

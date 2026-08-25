@@ -28,7 +28,7 @@ import {
 import {
   futureAvailableSessionsForListing,
   futureOfflineSessionsForListing,
-  productHasFutureAvailableSession,
+  productEligibleForPlpListing,
 } from "./event-session-eligibility"
 import { minPriceCentsFromVariants, medusaMajorToCents } from "./medusa-price-to-cents"
 import { ctaBarFieldsFromMetadata } from "./product-cta-bar"
@@ -319,8 +319,8 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
     const eventItems = ((p.variants ?? []) as Record<string, unknown>[])
       .map((v) => v.event_item)
       .filter(Boolean)
-    return productHasFutureAvailableSession(
-      eventItems as Parameters<typeof productHasFutureAvailableSession>[0],
+    return productEligibleForPlpListing(
+      eventItems as Parameters<typeof productEligibleForPlpListing>[0],
       listingNow
     )
   })

@@ -35,6 +35,40 @@ describe("shouldImportProductgroup visibility", () => {
       })
     ).toBe(true)
   })
+
+  it("imports a visible group even when every child is hidden", () => {
+    expect(
+      shouldImportProductgroup({
+        group: {
+          Visible_on_website__c: true,
+          Latest_Product_Start_Date__c: future,
+        },
+        children: [
+          {
+            Id: "a04a",
+            Visible_On_Website__c: false,
+            RecordType: { DeveloperName: "Externe_Verhuur" },
+            Start_date_time__c: future,
+          },
+        ],
+        manual: false,
+      })
+    ).toBe(true)
+  })
+
+  it("does not import Externe verhuur groups", () => {
+    expect(
+      shouldImportProductgroup({
+        group: {
+          Visible_on_website__c: true,
+          Productgroup_Record_Type_Developer_Name__c: "Externe_Verhuur",
+          Latest_Product_Start_Date__c: future,
+        },
+        children: [{ Id: "a04a", Start_date_time__c: future }],
+        manual: true,
+      })
+    ).toBe(false)
+  })
 })
 
 describe("shouldBulkImportProductgroup visibility", () => {

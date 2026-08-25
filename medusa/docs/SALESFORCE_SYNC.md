@@ -279,7 +279,7 @@ Vrije Academie product groups are **`vaProductgroup__c`** (prefix `a05…`); chi
 
 **Workflow:** `pull-productgroup-salesforce` — fetch group + children, apply Medusa product / event group / categories / variants / event items / media / sync state, then Sanity mirror.
 
-**Visibility:** Salesforce **Zichtbaar op Website** (`Visible_on_website__c` on the group, `Visible_On_Website__c` on each child) is the catalog gate. Unchecked (`false`) groups are **not imported**. If they were imported earlier, bulk import / webhooks **draft** the Medusa product so Ons aanbod, Agenda, VA Thuis, PDP, and search drop it. Unchecked children are omitted from imported sessions. Missing/null checkboxes stay visible so a field rollout does not hide the catalog.
+**Visibility:** Salesforce **Zichtbaar op Website** on the **product group** (`Visible_on_website__c`) is the catalog gate. Unchecked (`false`) groups are **not imported**; already-imported ones are **drafted**. Hidden **child products** (`Visible_On_Website__c` unchecked, or **Externe verhuur** record type / name) are omitted as sessions — the group still lists **without upcoming events**. Missing/null checkboxes stay visible so a field rollout does not hide the catalog.
 
 To unpublish products already on the site after this change, run a bulk import once (`npm run salesforce:import-future` or `import-all`). Already-imported hidden groups are still processed (not skipped) so they can be drafted.
 
@@ -345,7 +345,7 @@ Storefront: `GET /store/events/:handle` exposes `purchase_mode`, `bundle_variant
 
 Webhooks enqueue product group pulls with `manual: false`. Import is **skipped** when:
 
-- `Visible_on_website__c` is unchecked on the group, or every child `Visible_On_Website__c` is unchecked (`skipReason: not_visible_on_website` — including manual CLI/API; already-imported products are drafted). Bulk CLI still **enqueues** those already-imported groups so they are removed from the storefront.
+- `Visible_on_website__c` is unchecked on the group, or the group is **Externe verhuur** (`skipReason: not_visible_on_website` — including manual CLI/API; already-imported products are drafted). Hidden children do not hide a visible group. Bulk CLI still **enqueues** already-imported hidden groups so they are removed from the storefront.
 - `Latest_Product_Start_Date__c` is in the past, or
 - all child `Start_date_time__c` values are in the past (when latest start is unset) (`skipReason: past_dates`).
 
@@ -420,7 +420,8 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Onderwerp (categories) | `Productgroup_Subject__c` (`;`-separated) | native `category_ids` + catalog category links → Sanity `categories` |
 | Record type | `Productgroup_Record_Type_Developer_Name__c` | `EventGroup.record_type` + Medusa `product.type` (`Lezingen_Thuis` / `Thuis_College` → `vathuis`) |
 | Linked online catalog | `Linked_Online_Productgroup__c` | merged child variants on parent; metadata `salesforce_linked_online_productgroup_id` |
-| Zichtbaar op Website | `Visible_on_website__c` | Skip import when unchecked; existing product → `draft` |
+| Zichtbaar op Website | `Visible_on_website__c` | Skip import / draft when unchecked; **Externe verhuur** groups always hidden |
+| Child zichtbaar op website | `Visible_On_Website__c` | Session omitted when unchecked or **Externe verhuur**; group can still list with no upcoming events |
 | PLP admin flag | — | `EventGroup.show_in_plp=false` (linked-online slave groups always hidden) |
 | Sales channel | — | default store sales channel |
 | SEO title | `SEO_Title__c` | metadata → Sanity `seoTitle` |
@@ -434,7 +435,6 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Product card CTA bar | `CTA_Label__c`, `CTA_Color__c`, `CTA_Color_Hover__c` | metadata `salesforce_cta_*` → store `badge`, `cta_color`, `cta_color_hover`; Sanity `badge`, `ctaColor`, `ctaColorHover`; PLP card bar in `PlpEventCard` |
 | Catalog sort order | `Order__c` | metadata `salesforce_order` → default PLP / VA Thuis sort (`sort=order`, ascending; nulls last) |
 | Child products | `vaProduct__c` (lookup `Productgroup__c`) | `ProductVariant` + linked `EventItem` |
-| Child zichtbaar op website | `Visible_On_Website__c` | Session omitted when unchecked; leftover variants get `metadata.salesforce_visible_on_website: false` |
 | Occurrence start / end | `Start_date_time__c`, `End_date_time__c` | `EventItem.start_at` / `end_at` |
 | Occurrence price | `Price__c` | variant EUR price → Sanity `priceFrom` |
 | Occurrence city | `Product_City__c` | `EventItem.city` / `city_slug` + `catalog_city_id` |

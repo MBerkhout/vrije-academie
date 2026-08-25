@@ -8,6 +8,7 @@ import { useWishlist } from '@/lib/commerce/useWishlist'
 import { useVathuisAccess } from '@/lib/commerce/use-vathuis-access'
 import { defaultMessages } from '@/lib/i18n/messages'
 import {
+  bookableEventVariants,
   eventHasUnlimitedAvailability,
   eventIsFullySoldOut,
   eventPricePrefixLabel,
@@ -158,6 +159,8 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
 
   const externalRegistrationUrl = bookingPanelExternalRegistrationUrl(event)
   const usesExternalRegistration = Boolean(externalRegistrationUrl)
+  const hasBookableSession = isBundleOnly || bookableEventVariants(event).length > 0
+  const showPrimaryCta = usesExternalRegistration || hasBookableSession
   const primaryCtaClassName =
     'w-full bg-va-yellow text-va-black font-bold py-3 px-4 rounded-lg hover:bg-va-yellow/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'
 
@@ -202,30 +205,32 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
       )}
 
       {/* CTA buttons */}
-      {usesExternalRegistration && !isSoldOut ? (
-        <a
-          href={externalRegistrationUrl!}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={primaryCtaClassName}
-        >
-          {primaryCtaLabel}
-        </a>
-      ) : (
-        <button
-          onClick={() => void handleRegister()}
-          disabled={(isSoldOut && !(isBundleOnly && hasPurchasedAccess)) || addingId !== null}
-          className={primaryCtaClassName}
-        >
-          {isSoldOut && !(isBundleOnly && hasPurchasedAccess)
-            ? soldOutLabel
-            : addingId
-              ? 'Bezig…'
-              : isBundleOnly
-                ? primaryBundleLabel
-                : primaryCtaLabel}
-        </button>
-      )}
+      {showPrimaryCta ? (
+        usesExternalRegistration && !isSoldOut ? (
+          <a
+            href={externalRegistrationUrl!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={primaryCtaClassName}
+          >
+            {primaryCtaLabel}
+          </a>
+        ) : (
+          <button
+            onClick={() => void handleRegister()}
+            disabled={(isSoldOut && !(isBundleOnly && hasPurchasedAccess)) || addingId !== null}
+            className={primaryCtaClassName}
+          >
+            {isSoldOut && !(isBundleOnly && hasPurchasedAccess)
+              ? soldOutLabel
+              : addingId
+                ? 'Bezig…'
+                : isBundleOnly
+                  ? primaryBundleLabel
+                  : primaryCtaLabel}
+          </button>
+        )
+      ) : null}
 
       <button
         type="button"

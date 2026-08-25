@@ -32,6 +32,7 @@ export type SfCourseProductShape = {
   External_Registration_URL_Product__c?: string | null
   /** Zichtbaar op Website on the child occurrence. Unchecked (`false`) → skip this session. */
   Visible_On_Website__c?: boolean | null
+  RecordType?: { DeveloperName?: string | null; Name?: string | null } | null
   SystemModstamp?: string | null
 }
 
@@ -64,6 +65,8 @@ export const courseProductSalesforceFieldsForPull = [
   "Main_Teacher_Name__c",
   "External_Registration_URL_Product__c",
   "Visible_On_Website__c",
+  "RecordType.DeveloperName",
+  "RecordType.Name",
   "SystemModstamp",
 ] as const
 

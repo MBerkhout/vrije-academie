@@ -91,6 +91,19 @@ export function productHasFutureAvailableSession(
   })
 }
 
+/**
+ * Ons aanbod listing: keep published groups that have no public sessions
+ * (hidden Salesforce children / Externe verhuur only). Still require a
+ * bookable future session when any public event items exist.
+ */
+export function productEligibleForPlpListing(
+  eventItems: EventItemSessionRow[],
+  now: Date = new Date()
+): boolean {
+  if (!eventItems.length) return true
+  return productHasFutureAvailableSession(eventItems, now)
+}
+
 /** Storefront variant rows: keep non-event variants; drop hidden and past sessions. */
 export function filterVariantsWithFutureSessions<
   T extends {

@@ -15,7 +15,7 @@ export type FutureImportGuardInput = {
 
 /** Skip auto-import when the group is hidden on the website or all occurrence dates are in the past. Manual imports ignore the date guard, not visibility. */
 export function shouldImportProductgroup(input: FutureImportGuardInput): boolean {
-  if (!isProductgroupVisibleOnWebsite(input.group, input.children)) return false
+  if (!isProductgroupVisibleOnWebsite(input.group)) return false
 
   if (input.manual) return true
 
@@ -47,7 +47,7 @@ function isOnlineOnlyProductgroup(children: SfCourseProductShape[]): boolean {
 
 /** Bulk CLI: import future groups, VAthuis on-demand, linked-online parents/slaves, or online-only. */
 export function shouldBulkImportProductgroup(input: FutureImportGuardInput): boolean {
-  if (!isProductgroupVisibleOnWebsite(input.group, input.children)) return false
+  if (!isProductgroupVisibleOnWebsite(input.group)) return false
 
   if (shouldImportProductgroup({ ...input, manual: false })) return true
 
@@ -66,7 +66,7 @@ export function shouldBulkImportProductgroup(input: FutureImportGuardInput): boo
 
 /** Targeted backfill: VAthuis + linked-online parents and slave catalogs only. */
 export function shouldLinkedVathuisBulkImport(input: FutureImportGuardInput): boolean {
-  if (!isProductgroupVisibleOnWebsite(input.group, input.children)) return false
+  if (!isProductgroupVisibleOnWebsite(input.group)) return false
   return isLinkedVathuisBulkScope(input)
 }
 
@@ -89,7 +89,7 @@ export function shouldEnqueueBulkProductgroup(
     alreadyImported?: boolean
   } = {}
 ): boolean {
-  const visible = isProductgroupVisibleOnWebsite(input.group, input.children)
+  const visible = isProductgroupVisibleOnWebsite(input.group)
   if (!visible) {
     if (!options.alreadyImported) return false
     if (options.linkedVathuisOnly) return isLinkedVathuisBulkScope(input)

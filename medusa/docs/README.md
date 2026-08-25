@@ -65,7 +65,7 @@ npm run dev
 - Store API: `http://localhost:9000/store`
 - Admin API: `http://localhost:9000/admin`
 
-Built-in Medusa inventory UI (sidebar **Inventory** / **Reservations**, Settings → **Locations**, product/variant inventory sections) is hidden via `src/admin/widgets/hide-inventory-admin.tsx`. Capacity is managed in the **Product** variant widget (**Available quantity**).
+Built-in Medusa inventory UI (sidebar **Inventory** / **Reservations** items, Settings → **Locations**, product/variant inventory cards) is hidden via `src/admin/widgets/hide-inventory-admin.tsx`. The left admin menu itself stays visible. Capacity is managed in the **Product** variant widget (**Available quantity**).
 
 ## Event / Product Group workflow
 

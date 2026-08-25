@@ -1,6 +1,6 @@
 # Plan: hide Price Lists / Inventory / Shipping Profiles in Medusa admin
 
-> **Superseded (inventory scope):** Built-in Medusa inventory UI is hidden separately via `medusa/src/admin/widgets/hide-inventory-admin.tsx`. Capacity stays on `EventItem.available_quantity` (not Medusa inventory). The migration-to-Medusa-inventory items below remain deferred.
+> **Superseded (inventory scope):** Built-in Medusa inventory UI is hidden separately via `medusa/src/admin/widgets/hide-inventory-admin.tsx` (inventory *items* only — not the left menu shell). Capacity stays on `EventItem.available_quantity` (not Medusa inventory). The migration-to-Medusa-inventory items below remain deferred.
 
 Status: pending execution
 Scope: Medusa backend (`medusa/`)

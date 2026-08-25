@@ -822,7 +822,7 @@ export async function importProductgroupFromSalesforce(
   const importContext = input.importContext
   const contentFingerprint = productgroupImportFingerprint(group, allChildren)
 
-  if (!isProductgroupVisibleOnWebsite(group, allChildren)) {
+  if (!isProductgroupVisibleOnWebsite(group)) {
     return skipNotVisibleOnWebsite(
       container,
       sync,
@@ -1014,6 +1014,7 @@ export async function importProductgroupFromSalesforce(
                 },
               ],
               options: { [optionName]: "Default" },
+              metadata: { [SALESFORCE_VISIBLE_ON_WEBSITE_METADATA_KEY]: false },
             },
           ]
 
