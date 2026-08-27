@@ -63,8 +63,11 @@ const CHILD_FINGERPRINT_KEYS = [
   "Visible_On_Website__c",
 ] as const
 
-function pickKeys<T extends Record<string, unknown>>(row: T, keys: readonly string[]): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
+function pickKeys<K extends string>(
+  row: Record<string, unknown>,
+  keys: readonly K[]
+): Record<K, unknown> {
+  const out = {} as Record<K, unknown>
   for (const key of keys) {
     out[key] = row[key]
   }

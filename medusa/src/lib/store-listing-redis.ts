@@ -101,7 +101,7 @@ export async function invalidateStoreListingCache(): Promise<void> {
   const client = await getRedisClient()
   if (client) {
     try {
-      await client.del(REDIS_KEY_PLP, REDIS_KEY_AGENDA, REDIS_KEY_VATHUIS)
+      await client.del([REDIS_KEY_PLP, REDIS_KEY_AGENDA, REDIS_KEY_VATHUIS])
     } catch {
       /* ignore */
     }
@@ -177,7 +177,7 @@ export async function flushStorefrontRedisCache(): Promise<{
   for (let i = 0; i < keys.length; i += 100) {
     const batch = keys.slice(i, i + 100)
     try {
-      await client.del(...batch)
+      await client.del(batch)
     } catch {
       /* ignore */
     }
