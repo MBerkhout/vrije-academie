@@ -320,10 +320,10 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 
 | Route type | Caching |
 |------------|---------|
-| CMS pages (`[...slug]`) | ISR, `revalidate = 60` — first hit renders fresh, subsequent hits serve from cache |
+| CMS pages (`[...slug]`) | ISR, `revalidate = 60` — on-demand bust via Sanity webhook (`POST /api/revalidate/sanity`) on page publish |
 | PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 600 s hard cache for `sort=order` and `sort=start_date` |
 | PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail + similar cached in Redis (600 s); React `cache()` dedupes per request |
-| Homepage | `sanityFetch` with CDN, no explicit revalidate |
+| Homepage | ISR, `revalidate = 60`; on-demand bust via Sanity webhook on home page publish |
 | Redirect rules | In-memory, 60 s TTL |
 
 ### Medusa API caching
@@ -351,6 +351,19 @@ Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an i
 | Frontend | `REVALIDATE_SECRET` | random string |
 | Medusa | `STOREFRONT_REVALIDATE_PLP_URL` | `https://v2.vrijeacademie.nl/api/revalidate/plp` |
 | Medusa | `STOREFRONT_REVALIDATE_SECRET` | same as `REVALIDATE_SECRET` |
+
+**Sanity → frontend on-demand page revalidation** (configure webhook manually at [sanity.io/manage](https://sanity.io/manage) → API → Webhooks):
+
+| Setting | Value |
+|---------|-------|
+| URL | `https://v2.vrijeacademie.nl/api/revalidate/sanity` |
+| Dataset | `production` (and `staging` if applicable) |
+| Trigger on | Create, Update, Delete |
+| Filter | `_type == "page"` |
+| Projection | `{ "_type": _type, "slug": slug.current, "isVaThuis": isVaThuis }` |
+| Secret | Same string as frontend `SANITY_REVALIDATE_SECRET` |
+
+Set `SANITY_REVALIDATE_SECRET` in `~/app/frontend/.env` on the server. Sanity signs the request body; the route verifies via `next-sanity/webhook` `parseBody`. VA Thuis pages (`va-thuis/…`) are skipped — those routes are `force-dynamic`. The 60 s ISR window remains as a fallback when the webhook is not configured or fails.
 
 Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600` on listing and event detail routes.
 
@@ -380,3 +393,4 @@ Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set
 | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart cache bust on catalog/order changes |
 | `frontend/src/lib/plp/cached-default-listing.ts` | Next.js hard cache for default PLP |
 | `frontend/src/app/api/revalidate/plp/route.ts` | Webhook to bust PLP hard cache |
+| `frontend/src/app/api/revalidate/sanity/route.ts` | Webhook to bust CMS page ISR cache on Sanity publish |

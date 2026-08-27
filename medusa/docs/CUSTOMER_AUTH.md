@@ -77,6 +77,32 @@ SENDGRID_FROM=noreply@example.com
 
 When `SENDGRID_API_KEY` is set, `medusa-config.ts` registers `@medusajs/notification-sendgrid`.
 
+## Admin (support)
+
+On the customer detail page in Medusa Admin (`/app/customers/:id`), the **Account access** widget lets staff:
+
+- View whether the customer has a password (`hasPassword`)
+- **Generate verification code** — creates a new 6-digit login OTP, shown once in Admin (not emailed). Customer uses it on the storefront OTP login flow. Same 10 min TTL and verify-attempt limits as storefront OTP; admin generation bypasses the storefront 3/15 min request cap.
+- **Reset password** — set a temporary password (default) or a custom password (min. 8 chars). Shown once in Admin. Clears any legacy Django hash.
+
+Admin API (authenticated admin session, same as other `/admin/*` routes):
+
+| Route | Method | Response |
+|-------|--------|----------|
+| `/admin/customer-auth/:id` | GET | `{ email, hasPassword }` |
+| `/admin/customer-auth/:id/otp` | POST | `{ code, expires_at }` |
+| `/admin/customer-auth/:id/reset-password` | POST | `{ password }` — body `{ password? }` optional |
+
+CLI fallback (ops / scripts):
+
+```bash
+npx medusa exec ./src/scripts/reset-password.ts -- \
+  --email=user@example.com \
+  --password='new-secure-password'
+```
+
+If `--password` is omitted, a temporary `VaTemp-…!` password is generated.
+
 ## Passwordless registration (checkout)
 
 `POST /store/customer/register-passwordless` — creates customer + auth identity (no password), default shipping address, returns `{ token }`.
@@ -106,7 +132,8 @@ Optional profile fields (website → Medusa `customer.metadata` → Salesforce):
 
 - `src/modules/customer-otp/` — challenge storage + send adapter
 - `src/modules/legacy-password/` — Django PBKDF2 hash storage for migration
-- `src/lib/customer-auth/helpers.ts` — lookup, JWT issuance, registration, password migration
+- `src/lib/customer-auth/helpers.ts` — lookup, JWT issuance, registration, password migration, admin password reset
 - `src/lib/customer-auth/django-pbkdf2.ts` — Django PBKDF2 verifier
+- `src/admin/widgets/customer-auth-widget.tsx` — Admin customer detail support panel
 
 Migrations: `npx medusa db:migrate` (includes `customerOtp` and `legacyPassword` module schema).

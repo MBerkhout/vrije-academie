@@ -1,5 +1,6 @@
 import type { StructureResolver } from "sanity/structure"
 import { LinkIcon, DocumentsIcon } from "@sanity/icons"
+import { pageTreeListItem } from "./structure/page-tree"
 
 /**
  * Content blocks are inline object types on Page.blocks (not standalone documents).
@@ -37,7 +38,7 @@ const SINGLETONS = ["generalSettings"]
 /** Document types with an explicit desk item (hidden from the auto list). */
 const EXPLICIT_LIST_TYPES = ["redirect", "page"]
 
-export const structure: StructureResolver = (S) =>
+export const structure: StructureResolver = (S, context) =>
   S.list()
     .id("root")
     .title("Content")
@@ -62,22 +63,16 @@ export const structure: StructureResolver = (S) =>
           S.list()
             .title("Pages")
             .items([
-              S.listItem()
-                .title("All pages")
-                .child(
-                  S.documentTypeList("page")
-                    .title("Pages")
-                    .filter("_type == $type && isVaThuis != true")
-                    .params({ type: "page" }),
-                ),
-              S.listItem()
-                .title("VA Thuis pages")
-                .child(
-                  S.documentTypeList("page")
-                    .title("VA Thuis pages")
-                    .filter("_type == $type && isVaThuis == true")
-                    .params({ type: "page" }),
-                ),
+              pageTreeListItem(S, context.documentStore, {
+                isVaThuis: false,
+                title: "VA pages",
+                listId: "va-pages",
+              }),
+              pageTreeListItem(S, context.documentStore, {
+                isVaThuis: true,
+                title: "VA Thuis pages",
+                listId: "va-thuis-pages",
+              }),
             ]),
         ),
 

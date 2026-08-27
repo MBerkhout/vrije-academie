@@ -231,7 +231,7 @@ Salesforce **Person Accounts** (`Contact` + `Account`, `IsPersonAccount = true`)
 | SF → Medusa | OTP/password login, `POST /store/customer/me/sync-from-salesforce`, webhook, bulk import, admin pull | Pull Contact fields + default shipping address + marketing metadata |
 | Medusa → SF | `customer.created` / `customer.updated`, `POST /store/customer/me/push-to-salesforce` (after registration/address save) | **Create:** `POST Account` (`PersonMailing*`, `PersonBirthdate`, …) + `PATCH Contact` (`Mailing*`, `Birthdate`). **Update:** split `PATCH Account` (profile / address) + `PATCH Contact`. Birthdate stored in Medusa as `metadata.sf_birthdate` (ISO `YYYY-MM-DD`). |
 
-**Field map** (`mappings/customer.ts`): name, email, phone, mailing address (Account `PersonMailing*` + `Billing*` + `Shipping*`, Contact `Mailing*`), `Same_account_address__c` (= true when website uses one address for billing/shipping), salutation/initials/birthdate/IBAN (metadata), newsletter/magazine/editorial/opt-in flags (metadata). Country codes map NL/BE/DE ↔ Salesforce labels via `utils/country-code.ts`.
+**Field map** (`mappings/customer.ts`): name, email, phone, mailing address (Account `PersonMailing*` + `Billing*` + `Shipping*`, Contact `Mailing*`), `Same_account_address__c` (= true when website uses one address for billing/shipping), salutation/initials/birthdate/IBAN (metadata), newsletter/magazine/editorial/opt-in flags (metadata). **Push:** `Newsletter__c` is written when `metadata.sf_newsletter === true` (e.g. waitlist signup). Country codes map NL/BE/DE ↔ Salesforce labels via `utils/country-code.ts`.
 
 **Bulk import:** `npm run salesforce:import-customers` — SOQL `Contact WHERE IsPersonAccount = true AND Active__c = true AND Email != null`. Flags: `--dry-run`, `--limit=N`, `--all` (omit Active filter). Creates Medusa customers **without passwords** (OTP login). **Do not run full import until reviewed.**
 
@@ -245,6 +245,7 @@ Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push
 |--------|-------------------|--------|
 | Order header | `Order` | `Website_Order__c`, `Order_Origin__c: Website`, `Payment_Method__c` (`IDEAL`, `CREDITCARD`, `PAYPAL`, `BANCONTACT`, `GIFTCARD`, `KLARNA`, `GRATIS`), `Ideal_Transaction_Id__c` (Mollie). After lines: `Product__c` (vaProduct), `Registration__c`, `Product2__c` from the first seat (Lightning header lookups). |
 | Event line (per seat) | `Registration__c` + product `OrderItem` | Links `vaProduct__c` via variant sync state; `Status__c: Ingeschreven`; `Order_Item__c` points at the product `OrderItem`. Writable name on the line is `ProductName__c` (`Product_Name__c` / `Is_Discount__c` are formulas). |
+| Waitlist signup (sold-out PDP) | `Registration__c` only | `POST /store/events/:handle/waitlist` — no order; `Status__c: Wachtlijst`; `Number_Of_People__c`; customer `Newsletter__c` pushed when `metadata.sf_newsletter` is true. |
 | Promotion discount | discount `OrderItem` | Negative `UnitPrice`, `ProductName__c: Korting`, `Discount_Code__c`, same `Registration__c` |
 | Gift card purchase | `OrderItem` + `Voucher__c` | `Giftcard_*` fields; voucher sync state `entity_type: voucher` |
 | Gift card redemption | voucher `OrderItem` | negative amount, `Voucher__c` lookup |

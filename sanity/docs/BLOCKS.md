@@ -180,6 +180,8 @@ Image Block
 
 **Purpose**: Grid of **Person** documents (manual selection or dynamic filters by type/subject).
 
+**Dynamic filters**: **Type** is a unique multi-select (Docent / Team / Gastspreker). Multiple types = OR; empty = all types. **Max Items** is optional (leave empty to show everyone matching the filters; max 200).
+
 **Search on page**: Optional **Search on page** shows a field above the grid; the frontend filters loaded persons by name, role, bio and type (client-side only). Optional **Search placeholder** overrides the default Dutch placeholder.
 
 ---

@@ -1,5 +1,10 @@
 import { defineConfig } from "@medusajs/utils"
 
+import {
+  promotionRuleDatePickerEsbuildPlugin,
+  promotionRuleDatePickerPlugin,
+} from "./src/admin/vite/promotion-rule-date-picker-plugin"
+
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim()
   if (!v) {
@@ -133,6 +138,12 @@ export default defineConfig({
         __MEDUSA_ADMIN_SANITY_STUDIO_BASE__: JSON.stringify(adminSanityStudioBase()),
         __MEDUSA_ADMIN_SALESFORCE_INSTANCE_BASE__: JSON.stringify(adminSalesforceInstanceBase()),
       },
+      optimizeDeps: {
+        esbuildOptions: {
+          plugins: [promotionRuleDatePickerEsbuildPlugin()],
+        },
+      },
+      plugins: [promotionRuleDatePickerPlugin()],
     }),
   },
 })

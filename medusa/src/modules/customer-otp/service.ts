@@ -66,6 +66,25 @@ class CustomerOtpModuleService extends MedusaService({
     await sendOtpEmail(container, { email: normalized, code, purpose })
   }
 
+  async createAdminChallenge(
+    email: string,
+    purpose: OtpPurpose = "login"
+  ): Promise<{ code: string; expires_at: string }> {
+    const normalized = normalizeEmail(email)
+    const code = generateCode()
+    const expiresAt = new Date(Date.now() + OTP_TTL_MS)
+
+    await this.createCustomerOtpChallenges({
+      email: normalized,
+      code_hash: hashCode(code),
+      purpose,
+      expires_at: expiresAt,
+      attempts: 0,
+    })
+
+    return { code, expires_at: expiresAt.toISOString() }
+  }
+
   async verifyChallenge(
     email: string,
     code: string,

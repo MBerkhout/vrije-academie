@@ -1,4 +1,5 @@
 import { defineType, defineField } from "sanity"
+import { DocumentIcon } from "@sanity/icons"
 import { blocksForSurface } from "./blocks/registry"
 import { VATHUIS_PATH_SEGMENT } from "../constants/storefront-paths"
 import { pageSlugValidationMessage } from "../lib/page-slug-validation"
@@ -7,6 +8,7 @@ export const page = defineType({
   name: "page",
   title: "Page",
   type: "document",
+  icon: DocumentIcon,
   fields: [
     defineField({
       name: "title",

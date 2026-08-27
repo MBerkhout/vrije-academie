@@ -1,4 +1,4 @@
-import { PatchEvent, set } from "sanity"
+import { PatchEvent, set, unset } from "sanity"
 import type { InputProps } from "sanity"
 
 const C = {
@@ -49,6 +49,43 @@ export function createButtonSelectInput(options: StringOption[]) {
                 key={opt.value}
                 type="button"
                 onClick={() => onChange(PatchEvent.from(set(opt.value)))}
+                style={buttonStyle(active)}
+              >
+                {opt.title}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+}
+
+/**
+ * Unique multi-select for `array` of strings with a fixed option list (toggle buttons).
+ * Empty selection means “no filter” for callers that treat an empty array that way.
+ */
+export function createButtonMultiSelectInput(options: StringOption[]) {
+  return function ButtonMultiSelectInput(props: InputProps) {
+    const { value, onChange, schemaType } = props
+    const list = (schemaType.options?.list as StringOption[]) || options
+    const selected = Array.isArray(value) ? (value as string[]) : []
+
+    return (
+      <div style={wrapperStyle}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {list.map((opt) => {
+            const active = selected.includes(opt.value)
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  const next = active
+                    ? selected.filter((v) => v !== opt.value)
+                    : [...selected, opt.value]
+                  onChange(PatchEvent.from(next.length > 0 ? set(next) : unset()))
+                }}
                 style={buttonStyle(active)}
               >
                 {opt.title}

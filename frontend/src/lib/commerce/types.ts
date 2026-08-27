@@ -478,6 +478,7 @@ export interface CommerceClient {
   requestOtp(email: string, purpose?: 'login' | 'set_password'): Promise<void>
   verifyOtp(email: string, code: string): Promise<Customer>
   registerPasswordless(input: RegisterPasswordlessInput): Promise<Customer>
+  joinWaitlist(handle: string, input: JoinWaitlistInput): Promise<void>
   getAuthStatus(): Promise<{ hasPassword: boolean }>
   login(email: string, password: string): Promise<Customer>
   logout(): Promise<void>
@@ -595,4 +596,12 @@ export interface RegisterPasswordlessInput {
     country_code: string
     phone?: string
   }
+}
+
+export interface JoinWaitlistInput {
+  quantity: number
+  first_name: string
+  last_name: string
+  email: string
+  phone: string
 }

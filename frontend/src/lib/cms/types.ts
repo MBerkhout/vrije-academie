@@ -518,6 +518,7 @@ export interface GeneralSettings {
       relatedHeading?: string
       noSessionsMessage?: string
       soldOutLabel?: string
+      waitlistCta?: string
       /** VAthuis episodes table */
       episodesHeading?: string
       chapterLabel?: string

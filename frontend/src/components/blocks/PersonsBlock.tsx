@@ -20,11 +20,11 @@ function personSearchHaystack(person: Person): string {
 
 export function PersonsBlock({ block }: { block: PersonsBlockType }) {
   const raw = block.persons ?? []
-  const cap =
-    block.dataSource === 'dynamic'
-      ? Math.min(12, Math.max(1, block.dynamicFilters?.maxItems ?? 6))
-      : raw.length
-  const persons = block.dataSource === 'dynamic' ? raw.slice(0, cap) : raw
+  const maxItems = block.dynamicFilters?.maxItems
+  const persons =
+    block.dataSource === 'dynamic' && typeof maxItems === 'number' && maxItems > 0
+      ? raw.slice(0, maxItems)
+      : raw
   const [query, setQuery] = useState('')
   const searchOn = Boolean(block.searchOnPage)
   const qNorm = normalizeSearch(query)

@@ -94,6 +94,20 @@ export type GenerateLeadEvent = {
   user_data: Pick<UserData, 'email'>
 }
 
+export type WaitlistViewEvent = {
+  event: 'view_waitlist_form'
+  item_id: string
+  item_name: string
+}
+
+export type WaitlistSignupEvent = {
+  event: 'waitlist_signup'
+  item_id: string
+  item_name: string
+  quantity: number
+  user_data?: UserData
+}
+
 export type LoginEvent = {
   event: 'login'
   method: string
@@ -273,6 +287,8 @@ export type AnalyticsEvent =
   | SelectContentEvent
   | NewsletterSignupEvent
   | GenerateLeadEvent
+  | WaitlistViewEvent
+  | WaitlistSignupEvent
   | LoginEvent
   | SignUpEvent
   | PasswordResetRequestEvent

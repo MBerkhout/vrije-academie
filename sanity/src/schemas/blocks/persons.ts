@@ -1,6 +1,6 @@
 import { defineType, defineField } from "sanity"
 import { defineCtaUrlField } from "../objects/ctaUrl"
-import { createButtonSelectInput } from "../../components/ButtonSelectInput"
+import { createButtonMultiSelectInput, createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { PERSON_TYPE_OPTIONS } from "../../lib/personTypeOptions"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
 import { portableText } from "../objects/portableText"
@@ -89,15 +89,13 @@ export const personsBlock = defineType({
         defineField({
           name: "typeTags",
           title: "Type (filter)",
-          description: "Toon personen waarvan het type in deze lijst voorkomt (meerdere opties = OF).",
+          description:
+            "Toon personen waarvan het type in deze lijst voorkomt (meerdere opties = OF). Leeg = alle types.",
           type: "array",
-          of: [
-            {
-              type: "string",
-              options: { list: [...PERSON_TYPE_OPTIONS] },
-              components: { input: createButtonSelectInput([...PERSON_TYPE_OPTIONS]) },
-            },
-          ],
+          of: [{ type: "string" }],
+          options: { list: [...PERSON_TYPE_OPTIONS] },
+          validation: (Rule) => Rule.unique(),
+          components: { input: createButtonMultiSelectInput([...PERSON_TYPE_OPTIONS]) },
         }),
         defineField({
           name: "subjectTags",
@@ -114,9 +112,9 @@ export const personsBlock = defineType({
         defineField({
           name: "maxItems",
           title: "Max Items",
+          description: "Leave empty to show everyone matching the filters.",
           type: "number",
-          initialValue: 6,
-          validation: (Rule) => Rule.min(1).max(12),
+          validation: (Rule) => Rule.min(1).max(200),
         }),
         defineField({
           name: "sort",

@@ -33,6 +33,36 @@ export type RegistrationLineContext = {
   participantEmail?: string | null
 }
 
+export type WaitlistRegistrationContext = {
+  accountId: string
+  contactId: string
+  vaProductId: string
+  quantity: number
+  participantEmail?: string | null
+  externalId?: string
+}
+
+/** Salesforce Registration__c.Status__c for website waitlist signups. */
+export const REGISTRATION_WAITLIST_STATUS = "Wachtlijst"
+
+export function waitlistRegistrationToSalesforce(
+  input: WaitlistRegistrationContext
+): Partial<SfRegistrationShape> {
+  return {
+    ...(usesSalesforceMedusaCustomFields() && input.externalId
+      ? { Medusa_Registration_Id__c: input.externalId }
+      : {}),
+    Account__c: input.accountId,
+    Contact_Lookup__c: input.contactId,
+    vaProduct__c: input.vaProductId,
+    Status__c: REGISTRATION_WAITLIST_STATUS,
+    WebOrder__c: true,
+    Number_Of_People__c: input.quantity,
+    Total_Quantity__c: input.quantity,
+    EmailParticipant__c: input.participantEmail ?? undefined,
+  }
+}
+
 export function registrationToSalesforce(input: RegistrationLineContext): Partial<SfRegistrationShape> {
   const price = centsToMajorEur(input.lineTotalCents)
   const unit = centsToMajorEur(input.unitPriceCents)

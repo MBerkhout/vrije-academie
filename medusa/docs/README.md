@@ -7,7 +7,7 @@ Medusa 2 backend for commerce around events (lectures, series, excursions) model
 - **Product Group** = Medusa `Product` + linked `EventGroup` (`record_type`).
 - **Product** (ticket/instance) = Medusa `ProductVariant` + linked `EventItem` (`delivery_type`, `available_quantity`).
 - Optional **properties** (key/value) on the group or each variant for storefront filters.
-- Cart, checkout, promotions: default Medusa (no custom cart/discount interceptors). Line item quantity &gt; 1 is allowed.
+- Cart, checkout, promotions: default Medusa, plus **event-specific promotion target rules** (see Promotions below). Line item quantity &gt; 1 is allowed.
 
 See [EVENTS.md](./EVENTS.md) for the domain model and API details. Unified typo-tolerant search: [SEARCH.md](./SEARCH.md). Customer OTP / passwordless checkout: [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md).
 
@@ -88,6 +88,23 @@ Built-in Medusa inventory UI (sidebar **Inventory** / **Reservations** items, Se
 ## Promotions (discount codes)
 
 Medusa stores money in the **smallest currency unit** (e.g. EUR **cents**), including the **fixed amount** on a promotion’s application method. Example: **€2.00** off must be saved as **200**, not `2`. If you enter `2`, the cart applies **€0.02** — the storefront and Store API are consistent with Medusa’s totals; fix the promotion value in Admin (or `PATCH` the application method via Admin API).
+
+### Event-specific target rules
+
+In Admin → Promotions → **Target rules** (when application target is **Items**), four extra conditions are available:
+
+| Condition | Attribute | Value format |
+|-----------|-----------|--------------|
+| Item price (EUR) | `items.unit_price` | Amount in **euros** (major currency unit), e.g. `50` = €50.00. Operators: gt, gte, lt, lte. Only matching line items receive the discount. |
+| Event starts on or after | `items.metadata.event_start_from` | Calendar date (stored as `YYYYMMDD`, shown in Admin as `DD/MM/YYYY`). Use with **≥** or **>** . |
+| Event starts on or before | `items.metadata.event_start_until` | Same format. Use with **≤** or **<** . Combine both for a date range (two separate rules). |
+| Event city | `items.metadata.event_city_slug` | Catalog city **slug** (multiselect). |
+
+**Note:** Cart line item `unit_price` uses **major EUR** (same as Medusa store cart/order graph fields). This is different from promotion **fixed discount amounts**, which are stored in **cents** (see above).
+
+Event date/city values are written to line item metadata server-side when a variant is added to the cart (`POST /store/carts/:id/line-items`). Clients cannot set these keys. Carts created before this feature was deployed have no event metadata on existing lines.
+
+Implementation: `src/lib/event-line-item-metadata.ts`, `src/lib/promotion-event-rule-attributes.ts`, admin Vite plugin `src/admin/vite/promotion-rule-date-picker-plugin.ts` (patches the prebuilt dashboard promotion rule field for event date pickers), optional reference override under `src/admin/overrides/medusa-dashboard/.../rule-value-form-field/`, and core route overrides under `src/api/admin/promotions/` and `src/api/store/carts/[id]/line-items/`. Re-verify after every Medusa upgrade (`src/lib/medusa-core-imports.ts`, date-picker Vite plugin vs dashboard dist chunk shape).
 
 ## Catalog cities (plaatsen)
 

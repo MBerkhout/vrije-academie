@@ -20,6 +20,7 @@ import type {
   OrderItem,
   RegisterInput,
   RegisterPasswordlessInput,
+  JoinWaitlistInput,
   Variant,
   ProductFilters,
   EventFilters,
@@ -873,6 +874,18 @@ export const medusaClient: CommerceClient = {
     }
     setStoredJwt(data.token)
     return customerAfterToken(input.email)
+  },
+
+  async joinWaitlist(handle: string, input: JoinWaitlistInput): Promise<void> {
+    const res = await storeFetch(`/store/events/${encodeURIComponent(handle)}/waitlist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error((data as { message?: string }).message ?? 'WAITLIST_FAILED')
+    }
   },
 
   async getAuthStatus(): Promise<{ hasPassword: boolean }> {

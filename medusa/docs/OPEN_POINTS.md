@@ -8,7 +8,16 @@
 
 ## Cart quantity & promotions
 
-Default Medusa behaviour: line items may have quantity &gt; 1; promotion module is unchanged. Do not add cart/line-item/promotion workflow hooks for events without an explicit product decision.
+Default Medusa behaviour: line items may have quantity &gt; 1. **Event-specific promotion target rules** are implemented (price threshold, event start date range, event city) — see [README.md](./README.md#event-specific-target-rules).
+
+Core route overrides (re-verify on Medusa upgrades):
+
+- `src/api/store/carts/[id]/line-items/route.ts` — denormalizes `event_item` facets onto line item metadata
+- `src/api/admin/promotions/rule-attribute-options/[rule_type]/route.ts`
+- `src/api/admin/promotions/[id]/[rule_type]/route.ts`
+- `src/api/admin/promotions/rule-value-options/[rule_type]/[rule_attribute_id]/route.ts`
+
+Do not add further cart/line-item/promotion workflow hooks without an explicit product decision.
 
 ## Recurring events
 
@@ -36,7 +45,7 @@ Capacity is per **variant** (`EventItem.available_quantity`). Optional later: va
 
 ## Waitlist & reminders
 
-Future: waitlist when sold out, email/calendar reminders, analytics — see historical notes in git if needed.
+**Status**: Sold-out PDP waitlist is implemented — `POST /store/events/:handle/waitlist` creates a Salesforce `Registration__c` with `Status__c: Wachtlijst` and opts the customer into `Newsletter__c`. Future: email/calendar reminders, analytics refinements.
 
 ## Multi-language
 

@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto"
+
 import {
   ContainerRegistrationKeys,
   generateJwtToken,
@@ -439,4 +441,85 @@ export async function customerHasPassword(
   const normalized = assertValidEmail(email)
   if (await customerHasMedusaPassword(container, normalized)) return true
   return customerHasLegacyPassword(container, normalized)
+}
+
+export function generateTemporaryPassword(): string {
+  const suffix = randomBytes(6).toString("base64url")
+  return `VaTemp-${suffix}!`
+}
+
+export async function getCustomerById(
+  container: MedusaContainer,
+  customerId: string
+) {
+  const customerService = container.resolve(Modules.CUSTOMER) as ICustomerModuleService
+  try {
+    return await customerService.retrieveCustomer(customerId, { select: ["id", "email"] })
+  } catch {
+    throw new MedusaError(MedusaError.Types.NOT_FOUND, "Customer not found")
+  }
+}
+
+export async function resetCustomerPassword(
+  container: MedusaContainer,
+  email: string,
+  password?: string
+): Promise<{ password: string; email: string }> {
+  const normalized = assertValidEmail(email)
+  let resolvedPassword = password?.trim()
+
+  if (!resolvedPassword) {
+    resolvedPassword = generateTemporaryPassword()
+  } else if (resolvedPassword.length < 8) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Password must be at least 8 characters"
+    )
+  }
+
+  const customer = await getCustomerByEmail(container, normalized)
+  let authIdentity = await findAuthIdentityByEmail(container, normalized)
+
+  if (!authIdentity && !customer) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "No auth identity or customer found for this email"
+    )
+  }
+
+  if (!authIdentity) {
+    authIdentity = await ensurePasswordlessAuthIdentity(container, normalized)
+  }
+
+  if (customer && !authIdentity.app_metadata?.customer_id) {
+    await linkAuthIdentityToCustomer(container, authIdentity.id, customer.id)
+  }
+
+  const auth = container.resolve(Modules.AUTH) as {
+    updateProvider: (
+      provider: string,
+      data: Record<string, unknown>
+    ) => Promise<{ success: boolean; error?: string }>
+  }
+
+  const updated = await auth.updateProvider("emailpass", {
+    entity_id: normalized,
+    password: resolvedPassword,
+  })
+
+  if (!updated.success) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      updated.error ?? "Could not reset password"
+    )
+  }
+
+  if (customer) {
+    const legacyPassword = container.resolve(LEGACY_PASSWORD_MODULE) as InstanceType<
+      typeof LegacyPasswordModuleService
+    >
+    await legacyPassword.deleteByCustomerId(customer.id)
+  }
+
+  return { password: resolvedPassword, email: normalized }
 }

@@ -115,6 +115,7 @@ export type SfContactPushShape = {
   Salutation__c?: string
   Initials__c?: string
   Active__c?: boolean
+  Newsletter__c?: boolean
 }
 
 export const CUSTOMER_METADATA_KEYS = {
@@ -388,6 +389,10 @@ export function personAccountFieldsFromMedusa(
   applyMedusaAddressToAccountFields(fields, c.address)
   applyBirthdateFromMedusa(fields, meta, "account")
 
+  if (meta[CUSTOMER_METADATA_KEYS.newsletter] === true) {
+    fields.Newsletter__c = true
+  }
+
   return fields
 }
 
@@ -423,6 +428,10 @@ export function contactFieldsFromMedusa(c: MedusaCustomerShape): SfContactPushSh
 
   applyBirthdateFromMedusa(fields, meta, "contact")
 
+  if (meta[CUSTOMER_METADATA_KEYS.newsletter] === true) {
+    fields.Newsletter__c = true
+  }
+
   return fields
 }
 
@@ -437,6 +446,7 @@ export function customerPushPayloadFingerprint(c: MedusaCustomerShape): string {
     salutation: c.metadata?.[CUSTOMER_METADATA_KEYS.salutation] ?? null,
     initials: c.metadata?.[CUSTOMER_METADATA_KEYS.initials] ?? null,
     birthdate: c.metadata?.[CUSTOMER_METADATA_KEYS.birthdate] ?? null,
+    newsletter: c.metadata?.[CUSTOMER_METADATA_KEYS.newsletter] ?? null,
   })
 }
 

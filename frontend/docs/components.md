@@ -121,6 +121,8 @@ Block components in `@/components/blocks` map to Sanity block types. The main pa
 
 **Demand nearby**: Section background is **#f3f3f3** with a faint map image (**`src/assets/city-map.jpg`**) and a light tint layer; a centered **rounded yellow** card holds the title, optional intro, and a **joined** white input + **charcoal** submit row. The city field uses **`CitySuggestField`** (`src/components/search/CitySuggestField.tsx`): live plaats suggestions from `GET /api/search/places` (Medusa event city facets — same source as Ons aanbod filters), keyboard navigation, and navigation to **`/ons-aanbod/plaats/{slug}`** on select or submit. Copy (placeholder, button label) is in `src/content/form-strings.json` under `demandNearby`.
 
+**Persons** — `personsBlock`: Manual refs or **dynamic** GROQ list by **type** (unique multi-select: Docent / Team / Gastspreker) and subject. Empty **Max Items** shows everyone matching the filters (hard cap 200 in the query); a set max trims the list in the block. Optional on-page search filters the loaded cards client-side.
+
 ### Deferred Work
 
 Search codebase for `TODO(HUBSPOT)` and `TODO(EVENTS_DYNAMIC)`:
@@ -130,7 +132,6 @@ Search codebase for `TODO(HUBSPOT)` and `TODO(EVENTS_DYNAMIC)`:
 | TODO(HUBSPOT) | FormBlock | HubSpot form embed by ID |
 | TODO(HUBSPOT) | api/form-submit | HubSpot submission mapping |
 | TODO(HUBSPOT) | HeroBlock | Newsletter form submit handler |
-| TODO(EVENTS_DYNAMIC) | PersonsBlock | Dynamic persons by filters (dataSource=dynamic) |
 | TODO(EVENTS_DYNAMIC) | ColumnsBlock | productCards dynamic source (Medusa removed; manual items only) |
 
 ## Testing
@@ -205,7 +206,7 @@ The `exclusief` status triggers when the product has a tag whose value contains 
 
 **Sessions** (`PdpLocationTabs`): hybrid products show a delivery filter (**Beide** | **Online** with camera icon | **Fysiek** with pin icon). Online and offline sessions share one list; each row shows a blue camera (online) or red pin (offline) before the location. **Beide** lists online and offline sessions together; a city tab row (**Alle locaties** + per city) appears for **Beide** and **Fysiek**, not for **Online** (per-city tabs filter offline sessions only). With multiple sessions, a sort dropdown (datum / locatie) appears beside the **Sessies** heading and **Locatie** / **Datum** column headers are clickable (toggle asc/desc). On **mobile** (`< md`), delivery and city tab rows keep left alignment with the page container but **bleed to the right viewport edge** (tabs cut off); **`max-md:pr-4`** adds trailing space after the last tab when scrolled to the end. Horizontal scroll uses the **`scrollbar-va`** utility (dark gray thumb with subtle yellow accent on a light gray track). Each session is a stacked card (availability first, then location, **date and time on separate lines**, instructor, then price left + **Direct inschrijven** right); from **`md` up**, column tables are used (venue as second line under city when set). Instructor names are **hoverable** when a profile (photo and/or bio) is available: a card shows image, name, and description (`PdpInstructorHoverCard`). On touch, tap the name to toggle the card.
 
-**Session availability** (`sessionTableAvailabilityPresentation`): **Volgeboekt** at 0; **Nog N plaats(en)** when `available_quantity ≤ lowStockThreshold` (Sanity default 5); **Beschikbaar** when **10+** spots remain; otherwise **N beschikbaar** (e.g. 6–9 spots). **Product-level sold out** (`eventIsFullySoldOut` in `PdpBookingPanel`, PLP cards, JSON-LD): only when **every** bookable session is volgeboekt — not when `min_available_quantity` is 0 because a single date sold out.
+**Session availability** (`sessionTableAvailabilityPresentation`): **Volgeboekt** at 0; **Nog N plaats(en)** when `available_quantity ≤ lowStockThreshold` (Sanity default 5); **Beschikbaar** when **10+** spots remain; otherwise **N beschikbaar** (e.g. 6–9 spots). **Product-level sold out** (`eventIsFullySoldOut` in `PdpBookingPanel`, PLP cards, JSON-LD): only when **every** bookable session is volgeboekt — not when `min_available_quantity` is 0 because a single date sold out. When fully sold out, `PdpBookingPanel` opens **`PdpWaitlistModal`** (wachtlijst form → `POST /store/events/:handle/waitlist`).
 
 **External registration (reizen):** Salesforce `External_Registration_URL_Product__c` on a child product is stored per session. Session **Direct inschrijven** opens that child’s URL (new tab). If the child has no URL, the product-group `External_Registration_URL__c` is used. The booking-panel CTA uses the same link when every session shares one URL; if sessions mix cart and partner links (or have different partner URLs), it scrolls to the session list.
 
@@ -228,4 +229,4 @@ If a page loads but shows no blocks (or the fallback "Geen inhoud op deze pagina
 3. **Slug** – Check the page’s slug in Sanity. It can differ from the title (e.g. `test-1` if `test` already exists).
 4. **Inline blocks** – Blocks are object types embedded on the page. If blocks are missing after a schema change, run `npm run migrate:blocks-inline --prefix sanity` to inline legacy `_ref` stubs, then republish affected pages.
 5. **Draft mode** – Draft content requires `SANITY_API_READ_TOKEN` with Viewer role and draft mode enabled via Presentation or `/api/draft`.
-6. **Homepage / category tiles out of date on staging** – The home route (`app/(main)/page.tsx`) uses `revalidate = 60` like other CMS pages. If category images (or other Sanity content) show locally but not on a deployed frontend, redeploy so `npm run build` picks up fresh CMS data; an old fully static prerender can keep serving HTML without tile images until then.
+6. **Homepage / category tiles out of date on staging** – CMS pages (`app/(main)/page.tsx`, `app/(main)/[...slug]/page.tsx`) use `revalidate = 60`. Publishing in Sanity should bust the cache immediately via `POST /api/revalidate/sanity` (see `docs/DEPLOYMENT.md` § Performance & caching). If content is still stale, check that `SANITY_REVALIDATE_SECRET` is set and the Sanity webhook is configured. Without the webhook, wait up to 60 s or redeploy so `npm run build` picks up fresh CMS data.

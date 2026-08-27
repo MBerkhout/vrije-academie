@@ -10,6 +10,7 @@ import { schemaTypes } from "./src/schemas"
 import { resolve } from "./src/presentation/resolve"
 import { mirroredDocumentActions } from "./src/lib/mirrorActions"
 import { redirectAwareDocumentActions } from "./src/lib/redirectActions"
+import { PAGE_IN_FOLDER_TEMPLATE } from "./src/structure/page-tree"
 
 const previewOrigin =
   process.env.SANITY_STUDIO_PREVIEW_URL || "https://v2.vrijeacademie.nl"
@@ -43,16 +44,38 @@ export default defineConfig({
 
   schema: {
     types: schemaTypes,
+    templates: (prev) => [
+      ...prev,
+      {
+        id: PAGE_IN_FOLDER_TEMPLATE,
+        title: "Page in folder",
+        schemaType: "page",
+        parameters: [
+          { name: "isVaThuis", title: "VA Thuis page", type: "boolean" },
+          { name: "slugPrefix", title: "Slug prefix", type: "string" },
+        ],
+        value: ({
+          isVaThuis,
+          slugPrefix,
+        }: {
+          isVaThuis?: boolean
+          slugPrefix?: string
+        }) => ({
+          isVaThuis: isVaThuis ?? false,
+          slug: { _type: "slug", current: slugPrefix ?? "" },
+        }),
+      },
+    ],
   },
 
   document: {
     actions: (prev, context) =>
       redirectAwareDocumentActions(mirroredDocumentActions(prev, context), context),
     newDocumentOptions: (prev, { creationContext }) => {
-      // Hide mirror types from the "Create new" menu
-      const MIRROR = ["product", "category", "docent"]
+      // Hide mirror types and contextual page templates from the global "Create new" menu
+      const HIDDEN_GLOBAL_TEMPLATES = ["product", "category", "docent", PAGE_IN_FOLDER_TEMPLATE]
       if (creationContext.type === "global") {
-        return prev.filter((item) => !MIRROR.includes(item.templateId))
+        return prev.filter((item) => !HIDDEN_GLOBAL_TEMPLATES.includes(item.templateId))
       }
       return prev
     },

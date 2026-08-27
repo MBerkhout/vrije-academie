@@ -33,13 +33,13 @@ const PERSON_PUBLIC_FIELDS = `_id, name, photo { asset-> }, role, bio, profileUr
  * Filter for dynamic persons list. `^` = enclosing personsBlock (must be valid in this projection scope).
  * Empty typeTags / subjectTags = no filter on that axis.
  */
-const PERSONS_DYNAMIC_FILTER = `_type == "person" &&
-        (count(coalesce(^.dynamicFilters.typeTags, [])) == 0 || personType in coalesce(^.dynamicFilters.typeTags, [])) &&
+const PERSONS_DYNAMIC_FILTER = `_type == "person" && defined(name) &&
+        (count(array::unique(coalesce(^.dynamicFilters.typeTags, []))) == 0 || personType in array::unique(coalesce(^.dynamicFilters.typeTags, []))) &&
         (count(coalesce(^.dynamicFilters.subjectTags, [])) == 0 || count(coalesce(subjectTags, [])[@ in coalesce(^.dynamicFilters.subjectTags, [])]) > 0) &&
         !(_id in coalesce(^.dynamicFilters.exclude[]._ref, []))`
 
-/** GROQ range endpoints must be integer literals; cap 12 matches schema max. Trim with dynamicFilters.maxItems in PersonsBlock. */
-const PERSONS_DYNAMIC_SLICE = '[0..11]'
+/** GROQ range endpoints must be integer literals; cap matches schema max. Trim with dynamicFilters.maxItems in PersonsBlock when set. */
+const PERSONS_DYNAMIC_SLICE = '[0..199]'
 
 /** Inline personsBlock on page.blocks[]: conditions use @. ; ^ still refers to the block object. */
 const PERSONS_BLOCK_RESOLVED_PERSONS_INLINE = `"persons": select(

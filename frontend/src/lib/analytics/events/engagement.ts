@@ -56,6 +56,29 @@ export function trackGenerateLead(
   })
 }
 
+export function trackViewWaitlistForm(itemId: string, itemName: string): void {
+  pushEvent({
+    event: 'view_waitlist_form',
+    item_id: itemId,
+    item_name: itemName,
+  })
+}
+
+export function trackWaitlistSignup(options: {
+  itemId: string
+  itemName: string
+  quantity: number
+  userData?: UserData
+}): void {
+  pushEvent({
+    event: 'waitlist_signup',
+    item_id: options.itemId,
+    item_name: options.itemName,
+    quantity: options.quantity,
+    ...(options.userData ? { user_data: options.userData } : {}),
+  })
+}
+
 export function trackLogin(email: string, method = 'email'): void {
   pushEvent({
     event: 'login',

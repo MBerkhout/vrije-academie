@@ -95,3 +95,7 @@ Returns `{ methods: [{ id, name, imageUrl }] }` from the Mollie payment provider
 ### `POST /hooks/payment/pp_mollie_mollie`
 
 Built-in Medusa payment webhook endpoint. Mollie calls this with a payment ID; Medusa's payment module calls `MolliePaymentProviderService.getWebhookActionAndData` which fetches the payment status and maps it to a Medusa `WebhookActionResult`. On `authorized` or `captured` the cart is completed and an order is created. Set `MOLLIE_WEBHOOK_URL=https://your-domain/hooks/payment/pp_mollie_mollie` in `medusa/.env`.
+
+### `POST /store/events/:handle/waitlist`
+
+Body: `{ quantity, first_name, last_name, email, phone }`. Available only when the product is **fully sold out** (every bookable session has `available_quantity === 0`). Creates or reuses a passwordless Medusa customer, pushes Person Account + `Newsletter__c` to Salesforce, and creates a `Registration__c` with `Status__c: Wachtlijst` (no order). Optional customer JWT pre-fills profile fields.

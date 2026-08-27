@@ -3,6 +3,15 @@ import { authenticate, defineMiddlewares } from "@medusajs/framework/http"
 export default defineMiddlewares({
   routes: [
     {
+      matcher: "/store/events/*/waitlist",
+      method: "POST",
+      middlewares: [
+        authenticate("customer", ["session", "bearer"], {
+          allowUnauthenticated: true,
+        }),
+      ],
+    },
+    {
       matcher: "/store/customer/me/auth-status",
       middlewares: [authenticate("customer", ["session", "bearer"])],
     },
@@ -53,6 +62,12 @@ export default defineMiddlewares({
     },
     {
       matcher: "/admin/salesforce/*",
+      middlewares: [
+        authenticate("user", ["session", "bearer", "api-key"]),
+      ],
+    },
+    {
+      matcher: "/admin/customer-auth/*",
       middlewares: [
         authenticate("user", ["session", "bearer", "api-key"]),
       ],

@@ -1,3 +1,11 @@
+/** Stable external id for waitlist Registration__c rows (no order). */
+export function buildWaitlistRegistrationExternalId(
+  customerId: string,
+  vaProductId: string
+): string {
+  return `waitlist:${customerId}:${vaProductId}`
+}
+
 /** Stable external id for Registration__c.Medusa_Registration_Id__c */
 export function buildRegistrationExternalId(
   orderId: string,
