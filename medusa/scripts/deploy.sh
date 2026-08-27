@@ -27,7 +27,9 @@ mkdir -p public
 rm -rf public/admin
 ln -sfn ../dist/public/admin public/admin
 
-npm run migrate
+# --execute-all-links skips the interactive "Select tables to DELETE" prompt
+# (removed module links) so migrate cannot hang in non-interactive SSH/CI.
+npx medusa db:migrate --execute-all-links
 
 # startOrReload re-applies ecosystem.config.cjs (instances, exec_mode, etc.) on every
 # deploy instead of blindly reloading whatever process object already exists in PM2 —

@@ -55,6 +55,8 @@ Apply Medusa migrations (includes `events` module):
 npx medusa db:migrate
 ```
 
+Staging/CI (`medusa/scripts/deploy.sh`) uses `npx medusa db:migrate --execute-all-links` so removed module-link tables are dropped without the interactive “Select tables to DELETE” prompt. Locally the prompt is fine; do not run `--execute-all-links` unless you intend to drop leftover link tables.
+
 ### Development
 
 ```bash

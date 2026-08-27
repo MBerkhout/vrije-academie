@@ -2,7 +2,7 @@ import { model } from "@medusajs/framework/utils"
 
 /**
  * Canonical venue/location for offline event sessions.
- * Linked to `ProductVariant` via the variant-locations link.
+ * Referenced from `event_item.catalog_location_id` (not a module link).
  */
 export const Location = model.define("catalog_location", {
   id: model.id().primaryKey(),

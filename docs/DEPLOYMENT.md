@@ -266,6 +266,8 @@ Then use `~/app/medusa/scripts/deploy.sh` (preferred) or `cd ~/app/medusa && pm2
 
 **`Unknown arguments: migrations, run`** — Medusa v2 uses `db:migrate`, not `migrations run`. Ensure `package.json` has `"migrate": "medusa db:migrate"` (then `npm run migrate`).
 
+**Deploy hangs after `Migrations completed` / `Syncing links...` on `Select tables to DELETE`** — Medusa found link tables in the database whose `src/links/` definitions were removed (currently the old variant ↔ city / location / docent pivots; session facets now live on `EventItem`). Locally that is an interactive checkbox; over SSH there is no TTY so migrate never finishes and PM2 is never reloaded. `medusa/scripts/deploy.sh` runs `npx medusa db:migrate --execute-all-links`, which creates/updates links and **drops** removed link tables without prompting. To unblock a hung deploy: Ctrl+C the stuck migrate, then re-run `bash ~/app/medusa/scripts/deploy.sh` (or `npx medusa db:migrate --execute-all-links` then `pm2 startOrReload ecosystem.config.cjs`). Do not use `--execute-safe-links` here — that skips the drops and the prompt returns on the next migrate.
+
 **`Could not find index.html in the admin build directory`** — After `npm run build`, link the admin output (deploy script does this automatically):
 
 ```bash
