@@ -2,8 +2,6 @@ import { updateCartWorkflowId } from "@medusajs/core-flows"
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, MedusaError, Modules } from "@medusajs/framework/utils"
 
-import { toNumber } from "./store-cart"
-
 /** Default country for included-VAT preview (NL product-type rules incl. BTW laag). */
 const DEFAULT_TAX_COUNTRY = "nl"
 
@@ -30,7 +28,6 @@ export async function ensureCartTaxPreview(
     entity: "cart",
     fields: [
       "id",
-      "tax_total",
       "shipping_address.country_code",
       "items.id",
       "items.is_giftcard",
@@ -42,7 +39,6 @@ export async function ensureCartTaxPreview(
   const cart = carts?.[0] as
     | {
         id: string
-        tax_total?: unknown
         shipping_address?: { country_code?: string | null } | null
         items?: { id: string; is_giftcard?: boolean; metadata?: Record<string, unknown> | null }[]
       }
@@ -62,9 +58,8 @@ export async function ensureCartTaxPreview(
   }
 
   const country = cart.shipping_address?.country_code?.trim()
-  const taxTotal = toNumber(cart.tax_total)
 
-  if (country && taxTotal > 0) {
+  if (country) {
     return { updated: false }
   }
 
@@ -73,7 +68,7 @@ export async function ensureCartTaxPreview(
     input: {
       id: cartId,
       shipping_address: {
-        country_code: (country || DEFAULT_TAX_COUNTRY).toLowerCase(),
+        country_code: DEFAULT_TAX_COUNTRY,
       },
     },
   })

@@ -98,10 +98,9 @@ const CART_RETRIEVE_QUERY = {
 async function ensureCartTaxCountry(cart: Cart): Promise<Cart> {
   const hasItems = (cart.items?.length ?? 0) > 0
   const hasCatalogLine = cart.items.some((item) => !item.is_giftcard)
-  const taxMissing = hasCatalogLine && (cart.tax_total ?? 0) === 0
   const country = cart.shipping_address?.country_code?.trim()
 
-  if (!hasItems || (country && !taxMissing)) return cart
+  if (!hasItems || !hasCatalogLine || country) return cart
 
   try {
     const res = await storeFetch(`/store/carts/${cart.id}/tax-preview`, { method: 'POST' })
