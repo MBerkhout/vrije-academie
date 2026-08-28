@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { grossMerchandiseTotalCents, vatIncludedLabel, vatPercentFromCartLike } from '@/lib/commerce/vat'
+import {
+  grossMerchandiseTotalCents,
+  vatIncludedLabel,
+  vatIncludedLabelForCart,
+  vatPercentFromCartLike,
+} from '@/lib/commerce/vat'
 
 describe('vat helpers', () => {
   it('builds waarvan BTW label with dynamic rate', () => {
@@ -7,13 +12,32 @@ describe('vat helpers', () => {
     expect(vatIncludedLabel(25.5)).toBe('waarvan BTW (25,5%)')
   })
 
-  it('falls back to EU country VAT rate', () => {
+  it('uses Medusa tax lines only (no country fallback)', () => {
+    expect(vatPercentFromCartLike({ items: [] })).toBeUndefined()
     expect(
       vatPercentFromCartLike({
-        items: [],
-        shipping_address: { country_code: 'de' },
+        items: [{ tax_lines: [{ rate: 9 }] }],
       })
-    ).toBe(19)
+    ).toBe(9)
+  })
+
+  it('omits % when cart has mixed VAT rates', () => {
+    expect(
+      vatIncludedLabelForCart({
+        items: [
+          { tax_lines: [{ rate: 9 }] },
+          { tax_lines: [{ rate: 21 }] },
+        ],
+      })
+    ).toBe('waarvan BTW')
+  })
+
+  it('shows single rate from tax lines', () => {
+    expect(
+      vatIncludedLabelForCart({
+        items: [{ tax_lines: [{ rate: 9 }] }],
+      })
+    ).toBe('waarvan BTW (9%)')
   })
 
   it('computes gross merchandise total from payable total', () => {

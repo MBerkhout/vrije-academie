@@ -8,7 +8,7 @@ import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
 import { buildCartLineItemDetailBlocks, buildLineItemQuantityLabel, type BuildLineItemDetailsOptions } from '@/lib/commerce/line-item-details'
 import { CartLineItemDetails } from '@/components/cart/CartLineItemDetails'
 import { formatPriceEur } from '@/lib/locale-format'
-import { grossMerchandiseTotalCents, vatIncludedLabel, vatPercentFromCartLike } from '@/lib/commerce/vat'
+import { grossMerchandiseTotalCents, vatIncludedLabelForCart } from '@/lib/commerce/vat'
 import { TrustSignals } from '@/components/cart/TrustSignals'
 
 export interface CheckoutHelpContact {
@@ -180,8 +180,7 @@ export function OrderSummaryTotalsBlock({ cart, labels }: Pick<CheckoutOrderSumm
 
   const subtotalLabel = labels?.subtotalLabel ?? 'Subtotaal'
   const discountLabel = labels?.discountLabel ?? 'Korting'
-  const vatRate = cart.tax_rate ?? vatPercentFromCartLike(cart)
-  const vatLabel = labels?.vatLabel ?? vatIncludedLabel(vatRate)
+  const vatLabel = labels?.vatLabel ?? vatIncludedLabelForCart(cart)
   const totalLabel = labels?.totalLabel ?? 'Totaal'
   const grossSubtotal = grossMerchandiseTotalCents(cart)
 

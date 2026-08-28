@@ -68,7 +68,7 @@ Zie ook [`medusa/docs/GIFT-CARDS.md`](../../medusa/docs/GIFT-CARDS.md).
 
 ### Pricing & BTW
 
-Catalog prices from Salesforce are **tax-inclusive** (consumer gross). Medusa extracts the included VAT; the customer always pays the catalog total. The **Producten** line shows the gross merchandise amount (`total + discount + credit`). **waarvan BTW (X%)** uses the rate from cart tax lines or the shipping country (EU standard rates; default NL 21%). Styled lighter (`text-va-gray`) to read as included, not added. Helpers: `src/lib/commerce/vat.ts`.
+Catalog prices from Salesforce are **tax-inclusive** (consumer gross). Medusa extracts the included VAT; the customer always pays the catalog total. The **Producten** line shows the gross merchandise amount (`total + discount + credit`). **waarvan BTW** amounts come from Medusa `tax_total` (respecting NL product-type rules such as BTW laag 9%). Before checkout, carts without a country get `shipping_address.country_code: nl` so tax can be calculated. The label shows **(X%)** only when all lines share one rate; mixed carts show **waarvan BTW** without a percentage. Styled lighter (`text-va-gray`) to read as included, not added. Helpers: `src/lib/commerce/vat.ts`.
 | `TrustSignals` | 3 reassurance lines (secure, cancellation, support) |
 | `ProceedCta` | Primary CTA — routes to `/checkout/inloggen` (step 2) |
 | `EmptyCart` | Illustration + heading + CTA when cart is empty |

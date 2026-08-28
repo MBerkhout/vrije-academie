@@ -75,6 +75,9 @@ import {
 } from './normalize-store-money'
 import { vatPercentFromCartLike } from './vat'
 
+/** Default country so Medusa can calculate included VAT (incl. NL BTW laag product-type rules). */
+const DEFAULT_TAX_COUNTRY = 'nl'
+
 const CART_RETRIEVE_QUERY = {
   fields: [
     'id',
@@ -94,6 +97,19 @@ const CART_RETRIEVE_QUERY = {
     'promotions.*',
   ].join(','),
 } as const
+
+async function ensureCartTaxCountry(cart: Cart): Promise<Cart> {
+  const hasItems = (cart.items?.length ?? 0) > 0
+  const country = cart.shipping_address?.country_code?.trim()
+  if (!hasItems || country) return cart
+
+  const response = await medusa.store.cart.update(
+    cart.id,
+    { shipping_address: { country_code: DEFAULT_TAX_COUNTRY } },
+    CART_RETRIEVE_QUERY
+  )
+  return normalizeStoreCart(response.cart)
+}
 
 function getFetchStatus(e: unknown): number | undefined {
   if (typeof e === 'object' && e !== null && 'status' in e) {
@@ -273,8 +289,6 @@ function mapStoreOrder(raw: unknown): Order {
         : undefined,
     tax_rate: vatPercentFromCartLike({
       items: o.items as unknown[] | undefined,
-      shipping_address: o.shipping_address as { country_code?: string | null } | null | undefined,
-      billing_address: o.billing_address as { country_code?: string | null } | null | undefined,
       tax_rate: typeof o.tax_rate === 'number' ? o.tax_rate : undefined,
     }),
     currency_code: typeof o.currency_code === 'string' ? o.currency_code : undefined,
@@ -654,7 +668,9 @@ export const medusaClient: CommerceClient = {
   async getCart(id: string): Promise<Cart | null> {
     try {
       const response = await medusa.store.cart.retrieve(id, CART_RETRIEVE_QUERY)
-      return response.cart ? normalizeStoreCart(response.cart) : null
+      if (!response.cart) return null
+      const cart = normalizeStoreCart(response.cart)
+      return ensureCartTaxCountry(cart)
     } catch (error) {
       return null
     }
@@ -678,7 +694,7 @@ export const medusaClient: CommerceClient = {
       },
       CART_RETRIEVE_QUERY
     )
-    return normalizeStoreCart(response.cart)
+    return ensureCartTaxCountry(normalizeStoreCart(response.cart))
   },
 
   async updateCartItem(
@@ -692,14 +708,14 @@ export const medusaClient: CommerceClient = {
       { quantity },
       CART_RETRIEVE_QUERY
     )
-    return normalizeStoreCart(response.cart)
+    return ensureCartTaxCountry(normalizeStoreCart(response.cart))
   },
 
   async removeFromCart(cartId: string, itemId: string): Promise<Cart> {
     const response = await medusa.store.cart.deleteLineItem(cartId, itemId, CART_RETRIEVE_QUERY)
     const cart = (response as { cart?: Cart; parent?: Cart }).parent ?? (response as { cart?: Cart }).cart
     if (!cart) throw new Error('Cart not returned after line item deletion')
-    return normalizeStoreCart(cart)
+    return ensureCartTaxCountry(normalizeStoreCart(cart))
   },
 
   async applyPromoCodes(cartId: string, codes: string[]): Promise<Cart> {
@@ -708,7 +724,7 @@ export const medusaClient: CommerceClient = {
       { promo_codes: codes } as any,
       CART_RETRIEVE_QUERY
     )
-    return normalizeStoreCart(response.cart)
+    return ensureCartTaxCountry(normalizeStoreCart(response.cart))
   },
 
   async removePromoCodes(cartId: string, codes: string[]): Promise<Cart> {
@@ -726,7 +742,7 @@ export const medusaClient: CommerceClient = {
       throw new Error((err as { message?: string }).message ?? 'Failed to remove promotion')
     }
     const data = await res.json()
-    return normalizeStoreCart(data.cart)
+    return ensureCartTaxCountry(normalizeStoreCart(data.cart))
   },
 
   async applyCode(
@@ -752,7 +768,7 @@ export const medusaClient: CommerceClient = {
       if (!res.ok) return null
       const data = await res.json()
       return {
-        cart: normalizeStoreCart(data.cart),
+        cart: await ensureCartTaxCountry(normalizeStoreCart(data.cart)),
         kind: 'gift_card' as const,
         applied_amount: data.applied_amount,
         remaining_balance: data.remaining_balance,
@@ -802,7 +818,7 @@ export const medusaClient: CommerceClient = {
       throw new Error('REMOVE_GIFT_FAILED')
     }
     const data = await res.json()
-    return normalizeStoreCart(data.cart)
+    return ensureCartTaxCountry(normalizeStoreCart(data.cart))
   },
 
   async syncGiftCardCredits(cartId: string): Promise<Cart> {
@@ -815,7 +831,7 @@ export const medusaClient: CommerceClient = {
       throw new Error('SYNC_GIFT_FAILED')
     }
     const data = await res.json()
-    return normalizeStoreCart(data.cart)
+    return ensureCartTaxCountry(normalizeStoreCart(data.cart))
   },
 
   async addGiftCardToCart(input: {
@@ -843,12 +859,12 @@ export const medusaClient: CommerceClient = {
       throw new Error((err as any).message || 'ADD_GIFT_CARD_FAILED')
     }
     const data = await res.json()
-    return normalizeStoreCart(data.cart)
+    return ensureCartTaxCountry(normalizeStoreCart(data.cart))
   },
 
   async updateCart(cartId: string, input: CartUpdateInput): Promise<Cart> {
     const response = await medusa.store.cart.update(cartId, input as any, CART_RETRIEVE_QUERY)
-    return normalizeStoreCart(response.cart)
+    return ensureCartTaxCountry(normalizeStoreCart(response.cart))
   },
 
   // Auth / customer

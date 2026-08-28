@@ -112,8 +112,6 @@ export function normalizeStoreCart(raw: unknown): Cart {
 
   const tax_rate = vatPercentFromCartLike({
     items: o.items as unknown[] | undefined,
-    shipping_address: o.shipping_address as Cart['shipping_address'],
-    billing_address: o.billing_address as Cart['billing_address'],
     tax_rate: typeof o.tax_rate === 'number' ? o.tax_rate : undefined,
   })
 
