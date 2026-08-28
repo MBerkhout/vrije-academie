@@ -6,6 +6,7 @@ import {
   buildEventLineItemMetadata,
   stripReservedEventLineItemMetadata,
 } from "../../../../../lib/event-line-item-metadata"
+import { ensureCartTaxPreview } from "../../../../../lib/ensure-cart-tax-preview"
 import { refetchCart } from "../../../../../lib/medusa-core-imports"
 
 type StoreAddCartLineItemBody = {
@@ -45,6 +46,8 @@ export async function POST(
       additional_data: body.additional_data,
     },
   })
+
+  await ensureCartTaxPreview(req.scope, req.params.id)
 
   const cart = await refetchCart(req.params.id, req.scope, req.queryConfig.fields)
   res.status(200).json({ cart })

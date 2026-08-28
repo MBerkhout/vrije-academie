@@ -75,9 +75,6 @@ import {
 } from './normalize-store-money'
 import { vatPercentFromCartLike } from './vat'
 
-/** Default country so Medusa can calculate included VAT (incl. NL BTW laag product-type rules). */
-const DEFAULT_TAX_COUNTRY = 'nl'
-
 const CART_RETRIEVE_QUERY = {
   fields: [
     'id',
@@ -100,15 +97,21 @@ const CART_RETRIEVE_QUERY = {
 
 async function ensureCartTaxCountry(cart: Cart): Promise<Cart> {
   const hasItems = (cart.items?.length ?? 0) > 0
+  const hasCatalogLine = cart.items.some((item) => !item.is_giftcard)
+  const taxMissing = hasCatalogLine && (cart.tax_total ?? 0) === 0
   const country = cart.shipping_address?.country_code?.trim()
-  if (!hasItems || country) return cart
 
-  const response = await medusa.store.cart.update(
-    cart.id,
-    { shipping_address: { country_code: DEFAULT_TAX_COUNTRY } },
-    CART_RETRIEVE_QUERY
-  )
-  return normalizeStoreCart(response.cart)
+  if (!hasItems || (country && !taxMissing)) return cart
+
+  try {
+    const res = await storeFetch(`/store/carts/${cart.id}/tax-preview`, { method: 'POST' })
+    if (!res.ok) return cart
+    const data = (await res.json()) as { cart?: unknown }
+    if (!data.cart) return cart
+    return normalizeStoreCart(data.cart)
+  } catch {
+    return cart
+  }
 }
 
 function getFetchStatus(e: unknown): number | undefined {

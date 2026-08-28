@@ -106,6 +106,8 @@ In Admin → Promotions → **Target rules** (when application target is **Items
 
 Event date/city values are written to line item metadata server-side when a variant is added to the cart (`POST /store/carts/:id/line-items`). Clients cannot set these keys. Carts created before this feature was deployed have no event metadata on existing lines.
 
+**Included VAT preview:** `POST /store/carts/:id/tax-preview` sets a minimal NL shipping country when the cart has catalog lines but no calculable `tax_total`, so storefront totals can show Medusa-extracted BTW (incl. product-type rules such as BTW laag). Also runs automatically after add-to-cart.
+
 Implementation: `src/lib/event-line-item-metadata.ts`, `src/lib/promotion-event-rule-attributes.ts`, admin Vite plugin `src/admin/vite/promotion-rule-date-picker-plugin.ts` (patches the prebuilt dashboard promotion rule field for event date pickers), optional reference override under `src/admin/overrides/medusa-dashboard/.../rule-value-form-field/`, and core route overrides under `src/api/admin/promotions/` and `src/api/store/carts/[id]/line-items/`. Re-verify after every Medusa upgrade (`src/lib/medusa-core-imports.ts`, date-picker Vite plugin vs dashboard dist chunk shape).
 
 ## Catalog cities (plaatsen)
