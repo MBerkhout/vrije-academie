@@ -89,6 +89,8 @@ After changing Medusa `.env`, reload PM2 (`pm2 startOrReload ecosystem.config.cj
 
 Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS origins, database, Redis, etc.
 
+**Tax-inclusive pricing (one-time):** after first Medusa setup or when tax/country config changes, run as the `medusa` user: `cd ~/app/medusa && npm run seed:region`. Seeds all EU countries on the EUR region, standard VAT rates, and EUR tax-inclusive price preference (Salesforce gross prices must not be surcharged with VAT).
+
 **Visual editing (Presentation tool)** — required in `~/app/frontend/.env`:
 
 | Variable | Description |

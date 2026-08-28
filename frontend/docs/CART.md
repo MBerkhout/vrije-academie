@@ -64,7 +64,11 @@ Zie ook [`medusa/docs/GIFT-CARDS.md`](../../medusa/docs/GIFT-CARDS.md).
 | `GiftCardRecipientLine` | Alleen de **Voor:**-regel; aangeroepen vanuit `CartLineItemDetails` |
 | `CartItemRow` | Thumbnail, title, `CartLineItemDetails`, qty selector, remove |
 | `DiscountCodeForm` | Kortings- **en** cadeauboncodes (zelfde veld); `commerceClient.applyCode`; verwijderen: `removePromoCodes` (alleen niet-automatische promo) / `removeGiftCardCode` (cadeaubon). Promoties met `is_automatic` uit de Store API tonen geen verwijderknop. |
-| `OrderSummary` | Subtotal / discount / cadeaubon-tegoed (`credit_line_total`) / BTW / total |
+| `OrderSummary` | Subtotal (gross producten) / discount / cadeaubon-tegoed (`credit_line_total`) / **waarvan BTW (X%)** / total |
+
+### Pricing & BTW
+
+Catalog prices from Salesforce are **tax-inclusive** (consumer gross). Medusa extracts the included VAT; the customer always pays the catalog total. The **Producten** line shows the gross merchandise amount (`total + discount + credit`). **waarvan BTW (X%)** uses the rate from cart tax lines or the shipping country (EU standard rates; default NL 21%). Styled lighter (`text-va-gray`) to read as included, not added. Helpers: `src/lib/commerce/vat.ts`.
 | `TrustSignals` | 3 reassurance lines (secure, cancellation, support) |
 | `ProceedCta` | Primary CTA — routes to `/checkout/inloggen` (step 2) |
 | `EmptyCart` | Illustration + heading + CTA when cart is empty |

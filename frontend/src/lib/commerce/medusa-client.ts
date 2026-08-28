@@ -73,6 +73,27 @@ import {
   normalizeStoreCart,
   parseMoney,
 } from './normalize-store-money'
+import { vatPercentFromCartLike } from './vat'
+
+const CART_RETRIEVE_QUERY = {
+  fields: [
+    'id',
+    'currency_code',
+    'region_id',
+    'total',
+    'subtotal',
+    'tax_total',
+    'discount_total',
+    'credit_line_total',
+    'metadata',
+    'completed_at',
+    'shipping_address.*',
+    'billing_address.*',
+    'items.*',
+    'items.tax_lines.rate',
+    'promotions.*',
+  ].join(','),
+} as const
 
 function getFetchStatus(e: unknown): number | undefined {
   if (typeof e === 'object' && e !== null && 'status' in e) {
@@ -250,6 +271,12 @@ function mapStoreOrder(raw: unknown): Order {
           ? parseMoney(o.tax_total)
           : cartAggregateToStorefrontCents(o.tax_total)
         : undefined,
+    tax_rate: vatPercentFromCartLike({
+      items: o.items as unknown[] | undefined,
+      shipping_address: o.shipping_address as { country_code?: string | null } | null | undefined,
+      billing_address: o.billing_address as { country_code?: string | null } | null | undefined,
+      tax_rate: typeof o.tax_rate === 'number' ? o.tax_rate : undefined,
+    }),
     currency_code: typeof o.currency_code === 'string' ? o.currency_code : undefined,
     items,
     payment_status: typeof o.payment_status === 'string' ? o.payment_status : undefined,
@@ -392,21 +419,29 @@ async function ensureMollieBillingForPayment(cartId: string): Promise<void> {
     } else {
       await medusa.store.customer.createAddress(addressPayload)
     }
-    await medusa.store.cart.update(cartId, {
-      email: customer.email,
-      shipping_address: payload,
-      billing_address: payload,
-    } as any)
+    await medusa.store.cart.update(
+      cartId,
+      {
+        email: customer.email,
+        shipping_address: payload,
+        billing_address: payload,
+      } as any,
+      CART_RETRIEVE_QUERY
+    )
     return
   }
 
   try {
-    const { cart: raw } = await medusa.store.cart.retrieve(cartId)
+    const { cart: raw } = await medusa.store.cart.retrieve(cartId, CART_RETRIEVE_QUERY)
     const cart = normalizeStoreCart(raw)
     const shipping = cart.shipping_address
     if (!shipping?.postal_code?.trim()) return
     if (cart.billing_address?.postal_code?.trim()) return
-    await medusa.store.cart.update(cartId, { billing_address: shipping } as any)
+    await medusa.store.cart.update(
+      cartId,
+      { billing_address: shipping } as any,
+      CART_RETRIEVE_QUERY
+    )
   } catch {
     /* non-blocking */
   }
@@ -618,7 +653,7 @@ export const medusaClient: CommerceClient = {
 
   async getCart(id: string): Promise<Cart | null> {
     try {
-      const response = await medusa.store.cart.retrieve(id)
+      const response = await medusa.store.cart.retrieve(id, CART_RETRIEVE_QUERY)
       return response.cart ? normalizeStoreCart(response.cart) : null
     } catch (error) {
       return null
@@ -626,7 +661,7 @@ export const medusaClient: CommerceClient = {
   },
 
   async createCart(): Promise<Cart> {
-    const response = await medusa.store.cart.create({})
+    const response = await medusa.store.cart.create({}, CART_RETRIEVE_QUERY)
     return normalizeStoreCart(response.cart)
   },
 
@@ -635,10 +670,14 @@ export const medusaClient: CommerceClient = {
     variantId: string,
     quantity: number
   ): Promise<Cart> {
-    const response = await medusa.store.cart.createLineItem(cartId, {
-      variant_id: variantId,
-      quantity,
-    })
+    const response = await medusa.store.cart.createLineItem(
+      cartId,
+      {
+        variant_id: variantId,
+        quantity,
+      },
+      CART_RETRIEVE_QUERY
+    )
     return normalizeStoreCart(response.cart)
   },
 
@@ -647,21 +686,28 @@ export const medusaClient: CommerceClient = {
     itemId: string,
     quantity: number
   ): Promise<Cart> {
-    const response = await medusa.store.cart.updateLineItem(cartId, itemId, {
-      quantity,
-    })
+    const response = await medusa.store.cart.updateLineItem(
+      cartId,
+      itemId,
+      { quantity },
+      CART_RETRIEVE_QUERY
+    )
     return normalizeStoreCart(response.cart)
   },
 
   async removeFromCart(cartId: string, itemId: string): Promise<Cart> {
-    const response = await medusa.store.cart.deleteLineItem(cartId, itemId)
+    const response = await medusa.store.cart.deleteLineItem(cartId, itemId, CART_RETRIEVE_QUERY)
     const cart = (response as { cart?: Cart; parent?: Cart }).parent ?? (response as { cart?: Cart }).cart
     if (!cart) throw new Error('Cart not returned after line item deletion')
     return normalizeStoreCart(cart)
   },
 
   async applyPromoCodes(cartId: string, codes: string[]): Promise<Cart> {
-    const response = await medusa.store.cart.update(cartId, { promo_codes: codes } as any)
+    const response = await medusa.store.cart.update(
+      cartId,
+      { promo_codes: codes } as any,
+      CART_RETRIEVE_QUERY
+    )
     return normalizeStoreCart(response.cart)
   },
 
@@ -801,7 +847,7 @@ export const medusaClient: CommerceClient = {
   },
 
   async updateCart(cartId: string, input: CartUpdateInput): Promise<Cart> {
-    const response = await medusa.store.cart.update(cartId, input as any)
+    const response = await medusa.store.cart.update(cartId, input as any, CART_RETRIEVE_QUERY)
     return normalizeStoreCart(response.cart)
   },
 
@@ -1024,11 +1070,15 @@ export const medusaClient: CommerceClient = {
     if (!shipping) {
       throw new Error('CUSTOMER_PROFILE_INCOMPLETE')
     }
-    const response = await medusa.store.cart.update(cartId, {
-      email: customer.email,
-      shipping_address: shipping,
-      billing_address: shipping,
-    } as any)
+    const response = await medusa.store.cart.update(
+      cartId,
+      {
+        email: customer.email,
+        shipping_address: shipping,
+        billing_address: shipping,
+      } as any,
+      CART_RETRIEVE_QUERY
+    )
     return normalizeStoreCart(response.cart)
   },
 

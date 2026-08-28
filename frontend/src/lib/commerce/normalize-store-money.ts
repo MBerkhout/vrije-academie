@@ -1,5 +1,6 @@
 import { isGiftCardPurchaseLineItem } from './gift-card'
 import type { Cart, CartItem } from './types'
+import { vatPercentFromCartLike } from './vat'
 
 /**
  * Medusa v2 store cart/order APIs return catalog prices in major EUR (e.g. 18 = €18).
@@ -93,7 +94,7 @@ export function normalizeStoreCart(raw: unknown): Cart {
     subtotal = lineItemsSubtotalCents(items)
     discount_total = cartAggregateToStorefrontCents(o.discount_total)
     tax_total = cartAggregateToStorefrontCents(o.tax_total)
-    total = Math.max(0, subtotal - discount_total + tax_total)
+    total = cartAggregateToStorefrontCents(o.total)
     credit_line_total =
       o.credit_line_total !== undefined
         ? cartAggregateToStorefrontCents(o.credit_line_total)
@@ -109,12 +110,20 @@ export function normalizeStoreCart(raw: unknown): Cart {
         : undefined
   }
 
+  const tax_rate = vatPercentFromCartLike({
+    items: o.items as unknown[] | undefined,
+    shipping_address: o.shipping_address as Cart['shipping_address'],
+    billing_address: o.billing_address as Cart['billing_address'],
+    tax_rate: typeof o.tax_rate === 'number' ? o.tax_rate : undefined,
+  })
+
   return {
     ...(o as unknown as Cart),
     items,
     subtotal,
     discount_total,
     tax_total,
+    tax_rate,
     total,
     credit_line_total,
     completed_at: (o.completed_at as string | null | undefined) ?? null,

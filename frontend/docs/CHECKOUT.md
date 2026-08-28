@@ -58,6 +58,8 @@ email  ──(lookup)──► known ──(password or OTP)──► /checkout/
 
 Helpers: `src/lib/commerce/checkout-profile.ts` (`isCustomerProfileComplete`, `getDefaultCheckoutAddress`, `customerToShippingPayload`, `isCartShippingComplete`).
 
+**Land (EU):** `CountryCombobox` in `NlAddressFields` — pinned **Nederland, België, Duitsland**, then all 27 EU member states in Dutch A–Z (searchable). PDOK postcode lookup remains NL-only; other EU countries use manual straat/plaats. Data: `src/lib/address/eu-countries.ts`.
+
 OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `customerLookup`, `requestOtp`, `verifyOtp`, `registerPasswordless`.
 
 **Guards:**
@@ -71,7 +73,7 @@ OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `cus
 
 ## Step 3 — Betaling (`betaling/page.tsx`, `CheckoutPaymentOrderOverview`, `CheckoutPaymentForm`)
 
-**`CheckoutPaymentOrderOverview`** (above the form): loads cart + **`fetchCartExtras`**. All line items via **`OrderSummaryLineItems`** (bold title, thumbnail, **`buildLineItemQuantityLabel`**, **`onlineCityFallback`**) + **`OrderSummaryTotalsBlock`**. Same component in the sidebar on inloggen/bevestiging.
+**`CheckoutPaymentOrderOverview`** (above the form): loads cart + **`fetchCartExtras`**. All line items via **`OrderSummaryLineItems`** (bold title, thumbnail, **`buildLineItemQuantityLabel`**, **`onlineCityFallback`**) + **`OrderSummaryTotalsBlock`**. Same component in the sidebar on inloggen/bevestiging. Totals use gross producten + **waarvan BTW (X%)** (see `docs/CART.md` → Pricing & BTW).
 
 **`CheckoutPaymentForm`** loads cart. When the cart total is positive, loads `GET /store/payment-providers?region_id={cart.region_id}` (effect re-runs if the total crosses zero, e.g. gift card removed). Renders:
 1. Personal details — **logged-in:** from `Customer` (default checkout address) after `syncCartFromCustomer`; **guest:** from cart `shipping_address`. **Gegevens aanpassen** links to `/checkout/inloggen?bewerken=1`, where account gegevens can be edited (or the user can log out).

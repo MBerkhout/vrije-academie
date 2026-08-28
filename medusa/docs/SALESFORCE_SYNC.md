@@ -272,7 +272,7 @@ Mappings: `mappings/order.ts`, `order-item.ts`, `registration.ts`. Loader: `load
 - Pull **variant** from Salesforce into Medusa (product-level import only; product groups import variants via `vaProduct__c`).
 - Bidirectional product sync; admin UI for editing mappings.
 - Salesforce → Medusa order pull beyond header email/status stub.
-- Medusa tax-region wiring for Salesforce VAT (stored as metadata only for now).
+- Medusa tax-region wiring for Salesforce product VAT (stored as metadata only for now). **Store tax:** `npm run seed:region` seeds all EU countries, standard B2C VAT per country, and EUR **tax-inclusive** price preference (Salesforce gross prices are not surcharged).
 
 ## Product group import (`vaProductgroup__c`)
 
@@ -286,7 +286,7 @@ To unpublish products already on the site after this change, run a bulk import o
 
 Imported groups that **are** visible are **published**. `EventGroup.show_in_plp` still defaults to **`false`** (admin flag, currently ignored on the storefront). Enable that flag one product at a time: `npx medusa exec ./src/scripts/enable-show-in-plp.ts -- {handle}`. Enable all Salesforce imports: `npx medusa exec ./src/scripts/enable-show-in-plp.ts -- --all-sf`.
 
-**Pricing:** Salesforce gross price is source of truth (`Price__c` on each `vaProduct__c`, e.g. `19.5` → EUR `19.5` on the variant — Medusa v2 major currency units).
+**Pricing:** Salesforce gross price is source of truth (`Price__c` on each `vaProduct__c`, e.g. `19.5` → EUR `19.5` on the variant — Medusa v2 major currency units). Prices are **tax-inclusive**; run `npm run seed:region` so Medusa extracts VAT instead of adding it on top.
 
 **Organization:** imported products are linked to the **default sales channel**, get a Medusa **product type** from `Productgroup_Record_Type_Developer_Name__c` (e.g. `Lezing`), and **categories** from `Productgroup_Subject__c` (native Medusa categories + catalog category links for storefront/Sanity). **Docenten** are resolved from `Highlighted_Teacher__c` (+ `Highlighted_Teacher__r.Name` when readable); when the related Account is not accessible, the name is parsed from `Samenvatting__c` / `Productgroup_Description__c` (e.g. “Frederike Upmeijer”). Linked via `product-docenten`; sync state entity type `docent`. Per-session city, location, and docent are stored on each `EventItem` as `catalog_city_id`, `catalog_location_id`, and `docent_id` (resolved during import via `resolveEventItemFacetIdsFromSalesforce`). Logic: `utils/link-docent-from-salesforce.ts`.
 
@@ -417,7 +417,7 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Handle / URL slug | `Productgroup_URL__c` | `Product.handle` |
 | Group price | `Productgroup_Price__c` | metadata `salesforce_group_price`; fallback variant price when no children |
 | Net price | `Net_Price__c` | — (not imported) |
-| VAT rate | `VAT_Rate__c` | metadata `salesforce_vat_rate` (tax regions not wired) |
+| VAT rate | `VAT_Rate__c` | metadata `salesforce_vat_rate` (not used for cart tax; EU country tax regions from `seed:region`) |
 | Onderwerp (categories) | `Productgroup_Subject__c` (`;`-separated) | native `category_ids` + catalog category links → Sanity `categories` |
 | Record type | `Productgroup_Record_Type_Developer_Name__c` | `EventGroup.record_type` + Medusa `product.type` (`Lezingen_Thuis` / `Thuis_College` → `vathuis`) |
 | Linked online catalog | `Linked_Online_Productgroup__c` | merged child variants on parent; metadata `salesforce_linked_online_productgroup_id` |

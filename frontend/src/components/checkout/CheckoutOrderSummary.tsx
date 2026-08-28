@@ -8,6 +8,7 @@ import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
 import { buildCartLineItemDetailBlocks, buildLineItemQuantityLabel, type BuildLineItemDetailsOptions } from '@/lib/commerce/line-item-details'
 import { CartLineItemDetails } from '@/components/cart/CartLineItemDetails'
 import { formatPriceEur } from '@/lib/locale-format'
+import { grossMerchandiseTotalCents, vatIncludedLabel, vatPercentFromCartLike } from '@/lib/commerce/vat'
 import { TrustSignals } from '@/components/cart/TrustSignals'
 
 export interface CheckoutHelpContact {
@@ -179,14 +180,16 @@ export function OrderSummaryTotalsBlock({ cart, labels }: Pick<CheckoutOrderSumm
 
   const subtotalLabel = labels?.subtotalLabel ?? 'Subtotaal'
   const discountLabel = labels?.discountLabel ?? 'Korting'
-  const vatLabel = labels?.vatLabel ?? 'BTW'
+  const vatRate = cart.tax_rate ?? vatPercentFromCartLike(cart)
+  const vatLabel = labels?.vatLabel ?? vatIncludedLabel(vatRate)
   const totalLabel = labels?.totalLabel ?? 'Totaal'
+  const grossSubtotal = grossMerchandiseTotalCents(cart)
 
   return (
     <div className="border-t border-va-lightgray-300 pt-3 space-y-1.5">
       <div className="flex justify-between font-sans text-xs text-va-darkgray">
         <span>{subtotalLabel}</span>
-        <span>{formatPriceEur(cart.subtotal)}</span>
+        <span>{formatPriceEur(grossSubtotal)}</span>
       </div>
       {cart.discount_total > 0 && (
         <div className="flex justify-between font-sans text-xs text-green-700">
@@ -194,7 +197,7 @@ export function OrderSummaryTotalsBlock({ cart, labels }: Pick<CheckoutOrderSumm
           <span>−{formatPriceEur(cart.discount_total)}</span>
         </div>
       )}
-      <div className="flex justify-between font-sans text-xs text-va-darkgray">
+      <div className="flex justify-between font-sans text-xs text-va-gray">
         <span>{vatLabel}</span>
         <span>{formatPriceEur(cart.tax_total)}</span>
       </div>

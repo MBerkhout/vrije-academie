@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { defaultMessages, interpolate } from '@/lib/i18n/messages'
 import { formatDateShort, formatPriceEur } from '@/lib/locale-format'
 import { plpProductPath } from '@/lib/routes'
+import { getEuCountryLabel } from '@/lib/address/eu-countries'
 import { cn } from '@/lib/utils'
 
 function panelClassName(extra?: string) {
@@ -29,14 +30,8 @@ export function MijnAccountDashboard() {
   const welcomeName = [fn, ln].filter(Boolean).join(' ').trim() || customer.email
 
   const addr = getDefaultCheckoutAddress(customer)
-  const countryNames: Record<string, string> = {
-    nl: 'Nederland',
-    be: 'België',
-    de: 'Duitsland',
-    fr: 'Frankrijk',
-  }
   const cc = (addr?.country_code ?? 'nl').toLowerCase()
-  const countryLine = addr?.country_code ? countryNames[cc] ?? cc.toUpperCase() : ''
+  const countryLine = addr?.country_code ? getEuCountryLabel(cc) : ''
 
   return (
     <div className="space-y-6">

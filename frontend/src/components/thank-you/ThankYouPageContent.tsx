@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ThankYouOrderItems, ThankYouOrderTotals } from '@/components/thank-you/ThankYouOrderSummary'
+import { grossMerchandiseTotalCents } from '@/lib/commerce/vat'
 import { ThankYouVathuisRecommendations } from '@/components/thank-you/ThankYouVathuisRecommendations'
 import { clearCartId, dispatchCartUpdated, getCartId } from '@/lib/commerce/cart'
 import { fetchCheckoutConfirmation } from '@/lib/commerce/fetch-checkout-confirmation'
@@ -287,9 +288,10 @@ export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContac
             <ThankYouOrderItems items={payload.items} />
             {order ? (
               <ThankYouOrderTotals
-                subtotal={order.subtotal}
+                subtotal={grossMerchandiseTotalCents(order)}
                 discountTotal={order.discount_total}
                 taxTotal={order.tax_total}
+                taxRate={order.tax_rate}
                 total={order.total}
               />
             ) : null}

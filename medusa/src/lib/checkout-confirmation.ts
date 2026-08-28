@@ -8,6 +8,7 @@ import {
 import productDocentenLink from "../links/product-docenten"
 import { vathuisCartDisplayFromProductMetadata } from "../modules/salesforce-sync/utils/vathuis-metadata"
 import { medusaMajorToCents } from "./medusa-price-to-cents"
+import { getEuVatRate } from "./eu-countries"
 import { listCategoriesForProductIds } from "./product-catalog-category-links"
 import { getVathuisRecommendations } from "./vathuis-recommendations"
 import {
@@ -50,6 +51,22 @@ function parseMoney(value: unknown): number {
   }
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
+}
+
+function extractTaxRatePercent(order: Record<string, unknown>): number {
+  const items = Array.isArray(order.items) ? order.items : []
+  for (const item of items) {
+    const taxLines = (item as { tax_lines?: { rate?: number | null }[] }).tax_lines
+    if (!Array.isArray(taxLines)) continue
+    for (const line of taxLines) {
+      const rate = line?.rate
+      if (typeof rate === "number" && rate > 0) return rate
+    }
+  }
+  const shipping = order.shipping_address as { country_code?: string | null } | undefined
+  const billing = order.billing_address as { country_code?: string | null } | undefined
+  const country = shipping?.country_code ?? billing?.country_code
+  return getEuVatRate(country)
 }
 
 export async function resolveOrderIdByCartId(
@@ -433,9 +450,12 @@ export async function buildCheckoutConfirmation(
       "tax_total",
       "item_total",
       "created_at",
-      "items.*",
       "shipping_address.first_name",
       "shipping_address.last_name",
+      "shipping_address.country_code",
+      "billing_address.country_code",
+      "items.*",
+      "items.tax_lines.rate",
     ],
     filters: { id: orderId },
   })
@@ -457,6 +477,7 @@ export async function buildCheckoutConfirmation(
   const subtotalMajor = parseMoney(order.subtotal)
   const discountMajor = parseMoney(order.discount_total)
   const taxMajor = parseMoney(order.tax_total)
+  const taxRate = extractTaxRatePercent(order)
 
   const shippingAddr = order.shipping_address as Record<string, unknown> | undefined
   const firstName = (shippingAddr?.first_name as string | undefined)?.trim() || null
@@ -474,6 +495,7 @@ export async function buildCheckoutConfirmation(
       subtotal: medusaMajorToCents(subtotalMajor),
       discount_total: medusaMajorToCents(discountMajor),
       tax_total: medusaMajorToCents(taxMajor),
+      tax_rate: taxRate,
       created_at: order.created_at,
     },
     items: enriched.items,

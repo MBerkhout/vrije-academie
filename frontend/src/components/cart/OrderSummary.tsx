@@ -1,4 +1,5 @@
 import type { Cart } from '@/lib/commerce/types'
+import { grossMerchandiseTotalCents, vatIncludedLabel, vatPercentFromCartLike } from '@/lib/commerce/vat'
 import { formatPriceEur } from '@/lib/locale-format'
 
 interface OrderSummaryProps {
@@ -13,14 +14,16 @@ interface OrderSummaryProps {
 
 export function OrderSummary({ cart, labels }: OrderSummaryProps) {
   const hasDiscount = (cart.discount_total ?? 0) > 0
-  const creditCents = (cart as any).credit_line_total ?? 0
-  const hasCredit = typeof creditCents === 'number' && creditCents > 0
+  const creditCents = cart.credit_line_total ?? 0
+  const hasCredit = creditCents > 0
+  const vatRate = cart.tax_rate ?? vatPercentFromCartLike(cart)
+  const grossSubtotal = grossMerchandiseTotalCents(cart)
 
   return (
     <div className="rounded-lg border border-va-lightgray-300 p-4 font-sans text-sm space-y-2">
       <div className="flex justify-between text-va-darkgray">
         <span>{labels?.subtotal ?? 'Producten'}</span>
-        <span>{formatPriceEur(cart.subtotal ?? 0)}</span>
+        <span>{formatPriceEur(grossSubtotal)}</span>
       </div>
 
       {hasDiscount && (
@@ -37,8 +40,8 @@ export function OrderSummary({ cart, labels }: OrderSummaryProps) {
         </div>
       )}
 
-      <div className="flex justify-between text-va-darkgray">
-        <span>{labels?.vat ?? 'BTW (21%)'}</span>
+      <div className="flex justify-between text-xs text-va-gray">
+        <span>{labels?.vat ?? vatIncludedLabel(vatRate)}</span>
         <span>{formatPriceEur(cart.tax_total ?? 0)}</span>
       </div>
 

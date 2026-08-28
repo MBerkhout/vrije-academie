@@ -373,7 +373,7 @@ export const generalSettings = defineType({
           fields: [
             defineField({ name: "subtotal", type: "string", title: "Subtotaal label", initialValue: "Producten" }),
             defineField({ name: "discount", type: "string", title: "Korting label", initialValue: "Korting" }),
-            defineField({ name: "vat", type: "string", title: "BTW label", initialValue: "BTW (21%)" }),
+            defineField({ name: "vat", type: "string", title: "BTW label", initialValue: "waarvan BTW", description: "Percentage wordt dynamisch ingevuld (bijv. waarvan BTW (21%))." }),
             defineField({ name: "total", type: "string", title: "Totaal label", initialValue: "Totaal" }),
             defineField({ name: "discountPlaceholder", type: "string", title: "Discount code placeholder", initialValue: "Voer je code in..." }),
             defineField({ name: "discountApply", type: "string", title: "Discount apply button", initialValue: "Toevoegen" }),
@@ -737,7 +737,7 @@ export const generalSettings = defineType({
             defineField({ name: "changeLabel", type: "string", title: "Wijzigen link", initialValue: "Wijzigen" }),
             defineField({ name: "subtotalLabel", type: "string", title: "Subtotaal label", initialValue: "Subtotaal" }),
             defineField({ name: "discountLabel", type: "string", title: "Korting label", initialValue: "Korting" }),
-            defineField({ name: "vatLabel", type: "string", title: "BTW label", initialValue: "BTW" }),
+            defineField({ name: "vatLabel", type: "string", title: "BTW label", initialValue: "waarvan BTW", description: "Percentage wordt dynamisch ingevuld." }),
             defineField({ name: "totalLabel", type: "string", title: "Totaal label", initialValue: "Totaal" }),
           ],
         }),

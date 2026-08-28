@@ -107,6 +107,7 @@ export async function addGiftCardProductToCart(input: {
           variant_id: variantId,
           quantity: 1,
           unit_price: amountCents,
+          is_tax_inclusive: true,
           requires_shipping: false,
           is_giftcard: true,
           metadata: {

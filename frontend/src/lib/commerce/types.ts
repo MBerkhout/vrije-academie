@@ -282,6 +282,8 @@ export interface Cart {
   subtotal: number
   discount_total: number
   tax_total: number
+  /** Standard VAT % applied (from tax lines or shipping country). */
+  tax_rate?: number
   total: number
   /** Store API: promotion applications on the cart */
   promotions?: { code?: string; id?: string; is_automatic?: boolean }[] | null
@@ -387,6 +389,7 @@ export interface Order {
   subtotal: number
   discount_total?: number
   tax_total?: number
+  tax_rate?: number
   currency_code?: string
   items?: OrderItem[]
   payment_status?: string

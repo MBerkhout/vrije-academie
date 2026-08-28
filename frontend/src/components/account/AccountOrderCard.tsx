@@ -6,6 +6,7 @@ import type {
 } from '@/lib/commerce/checkout-confirmation-types'
 import type { Order, OrderItem } from '@/lib/commerce/types'
 import { ThankYouOrderItems, ThankYouOrderTotals } from '@/components/thank-you/ThankYouOrderSummary'
+import { grossMerchandiseTotalCents } from '@/lib/commerce/vat'
 import { defaultMessages } from '@/lib/i18n/messages'
 import { formatDateShort, formatPriceEur } from '@/lib/locale-format'
 
@@ -35,10 +36,15 @@ export function AccountOrderCard({
   const t = defaultMessages.accountPage
   const items =
     confirmation?.items?.length ? confirmation.items : orderItemsFallback(order.items)
-  const subtotal = confirmation?.order?.subtotal ?? order.subtotal
   const discountTotal = confirmation?.order?.discount_total ?? order.discount_total
   const taxTotal = confirmation?.order?.tax_total ?? order.tax_total
+  const taxRate = confirmation?.order?.tax_rate ?? order.tax_rate
   const total = confirmation?.order?.total ?? order.total
+  const subtotal = grossMerchandiseTotalCents({
+    total,
+    discount_total: discountTotal,
+    credit_line_total: 0,
+  })
 
   return (
     <li className="border border-va-lightgray bg-white p-4 rounded-none font-sans text-sm">
@@ -69,6 +75,7 @@ export function AccountOrderCard({
           subtotal={subtotal}
           discountTotal={discountTotal}
           taxTotal={taxTotal}
+          taxRate={taxRate}
           total={total}
         />
       ) : null}

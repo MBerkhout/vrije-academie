@@ -11,6 +11,7 @@ export type CheckoutConfirmationOrder = {
   subtotal: number
   discount_total?: number
   tax_total?: number
+  tax_rate?: number
   created_at?: string
 }
 

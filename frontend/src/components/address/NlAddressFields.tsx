@@ -1,6 +1,7 @@
 'use client'
 
 import { ValidatedInput } from '@/components/auth/ValidatedInput'
+import { CountryCombobox } from '@/components/address/CountryCombobox'
 import type { AccountFieldName, CheckoutGuestValidity } from '@/lib/auth/account-field-validation'
 import { isNlCountry, postalCodeHint, postalCodePlaceholder } from '@/lib/address/postal-code'
 import { cn } from '@/lib/utils'
@@ -73,22 +74,12 @@ export function NlAddressFields({
       {sectionTitle ? (
         <h2 className="font-sans text-base font-bold text-va-black mb-1">{sectionTitle}</h2>
       ) : null}
-      <div>
-        <label className="block font-sans text-sm font-medium text-va-black mb-1">
-          {labels.country}
-        </label>
-        <select
-          value={country}
-          onChange={(e) => onCountryChange(e.target.value)}
-          className="w-full rounded-lg border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={busy}
-        >
-          <option value="NL">Nederland</option>
-          <option value="BE">België</option>
-          <option value="DE">Duitsland</option>
-          <option value="FR">Frankrijk</option>
-        </select>
-      </div>
+      <CountryCombobox
+        label={labels.country}
+        value={country}
+        onChange={onCountryChange}
+        disabled={busy}
+      />
       <div className="grid grid-cols-2 gap-4">
         <ValidatedInput
           name="postalCode"

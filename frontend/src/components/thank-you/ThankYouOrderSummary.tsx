@@ -10,6 +10,7 @@ import {
 import { CartLineItemDetails } from '@/components/cart/CartLineItemDetails'
 import { OrderSummaryThumbnail } from '@/components/checkout/CheckoutOrderSummary'
 import { formatPriceEur } from '@/lib/locale-format'
+import { vatIncludedLabel } from '@/lib/commerce/vat'
 import { productDetailPath, vathuisProductPath } from '@/lib/routes'
 
 function productHrefForItem(item: CheckoutConfirmationItem): string | null {
@@ -121,13 +122,17 @@ export function ThankYouOrderTotals({
   subtotal,
   discountTotal,
   taxTotal,
+  taxRate,
   total,
 }: {
   subtotal: number
   discountTotal?: number
   taxTotal?: number
+  taxRate?: number
   total: number
 }) {
+  const vatLabel = taxRate != null ? vatIncludedLabel(taxRate) : 'waarvan BTW'
+
   return (
     <div className="border-t border-va-lightgray-300 pt-3 space-y-1.5 mt-4">
       <div className="flex justify-between font-sans text-xs text-va-darkgray">
@@ -140,8 +145,8 @@ export function ThankYouOrderTotals({
           <span>−{formatPriceEur(discountTotal!)}</span>
         </div>
       )}
-      <div className="flex justify-between font-sans text-xs text-va-darkgray">
-        <span>BTW</span>
+      <div className="flex justify-between font-sans text-xs text-va-gray">
+        <span>{vatLabel}</span>
         <span>{formatPriceEur(taxTotal ?? 0)}</span>
       </div>
       <div className="flex justify-between font-sans text-sm font-semibold text-va-black border-t border-va-lightgray-300 pt-2 mt-2">

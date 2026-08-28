@@ -122,6 +122,16 @@ npx medusa exec ./src/scripts/backfill-cities.ts
 
 Store filter param `city[]` expects a **slug**. Facets return `{ slug, label, count }`.
 
+## Region, tax & pricing (one-time per environment)
+
+Salesforce `Price__c` is imported as a **gross consumer price**. Seed the default EUR region with all EU countries, standard B2C VAT per country, and tax-inclusive EUR pricing:
+
+```bash
+npm run seed:region
+```
+
+Idempotent — safe to re-run after deploy. Links Mollie payment providers, sets `automatic_taxes`, and creates tax regions from `src/lib/eu-countries.ts`. Not part of the automatic deploy script; run manually on new environments.
+
 ## Medusa → Sanity: city mirror
 
 See [SANITY_SYNC.md](./SANITY_SYNC.md). Cities sync as Sanity `city` documents (`medusa-city-<id>`).
