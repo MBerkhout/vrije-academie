@@ -39,9 +39,14 @@ const cartHelpers = nodeRequire("./dist/api/store/carts/helpers") as {
   ) => Promise<Record<string, unknown>>
 }
 
+const cartQueryConfig = nodeRequire("./dist/api/store/carts/query-config") as {
+  defaultStoreCartFields: string[]
+}
+
 export const getRuleAttributesMap = promotionUtils.getRuleAttributesMap
 export const operatorsMap = promotionUtils.operatorsMap
 export const ruleQueryConfigurations = promotionUtils.ruleQueryConfigurations
 export const validateRuleAttribute = promotionUtils.validateRuleAttribute
 export const validateRuleType = promotionUtils.validateRuleType
 export const refetchCart = cartHelpers.refetchCart
+export const defaultStoreCartFields = cartQueryConfig.defaultStoreCartFields

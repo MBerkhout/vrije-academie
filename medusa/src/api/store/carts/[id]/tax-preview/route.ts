@@ -2,7 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
 import { ensureCartTaxPreview } from "../../../../../lib/ensure-cart-tax-preview"
-import { refetchCart } from "../../../../../lib/medusa-core-imports"
+import { defaultStoreCartFields, refetchCart } from "../../../../../lib/medusa-core-imports"
 
 /**
  * POST /store/carts/:id/tax-preview
@@ -19,7 +19,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
 
   try {
     const { updated } = await ensureCartTaxPreview(req.scope, cartId)
-    const cart = await refetchCart(cartId, req.scope, req.queryConfig.fields)
+    const fields = req.queryConfig?.fields ?? defaultStoreCartFields
+    const cart = await refetchCart(cartId, req.scope, fields)
     res.status(200).json({ cart, updated })
   } catch (e: unknown) {
     if (e instanceof MedusaError) {
