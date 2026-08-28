@@ -103,7 +103,10 @@ async function ensureCartTaxCountry(cart: Cart): Promise<Cart> {
   if (!hasItems || !hasCatalogLine || country) return cart
 
   try {
-    const res = await storeFetch(`/store/carts/${cart.id}/tax-preview`, { method: 'POST' })
+    const fields = encodeURIComponent(CART_RETRIEVE_QUERY.fields)
+    const res = await storeFetch(`/store/carts/${cart.id}/tax-preview?fields=${fields}`, {
+      method: 'POST',
+    })
     if (!res.ok) return cart
     const data = (await res.json()) as { cart?: unknown }
     if (!data.cart) return cart
