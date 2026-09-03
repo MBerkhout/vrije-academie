@@ -49,6 +49,36 @@ describe("getRootParentPath", () => {
 })
 
 describe("groupPagesByFolder", () => {
+  it("does not throw when a page has no slug set yet", () => {
+    const result = groupPagesByFolder(
+      [
+        { _id: "page-contact", title: "Contact", slug: "contact" },
+        { _id: "drafts.page-untitled", title: "Untitled", slug: null },
+      ],
+      { parentPath: "", isVaThuis: false },
+    )
+
+    expect(result.children).toEqual([
+      expect.objectContaining({ segment: "contact", path: "contact" }),
+    ])
+    expect(result.missingSlug).toEqual([
+      expect.objectContaining({ _id: "page-untitled", title: "Untitled" }),
+    ])
+  })
+
+  it("dedupes missing-slug pages preferring the published id", () => {
+    const result = groupPagesByFolder(
+      [
+        { _id: "drafts.page-untitled", title: "Draft", slug: null },
+        { _id: "page-untitled", title: "Published", slug: null },
+      ],
+      { parentPath: "", isVaThuis: false },
+    )
+
+    expect(result.missingSlug).toHaveLength(1)
+    expect(result.missingSlug[0]?._id).toBe("page-untitled")
+  })
+
   it("shows homepage as current page at VA root", () => {
     const result = groupPagesByFolder(
       pages([["/", "Home"], ["contact", "Contact"]]),

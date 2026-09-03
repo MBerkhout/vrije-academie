@@ -1,4 +1,4 @@
-import { DocumentIcon, FolderIcon } from "@sanity/icons"
+import { DocumentIcon, FolderIcon, WarningOutlineIcon } from "@sanity/icons"
 import { map } from "rxjs/operators"
 import type { DocumentStore } from "sanity"
 import type { StructureBuilder } from "sanity/structure"
@@ -113,6 +113,22 @@ function buildPageFolderList(
 
         if (child.page) {
           items.push(pageDocumentItem(S, child.page))
+        }
+      }
+
+      if (grouped.missingSlug.length > 0) {
+        if (items.length > 0) {
+          items.push(S.divider())
+        }
+
+        for (const page of grouped.missingSlug) {
+          items.push(
+            S.listItem()
+              .id(`${page._id}-missing-slug`)
+              .title(page.title || "Untitled (no slug)")
+              .icon(WarningOutlineIcon)
+              .child(S.document().documentId(page._id).schemaType("page")),
+          )
         }
       }
 
