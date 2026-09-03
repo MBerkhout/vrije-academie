@@ -3,7 +3,8 @@ import { VATHUIS_PATH_SEGMENT } from "../constants/storefront-paths"
 export type PageFolderEntry = {
   _id: string
   title: string
-  slug: string
+  /** `slug.current` from GROQ; null when the page has no slug set yet. */
+  slug: string | null
 }
 
 export type PageFolderChild = {
@@ -16,6 +17,8 @@ export type PageFolderChild = {
 export type PageFolderGroup = {
   currentPage?: PageFolderEntry
   children: PageFolderChild[]
+  /** Pages with no slug set — can't be placed in the tree, listed separately. */
+  missingSlug: PageFolderEntry[]
 }
 
 export type GroupPagesOptions = {
@@ -32,22 +35,42 @@ function pagePublishPriority(page: PageFolderEntry): number {
   return page._id.startsWith("drafts.") ? 0 : 1
 }
 
-/** Prefer published document ids when draft and published share a slug. */
-export function dedupePagesBySlug(pages: PageFolderEntry[]): PageFolderEntry[] {
-  const bySlug = new Map<string, { page: PageFolderEntry; priority: number }>()
+/** A page needs a non-empty slug to be placed in the folder tree. */
+export function hasValidSlug(
+  page: PageFolderEntry,
+): page is PageFolderEntry & { slug: string } {
+  return typeof page.slug === "string" && page.slug.length > 0
+}
+
+function dedupePagesByKey<T extends PageFolderEntry>(
+  pages: T[],
+  keyOf: (page: T) => string,
+): T[] {
+  const byKey = new Map<string, { page: T; priority: number }>()
 
   for (const page of pages) {
     const priority = pagePublishPriority(page)
-    const existing = bySlug.get(page.slug)
+    const key = keyOf(page)
+    const existing = byKey.get(key)
     if (!existing || priority > existing.priority) {
-      bySlug.set(page.slug, {
+      byKey.set(key, {
         page: { ...page, _id: normalizePageId(page._id) },
         priority,
       })
     }
   }
 
-  return Array.from(bySlug.values()).map(({ page }) => page)
+  return Array.from(byKey.values()).map(({ page }) => page)
+}
+
+/** Prefer published document ids when draft and published share a slug. */
+export function dedupePagesBySlug<T extends PageFolderEntry>(pages: T[]): T[] {
+  return dedupePagesByKey(pages, (page) => page.slug ?? "")
+}
+
+/** Prefer published document ids when draft and published are the same document. */
+function dedupePagesById(pages: PageFolderEntry[]): PageFolderEntry[] {
+  return dedupePagesByKey(pages, (page) => normalizePageId(page._id))
 }
 
 /** Encode a slug path for use as a Structure Builder list item id. */
@@ -100,7 +123,8 @@ export function groupPagesByFolder(
   options: GroupPagesOptions,
 ): PageFolderGroup {
   const { parentPath } = options
-  const deduped = dedupePagesBySlug(pages)
+  const missingSlug = dedupePagesById(pages.filter((page) => !hasValidSlug(page)))
+  const deduped = dedupePagesBySlug(pages.filter(hasValidSlug))
 
   const currentPage =
     parentPath === ""
@@ -156,5 +180,5 @@ export function groupPagesByFolder(
     a.segment.localeCompare(b.segment, "nl"),
   )
 
-  return { currentPage, children }
+  return { currentPage, children, missingSlug }
 }
