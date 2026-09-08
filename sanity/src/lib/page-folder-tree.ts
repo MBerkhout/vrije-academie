@@ -28,26 +28,26 @@ export function normalizePageId(id: string): string {
   return id.replace(/^drafts\./, "")
 }
 
-function pagePublishPriority(page: PageFolderEntry): number {
-  return page._id.startsWith("drafts.") ? 0 : 1
-}
-
-/** Prefer published document ids when draft and published share a slug. */
-export function dedupePagesBySlug(pages: PageFolderEntry[]): PageFolderEntry[] {
-  const bySlug = new Map<string, { page: PageFolderEntry; priority: number }>()
+/**
+ * Collapse draft + published pairs onto one row.
+ * Prefer the draft (working version) so unpublished slug changes stay unique in the tree.
+ */
+export function dedupePagesByDocumentId(pages: PageFolderEntry[]): PageFolderEntry[] {
+  const byId = new Map<string, { page: PageFolderEntry; fromDraft: boolean }>()
 
   for (const page of pages) {
-    const priority = pagePublishPriority(page)
-    const existing = bySlug.get(page.slug)
-    if (!existing || priority > existing.priority) {
-      bySlug.set(page.slug, {
-        page: { ...page, _id: normalizePageId(page._id) },
-        priority,
+    const fromDraft = page._id.startsWith("drafts.")
+    const id = normalizePageId(page._id)
+    const existing = byId.get(id)
+    if (!existing || (fromDraft && !existing.fromDraft)) {
+      byId.set(id, {
+        page: { ...page, _id: id },
+        fromDraft,
       })
     }
   }
 
-  return Array.from(bySlug.values()).map(({ page }) => page)
+  return Array.from(byId.values()).map(({ page }) => page)
 }
 
 /** Encode a slug path for use as a Structure Builder list item id. */
@@ -100,7 +100,7 @@ export function groupPagesByFolder(
   options: GroupPagesOptions,
 ): PageFolderGroup {
   const { parentPath } = options
-  const deduped = dedupePagesBySlug(pages)
+  const deduped = dedupePagesByDocumentId(pages)
 
   const currentPage =
     parentPath === ""

@@ -87,11 +87,14 @@ function buildPageFolderList(
       })
 
       const items = []
+      const usedIds = new Set<string>()
 
       if (grouped.currentPage) {
+        const thisPageId = `${grouped.currentPage._id}-this-page`
+        usedIds.add(thisPageId)
         items.push(
           S.listItem()
-            .id(`${grouped.currentPage._id}-this-page`)
+            .id(thisPageId)
             .title(`This page: ${formatPagePath(grouped.currentPage.slug)}`)
             .schemaType("page")
             .icon(DocumentIcon)
@@ -107,11 +110,16 @@ function buildPageFolderList(
 
       for (const child of grouped.children) {
         if (child.hasDescendants) {
+          const folderId = `${scope.listId}-${encodeFolderPath(child.path)}`
+          if (usedIds.has(folderId)) continue
+          usedIds.add(folderId)
           items.push(folderListItem(S, documentStore, scope, child))
           continue
         }
 
         if (child.page) {
+          if (usedIds.has(child.page._id)) continue
+          usedIds.add(child.page._id)
           items.push(pageDocumentItem(S, child.page))
         }
       }

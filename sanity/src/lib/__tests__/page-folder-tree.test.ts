@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-  dedupePagesBySlug,
+  dedupePagesByDocumentId,
   encodeFolderPath,
   decodeFolderPath,
   getRootParentPath,
@@ -15,16 +15,35 @@ const pages = (entries: Array<[string, string, string?]>): PageFolderEntry[] =>
     slug,
   }))
 
-describe("dedupePagesBySlug", () => {
-  it("prefers published ids over draft ids for the same slug", () => {
-    const result = dedupePagesBySlug([
+describe("dedupePagesByDocumentId", () => {
+  it("collapses draft and published onto the published id", () => {
+    const result = dedupePagesByDocumentId([
       { _id: "drafts.page-over-ons", title: "Draft", slug: "over-ons" },
       { _id: "page-over-ons", title: "Published", slug: "over-ons" },
     ])
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.title).toBe("Published")
     expect(result[0]?._id).toBe("page-over-ons")
+    expect(result[0]?.title).toBe("Draft")
+  })
+
+  it("keeps one row when draft and published slugs differ", () => {
+    const result = dedupePagesByDocumentId([
+      {
+        _id: "drafts.f63fdb26-78f0-4b25-a4c7-2e557a197454",
+        title: "Art and culture in Amsterdam, now in English",
+        slug: "english-spoken-activitie",
+      },
+      {
+        _id: "f63fdb26-78f0-4b25-a4c7-2e557a197454",
+        title: "Art and culture in Amsterdam, now in English",
+        slug: "english-spoken-activities",
+      },
+    ])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?._id).toBe("f63fdb26-78f0-4b25-a4c7-2e557a197454")
+    expect(result[0]?.slug).toBe("english-spoken-activitie")
   })
 })
 
@@ -160,6 +179,33 @@ describe("groupPagesByFolder", () => {
       expect.objectContaining({
         segment: "team",
         path: "va-thuis/about/team",
+        hasDescendants: false,
+      }),
+    ])
+  })
+
+  it("does not emit two children with the same page id after a slug change", () => {
+    const result = groupPagesByFolder(
+      [
+        {
+          _id: "drafts.f63fdb26-78f0-4b25-a4c7-2e557a197454",
+          title: "English",
+          slug: "english-spoken-activitie",
+        },
+        {
+          _id: "f63fdb26-78f0-4b25-a4c7-2e557a197454",
+          title: "English",
+          slug: "english-spoken-activities",
+        },
+      ],
+      { parentPath: "", isVaThuis: false },
+    )
+
+    const ids = result.children.map((child) => child.page?._id).filter(Boolean)
+    expect(ids).toEqual(["f63fdb26-78f0-4b25-a4c7-2e557a197454"])
+    expect(result.children).toEqual([
+      expect.objectContaining({
+        segment: "english-spoken-activitie",
         hasDescendants: false,
       }),
     ])
