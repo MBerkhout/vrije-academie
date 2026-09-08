@@ -3,7 +3,8 @@ import { VATHUIS_PATH_SEGMENT } from "../constants/storefront-paths"
 export type PageFolderEntry = {
   _id: string
   title: string
-  slug: string
+  /** `slug.current` from GROQ; null when the page has no slug set yet. */
+  slug: string | null
 }
 
 export type PageFolderChild = {
@@ -16,6 +17,8 @@ export type PageFolderChild = {
 export type PageFolderGroup = {
   currentPage?: PageFolderEntry
   children: PageFolderChild[]
+  /** Pages with no slug set — can't be placed in the tree, listed separately. */
+  missingSlug: PageFolderEntry[]
 }
 
 export type GroupPagesOptions = {
@@ -28,12 +31,19 @@ export function normalizePageId(id: string): string {
   return id.replace(/^drafts\./, "")
 }
 
+/** A page needs a non-empty slug to be placed in the folder tree. */
+export function hasValidSlug(
+  page: PageFolderEntry,
+): page is PageFolderEntry & { slug: string } {
+  return typeof page.slug === "string" && page.slug.length > 0
+}
+
 /**
  * Collapse draft + published pairs onto one row.
  * Prefer the draft (working version) so unpublished slug changes stay unique in the tree.
  */
-export function dedupePagesByDocumentId(pages: PageFolderEntry[]): PageFolderEntry[] {
-  const byId = new Map<string, { page: PageFolderEntry; fromDraft: boolean }>()
+export function dedupePagesByDocumentId<T extends PageFolderEntry>(pages: T[]): T[] {
+  const byId = new Map<string, { page: T; fromDraft: boolean }>()
 
   for (const page of pages) {
     const fromDraft = page._id.startsWith("drafts.")
@@ -100,7 +110,8 @@ export function groupPagesByFolder(
   options: GroupPagesOptions,
 ): PageFolderGroup {
   const { parentPath } = options
-  const deduped = dedupePagesByDocumentId(pages)
+  const missingSlug = dedupePagesByDocumentId(pages.filter((page) => !hasValidSlug(page)))
+  const deduped = dedupePagesByDocumentId(pages.filter(hasValidSlug))
 
   const currentPage =
     parentPath === ""
@@ -156,5 +167,5 @@ export function groupPagesByFolder(
     a.segment.localeCompare(b.segment, "nl"),
   )
 
-  return { currentPage, children }
+  return { currentPage, children, missingSlug }
 }

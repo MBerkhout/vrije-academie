@@ -1,4 +1,4 @@
-import { DocumentIcon, FolderIcon } from "@sanity/icons"
+import { DocumentIcon, FolderIcon, WarningOutlineIcon } from "@sanity/icons"
 import { map } from "rxjs/operators"
 import type { DocumentStore } from "sanity"
 import type { StructureBuilder } from "sanity/structure"
@@ -95,7 +95,7 @@ function buildPageFolderList(
         items.push(
           S.listItem()
             .id(thisPageId)
-            .title(`This page: ${formatPagePath(grouped.currentPage.slug)}`)
+            .title(`This page: ${formatPagePath(grouped.currentPage.slug || "/")}`)
             .schemaType("page")
             .icon(DocumentIcon)
             .child(
@@ -121,6 +121,25 @@ function buildPageFolderList(
           if (usedIds.has(child.page._id)) continue
           usedIds.add(child.page._id)
           items.push(pageDocumentItem(S, child.page))
+        }
+      }
+
+      if (grouped.missingSlug.length > 0) {
+        if (items.length > 0) {
+          items.push(S.divider())
+        }
+
+        for (const page of grouped.missingSlug) {
+          const missingId = `${page._id}-missing-slug`
+          if (usedIds.has(missingId)) continue
+          usedIds.add(missingId)
+          items.push(
+            S.listItem()
+              .id(missingId)
+              .title(page.title || "Untitled (no slug)")
+              .icon(WarningOutlineIcon)
+              .child(S.document().documentId(page._id).schemaType("page")),
+          )
         }
       }
 
