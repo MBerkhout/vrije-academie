@@ -25,6 +25,7 @@
     "salesforce:audit-facets": "medusa exec ./src/scripts/audit-event-item-facets.ts",
     "salesforce:inspect": "medusa exec ./src/scripts/inspect-salesforce-productgroup.ts --",
     "salesforce:inspect-order": "medusa exec ./src/scripts/inspect-salesforce-order.ts --",
+    "salesforce:create-fields": "medusa exec ./src/scripts/create-salesforce-medusa-fields.ts --",
     "order:complete": "medusa exec ./src/scripts/complete-order.ts --",
     "search:reindex": "medusa exec ./src/scripts/reindex-search.ts",
     "cache:flush": "medusa exec ./src/scripts/flush-store-listing-cache.ts",

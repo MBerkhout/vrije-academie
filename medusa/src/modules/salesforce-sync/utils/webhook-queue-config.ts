@@ -26,3 +26,13 @@ export function customerPersonAccountRecordTypeId(): string | null {
 export function isWebhookMethod(value: string): value is WebhookMethod {
   return value === "create" || value === "update" || value === "delete"
 }
+
+/** Entity types a webhook may create when Salesforce has no linked Medusa row yet. */
+export function canPullWithoutLinkedMedusaRow(entityType: string): boolean {
+  return (
+    entityType === "product" ||
+    entityType === "productgroup" ||
+    entityType === "customer" ||
+    entityType === "docent"
+  )
+}

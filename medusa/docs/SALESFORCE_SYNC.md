@@ -64,6 +64,7 @@ SALESFORCE_DISCOUNT_PRODUCT2_ID=01t1t000001j7i9AAA
 # Medusa_* External Id fields (Order, OrderItem, Product2, …). Off by default — VA Salesforce does not have them yet.
 # Set true only after those fields exist. Idempotency then uses salesforce_sync_state.
 # SALESFORCE_MEDUSA_CUSTOM_FIELDS=false
+# SALESFORCE_MEDUSA_ADMIN_URL=https://medusa.example.com
 ```
 
 Admin **Open in Salesforce** (customer/order/product widgets + sync failures page) uses `openInSalesforceUrl` from `GET /admin/salesforce/...`. Instance base comes from `SALESFORCE_INSTANCE_URL`, else the OAuth-stored instance URL after Admin connect. Customers with a linked Person Account open the **Account** record when `salesforce_account_id` is set.
@@ -71,7 +72,16 @@ Admin **Open in Salesforce** (customer/order/product widgets + sync failures pag
 ## Salesforce setup (manual)
 
 1. **Connected App** — **JWT** (digital signature + certificate) *or* **refresh token** (OAuth scopes `api` + `refresh_token` / `offline_access`).
-2. **External Id** custom fields — **off by default**. `SALESFORCE_MEDUSA_CUSTOM_FIELDS=true` enables `Medusa_Order_Id__c` on `Order`, `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` on `Product2`. Until those exist in Salesforce, leave the flag unset/false: payloads use standard SF fields only; Medusa stores the linked Salesforce Id in `salesforce_sync_state` (re-push updates the header; line items may duplicate without external ids). **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
+2. **External Id** custom fields — **off by default**. Create them (plus clickable **Open in Medusa** formulas) via Metadata API:
+
+```bash
+npm run salesforce:create-fields -- --admin-url=https://your-medusa-host --dry-run
+npm run salesforce:create-fields -- --admin-url=https://your-medusa-host
+```
+
+`--admin-url` is the Medusa Admin origin (no `/app`). It is stored in Custom Label `Medusa_Admin_Base_Url`; formula field `Medusa_Admin_Url__c` uses `HYPERLINK($Label.Medusa_Admin_Base_Url & "/app/…", "Open in Medusa")`. Re-run with a new URL to update the label. The running Salesforce user needs **Customize Application** (Admin OAuth is typical; JWT integration users often cannot deploy metadata). The script also creates permission set **Medusa_Sync** (FLS) and assigns it to that user — add `Medusa_Admin_Url__c` to page layouts / Lightning record pages yourself. Then set `SALESFORCE_MEDUSA_CUSTOM_FIELDS=true`.
+
+Fields: `Medusa_Order_Id__c` on `Order` (plus display id / email / status / total cents), `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` / `Medusa_Product_Group_Id__c` on `Product2`. Until those exist, leave the flag unset/false: payloads use standard SF fields only; Medusa stores the linked Salesforce Id in `salesforce_sync_state` (re-push updates the header; line items may duplicate without external ids). **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
 3. **Inbound webhook**: Flow or Apex `POST` to `{MEDUSA_URL}/hooks/salesforce` with header `X-Salesforce-Webhook-Secret: <same as env>` and JSON body:
 
 ```json
@@ -191,6 +201,9 @@ npm run salesforce:import-all -- --concurrency=4 --skip-search
 # Read-only dump of a product group + children (discover docent / embed fields)
 npm run salesforce:inspect -- --url=art-nouveau
 npm run salesforce:inspect -- --salesforce-id=a052o00001Agr0lAAB --describe --out=./tmp/inspect.json
+# Create Medusa_* External Id fields + Open in Medusa formula links (Metadata API)
+npm run salesforce:create-fields -- --admin-url=https://your-medusa-host --dry-run
+npm run salesforce:create-fields -- --admin-url=https://your-medusa-host
 ```
 
 **Pull vs import:** `--id` + `--salesforce-id` updates an existing Medusa product. Omit `--id` to **create** a new Medusa product from Salesforce (idempotent when that SF id was imported before — re-pull updates the linked product). New products are created as **draft** with one default variant.
@@ -308,8 +321,10 @@ curl -X POST /admin/salesforce/productgroups/import -d '{"salesforce_id":"a05Mz0
 | `Contact` | `customer` | Pull |
 | `Order` | `order` | Pull when linked |
 | `Product2` | `product` / `variant` | Pull / import |
-| `vaProductgroup__c` | `productgroup` | Pull (+ linked-online parents) |
-| `vaProduct__c` | parent `productgroup` | Pull parent group |
+| `vaProductgroup__c` | `productgroup` | Pull / auto-import if not yet in Medusa (+ linked-online parents) |
+| `vaProduct__c` | parent `productgroup` | Pull parent group (auto-import parent if missing) |
+
+`create` and `update` for **product**, **productgroup**, **customer**, and **docent** run a pull even when Medusa has no linked row yet. Product groups then use the same auto-import guards as other webhook pulls (`manual: false`). Hidden or past groups are **skipped** (`not_visible_on_website` / `past_dates`) instead of `no_linked_medusa_row`. **Orders** still skip when unlinked.
 
 `method: delete` — soft-archive (`draft` product / `is_active=false` docent) for **product**, **productgroup**, **docent** only; **customer** and **order** deletes are logged as `skipped` (no destructive action). Unsupported types (`OrderItem`, `Registration__c`, `Voucher__c`, …) are logged and skipped. Auto-import uses the **future-only guard** and **Zichtbaar op Website** (see below). Manual CLI/API ignores the date guard but still skips hidden groups.
 
@@ -344,7 +359,7 @@ Storefront: `GET /store/events/:handle` exposes `purchase_mode`, `bundle_variant
 
 ### Future-only auto-sync
 
-Webhooks enqueue product group pulls with `manual: false`. Import is **skipped** when:
+Webhooks enqueue product group pulls with `manual: false`, including **update** of a Salesforce group that is not in Medusa yet (treated as auto-import). Import is **skipped** when:
 
 - `Visible_on_website__c` is unchecked on the group, or the group is **Externe verhuur** (`skipReason: not_visible_on_website` — including manual CLI/API; already-imported products are drafted). Hidden children do not hide a visible group. Bulk CLI still **enqueues** already-imported hidden groups so they are removed from the storefront.
 - `Latest_Product_Start_Date__c` is in the past, or

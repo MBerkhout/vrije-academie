@@ -23,10 +23,15 @@ import {
 } from "./utils/resolve-webhook-entity"
 import { withSanitySyncSuppressed } from "./utils/suppress-sanity-sync"
 import {
+  canPullWithoutLinkedMedusaRow,
   webhookQueueBatchSize,
   webhookQueueConcurrency,
   webhookQueueMaxAttempts,
 } from "./utils/webhook-queue-config"
+import {
+  extractWebhookApplyResult,
+  webhookOutcomeFromApply,
+} from "./utils/webhook-pull-result"
 import { runSalesforceWorkflow, type RunResult } from "../../workflows/salesforce/report-failure"
 import { pullWorkflowIdForEntity } from "../../workflows/salesforce/registry"
 
@@ -44,7 +49,7 @@ type SanityCollectors = {
 
 type ProcessEventResult =
   | { outcome: "done"; medusaId?: string | null; entityType?: string | null }
-  | { outcome: "skipped"; error: string; entityType?: string | null }
+  | { outcome: "skipped"; error: string; entityType?: string | null; medusaId?: string | null }
   | { outcome: "failed"; error: string; entityType?: string | null }
 
 function extractMedusaIdFromRun(ret: RunResult): string | null {
@@ -141,7 +146,19 @@ async function runPullForEntity(
     return { outcome: "failed", entityType, error: err.message }
   }
 
-  const resolvedMedusaId = extractMedusaIdFromRun(ret) ?? medusaId
+  const apply = extractWebhookApplyResult(ret)
+  const pullOutcome = webhookOutcomeFromApply(apply)
+  const resolvedMedusaId = pullOutcome.medusaId ?? extractMedusaIdFromRun(ret) ?? medusaId
+
+  if (pullOutcome.outcome === "skipped") {
+    return {
+      outcome: "skipped",
+      entityType,
+      error: pullOutcome.error ?? "skipped",
+      medusaId: resolvedMedusaId,
+    }
+  }
+
   if (entityType === "product" || entityType === "productgroup") {
     if (resolvedMedusaId) collectors.productIds.add(resolvedMedusaId)
   }
@@ -245,13 +262,19 @@ async function processWebhookEventRow(
     }
   }
 
-  const importableWithoutLink = entityType === "product" || entityType === "customer" || entityType === "docent"
-  if (!linkedMedusaId && !importableWithoutLink) {
+  if (!linkedMedusaId && !canPullWithoutLinkedMedusaRow(entityType)) {
     return {
       outcome: "skipped",
       entityType,
       error: "no_linked_medusa_row",
     }
+  }
+
+  if (!linkedMedusaId && entityType === "productgroup") {
+    const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+    logger.info(
+      `[salesforce-sync] webhook ${method} ${entityType} ${pullSalesforceId} has no Medusa row; attempting auto-import`
+    )
   }
 
   if (linkedMedusaId && stateRow) {
@@ -304,6 +327,7 @@ async function finalizeEventRow(
       id: row.id,
       status: "skipped",
       entity_type: result.entityType ?? row.entity_type,
+      medusa_id: result.medusaId ?? row.medusa_id,
       error: result.error,
       processed_at: now,
     })
