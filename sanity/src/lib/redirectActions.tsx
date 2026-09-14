@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react"
 import { TrashIcon } from "@sanity/icons"
-import { Box, Button, Dialog, Flex, Stack, Text, TextInput } from "@sanity/ui"
+import { Box, Button, Flex, Stack, Text, TextInput } from "@sanity/ui"
 import type { DocumentActionComponent, DocumentActionsContext } from "sanity"
 import { useClient, useDocumentOperation } from "sanity"
 
@@ -11,12 +11,16 @@ function pageSourcePath(slug: string | undefined): string | null {
 
 const DeleteWithRedirectAction: DocumentActionComponent = (props) => {
   const { id, type, draft, published, onComplete } = props
+  const versionId = (props as { version?: { _id?: string } }).version?._id
   const client = useClient({ apiVersion: "2024-01-01" })
   const { delete: deleteOp } = useDocumentOperation(id, type)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [destination, setDestination] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const versionIds = [draft?._id, published?._id, versionId].filter(
+    (value): value is string => typeof value === "string" && value.length > 0,
+  )
 
   const source = pageSourcePath((draft ?? published)?.slug?.current as string | undefined)
 
@@ -31,13 +35,13 @@ const DeleteWithRedirectAction: DocumentActionComponent = (props) => {
     setBusy(true)
     setError(null)
     try {
-      await deleteOp.execute()
+      deleteOp.execute(versionIds)
       onComplete()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete page")
       setBusy(false)
     }
-  }, [deleteOp, onComplete])
+  }, [deleteOp, onComplete, versionIds])
 
   const createRedirectAndDelete = useCallback(async () => {
     const target = destination.trim()
@@ -61,13 +65,13 @@ const DeleteWithRedirectAction: DocumentActionComponent = (props) => {
         permanent: true,
         enabled: true,
       })
-      await deleteOp.execute()
+      deleteOp.execute(versionIds)
       onComplete()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create redirect")
       setBusy(false)
     }
-  }, [client, deleteOp, destination, onComplete, source])
+  }, [client, deleteOp, destination, onComplete, source, versionIds])
 
   return {
     label: "Delete",

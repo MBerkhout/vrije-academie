@@ -34,6 +34,8 @@ When deleting a **Page**:
 2. Enter a redirect target and choose **Create redirect & delete**, or choose **Delete without redirect** to skip.
 3. The delete prompt always creates a URL/path destination (301, enabled). Edit the redirect afterward if you want a page reference instead.
 
+Delete removes published pages and unpublished drafts. Studio passes each document version into the delete operation so draft-only pages do not remain in the tree.
+
 ## Frontend
 
 - Query + cache: `frontend/src/lib/redirects.ts`
