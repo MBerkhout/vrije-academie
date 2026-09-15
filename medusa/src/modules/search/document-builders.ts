@@ -5,7 +5,7 @@ import CatalogModuleService from "../catalog/service"
 import PeopleModuleService from "../people/service"
 import { stripHtmlToPlainText } from "../salesforce-sync/mappings/productgroup"
 import { productHasFutureSession } from "../../lib/event-session-eligibility"
-import { getPlpListingSnapshot } from "../../lib/store-listing-snapshot"
+import { getPlpListingSnapshot, getVathuisListingSnapshot } from "../../lib/store-listing-snapshot"
 import type { CityRef } from "../../lib/city-refs"
 import type { SearchDocument } from "./types"
 
@@ -73,7 +73,12 @@ function eventItemsFromProduct(row: Record<string, unknown>) {
     .filter(Boolean) as { start_at?: string | null; available_quantity?: number | null }[]
 }
 
+function isVathuisSearchProduct(row: Record<string, unknown>): boolean {
+  return row.record_type === "vathuis" || row.purchase_mode === "bundle_only"
+}
+
 function productHasFutureActivity(row: Record<string, unknown>): boolean {
+  if (isVathuisSearchProduct(row)) return true
   const eventItems = eventItemsFromProduct(row)
   return productHasFutureSession(eventItems)
 }
@@ -88,6 +93,7 @@ export function buildProductSearchDoc(row: Record<string, unknown>): SearchDocum
   const docenten = (row.docenten ?? []) as { name?: string }[]
   const tags = (row.tags ?? []) as { value?: string }[]
   const body = plainBodyFromProduct(row)
+  const vathuis = isVathuisSearchProduct(row)
 
   return {
     id: `product-${id}`,
@@ -95,8 +101,8 @@ export function buildProductSearchDoc(row: Record<string, unknown>): SearchDocum
     product_id: id,
     title,
     handle,
-    subtitle: String(row.record_type ?? row.product_type ?? "Activiteit"),
-    url: `/ons-aanbod/${handle}`,
+    subtitle: vathuis ? "VA Thuis" : String(row.record_type ?? row.product_type ?? "Activiteit"),
+    url: vathuis ? `/va-thuis/${encodeURIComponent(handle)}` : `/ons-aanbod/${handle}`,
     body: body || null,
     excerpt: truncateExcerpt(body || String(row.description ?? "")),
     category_labels: categories.map((c) => c.label?.trim()).filter(Boolean) as string[],
@@ -247,13 +253,21 @@ export async function fetchSanityCategoryEditorialBySanityId(
 export async function buildCommerceSearchDocs(
   scope: MedusaContainer
 ): Promise<SearchDocument[]> {
-  const snapshot = await getPlpListingSnapshot(scope)
+  const [snapshot, vathuisSnapshot] = await Promise.all([
+    getPlpListingSnapshot(scope),
+    getVathuisListingSnapshot(scope),
+  ])
   const catalog = scope.resolve("catalog") as InstanceType<typeof CatalogModuleService>
   const people = scope.resolve("people") as InstanceType<typeof PeopleModuleService>
 
   const docs: SearchDocument[] = []
 
   for (const row of snapshot.list) {
+    const doc = buildProductSearchDoc(row)
+    if (doc) docs.push(doc)
+  }
+
+  for (const row of vathuisSnapshot.list) {
     const doc = buildProductSearchDoc(row)
     if (doc) docs.push(doc)
   }

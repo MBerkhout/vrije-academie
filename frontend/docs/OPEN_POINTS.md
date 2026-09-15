@@ -91,7 +91,7 @@
 **Implemented**: OpenSearch unified index in Medusa (`medusa/docs/SEARCH.md`).
 
 - **Ons aanbod / Agenda**: inline `PlpSearchBar` + `?q=` filtered via `GET /store/events` / `GET /store/agenda` (title, onderwerp, docent, plaats, locatie, content; typo-tolerant when OpenSearch is configured).
-- **Header + `/zoeken`**: `GET /store/search` across Medusa events and Sanity pages/persons.
+- **Header + `/zoeken`**: `GET /store/search` across Medusa events (including VA Thuis) and Sanity pages/persons.
 - **Reindex**: `npm run search:reindex` in `medusa/`.
 
 ## Payment Integration

@@ -21,7 +21,7 @@ Route constants: `frontend/src/lib/routes.ts` (`VATHUIS_BASE_PATH`, `VATHUIS_CAT
 - **Similar:** `GET /store/vathuis/:handle/similar` via `commerceClient.getSimilarVathuis()`
 - **CSR pagination:** `GET /api/plp/vathuis`
 
-Products are excluded from Ons aanbod, Agenda, and site search (`record_type: vathuis`). **Availability:** VA Thuis colleges are always purchasable (never sold out); capacity from Salesforce is not enforced.
+Products are excluded from Ons aanbod and Agenda (`record_type: vathuis`). They **are** included in header QuickSearch and `/zoeken` (OpenSearch), linking to `/va-thuis/{handle}`. **Availability:** VA Thuis colleges are always purchasable (never sold out); capacity from Salesforce is not enforced.
 
 ## Components
 
@@ -51,5 +51,4 @@ Sanity constants: `sanity/src/constants/storefront-paths.ts` (`VATHUIS_CMS_PAGE_
 
 ## Follow-ups (out of scope v1)
 
-- Include VA Thuis in `/zoeken` site search
 - Dedicated Sanity PLP block for catalog intro (catalog uses defaults today)

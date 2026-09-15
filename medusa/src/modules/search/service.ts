@@ -1,7 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { createClient } from "@sanity/client"
 
-import { getPlpListingSnapshot } from "../../lib/store-listing-snapshot"
+import { getPlpListingSnapshot, getVathuisListingSnapshot } from "../../lib/store-listing-snapshot"
 import {
   buildCommerceSearchDocs,
   buildCategorySearchDoc,
@@ -295,7 +295,11 @@ export default class SearchModuleService {
     if (!this.isEnabled()) return
 
     const snapshot = await getPlpListingSnapshot(scope)
-    const row = snapshot.list.find((p: Record<string, unknown>) => String(p.id) === productId)
+    let row = snapshot.list.find((p: Record<string, unknown>) => String(p.id) === productId)
+    if (!row) {
+      const vathuis = await getVathuisListingSnapshot(scope)
+      row = vathuis.list.find((p: Record<string, unknown>) => String(p.id) === productId)
+    }
     if (!row) {
       await this.deleteDoc(`product-${productId}`)
       return

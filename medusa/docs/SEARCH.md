@@ -6,8 +6,8 @@ Typo-tolerant site search and PLP/agenda `q` filtering powered by a self-hosted 
 
 | Surface | Endpoint | Index kinds |
 |---------|----------|-------------|
-| Header QuickSearch (`mode=suggest`) | `GET /store/search` | category, product (future activities only), city, page |
-| `/zoeken` (`mode=full`) | `GET /store/search` | product, category, city, page, docent, person |
+| Header QuickSearch (`mode=suggest`) | `GET /store/search` | category, product (future live events + VA Thuis on-demand), city, page |
+| `/zoeken` (`mode=full`) | `GET /store/search` | product (incl. VA Thuis), category, city, page, docent, person |
 | Ons aanbod / Agenda `?q=` | `GET /store/events`, `GET /store/agenda` | product (ranked ids) |
 
 Frontend never talks to OpenSearch directly; credentials stay on Medusa.
@@ -55,7 +55,7 @@ Rebuilds all commerce docs (products, categories, cities, docenten) and Sanity p
 
 ## Document fields (products)
 
-Indexed from the PLP listing snapshot: `title`, `handle`, `description`, Salesforce metadata body, `categories`, `docenten`, `cities`, `location_name` (variants), `tags`, `record_type`, `product_type`.
+Indexed from the PLP listing snapshot plus the VA Thuis listing snapshot: `title`, `handle`, `description`, Salesforce metadata body, `categories`, `docenten`, `cities`, `location_name` (variants), `tags`, `record_type`, `product_type`. VA Thuis hits use `/va-thuis/{handle}` (not Ons aanbod).
 
 Query uses Dutch analyzer + `fuzziness: AUTO` (e.g. `kollege` → `college`).
 

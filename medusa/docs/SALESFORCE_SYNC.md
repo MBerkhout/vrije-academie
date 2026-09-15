@@ -345,7 +345,7 @@ Some offline product groups (e.g. studiedag) reference a separate **`vaProductgr
 
 Salesforce record types **`Lezingen_Thuis`** and **`Thuis_College`** map to on-demand video bundles (one purchasable `vaProduct__c` variant). During import:
 
-- **`EventGroup.record_type`** → `vathuis` (excluded from Ons aanbod / Agenda; listed via **`GET /store/vathuis`**)
+- **`EventGroup.record_type`** → `vathuis` (excluded from Ons aanbod / Agenda; listed via **`GET /store/vathuis`**; included in `/zoeken`)
 - **`EventItem.delivery_type`** → `pre_recorded` (no session date/city)
 - **`EventItem.available_quantity`** — always unlimited on import; VA Thuis colleges cannot sell out (see `src/lib/vathuis-availability.ts`)
 - **`metadata.vathuis`** — chapters + episodes fetched from Audience Player (`Audience_Player_Article_Id__c` on the child product), plus `purchase_mode: bundle_only`
