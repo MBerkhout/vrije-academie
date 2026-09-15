@@ -426,8 +426,13 @@ export const sanityClient: CMSClient = {
       return data || null
     }
     try {
-      return (await staticSettingsClient.fetch<GeneralSettings | null>(query)) ?? null
-    } catch {
+      return (
+        (await staticSettingsClient.fetch<GeneralSettings | null>(query, {}, {
+          next: { revalidate: 60, tags: ['general-settings'] },
+        })) ?? null
+      )
+    } catch (err) {
+      console.error('Failed to fetch generalSettings', err)
       return null
     }
   },

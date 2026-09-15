@@ -6,6 +6,9 @@ import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider'
 import { JsonLd } from '@/components/common/JsonLd'
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from '@/lib/json-ld'
 
+/** Header/footer come from generalSettings; keep in sync with page ISR. */
+export const revalidate = 60
+
 export default async function MainLayout({
   children,
 }: {

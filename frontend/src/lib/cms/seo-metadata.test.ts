@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildProductPdpMetadata,
   buildSeoMetadata,
   buildSiteMetadata,
+  isNoIndexSite,
   NOINDEX_ROBOTS,
   noIndexMetadata,
   resolveSeoDescription,
@@ -10,10 +11,28 @@ import {
 } from './seo-metadata'
 
 describe('seo-metadata', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it('buildSiteMetadata sets metadataBase from site origin', () => {
     const meta = buildSiteMetadata({ title: 'Test' })
     expect(meta.metadataBase?.toString()).toMatch(/^https?:\/\//)
     expect(meta.title).toBe('Test')
+  })
+
+  it('isNoIndexSite is true only for the v2 staging host', () => {
+    expect(isNoIndexSite('https://v2.vrijeacademie.nl')).toBe(true)
+    expect(isNoIndexSite('https://v2.vrijeacademie.nl/')).toBe(true)
+    expect(isNoIndexSite('https://www.vrijeacademie.nl')).toBe(false)
+    expect(isNoIndexSite('https://vrijeacademie.nl')).toBe(false)
+    expect(isNoIndexSite('not-a-url')).toBe(false)
+  })
+
+  it('buildSiteMetadata and buildSeoMetadata force noindex on v2', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://v2.vrijeacademie.nl')
+    expect(buildSiteMetadata({ title: 'Staging' }).robots).toEqual(NOINDEX_ROBOTS)
+    expect(buildSeoMetadata(null, { fallbackTitle: 'Page' }).robots).toEqual(NOINDEX_ROBOTS)
   })
 
   it('resolveSeoTitle prefers editorial meta title over fallback', () => {

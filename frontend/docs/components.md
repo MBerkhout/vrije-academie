@@ -29,7 +29,7 @@ Body text inherits Source Sans 3 from `body`. Tailwind preflight resets heading 
 
 ### Header (`@/components/layout/Header`)
 
-Global nav from **Sanity → General settings**: main menu, desktop utility menu, search placeholder, cart URL. Default branding uses `/public/branding/logo.svg` and `logo_text.svg` unless a **Logo (override)** image is set.
+Global nav from **Sanity → General settings** (published singleton `generalSettings` only; a draft-only document leaves the main menu empty): main menu, desktop utility menu, search placeholder, cart URL. Default branding uses `/public/branding/logo.svg` and `logo_text.svg` unless a **Logo (override)** image is set.
 
 **Commerce links (hardcoded fallback)**: **Winkelwagen** (`cartUrl`, default `/winkelwagen`) and **Mijn account** (`/mijn-account`) are appended only to the **desktop top utility row** when no item already targets that path—not to the main nav or mobile drawer.
 
@@ -229,4 +229,4 @@ If a page loads but shows no blocks (or the fallback "Geen inhoud op deze pagina
 3. **Slug** – Check the page’s slug in Sanity. It can differ from the title (e.g. `test-1` if `test` already exists).
 4. **Inline blocks** – Blocks are object types embedded on the page. If blocks are missing after a schema change, run `npm run migrate:blocks-inline --prefix sanity` to inline legacy `_ref` stubs, then republish affected pages.
 5. **Draft mode** – Draft content requires `SANITY_API_READ_TOKEN` with Viewer role and draft mode enabled via Presentation or `/api/draft`.
-6. **Homepage / category tiles out of date on staging** – CMS pages (`app/(main)/page.tsx`, `app/(main)/[...slug]/page.tsx`) use `revalidate = 60`. Publishing in Sanity should bust the cache immediately via `POST /api/revalidate/sanity` (see `docs/DEPLOYMENT.md` § Performance & caching). If content is still stale, check that `SANITY_REVALIDATE_SECRET` is set and the Sanity webhook is configured. Without the webhook, wait up to 60 s or redeploy so `npm run build` picks up fresh CMS data.
+6. **Homepage / category tiles out of date on staging** – CMS pages (`app/(main)/page.tsx`, `app/(main)/[...slug]/page.tsx`) and the main layout header/footer use `revalidate = 60`. Publishing in Sanity should bust the cache immediately via `POST /api/revalidate/sanity` (see `docs/DEPLOYMENT.md` § Performance & caching). Include `_type in ["page", "generalSettings", "menu"]` on the webhook. **Missing primary menu** usually means `generalSettings` is draft-only — publish it in Studio. Without the webhook, wait up to 60 s or redeploy.

@@ -12,6 +12,8 @@ Heavy work (install, build, migrate, restart) runs on the server for Frontend an
 
 Workflow file: [`.github/workflows/deploy-staging.yml`](../.github/workflows/deploy-staging.yml)
 
+The storefront at **https://v2.vrijeacademie.nl** is noindexed (`robots: noindex, nofollow`, `X-Robots-Tag`, `robots.txt` disallows `/`).
+
 ## Architecture
 
 ```
@@ -328,6 +330,7 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 | PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 600 s hard cache for `sort=order` and `sort=start_date` |
 | PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail + similar cached in Redis (600 s); React `cache()` dedupes per request |
 | Homepage | ISR, `revalidate = 60`; on-demand bust via Sanity webhook on home page publish |
+| Header / footer (`generalSettings`, `menu`) | ISR, `revalidate = 60` on `(main)/layout`; on-demand bust via the same webhook (`general-settings` tag) |
 | Redirect rules | In-memory, 60 s TTL |
 
 ### Medusa API caching
@@ -363,11 +366,11 @@ Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an i
 | URL | `https://v2.vrijeacademie.nl/api/revalidate/sanity` |
 | Dataset | `production` (and `staging` if applicable) |
 | Trigger on | Create, Update, Delete |
-| Filter | `_type == "page"` |
+| Filter | `_type in ["page", "generalSettings", "menu"]` |
 | Projection | `{ "_type": _type, "slug": slug.current, "isVaThuis": isVaThuis }` |
 | Secret | Same string as frontend `SANITY_REVALIDATE_SECRET` |
 
-Set `SANITY_REVALIDATE_SECRET` in `~/app/frontend/.env` on the server. Sanity signs the request body; the route verifies via `next-sanity/webhook` `parseBody`. VA Thuis pages (`va-thuis/…`) are skipped — those routes are `force-dynamic`. The 60 s ISR window remains as a fallback when the webhook is not configured or fails.
+Set `SANITY_REVALIDATE_SECRET` in `~/app/frontend/.env` on the server. Sanity signs the request body; the route verifies via `next-sanity/webhook` `parseBody`. VA Thuis pages (`va-thuis/…`) are skipped — those routes are `force-dynamic`. `generalSettings` and `menu` publishes bust the `general-settings` fetch tag and the main layout (header/footer). Draft-only General Settings is invisible on the storefront — publish the singleton. The 60 s ISR window remains as a fallback when the webhook is not configured or fails.
 
 Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600` on listing and event detail routes.
 

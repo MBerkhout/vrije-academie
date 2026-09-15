@@ -2,6 +2,18 @@ import type { Metadata } from 'next'
 import { getSiteOrigin } from '@/lib/json-ld'
 import type { SEO } from './types'
 
+/** Staging host — must not appear in search results. */
+export const NOINDEX_HOST = 'v2.vrijeacademie.nl'
+
+/** True when this deploy (or origin) is the v2 staging host. */
+export function isNoIndexSite(origin = getSiteOrigin()): boolean {
+  try {
+    return new URL(origin).hostname === NOINDEX_HOST
+  } catch {
+    return false
+  }
+}
+
 export function resolveSeoImageUrl(seo?: SEO | null): string | undefined {
   return seo?.metaImage?.asset?.url
 }
@@ -16,21 +28,21 @@ export function resolveSeoDescription(seo?: SEO | null, fallback?: string): stri
   return value || undefined
 }
 
+/** Robots directive for private/utility routes that should not be indexed. */
+export const NOINDEX_ROBOTS: Metadata['robots'] = {
+  index: false,
+  follow: false,
+}
+
 function resolveRobots(seo?: SEO | null): Metadata['robots'] | undefined {
-  if (!seo?.noIndex) return undefined
-  return { index: false, follow: false }
+  if (isNoIndexSite() || seo?.noIndex) return NOINDEX_ROBOTS
+  return undefined
 }
 
 function resolveCanonical(path?: string): string | undefined {
   if (!path?.trim()) return undefined
   const normalized = path.startsWith('/') ? path : `/${path}`
   return `${getSiteOrigin()}${normalized}`
-}
-
-/** Robots directive for private/utility routes that should not be indexed. */
-export const NOINDEX_ROBOTS: Metadata['robots'] = {
-  index: false,
-  follow: false,
 }
 
 /** Metadata for utility routes that should not appear in search results. */
@@ -47,6 +59,7 @@ export function buildSiteMetadata(defaults: Metadata = {}): Metadata {
   return {
     metadataBase: new URL(getSiteOrigin()),
     ...defaults,
+    ...(isNoIndexSite() && { robots: NOINDEX_ROBOTS }),
   }
 }
 

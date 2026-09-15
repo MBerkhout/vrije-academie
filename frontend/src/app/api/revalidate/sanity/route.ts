@@ -1,8 +1,8 @@
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { type NextRequest } from 'next/server'
 import { parseBody } from 'next-sanity/webhook'
 
-type SanityPageWebhookBody = {
+type SanityWebhookBody = {
   _type: string
   slug?: string
   isVaThuis?: boolean
@@ -17,8 +17,8 @@ function pagePathFromSlug(slug: string | undefined): string | null {
 
 /**
  * POST /api/revalidate/sanity
- * Busts Next.js ISR cache for a published CMS page.
- * Called by a Sanity webhook on page create/update/delete.
+ * Busts Next.js ISR cache for published CMS pages and site chrome (header/footer).
+ * Called by a Sanity webhook on create/update/delete.
  */
 export async function POST(req: NextRequest): Promise<Response> {
   const secret = process.env.SANITY_REVALIDATE_SECRET?.trim()
@@ -26,9 +26,15 @@ export async function POST(req: NextRequest): Promise<Response> {
     return Response.json({ error: 'SANITY_REVALIDATE_SECRET not configured' }, { status: 503 })
   }
 
-  const { isValidSignature, body } = await parseBody<SanityPageWebhookBody>(req, secret)
+  const { isValidSignature, body } = await parseBody<SanityWebhookBody>(req, secret)
   if (!isValidSignature || !body) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (body._type === 'generalSettings' || body._type === 'menu') {
+    revalidateTag('general-settings', { expire: 0 })
+    revalidatePath('/', 'layout')
+    return Response.json({ revalidated: true, type: body._type, tag: 'general-settings' })
   }
 
   if (body._type !== 'page') {

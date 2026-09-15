@@ -182,6 +182,8 @@ All blocks share these configurable fields:
 
 ## General Settings
 
+The storefront reads the **published** singleton (`_id: generalSettings`). A draft-only document hides the header main menu and footer columns. Studio **General Settings** always opens this ID; publish after edits.
+
 The `generalSettings` document contains:
 
 - **Header**
