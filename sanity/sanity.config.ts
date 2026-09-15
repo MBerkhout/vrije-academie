@@ -22,6 +22,9 @@ export default defineConfig({
 
   projectId: process.env.SANITY_STUDIO_PROJECT_ID || "",
   dataset: process.env.SANITY_STUDIO_DATASET || "production",
+  // Hosted Studio picks up 6.x patch/minor releases so pair-fetch timeouts
+  // recover instead of freezing the document pane (fixed in 6.4.0).
+  autoUpdates: true,
 
   basePath: "/studio",
 

@@ -129,6 +129,8 @@ npm run deploy
 
 CI uses `sanity deploy --yes`; set `studioHost` via `SANITY_STUDIO_HOSTNAME` or `SANITY_STUDIO_PROJECT_ID` in `sanity.cli.ts` (defaults to project ID → `https://<id>.sanity.studio`).
 
+Hosted Studio (`https://v4eheew2.sanity.studio`) only updates after `npm run deploy`. The app is on Studio **6.13.2** with `autoUpdates: true` so later 6.x patches apply without a full redeploy. A `document.pair.fetch` timeout on Studio 6.0 froze the editor; 6.4+ recovers. If the pane still hangs: hard-refresh, open `/studio` without a document ID, and check the Network tab protocol is HTTP/2 (not 1.1 / VPN).
+
 `basePath: "/studio"` lives in `sanity.config.ts` only (not `sanity.cli.ts` `project.basePath`) so hosted static assets resolve at `/static/*`. See [DEPLOYMENT.md](../../docs/DEPLOYMENT.md) if the dashboard shows a white screen.
 
 ### Deploy Schema

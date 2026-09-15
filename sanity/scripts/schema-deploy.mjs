@@ -5,8 +5,8 @@
  * Usage (from sanity/):
  *   npm run schema:deploy
  *
- * Note: sanity@6.0.0 can SIGABRT on `schemas deploy` without output. This script
- * retries with `sanity@latest` when that happens.
+ * Note: older Sanity CLIs (e.g. 6.0.0) can SIGABRT on `schemas deploy` without
+ * output. This script retries with `sanity@latest` when that happens.
  */
 
 import { spawnSync } from 'node:child_process'
@@ -66,7 +66,7 @@ if (result.error) {
 
 if (result.signal === 'SIGABRT' || result.signal === 'SIGSEGV') {
   console.warn(
-    `\nLocal Sanity CLI exited with ${result.signal} (known issue in sanity@6.0.0). Retrying with sanity@latest…\n`,
+    `\nLocal Sanity CLI exited with ${result.signal} (known CLI crash). Retrying with sanity@latest…\n`,
   )
   result = runSchemasDeploy(true)
 }

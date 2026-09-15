@@ -31,12 +31,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@sanity/assist": "^6.1.10",
+    "@sanity/assist": "^6.1.21",
     "@sanity/form-toolkit": "^2.2.3",
-    "@sanity/vision": "^6.0.0",
+    "@sanity/vision": "^6.13.2",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "sanity": "6.0.0",
+    "sanity": "6.13.2",
     "styled-components": "^6.3.12"
   },
   "devDependencies": {
