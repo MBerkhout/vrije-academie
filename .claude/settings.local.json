@@ -1,0 +1,79 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/mickberkhout/.claude/skills/sightdeck-ai/scripts/bootstrap.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/mickberkhout/.claude/skills/sightdeck-ai/scripts/track_files.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/mickberkhout/.claude/skills/sightdeck-ai/scripts/track_bash_files.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"/Users/mickberkhout/.claude/skills/sightdeck-ai/scripts/record_verification.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/mickberkhout/.claude/skills/sightdeck-ai/scripts/record_usage.py\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/mickberkhout/.claude/skills/sightdeck-ai/scripts/detect_test_tool.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/mickberkhout/.claude/skills/sightdeck-ai/scripts/record_usage.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/mickberkhout/.claude/skills/sightdeck-ai/scripts/record_verification.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

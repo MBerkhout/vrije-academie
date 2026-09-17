@@ -269,11 +269,9 @@ export const sanityClient: CMSClient = {
       pdp {
         lowStockThreshold,
         deadlineWarningDays,
-        countdownWindowDays,
         signalTemplates {
           lowStock,
           deadlineSoon,
-          startSoon,
           soldOut
         },
         onlineBadgeDefaultText,

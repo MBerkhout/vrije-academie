@@ -34,6 +34,10 @@ import {
   REGISTRATION_EXTERNAL_ID_FIELD,
   VOUCHER_GIFT_CARD_EXTERNAL_ID_FIELD,
 } from "../utils/salesforce-config"
+import {
+  childSalesforceIdFromVariantSyncKey,
+  variantSyncSalesforceId,
+} from "../utils/linked-online-productgroup"
 import { productMapping } from "../mappings/product"
 import { variantMapping } from "../mappings/variant"
 
@@ -60,6 +64,8 @@ describe("medusa custom field specs", () => {
     expect(names.has(`Product2.${PRODUCT_EXTERNAL_ID_FIELD}`)).toBe(true)
     expect(names.has(`Product2.${VARIANT_EXTERNAL_ID_FIELD}`)).toBe(true)
     expect(names.has(`Order.${MEDUSA_ADMIN_URL_FIELD}`)).toBe(true)
+    expect(names.has(`vaProductgroup__c.${PRODUCT_EXTERNAL_ID_FIELD}`)).toBe(true)
+    expect(names.has(`vaProduct__c.${VARIANT_EXTERNAL_ID_FIELD}`)).toBe(true)
   })
 
   it("builds HYPERLINK formulas against the custom label", () => {
@@ -76,6 +82,19 @@ describe("medusa custom field specs", () => {
       [1, 2],
       [3, 4],
     ])
+  })
+
+  it("extracts vaProduct ids from variant sync keys and skips slaves", () => {
+    const childId = "a04Mz00000YEMptIAH"
+    expect(variantSyncSalesforceId(childId, "a05Mz00000YEMptIAH", { isLinkedOnlineSlave: false })).toBe(
+      childId
+    )
+    expect(childSalesforceIdFromVariantSyncKey(childId)).toBe(childId)
+    expect(
+      childSalesforceIdFromVariantSyncKey(
+        variantSyncSalesforceId(childId, "a05Mz00000YEMptIAH", { isLinkedOnlineSlave: true })
+      )
+    ).toBeNull()
   })
 })
 

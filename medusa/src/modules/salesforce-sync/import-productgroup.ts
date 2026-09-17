@@ -46,6 +46,8 @@ import { resolveDefaultSalesChannelId } from "./utils/resolve-default-sales-chan
 import { linkNativeProductCategoriesByLabels } from "./utils/resolve-native-categories-by-label"
 import { resolveProductTypeId } from "./utils/resolve-product-type-id"
 import { shouldImportProductgroup } from "./utils/future-import-guard"
+import { writeImportedProductgroupMedusaIds } from "./utils/backfill-medusa-ids"
+import { isSalesforcePushSuppressed } from "./utils/suppress-push"
 import {
   isCourseProductVisibleOnWebsite,
   isProductgroupVisibleOnWebsite,
@@ -1147,6 +1149,23 @@ export async function importProductgroupFromSalesforce(
   }
 
   importContext?.setProductgroupFingerprint(input.salesforceId, contentFingerprint, productId)
+
+  if (!isSalesforcePushSuppressed()) {
+    const variantRows: Array<{ salesforceId: string; medusaId: string }> = []
+    for (const variantId of variantIds) {
+      const row = await sync.getStateByMedusaId(ENTITY_VARIANT, variantId)
+      if (row?.salesforce_id) {
+        variantRows.push({ salesforceId: row.salesforce_id, medusaId: variantId })
+      }
+    }
+    await writeImportedProductgroupMedusaIds({
+      sync,
+      logger: container.resolve(ContainerRegistrationKeys.LOGGER),
+      productgroupSalesforceId: input.salesforceId,
+      productId,
+      variants: variantRows,
+    })
+  }
 
   if (!input.skipSanitySync) {
     await syncProductById(productId, container).catch((err) => {

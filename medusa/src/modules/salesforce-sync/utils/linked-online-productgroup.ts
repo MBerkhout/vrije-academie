@@ -54,6 +54,14 @@ export function variantSyncSalesforceId(
     : childSfId
 }
 
+/** Raw `vaProduct__c` Id from variant sync state. Slave keys are skipped (same SF row as the parent merge). */
+export function childSalesforceIdFromVariantSyncKey(key: string | null | undefined): string | null {
+  const trimmed = key?.trim()
+  if (!trimmed || trimmed.startsWith("slave:")) return null
+  if (/^[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?$/.test(trimmed)) return trimmed
+  return null
+}
+
 export function linkedOnlineProductgroupId(
   group: SfProductgroupShape
 ): string | null {

@@ -184,18 +184,10 @@ export const generalSettings = defineType({
           validation: (Rule) => Rule.min(0).integer(),
         }),
         defineField({
-          name: "countdownWindowDays",
-          title: "Countdown window (days)",
-          type: "number",
-          description: "Show a start-soon countdown when earliest_start_at is within N days.",
-          initialValue: 30,
-          validation: (Rule) => Rule.min(0).integer(),
-        }),
-        defineField({
           name: "signalTemplates",
           title: "Conversion signal templates",
           type: "object",
-          description: "Templates for urgency/availability signals. Use {n} for count and {d} for days.",
+          description: "Templates for urgency/availability signals. Use {n} for count.",
           fields: [
             defineField({
               name: "lowStock",
@@ -208,12 +200,6 @@ export const generalSettings = defineType({
               title: "Deadline soon",
               type: "string",
               initialValue: "Inschrijving sluit bijna",
-            }),
-            defineField({
-              name: "startSoon",
-              title: "Start soon",
-              type: "string",
-              initialValue: "Cursus start over {d} dagen",
             }),
             defineField({
               name: "soldOut",

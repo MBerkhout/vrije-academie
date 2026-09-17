@@ -81,7 +81,17 @@ npm run salesforce:create-fields -- --admin-url=https://your-medusa-host
 
 `--admin-url` is the Medusa Admin origin (no `/app`). It is stored in Custom Label `Medusa_Admin_Base_Url`; formula field `Medusa_Admin_Url__c` uses `HYPERLINK($Label.Medusa_Admin_Base_Url & "/app/…", "Open in Medusa")`. Re-run with a new URL to update the label. The running Salesforce user needs **Customize Application** (Admin OAuth is typical; JWT integration users often cannot deploy metadata). The script also creates permission set **Medusa_Sync** (FLS) and assigns it to that user — add `Medusa_Admin_Url__c` to page layouts / Lightning record pages yourself. Then set `SALESFORCE_MEDUSA_CUSTOM_FIELDS=true`.
 
-Fields: `Medusa_Order_Id__c` on `Order` (plus display id / email / status / total cents), `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` / `Medusa_Product_Group_Id__c` on `Product2`. Until those exist, leave the flag unset/false: payloads use standard SF fields only; Medusa stores the linked Salesforce Id in `salesforce_sync_state` (re-push updates the header; line items may duplicate without external ids). **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
+Catalog products are **`vaProductgroup__c`** (not `Product2`). After creating fields, write Medusa ids onto already-imported groups:
+
+```bash
+npm run salesforce:create-fields -- --admin-url=https://your-medusa-host
+npm run salesforce:backfill-ids -- --dry-run
+npm run salesforce:backfill-ids
+```
+
+Do **not** bulk-push Medusa products to `Product2` — that would create duplicate Product2 rows. `salesforce:backfill-ids` PATCHes `Medusa_Product_Id__c` on `vaProductgroup__c` and `Medusa_Variant_Id__c` on `vaProduct__c` from `salesforce_sync_state`. Later single imports write those ids back as well (skipped during bulk import because `SALESFORCE_SUPPRESS_PUSH=1`; run backfill afterwards).
+
+Fields: `Medusa_Order_Id__c` on `Order` (plus display id / email / status / total cents), `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` / `Medusa_Product_Group_Id__c` on `Product2`, same product/variant id fields on `vaProductgroup__c` / `vaProduct__c`. Until those exist, leave the flag unset/false: payloads use standard SF fields only; Medusa stores the linked Salesforce Id in `salesforce_sync_state` (re-push updates the header; line items may duplicate without external ids). **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
 3. **Inbound webhook**: Flow or Apex `POST` to `{MEDUSA_URL}/hooks/salesforce` with header `X-Salesforce-Webhook-Secret: <same as env>` and JSON body:
 
 ```json
@@ -204,6 +214,9 @@ npm run salesforce:inspect -- --salesforce-id=a052o00001Agr0lAAB --describe --ou
 # Create Medusa_* External Id fields + Open in Medusa formula links (Metadata API)
 npm run salesforce:create-fields -- --admin-url=https://your-medusa-host --dry-run
 npm run salesforce:create-fields -- --admin-url=https://your-medusa-host
+# Write Medusa product/variant ids onto existing vaProductgroup__c / vaProduct__c rows
+npm run salesforce:backfill-ids -- --dry-run
+npm run salesforce:backfill-ids
 ```
 
 **Pull vs import:** `--id` + `--salesforce-id` updates an existing Medusa product. Omit `--id` to **create** a new Medusa product from Salesforce (idempotent when that SF id was imported before — re-pull updates the linked product). New products are created as **draft** with one default variant.

@@ -35,7 +35,6 @@ function computeSignal(event: EventCard, settings: GeneralSettings | null): stri
   const pdp = settings?.pdp
   const threshold = pdp?.lowStockThreshold ?? 5
   const deadlineDays = pdp?.deadlineWarningDays ?? 7
-  const countdownDays = pdp?.countdownWindowDays ?? 30
   const templates = pdp?.signalTemplates
 
   if (eventHasUnlimitedAvailability(event)) return null
@@ -57,14 +56,6 @@ function computeSignal(event: EventCard, settings: GeneralSettings | null): stri
     return diff >= 0 && diff <= deadlineDays
   })
   if (soonDeadline) return templates?.deadlineSoon ?? 'Inschrijving sluit bijna'
-
-  // Check if earliest start is within countdownDays
-  if (event.earliest_start_at) {
-    const diffDays = Math.ceil((new Date(event.earliest_start_at).getTime() - now) / (1000 * 60 * 60 * 24))
-    if (diffDays >= 0 && diffDays <= countdownDays) {
-      return (templates?.startSoon ?? 'Cursus start over {d} dagen').replace('{d}', String(diffDays))
-    }
-  }
 
   return null
 }

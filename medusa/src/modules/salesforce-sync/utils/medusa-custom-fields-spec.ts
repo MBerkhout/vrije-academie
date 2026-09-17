@@ -1,3 +1,5 @@
+import { SF_COURSE_PRODUCT_OBJECT } from "../mappings/course-product"
+import { SF_PRODUCTGROUP_OBJECT } from "../mappings/productgroup"
 import {
   ORDER_EXTERNAL_ID_FIELD,
   ORDER_ITEM_EXTERNAL_ID_FIELD,
@@ -83,6 +85,14 @@ export function productAdminUrlFormula(): string {
   const productLink = hyperlink(`"/app/products/" & ${PRODUCT_EXTERNAL_ID_FIELD}`)
   const groupLink = hyperlink(`"/app/products/" & ${PRODUCT_GROUP_ID_FIELD}`)
   return `IF(NOT(ISBLANK(${PRODUCT_EXTERNAL_ID_FIELD})), ${productLink}, IF(NOT(ISBLANK(${PRODUCT_GROUP_ID_FIELD})), ${groupLink}, ""))`
+}
+
+export function productIdAdminUrlFormula(): string {
+  return `IF(ISBLANK(${PRODUCT_EXTERNAL_ID_FIELD}), "", ${hyperlink(`"/app/products/" & ${PRODUCT_EXTERNAL_ID_FIELD}`)})`
+}
+
+export function productGroupIdAdminUrlFormula(): string {
+  return `IF(ISBLANK(${PRODUCT_GROUP_ID_FIELD}), "", ${hyperlink(`"/app/products/" & ${PRODUCT_GROUP_ID_FIELD}`)})`
 }
 
 export function giftCardAdminUrlFormula(): string {
@@ -205,6 +215,41 @@ export function medusaCustomFieldSpecs(): MedusaSfFieldSpec[] {
       label: "Open in Medusa",
       description: ADMIN_URL_DESCRIPTION,
       kind: { type: "formulaText", formula: productAdminUrlFormula() },
+    },
+    {
+      objectApiName: SF_PRODUCTGROUP_OBJECT,
+      fieldApiName: PRODUCT_EXTERNAL_ID_FIELD,
+      label: "Medusa Product Id",
+      description: "Medusa product id for this vaProductgroup (website catalog).",
+      kind: uniqueExternalIdText(),
+    },
+    {
+      objectApiName: SF_PRODUCTGROUP_OBJECT,
+      fieldApiName: MEDUSA_ADMIN_URL_FIELD,
+      label: "Open in Medusa",
+      description: ADMIN_URL_DESCRIPTION,
+      kind: { type: "formulaText", formula: productIdAdminUrlFormula() },
+    },
+    {
+      objectApiName: SF_COURSE_PRODUCT_OBJECT,
+      fieldApiName: VARIANT_EXTERNAL_ID_FIELD,
+      label: "Medusa Variant Id",
+      description: "Medusa variant id for this session.",
+      kind: uniqueExternalIdText(),
+    },
+    {
+      objectApiName: SF_COURSE_PRODUCT_OBJECT,
+      fieldApiName: PRODUCT_GROUP_ID_FIELD,
+      label: "Medusa Product Group Id",
+      description: "Parent Medusa product id (for Open in Medusa).",
+      kind: { type: "text", length: 255 },
+    },
+    {
+      objectApiName: SF_COURSE_PRODUCT_OBJECT,
+      fieldApiName: MEDUSA_ADMIN_URL_FIELD,
+      label: "Open in Medusa",
+      description: ADMIN_URL_DESCRIPTION,
+      kind: { type: "formulaText", formula: productGroupIdAdminUrlFormula() },
     },
   ]
 }

@@ -21,7 +21,6 @@ All other fields are mirrors from Medusa and are read-only, including **SEO titl
 |---|---|---|
 | `lowStockThreshold` | 5 | Show "Nog maar N plaatsen" when `available_quantity ≤ N`. |
 | `deadlineWarningDays` | 7 | Show deadline warning when `registration_deadline_at` is within N days. |
-| `countdownWindowDays` | 30 | Show start-soon countdown when `earliest_start_at` is within N days. |
 
 ## UI labels (`generalSettings › PDP › Labels`)
 

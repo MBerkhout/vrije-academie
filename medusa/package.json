@@ -26,6 +26,7 @@
     "salesforce:inspect": "medusa exec ./src/scripts/inspect-salesforce-productgroup.ts --",
     "salesforce:inspect-order": "medusa exec ./src/scripts/inspect-salesforce-order.ts --",
     "salesforce:create-fields": "medusa exec ./src/scripts/create-salesforce-medusa-fields.ts --",
+    "salesforce:backfill-ids": "medusa exec ./src/scripts/backfill-salesforce-medusa-ids.ts --",
     "order:complete": "medusa exec ./src/scripts/complete-order.ts --",
     "search:reindex": "medusa exec ./src/scripts/reindex-search.ts",
     "cache:flush": "medusa exec ./src/scripts/flush-store-listing-cache.ts",

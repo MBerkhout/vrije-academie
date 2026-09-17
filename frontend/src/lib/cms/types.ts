@@ -484,11 +484,9 @@ export interface GeneralSettings {
   pdp?: {
     lowStockThreshold?: number
     deadlineWarningDays?: number
-    countdownWindowDays?: number
     signalTemplates?: {
       lowStock?: string
       deadlineSoon?: string
-      startSoon?: string
       soldOut?: string
     }
     onlineBadgeDefaultText?: string

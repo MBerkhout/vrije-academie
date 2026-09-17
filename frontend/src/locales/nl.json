@@ -289,7 +289,6 @@
     "bookingSoldOut": "Volgeboekt",
     "bookingLowStock": "Nog maar {n} plaatsen beschikbaar",
     "bookingDeadlineSoon": "Inschrijving sluit bijna",
-    "bookingStartSoon": "Cursus start over {d} dagen",
     "bookingPrimaryCta": "Direct inschrijven",
     "bookingWishlist": "Bewaren",
     "bookingWishlistSaved": "Verwijderen uit bewaard",
