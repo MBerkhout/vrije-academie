@@ -117,9 +117,14 @@ async function ensureCartTaxCountry(cart: Cart): Promise<Cart> {
 }
 
 function getFetchStatus(e: unknown): number | undefined {
-  if (typeof e === 'object' && e !== null && 'status' in e) {
+  if (typeof e !== 'object' || e === null) return undefined
+  if ('status' in e) {
     const s = (e as { status: unknown }).status
-    return typeof s === 'number' ? s : undefined
+    if (typeof s === 'number') return s
+  }
+  if ('response' in e) {
+    const s = (e as { response?: { status?: unknown } }).response?.status
+    if (typeof s === 'number') return s
   }
   return undefined
 }
@@ -677,7 +682,8 @@ export const medusaClient: CommerceClient = {
       const cart = normalizeStoreCart(response.cart)
       return ensureCartTaxCountry(cart)
     } catch (error) {
-      return null
+      if (getFetchStatus(error) === 404) return null
+      throw error
     }
   },
 

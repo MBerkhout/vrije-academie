@@ -23,7 +23,7 @@ import {
 import type { Cart } from '@/lib/commerce/types'
 import { commerceClient } from '@/lib/commerce'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
-import { getActiveCart, setCartId, dispatchCartUpdated } from '@/lib/commerce/cart'
+import { getActiveCart, getOrCreateCartId, setCartId, dispatchCartUpdated } from '@/lib/commerce/cart'
 import type { Customer } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
 import {
@@ -232,8 +232,10 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
               return
             }
             skipBootstrapEnd = true
-            const cartId = await ensureCart()
-            await commerceClient.syncCartFromCustomer(fresh, cartId)
+            const cartId = await getOrCreateCartId()
+            const synced = await commerceClient.syncCartFromCustomer(fresh, cartId)
+            setCartId(synced.id)
+            dispatchCartUpdated()
             if (!cancelled) router.replace('/checkout/betaling')
             return
           }
@@ -392,8 +394,10 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
       return
     }
     if (isCustomerProfileComplete(fresh)) {
-      const cartId = await ensureCart()
-      await commerceClient.syncCartFromCustomer(fresh, cartId)
+      const cartId = await getOrCreateCartId()
+      const synced = await commerceClient.syncCartFromCustomer(fresh, cartId)
+      setCartId(synced.id)
+      dispatchCartUpdated()
       router.push('/checkout/betaling')
     } else {
       prefillFromCustomer(fresh)
@@ -533,8 +537,10 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
         setError('Kon je gegevens niet opslaan. Probeer het opnieuw.')
         return
       }
-      const cartId = await ensureCart()
-      await commerceClient.syncCartFromCustomer(fresh, cartId)
+      const cartId = await getOrCreateCartId()
+      const synced = await commerceClient.syncCartFromCustomer(fresh, cartId)
+      setCartId(synced.id)
+      dispatchCartUpdated()
       router.push('/checkout/betaling')
     } catch {
       setError('Er is iets misgegaan. Probeer het opnieuw.')
@@ -543,17 +549,13 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     }
   }
 
-  async function ensureCart(): Promise<string> {
-    const active = await getActiveCart()
-    if (active?.id) return active.id
-    const cart = await commerceClient.createCart()
-    setCartId(cart.id)
-    dispatchCartUpdated()
-    return cart.id
-  }
-
   async function associateCart(emailAddr: string) {
-    const cart = await getActiveCart()
+    let cart
+    try {
+      cart = await getActiveCart()
+    } catch {
+      return
+    }
     if (!cart) return
     await commerceClient.updateCart(cart.id, { email: emailAddr }).catch(() => {})
   }

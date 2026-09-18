@@ -446,6 +446,7 @@ export interface CommerceClient {
   getVathuisPaginated(filters?: VathuisFilters): Promise<VathuisListResult>
   getSimilarVathuis(handle: string): Promise<EventCard[]>
   getAgendaPaginated(filters?: AgendaFilters): Promise<AgendaListResult>
+  /** `null` only when Medusa responds 404 / empty; other failures throw. */
   getCart(id: string): Promise<Cart | null>
   createCart(): Promise<Cart>
   addToCart(cartId: string, variantId: string, quantity: number): Promise<Cart>

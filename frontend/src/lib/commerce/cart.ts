@@ -47,31 +47,36 @@ export function discardCompletedCart(cart: Cart | null | undefined): boolean {
   return true
 }
 
-/** Load cart from cookie; clears cookie when missing or already completed. */
+/**
+ * Load cart from cookie.
+ * Clears the cookie only when Medusa says the cart is gone (404/empty) or already completed.
+ * Retrieve failures (401/5xx/network) throw and leave the cookie so checkout cannot
+ * wipe a still-valid guest cart after login and bounce back to /winkelwagen.
+ */
 export async function getActiveCart(): Promise<Cart | null> {
   const cartId = getCartId()
   if (!cartId) return null
 
-  try {
-    const cart = await commerceClient.getCart(cartId)
-    if (!cart?.id) {
-      clearCartId()
-      return null
-    }
-    if (isCartCompleted(cart)) {
-      clearCartId()
-      return null
-    }
-    return cart
-  } catch {
+  const cart = await commerceClient.getCart(cartId)
+  if (!cart?.id) {
     clearCartId()
     return null
   }
+  if (isCartCompleted(cart)) {
+    clearCartId()
+    return null
+  }
+  return cart
 }
 
 export async function getOrCreateCartId(): Promise<string> {
-  const active = await getActiveCart()
-  if (active?.id) return active.id
+  const existingId = getCartId()
+  try {
+    const active = await getActiveCart()
+    if (active?.id) return active.id
+  } catch {
+    if (existingId) throw new Error('CART_UNAVAILABLE')
+  }
 
   const cart = await commerceClient.createCart()
   setCartId(cart.id)

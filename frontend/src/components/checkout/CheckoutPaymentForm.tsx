@@ -4,12 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { commerceClient } from '@/lib/commerce'
-import { clearCartId, dispatchCartUpdated, getActiveCart, getCartId } from '@/lib/commerce/cart'
-import {
-  getDefaultCheckoutAddress,
-  isCartShippingComplete,
-  isCustomerProfileComplete,
-} from '@/lib/commerce/checkout-profile'
+import { clearCartId, dispatchCartUpdated, getActiveCart, getCartId, setCartId } from '@/lib/commerce/cart'
+import { resolveCheckoutPaymentDestination } from '@/lib/commerce/checkout-payment-guards'
+import { getDefaultCheckoutAddress } from '@/lib/commerce/checkout-profile'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { trackAddPaymentInfo } from '@/lib/analytics/events/ecommerce'
 import { buildUserDataFromCustomer, buildUserDataFromFields } from '@/lib/analytics/mappers/user-data'
@@ -75,36 +72,41 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
       if (customerLoading) return
 
       setLoading(true)
-      const cartId = getCartId()
-      if (!cartId) {
-        router.replace('/winkelwagen')
-        setLoading(false)
-        return
+      setError(null)
+      const cookiePresent = Boolean(getCartId())
+      let c: Cart | null = null
+      let loadError = false
+      try {
+        c = await getActiveCart()
+      } catch {
+        loadError = true
       }
-
-      let c = await getActiveCart()
       if (cancelled) return
 
-      if (!c) {
-        router.replace('/winkelwagen')
+      const dest = resolveCheckoutPaymentDestination({
+        cookiePresent,
+        cart: c,
+        loadError,
+        customer,
+      })
+      if (dest === '/winkelwagen' || dest === '/checkout/inloggen') {
+        router.replace(dest)
         setLoading(false)
         return
       }
-
-      if (!c.email) {
-        router.replace('/checkout/inloggen')
+      if (dest === 'retry' || !c) {
+        setError(
+          'Kon je winkelwagen niet laden. Vernieuw de pagina of ga terug naar de winkelwagen.'
+        )
         setLoading(false)
         return
       }
 
       if (customer) {
-        if (!isCustomerProfileComplete(customer)) {
-          router.replace('/checkout/inloggen')
-          setLoading(false)
-          return
-        }
         try {
           c = await commerceClient.syncCartFromCustomer(customer, c.id)
+          setCartId(c.id)
+          dispatchCartUpdated()
         } catch {
           router.replace('/checkout/inloggen')
           setLoading(false)
@@ -121,11 +123,6 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
         setPostalCode(addr?.postal_code ?? '')
         setCity(addr?.city ?? '')
       } else {
-        if (!isCartShippingComplete(c)) {
-          router.replace('/checkout/inloggen')
-          setLoading(false)
-          return
-        }
         setCart(c)
         setEmail(c.email ?? '')
         const addr = c.shipping_address
@@ -301,6 +298,17 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
       <div className="space-y-4 animate-pulse">
         <div className="h-6 bg-va-lightgray-200 rounded w-1/3" />
         <div className="h-32 bg-va-lightgray-200 rounded" />
+      </div>
+    )
+  }
+
+  if (!cart) {
+    return (
+      <div
+        className="rounded-lg px-4 py-3 bg-red-50 border border-red-200 font-sans text-sm text-red-700"
+        role="alert"
+      >
+        {error ?? 'Kon je winkelwagen niet laden. Vernieuw de pagina of ga terug naar de winkelwagen.'}
       </div>
     )
   }

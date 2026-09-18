@@ -8,7 +8,12 @@ import type { Cart } from '@/lib/commerce/types'
 
 /** Load cart and re-apply session draft when Medusa cart lost guest checkout fields. */
 export async function ensureGuestCheckoutCartHydrated(): Promise<Cart | null> {
-  let cart = await getActiveCart()
+  let cart: Cart | null
+  try {
+    cart = await getActiveCart()
+  } catch {
+    return null
+  }
   if (!cart) return null
   if (isGuestCartCheckoutReady(cart)) return cart
 

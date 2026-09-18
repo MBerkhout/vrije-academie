@@ -46,7 +46,12 @@ export function ProceedCta({ label, fullWidth = false }: ProceedCtaProps) {
   }, [customer, customerLoading])
 
   async function handleClick() {
-    const cart = await getActiveCart()
+    let cart
+    try {
+      cart = await getActiveCart()
+    } catch {
+      return
+    }
     if (!cart) return
     const extras = await fetchCartExtras(cart.id)
     const userData =

@@ -63,7 +63,7 @@ Helpers: `src/lib/commerce/checkout-profile.ts` (`isCustomerProfileComplete`, `g
 OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `customerLookup`, `requestOtp`, `verifyOtp`, `registerPasswordless`.
 
 **Guards:**
-- Empty cart → redirect `/winkelwagen`
+- Empty cart (no items / no cookie) → redirect `/winkelwagen`. A retrieve error with a still-valid cookie does not redirect.
 - Already logged-in with **complete** profile → `syncCartFromCustomer` then redirect `/checkout/betaling` (unless `?bewerken=1` — see below)
 - Already logged-in with **incomplete** profile → `logged_in_details` (no immediate redirect to betaling)
 
@@ -92,7 +92,7 @@ OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `cus
 
 `selectedProviderId` is the full provider ID (e.g. `pp_mollie-ideal_mollie`). No separate `methodId` is needed.
 
-**Guards:** cart must have `email` set; if not → redirect `/checkout/inloggen`. If **logged-in** and `!isCustomerProfileComplete(customer)` → redirect `/checkout/inloggen`. If **guest** and cart shipping is incomplete → redirect `/checkout/inloggen`.
+**Guards** (`resolveCheckoutPaymentDestination`): empty cart (no cookie, 404, or 0 line items) → `/winkelwagen`. Retrieve failure while the cookie is still set → stay on betaling with an error (do **not** clear the cookie or bounce to cart). **Logged-in** with incomplete profile → `/checkout/inloggen`. **Logged-in** with complete profile → stay and `syncCartFromCustomer` (cart email/shipping may still be empty right after account creation). **Guest** without cart email or shipping → `/checkout/inloggen`.
 
 ## Step 4 — Bevestiging
 
