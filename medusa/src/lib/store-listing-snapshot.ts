@@ -103,6 +103,62 @@ export type VathuisListingSnapshot = {
   builtAt: number
 }
 
+const VATHUIS_PRODUCT_GRAPH_FIELDS = [
+  "id",
+  "title",
+  "handle",
+  "description",
+  "thumbnail",
+  "status",
+  "created_at",
+  "metadata",
+  "type.value",
+  "variants.*",
+  "variants.prices.*",
+] as const
+
+function toVathuisListingRow(
+  row: Record<string, unknown>,
+  categories: unknown[],
+  docenten: unknown[]
+): Record<string, unknown> {
+  const metadata = (row.metadata ?? {}) as Record<string, unknown>
+  const vathuisRaw = metadata.vathuis
+  const vathuis =
+    vathuisRaw && typeof vathuisRaw === "object"
+      ? (vathuisRaw as Record<string, unknown>)
+      : null
+  const variants = (row.variants ?? []) as Record<string, unknown>[]
+  const ctaFields = ctaBarFieldsFromMetadata(metadata)
+  const { metadata: _metadata, ...productFields } = row
+
+  return {
+    ...productFields,
+    ...ctaFields,
+    salesforce_order: salesforceOrderFromMetadata(metadata),
+    record_type: "vathuis",
+    purchase_mode:
+      typeof vathuis?.purchase_mode === "string" ? vathuis.purchase_mode : "bundle_only",
+    product_type: (row.type as { value?: string } | null | undefined)?.value ?? null,
+    categories,
+    docenten,
+    price_from: minPriceCentsFromVariants(
+      variants as Parameters<typeof minPriceCentsFromVariants>[0]
+    ),
+    vathuis: vathuis
+      ? {
+          episode_count_label:
+            typeof vathuis.episode_count_label === "string"
+              ? vathuis.episode_count_label
+              : null,
+          play_time: typeof vathuis.play_time === "string" ? vathuis.play_time : null,
+          purchase_mode:
+            typeof vathuis.purchase_mode === "string" ? vathuis.purchase_mode : null,
+        }
+      : null,
+  }
+}
+
 function dayPartFromStartAt(startAt: string | null | undefined): string | null {
   if (!startAt) return null
   const hour = new Date(startAt).getHours()
@@ -611,19 +667,7 @@ async function buildVathuisSnapshot(scope: MedusaContainer): Promise<VathuisList
 
   const { data: products } = await query.graph({
     entity: "product",
-    fields: [
-      "id",
-      "title",
-      "handle",
-      "description",
-      "thumbnail",
-      "status",
-      "created_at",
-      "metadata",
-      "type.value",
-      "variants.*",
-      "variants.prices.*",
-    ],
+    fields: [...VATHUIS_PRODUCT_GRAPH_FIELDS],
     filters: { id: vathuisProductIds, status: "published" },
   })
 
@@ -651,41 +695,7 @@ async function buildVathuisSnapshot(scope: MedusaContainer): Promise<VathuisList
   const list = (products ?? []).map((p) => {
     const row = p as Record<string, unknown>
     const id = row.id as string
-    const metadata = (row.metadata ?? {}) as Record<string, unknown>
-    const vathuisRaw = metadata.vathuis
-    const vathuis =
-      vathuisRaw && typeof vathuisRaw === "object"
-        ? (vathuisRaw as Record<string, unknown>)
-        : null
-    const variants = (row.variants ?? []) as Record<string, unknown>[]
-    const ctaFields = ctaBarFieldsFromMetadata(metadata)
-    const { metadata: _metadata, ...productFields } = row
-
-    return {
-      ...productFields,
-      ...ctaFields,
-      salesforce_order: salesforceOrderFromMetadata(metadata),
-      record_type: "vathuis",
-      purchase_mode:
-        typeof vathuis?.purchase_mode === "string" ? vathuis.purchase_mode : "bundle_only",
-      product_type: (row.type as { value?: string } | null | undefined)?.value ?? null,
-      categories: categoryByProduct[id] ?? [],
-      docenten: docentByProduct[id] ?? [],
-      price_from: minPriceCentsFromVariants(
-        variants as Parameters<typeof minPriceCentsFromVariants>[0]
-      ),
-      vathuis: vathuis
-        ? {
-            episode_count_label:
-              typeof vathuis.episode_count_label === "string"
-                ? vathuis.episode_count_label
-                : null,
-            play_time: typeof vathuis.play_time === "string" ? vathuis.play_time : null,
-            purchase_mode:
-              typeof vathuis.purchase_mode === "string" ? vathuis.purchase_mode : null,
-          }
-        : null,
-    }
+    return toVathuisListingRow(row, categoryByProduct[id] ?? [], docentByProduct[id] ?? [])
   })
 
   return { list, builtAt: Date.now() }
@@ -700,6 +710,62 @@ export async function getVathuisListingSnapshot(
     () => buildVathuisSnapshot(scope),
     vathuisInflight
   )
+}
+
+/** True when the product is linked to a VA Thuis event group (uncached). */
+export async function productHasVathuisEventGroup(
+  scope: MedusaContainer,
+  productId: string
+): Promise<boolean> {
+  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { data: links } = await query.graph({
+    entity: productEventGroupLink.entryPoint,
+    fields: ["product_id", "event_group.record_type"],
+    filters: { product_id: productId },
+  })
+  return (links ?? []).some((r) => {
+    const row = r as { event_group?: { record_type?: string } | null }
+    return row.event_group?.record_type === "vathuis"
+  })
+}
+
+/**
+ * Load one published VA Thuis product from the database (not the listing cache).
+ * Used by incremental search reindex so a stale Redis/memory snapshot cannot
+ * drop a newly imported bundle from OpenSearch.
+ */
+export async function loadPublishedVathuisProductRow(
+  scope: MedusaContainer,
+  productId: string
+): Promise<Record<string, unknown> | null> {
+  if (!(await productHasVathuisEventGroup(scope, productId))) return null
+
+  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { data: products } = await query.graph({
+    entity: "product",
+    fields: [...VATHUIS_PRODUCT_GRAPH_FIELDS],
+    filters: { id: productId, status: "published" },
+  })
+  const product = products?.[0] as Record<string, unknown> | undefined
+  if (!product) return null
+
+  const [catLinks, { data: docLinks }] = await Promise.all([
+    listProductCatalogCategoryLinks(scope, { product_id: productId }),
+    query.graph({
+      entity: productDocentenLink.entryPoint,
+      fields: ["product_id", "docent.*"],
+      filters: { product_id: productId },
+    }),
+  ])
+
+  const categories = catLinks
+    .map((row) => row.catalog_category)
+    .filter((category): category is NonNullable<typeof category> => Boolean(category))
+  const docenten = (docLinks ?? [])
+    .map((row) => (row as { docent?: unknown }).docent)
+    .filter(Boolean)
+
+  return toVathuisListingRow(product, categories, docenten)
 }
 
 /** Product ids shown on the first page of default `/ons-aanbod` (Salesforce order sort). */

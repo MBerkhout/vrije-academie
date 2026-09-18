@@ -21,7 +21,7 @@ Route constants: `frontend/src/lib/routes.ts` (`VATHUIS_BASE_PATH`, `VATHUIS_CAT
 - **Similar:** `GET /store/vathuis/:handle/similar` via `commerceClient.getSimilarVathuis()`
 - **CSR pagination:** `GET /api/plp/vathuis`
 
-Products are excluded from Ons aanbod and Agenda (`record_type: vathuis`). They **are** included in header QuickSearch and `/zoeken` (OpenSearch), linking to `/va-thuis/{handle}`. **Availability:** VA Thuis colleges are always purchasable (never sold out); capacity from Salesforce is not enforced.
+Products are excluded from Ons aanbod and Agenda (`record_type: vathuis`). They **are** included in header QuickSearch and `/zoeken` (OpenSearch), linking to `/va-thuis/{handle}`. Catalog `?q=` and `/zoeken` both use OpenSearch product ids — a bundle can be on the VA Thuis grid (listing snapshot) but missing from search until it is indexed. Salesforce webhooks reindex from the database, not the listing cache. After deploy, run `npm run search:reindex` in `medusa/` to backfill. **Availability:** VA Thuis colleges are always purchasable (never sold out); capacity from Salesforce is not enforced.
 
 ## Components
 

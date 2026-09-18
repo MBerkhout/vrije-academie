@@ -1,7 +1,10 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { createClient } from "@sanity/client"
 
-import { getPlpListingSnapshot, getVathuisListingSnapshot } from "../../lib/store-listing-snapshot"
+import {
+  getPlpListingSnapshot,
+  loadPublishedVathuisProductRow,
+} from "../../lib/store-listing-snapshot"
 import {
   buildCommerceSearchDocs,
   buildCategorySearchDoc,
@@ -297,8 +300,9 @@ export default class SearchModuleService {
     const snapshot = await getPlpListingSnapshot(scope)
     let row = snapshot.list.find((p: Record<string, unknown>) => String(p.id) === productId)
     if (!row) {
-      const vathuis = await getVathuisListingSnapshot(scope)
-      row = vathuis.list.find((p: Record<string, unknown>) => String(p.id) === productId)
+      // Bypass the VA Thuis listing cache: webhooks often reindex before the
+      // snapshot includes the new bundle (or against a stale cluster worker).
+      row = await loadPublishedVathuisProductRow(scope, productId)
     }
     if (!row) {
       await this.deleteDoc(`product-${productId}`)

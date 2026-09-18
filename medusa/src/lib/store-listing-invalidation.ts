@@ -6,7 +6,11 @@ import {
   invalidateRegistrationCountsCache,
   invalidateStoreListingCache,
 } from "./store-listing-redis"
-import { isProductInCachedPlpTopSlots } from "./store-listing-snapshot"
+import {
+  isProductInCachedPlpTopSlots,
+  productHasVathuisEventGroup,
+} from "./store-listing-snapshot"
+import { shouldInvalidateListingsOnProductUpdate } from "./listing-cache-policy"
 import { revalidateStorefrontPlpCache } from "./storefront-revalidate"
 
 export async function invalidateEventDetailForProductId(
@@ -27,8 +31,10 @@ export async function invalidateEventDetailForProductId(
 
 /**
  * PLP hard cache (10 min) is busted immediately when a product in the first-page
- * slots is updated; other product updates wait for TTL expiry. Drafting a product
- * always busts listings so Agenda cannot keep serving the unpublished occurrence.
+ * slots is updated; other live-event updates wait for TTL expiry. Drafting a
+ * product always busts listings so Agenda cannot keep serving the unpublished
+ * occurrence. VA Thuis is never on Ons aanbod, so those updates always bust
+ * the VA Thuis snapshot (otherwise search/catalog stay stale after a webhook).
  */
 export async function handleProductCatalogChange(
   scope: MedusaContainer,
@@ -45,7 +51,9 @@ export async function handleProductCatalogChange(
 
   if (eventName === "product.updated") {
     const unpublished = !!status && status !== "published"
-    if (unpublished || (await isProductInCachedPlpTopSlots(productId))) {
+    const inPlpTopSlots = await isProductInCachedPlpTopSlots(productId)
+    const isVathuis = await productHasVathuisEventGroup(scope, productId)
+    if (shouldInvalidateListingsOnProductUpdate({ unpublished, inPlpTopSlots, isVathuis })) {
       await invalidateStoreListingCache()
       await revalidateStorefrontPlpCache()
     }

@@ -1176,10 +1176,19 @@ export async function importProductgroupFromSalesforce(
     })
   }
 
+  await invalidateStoreListingCache()
+  await invalidateEventDetailForProductId(container, productId)
+  await revalidateStorefrontPlpCache()
+
   if (!input.skipSearch) {
     const search = container.resolve("search") as import("../search/service").default
     if (search.isEnabled()) {
-      await search.reindexProductById(container, productId).catch(() => undefined)
+      await search.reindexProductById(container, productId).catch((err) => {
+        const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+        logger.warn(
+          `[import-productgroup] Search reindex failed for ${productId}: ${err instanceof Error ? err.message : String(err)}`
+        )
+      })
     }
   }
 

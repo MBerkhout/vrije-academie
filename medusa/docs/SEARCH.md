@@ -50,12 +50,14 @@ Rebuilds all commerce docs (products, categories, cities, docenten) and Sanity p
 
 - **Products:** subscriber on `product.*`, `product-variant.*`
 - **Catalog / people:** subscriber on `catalog.category.*`, `catalog.city.*`, `people.docent.*`
-- **Salesforce import:** re-indexes product after `importProductgroupFromSalesforce`
+- **Salesforce import:** re-indexes product after `importProductgroupFromSalesforce`. The import busts listing cache first, then indexes. Incremental product reindex loads VA Thuis from the database (not the listing snapshot), so a stale Redis/PM2 cache cannot delete the OpenSearch doc.
 - **Sanity pages/persons/categories:** `POST /hooks/sanity-search` (configure Sanity publish webhook). Category updates re-index the matching OpenSearch `category-{medusaId}` doc (title, description, image, SEO).
 
 ## Document fields (products)
 
 Indexed from the PLP listing snapshot plus the VA Thuis listing snapshot: `title`, `handle`, `description`, Salesforce metadata body, `categories`, `docenten`, `cities`, `location_name` (variants), `tags`, `record_type`, `product_type`. VA Thuis hits use `/va-thuis/{handle}` (not Ons aanbod).
+
+Full rebuild (`search:reindex`) reads those snapshots. **Per-product reindex** (Salesforce webhook / `product.updated`) does **not** rely on the cached VA Thuis snapshot: it loads the published bundle from the database. Otherwise a webhook that runs before the 10-minute listing cache refreshes would **remove** the product from `/zoeken` even though the PDP is live.
 
 Query uses Dutch analyzer + `fuzziness: AUTO` (e.g. `kollege` → `college`).
 
