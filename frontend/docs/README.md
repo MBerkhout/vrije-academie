@@ -64,7 +64,7 @@ src/components/
 
 **Site search (header)**: The header opens a **full-window QuickSearch overlay** (`QuickSearch` in `src/components/search/`). While typing (≥2 chars), it fetches grouped suggestions from `GET /api/search/suggest` (OpenSearch via Medusa). Category suggestions show the editorial **`image`** from the mirrored Sanity `category` doc when indexed. Submit or Enter navigates to `/zoeken?q=…`. The results page groups hits by type (Producten, Categorieën, Plaatsen, Pagina's, Docenten, Team). Category hits link to `/ons-aanbod/{slug}` (unless **`linkUrl`** is set on the category). Place/city links open `/ons-aanbod/plaats/{slug}`. The same QuickSearch is reused on `/ons-aanbod` (submit filters the PLP via `?q=`).
 
-**Category pages**: `/ons-aanbod/{slug}` — filtered PLP with title “Ons aanbod in {label}`. Uses mirrored Sanity `category` documents (synced from Medusa product categories). Editorial **Image** / title / SEO on that document must be **published** in Studio to show on tiles and search. The same URL segment also serves product detail pages when the slug is not a known category (category wins on collision). Legacy `/ons-aanbod?category={slug}` redirects to the path URL when that is the only filter. Product-type landings (`/ons-aanbod/reis`, …) use the plural from General Settings (default **Reizen**); the PDP badge stays **Reis**.
+**Category pages**: `/ons-aanbod/{slug}` — filtered PLP with title “Ons aanbod in {label}`. Uses mirrored Sanity `category` documents (synced from Medusa product categories). Editorial **Image** / title / SEO on that document must be **published** in Studio to show on tiles and search. The same URL segment also serves product detail pages when the slug is not a known category (category wins on collision). Legacy `/ons-aanbod?category={slug}` redirects to the path URL when that is the only filter. Product-type landings (`/ons-aanbod/reis`, …) use the plural from General Settings (default **Reizen** / **Rondleidingen**); the PDP badge stays the singular Salesforce name.
 
 **City pages**: `/ons-aanbod/plaats/{city}` — filtered PLP with title “Ons aanbod in {city}”. City slugs are resolved from Medusa event facets (same source as Ons aanbod filters); Sanity `city` mirrors are used when present for the label.
 
@@ -269,4 +269,5 @@ See [components.md](./components.md#deferred-work) for details.
 - [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) - Design tokens and component usage
 - [components.md](./components.md) - Block components and CMS integration
 - [ANALYTICS.md](./ANALYTICS.md) - GTM / GA4 dataLayer events and server-side purchase
+- [CHECKOUT.md](./CHECKOUT.md) - Login, payment, thank-you, failed-payment retry
 - [OPEN_POINTS.md](./OPEN_POINTS.md) - Future considerations

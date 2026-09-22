@@ -35,7 +35,7 @@ Presentation preview opent de category-PLP in de storefront.
 
 ## Product-type landing pages
 
-`/ons-aanbod/reis` (and studiedag / wandeling / workshop) use the same PLP. Listing labels come from **General Settings → Product listing page → Product type plurals**. Empty Reis falls back to **Reizen**. The PDP record-type badge stays the singular Salesforce name.
+`/ons-aanbod/reis` (and studiedag / wandeling / rondleiding / workshop) use the same PLP. Listing labels come from **General Settings → Product listing page → Product type plurals**. Empty Reis falls back to **Reizen**; empty Rondleiding to **Rondleidingen**. The PDP record-type badge stays the singular Salesforce name.
 
 ## Storefront sort
 

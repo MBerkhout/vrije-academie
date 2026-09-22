@@ -113,7 +113,7 @@ Clears `va_cart_id` when the order is confirmed.
 
 **Guards:** Without cookie / `?order` / `?session_id`, shows a friendly message (no redirect to homepage).
 
-**Failed payments:** When Mollie cancels or the payment fails, the confirmation endpoint checks the live Mollie payment status (Medusa session data is often still `pending`/`open` on browser redirect). It returns `status: "failed"` and the frontend redirects to `/checkout/betaling?betaling=mislukt`. The payment form shows an amber banner: "Je betaling is niet voltooid — je kunt hieronder een andere betaalmethode kiezen." While polling, `/bedankt` shows "We controleren je betaling…" instead of the thank-you heading.
+**Failed payments:** When Mollie cancels or the payment fails, the confirmation endpoint checks the live Mollie payment status (Medusa session data is often still `pending`/`open` on browser redirect). It returns `status: "failed"` and the frontend redirects to `/checkout/betaling?betaling=mislukt`. The payment form shows an amber banner: "Je betaling is niet voltooid — je kunt hieronder een andere betaalmethode kiezen." While polling, `/bedankt` shows "We controleren je betaling…" instead of the thank-you heading. Retrying pay deletes the leftover session first; if that used to fail with `Could not delete all payment sessions`, Medusa now drops the session even when Mollie cannot cancel (see `medusa/docs/PAYMENT-MOLLIE.md`). The storefront maps that API error to: "Je vorige betaalpoging kon niet worden afgesloten. Probeer het opnieuw."
 
 ## Mollie redirect contract
 

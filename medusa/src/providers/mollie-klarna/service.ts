@@ -35,6 +35,7 @@ import createMollieClient, {
   PaymentStatus,
   type MollieClient,
 } from "@mollie/api-client"
+import { safeCancelMolliePayment } from "../../lib/mollie-safe-delete"
 import { buildKlarnaOrderLine } from "./build-klarna-lines"
 import { MOLLIE_KLARNA_PROVIDER_ID, type MollieKlarnaProviderOptions } from "./types"
 
@@ -243,28 +244,11 @@ class MollieKlarnaProviderService extends AbstractPaymentProvider<MollieKlarnaPr
   }
 
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
-    const id = input.data?.id as string
-    try {
-      const payment = await this.client_.payments.get(id)
-      if (payment.status === PaymentStatus.expired) {
-        return { data: { id: input.data?.id } }
-      }
-
-      const newPayment = await this.client_.payments.cancel(id).catch((error) => {
-        this.logger_.warn(`Could not cancel Mollie Klarna payment ${id}: ${error.message}`)
-        return payment
-      })
-
-      return { data: asRecord(newPayment) }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      this.logger_.error(`Error cancelling Klarna payment ${id}: ${message}`)
-      throw error
-    }
+    return safeCancelMolliePayment(this.client_, input.data, this.logger_)
   }
 
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
-    return this.cancelPayment(input)
+    return safeCancelMolliePayment(this.client_, input.data, this.logger_)
   }
 
   async getPaymentStatus(input: GetPaymentStatusInput): Promise<GetPaymentStatusOutput> {

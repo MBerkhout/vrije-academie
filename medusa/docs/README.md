@@ -134,7 +134,7 @@ Salesforce `Price__c` is imported as a **gross consumer price**. Seed the defaul
 npm run seed:region
 ```
 
-Idempotent — safe to re-run after deploy. Links Mollie payment providers, sets `automatic_taxes`, and creates tax regions from `src/lib/eu-countries.ts` with the system tax provider (`tp_system`) on every EU country (add-to-cart 500s if `provider_id` is null). Not part of the automatic deploy script; run manually on new environments.
+Idempotent — safe to re-run after deploy. Links Mollie payment providers, sets `automatic_taxes`, and creates tax regions from `src/lib/eu-countries.ts` with the system tax provider (`tp_system`) on every EU country. Re-running also backfills any existing region whose `provider_id` is missing or not `tp_system` (add-to-cart 500s otherwise). Not part of the automatic deploy script; run manually on new environments.
 
 ## Medusa → Sanity: city mirror
 
@@ -150,6 +150,7 @@ See [SANITY_SYNC.md](./SANITY_SYNC.md). Cities sync as Sanity `city` documents (
 
 ## Documentation
 
+- [PAYMENT-MOLLIE.md](./PAYMENT-MOLLIE.md) — Mollie providers, webhooks, retry after failed payment
 - [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md) — OTP / passwordless checkout, SMTP + SendGrid
 - [EVENTS.md](./EVENTS.md) — module fields, availability, store filters
 - [SANITY_SYNC.md](./SANITY_SYNC.md) — Sanity mirror

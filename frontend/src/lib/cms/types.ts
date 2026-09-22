@@ -489,6 +489,7 @@ export interface GeneralSettings {
       reis?: string
       studiedag?: string
       wandeling?: string
+      rondleiding?: string
       workshop?: string
     }
   }

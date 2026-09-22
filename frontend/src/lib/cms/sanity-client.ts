@@ -269,6 +269,7 @@ export const sanityClient: CMSClient = {
           reis,
           studiedag,
           wandeling,
+          rondleiding,
           workshop
         }
       },

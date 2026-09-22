@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveCheckoutPaymentDestination } from './checkout-payment-guards'
+import { checkoutPaymentErrorMessage, resolveCheckoutPaymentDestination } from './checkout-payment-guards'
 import type { Cart, Customer } from './types'
 
 function cart(overrides: Partial<Cart> = {}): Cart {
@@ -95,5 +95,21 @@ describe('resolveCheckoutPaymentDestination', () => {
         customer: null,
       })
     ).toBe('/checkout/inloggen')
+  })
+})
+
+describe('checkoutPaymentErrorMessage', () => {
+  it('maps Medusa leftover payment-session errors', () => {
+    expect(
+      checkoutPaymentErrorMessage({
+        message: 'Could not delete all payment sessions',
+      })
+    ).toBe('Je vorige betaalpoging kon niet worden afgesloten. Probeer het opnieuw.')
+  })
+
+  it('keeps other API messages', () => {
+    expect(checkoutPaymentErrorMessage(new Error('Geen betaallink ontvangen van Mollie.'))).toBe(
+      'Geen betaallink ontvangen van Mollie.'
+    )
   })
 })

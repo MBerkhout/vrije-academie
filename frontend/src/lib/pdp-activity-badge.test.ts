@@ -12,6 +12,10 @@ describe('pdpActivityTypeBadge', () => {
       label: 'Reis',
       href: `${PLP_BASE_PATH}/reis`,
     })
+    expect(pdpActivityTypeBadge({ productType: 'Rondleiding', recordType: 'lezing' })).toEqual({
+      label: 'Rondleiding',
+      href: `${PLP_BASE_PATH}/rondleiding`,
+    })
   })
 
   it('keeps EventGroup record type when product type has no landing', () => {

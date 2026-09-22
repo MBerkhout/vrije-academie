@@ -186,6 +186,12 @@ export const generalSettings = defineType({
               initialValue: "Wandelingen",
             }),
             defineField({
+              name: "rondleiding",
+              title: "Rondleiding",
+              type: "string",
+              initialValue: "Rondleidingen",
+            }),
+            defineField({
               name: "workshop",
               title: "Workshop",
               type: "string",

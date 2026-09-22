@@ -89,3 +89,11 @@ Mollie ──POST id=tr_xxx──► /hooks/payment/pp_mollie-<method>_mollie (M
 ## Billing address (storefront)
 
 The Mollie plugin sends `context.customer.billing_address` to the Mollie API (not cart `shipping_address`). Checkout therefore sets **`is_default_billing: true`** on the customer address (`upsertCheckoutShippingAddress`) and copies the same payload to **`billing_address`** on the cart (`syncCartFromCustomer`, guest draft restore). `initiatePaymentSession` runs `ensureMollieBillingForPayment` first so payment always sees a postcode even when the UI already showed shipping details.
+
+## Retry after a failed payment
+
+Starting a new Mollie session (or changing the cart after a session exists) makes Medusa delete leftover `payment_session` rows. That calls the provider `deletePayment` → Mollie cancel.
+
+If cancel throws — missing `session.data.id`, payment already gone, or GET 404 — Medusa returns `{ type: "unexpected_state", message: "Could not delete all payment sessions" }` and checkout stays blocked.
+
+`deletePayment` / `cancelPayment` are best-effort: Klarna uses `safeCancelMolliePayment`; the VariableVic plugin is wrapped in `medusa-config.ts` via `patchMolliePluginDeletePayment`. Terminal Mollie statuses (`paid`, `canceled`, `expired`, `failed`) skip cancel. Failures are logged and the Medusa session is still dropped.

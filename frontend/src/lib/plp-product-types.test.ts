@@ -17,6 +17,7 @@ describe('productTypeListLabelFromSlug', () => {
     expect(productTypeListLabelFromSlug('wandeling', { wandeling: 'Wandelingen' })).toBe(
       'Wandelingen',
     )
+    expect(productTypeListLabelFromSlug('rondleiding')).toBe('Rondleidingen')
   })
 
   it('lets CMS override the reis fallback', () => {
@@ -28,6 +29,7 @@ describe('productTypeLabelFromSlug / PDP badge', () => {
   it('stays singular for product pages', () => {
     expect(productTypeLabelFromSlug('reis')).toBe('Reis')
     expect(plpProductTypeBadgeLabel('Reis')).toBe('Reis')
+    expect(plpProductTypeBadgeLabel('Rondleiding')).toBe('Rondleiding')
   })
 })
 

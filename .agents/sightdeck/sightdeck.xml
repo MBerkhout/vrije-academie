@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tasks prefix="SI" next_id="88" generated="2026-09-22T18:59">
+<tasks prefix="SI" next_id="95" generated="2026-09-22T19:56">
   <task id="1" status="done">
     <title>Align course list prices and times in columns</title>
     <summary>Put times and prices in two fixed columns so they line up neatly across course rows.</summary>
@@ -6313,5 +6313,487 @@
       <step n="3" label="GitHub secret list" done="2026-09-22T18:57" />
       <step n="4" label="Compare hashes" />
     </progress>
+  </task>
+  <task id="88" status="done">
+    <title>Set staging Studio revalidate secret</title>
+    <summary>Write SANITY_STUDIO_REVALIDATE_SECRET to staging frontend .env, GitHub Actions, and local env files so Clear page cache can authenticate.</summary>
+    <created>2026-09-22T19:11</created>
+    <started>2026-09-22T19:11</started>
+    <done>2026-09-22T19:11</done>
+    <human_estimate>20min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-88.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-46124cbe</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible>false</end_customer_visible>
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T19:11">received, backlog</event>
+      <event ts="2026-09-22T19:11">concept written: tasks/SI-88.md</event>
+      <event ts="2026-09-22T19:11">started</event>
+      <event ts="2026-09-22T19:11">started run lane run-46124cbe</event>
+      <event ts="2026-09-22T19:11">progress plan: 5 steps</event>
+      <event ts="2026-09-22T19:11">completed</event>
+    </history>
+    <progress step="5" of="5" started="2026-09-22T19:11" label="Verify hashes">
+      <step n="1" label="Generate secret" done="2026-09-22T19:11" />
+      <step n="2" label="Write local env" done="2026-09-22T19:11" />
+      <step n="3" label="GitHub secret" done="2026-09-22T19:11" />
+      <step n="4" label="Staging frontend env + PM2 reload" done="2026-09-22T19:11" />
+      <step n="5" label="Verify hashes" />
+    </progress>
+  </task>
+  <task id="89" status="done">
+    <title>Verify Belgium add-to-cart after tax provider backfill</title>
+    <summary>Confirm staging BE tax region still has tp_system and add-to-cart no longer 500s.</summary>
+    <created>2026-09-22T19:23</created>
+    <started>2026-09-22T19:23</started>
+    <done>2026-09-22T19:27</done>
+    <human_estimate>15min</human_estimate>
+    <story_points>1</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-89.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-a69a9ce0</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>Belgium carts can add VA Thuis again; tax uses the system provider at 21% VAT.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T19:23">received, backlog</event>
+      <event ts="2026-09-22T19:23">started</event>
+      <event ts="2026-09-22T19:23">started run lane run-a69a9ce0</event>
+      <event ts="2026-09-22T19:23">progress plan: 3 steps</event>
+      <event ts="2026-09-22T19:23">in testing — running BE cart replay + live PDP</event>
+      <event ts="2026-09-22T19:25">NL PDP add-to-cart succeeded (Art Nouveau in cart). Next: BE shipping + guest checkout.</event>
+      <event ts="2026-09-22T19:27">BE cart add-to-cart 200; Art Nouveau + Italiaanse kunst visible; tax 21%.</event>
+    </history>
+    <progress step="1" of="3" started="2026-09-22T19:23" label="Check BE tax_region">
+      <step n="1" label="Check BE tax_region" />
+      <step n="2" label="Recent line-item 500s" />
+      <step n="3" label="Smoke-test BE add-to-cart" />
+    </progress>
+  </task>
+  <task id="90" status="done">
+    <title>Rondleiding Paleis op de Dam shows lezing not Wandeling</title>
+    <summary>Check why http://localhost:3000/ons-aanbod/rondleiding-paleis-op-de-dam still shows lezing, and whether Rondleiding should display as Wandeling.</summary>
+    <created>2026-09-22T19:28</created>
+    <started>2026-09-22T19:28</started>
+    <done>2026-09-22T19:28</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-90.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-348910da</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>Rondleidingen show a Rondleiding chip on the product page and have their own Ons aanbod landing, instead of being labelled lezing.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T19:28">received, backlog</event>
+      <event ts="2026-09-22T19:28">started</event>
+      <event ts="2026-09-22T19:28">started run lane run-348910da</event>
+      <event ts="2026-09-22T19:28">Should Rondleiding get its own Soort activiteit chip (like Wandeling), instead of being labelled Wandeling?</event>
+      <event ts="2026-09-22T19:28">started</event>
+      <event ts="2026-09-22T19:32">auto-detected: running Vitest</event>
+      <event ts="2026-09-22T19:28">in testing — running Vitest</event>
+      <event ts="2026-09-22T19:33">verification: Vitest + browser PDP passed</event>
+      <event ts="2026-09-22T19:28">completed</event>
+    </history>
+    <verifications>
+      <verification ts="2026-09-22T19:33" tool="Vitest + browser PDP" result="pass" />
+    </verifications>
+  </task>
+  <task id="91" status="done">
+    <title>Fix tax provider for all EU countries</title>
+    <summary>Give every EU tax region tp_system and confirm add-to-cart works for all 27 countries, not only Belgium.</summary>
+    <created>2026-09-22T19:28</created>
+    <started>2026-09-22T19:28</started>
+    <done>2026-09-22T19:29</done>
+    <human_estimate>25min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-91.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>unclassified</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-b8cb29d1</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>VA Thuis can be added to the cart from every EU shipping country; tax uses the system provider.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T19:28">received, backlog</event>
+      <event ts="2026-09-22T19:28">concept written: tasks/SI-91.md</event>
+      <event ts="2026-09-22T19:28">started</event>
+      <event ts="2026-09-22T19:28">started run lane run-b8cb29d1</event>
+      <event ts="2026-09-22T19:30">progress plan: 4 steps</event>
+      <event ts="2026-09-22T19:29">27/27 EU add-to-cart 200; seed:region backfills any region not on tp_system.</event>
+    </history>
+    <progress step="4" of="4" started="2026-09-22T19:30" label="Confirm seed-region" elapsed="60" step_ts="2026-09-22T19:29">
+      <step n="1" label="List all tax regions" done="2026-09-22T19:28" />
+      <step n="2" label="Backfill missing providers" done="2026-09-22T19:29" />
+      <step n="3" label="Smoke-test all EU countries" done="2026-09-22T19:29" />
+      <step n="4" label="Confirm seed-region" />
+    </progress>
+  </task>
+  <task id="92" status="done">
+    <title>Set staging PLP revalidate secrets</title>
+    <summary>Set matching REVALIDATE_SECRET on frontend and STOREFRONT_REVALIDATE_SECRET plus PLP URL on Medusa so listing cache busts reach the storefront.</summary>
+    <created>2026-09-22T19:30</created>
+    <started>2026-09-22T19:30</started>
+    <done>2026-09-22T19:30</done>
+    <human_estimate>20min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-92.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-f8dd4963</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible>false</end_customer_visible>
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T19:30">received, backlog</event>
+      <event ts="2026-09-22T19:30">concept written: tasks/SI-92.md</event>
+      <event ts="2026-09-22T19:30">started</event>
+      <event ts="2026-09-22T19:30">started run lane run-f8dd4963</event>
+      <event ts="2026-09-22T19:30">progress plan: 5 steps</event>
+      <event ts="2026-09-22T19:30">completed</event>
+    </history>
+    <progress step="5" of="5" started="2026-09-22T19:30" label="Verify POST /api/revalidate/plp">
+      <step n="1" label="Generate secret" done="2026-09-22T19:30" />
+      <step n="2" label="Write local env" done="2026-09-22T19:30" />
+      <step n="3" label="Staging frontend + PM2" done="2026-09-22T19:30" />
+      <step n="4" label="Staging Medusa + PM2" done="2026-09-22T19:30" />
+      <step n="5" label="Verify POST /api/revalidate/plp" />
+    </progress>
+    <files>
+      <file path="frontend/src/lib/plp-product-types.ts" ts="2026-09-22T19:31" />
+      <file path="medusa/src/lib/plp-product-types.ts" ts="2026-09-22T19:31" />
+      <file path="sanity/src/schemas/generalSettings.ts" ts="2026-09-22T19:31" />
+      <file path="frontend/src/lib/cms/types.ts" ts="2026-09-22T19:31" />
+      <file path="frontend/src/lib/cms/sanity-client.ts" ts="2026-09-22T19:31" />
+      <file path="frontend/src/lib/pdp-activity-badge.test.ts" ts="2026-09-22T19:31" />
+      <file path="frontend/src/lib/plp-product-types.test.ts" ts="2026-09-22T19:31" />
+      <file path="medusa/src/scripts/seed-region.ts" ts="2026-09-22T19:31" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T19:32" />
+      <file path="sanity/docs/PLP.md" ts="2026-09-22T19:32" />
+      <file path="medusa/docs/README.md" ts="2026-09-22T19:32" />
+      <file path="medusa/docs/EVENTS.md" ts="2026-09-22T19:32" />
+      <file path="docs/DEPLOYMENT.md" ts="2026-09-22T19:32" />
+      <file path="frontend/docs/README.md" ts="2026-09-22T19:32" />
+    </files>
+  </task>
+  <task id="93" status="done">
+    <title>Fix: Could not delete all payment sessions</title>
+    <summary>Investigate and fix Medusa unexpected_state error when deleting payment sessions during order/checkout.</summary>
+    <created>2026-09-22T19:38</created>
+    <started>2026-09-22T19:38</started>
+    <done>2026-09-22T19:38</done>
+    <human_estimate>1h</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-93.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-47f2e4f1</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T19:38">received, backlog</event>
+      <event ts="2026-09-22T19:38">started</event>
+      <event ts="2026-09-22T19:38">started run lane run-47f2e4f1</event>
+      <event ts="2026-09-22T19:38">progress plan: 5 steps</event>
+      <event ts="2026-09-22T19:38">in testing — running Vitest</event>
+      <event ts="2026-09-22T19:49">tool changed: kept manual 'Vitest', auto-detected 'npm test'</event>
+      <event ts="2026-09-22T19:53">verification: Vitest passed</event>
+      <event ts="2026-09-22T19:38">completed</event>
+    </history>
+    <progress step="5" of="5" started="2026-09-22T19:38" label="Fix or document">
+      <step n="1" label="Write concept" done="2026-09-22T19:38" />
+      <step n="2" label="Find Medusa error source" done="2026-09-22T19:38" />
+      <step n="3" label="Trace checkout/order flow" done="2026-09-22T19:38" />
+      <step n="4" label="Identify root cause" done="2026-09-22T19:38" />
+      <step n="5" label="Fix or document" />
+    </progress>
+    <files>
+      <file path="medusa/src/lib/mollie-safe-delete.ts" ts="2026-09-22T19:48" />
+      <file path="medusa/src/lib/mollie-plugin-delete-patch.ts" ts="2026-09-22T19:48" />
+      <file path="medusa/src/lib/mollie-safe-delete.test.ts" ts="2026-09-22T19:48" />
+      <file path="medusa/src/providers/mollie-klarna/service.ts" ts="2026-09-22T19:48" />
+      <file path="medusa/medusa-config.ts" ts="2026-09-22T19:48" />
+      <file path="frontend/src/lib/commerce/checkout-payment-guards.ts" ts="2026-09-22T19:48" />
+      <file path="frontend/src/components/checkout/CheckoutPaymentForm.tsx" ts="2026-09-22T19:48" />
+      <file path="frontend/src/lib/commerce/checkout-payment-guards.test.ts" ts="2026-09-22T19:49" />
+      <file path="medusa/docs/PAYMENT-MOLLIE.md" ts="2026-09-22T19:49" />
+      <file path="frontend/docs/CHECKOUT.md" ts="2026-09-22T19:49" />
+      <file path="medusa/docs/README.md" ts="2026-09-22T19:49" />
+      <file path="frontend/docs/README.md" ts="2026-09-22T19:49" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-22T19:53" tool="Vitest" result="pass" />
+    </verifications>
+  </task>
+  <task id="94" status="done">
+    <title>What is wrong on staging Paleis rondleiding PDP</title>
+    <summary>Explain the issue on https://v2.vrijeacademie.nl/ons-aanbod/rondleiding-paleis-op-de-dam</summary>
+    <created>2026-09-22T19:55</created>
+    <started>2026-09-22T19:55</started>
+    <done>2026-09-22T19:55</done>
+    <human_estimate>15min</human_estimate>
+    <story_points>1</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-94.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-e5e1d14c</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T19:55">received, backlog</event>
+      <event ts="2026-09-22T19:55">started</event>
+      <event ts="2026-09-22T19:55">started run lane run-e5e1d14c</event>
+      <event ts="2026-09-22T19:56">verification: staging scrape + local store API passed</event>
+      <event ts="2026-09-22T19:55">completed</event>
+    </history>
+    <verifications>
+      <verification ts="2026-09-22T19:56" tool="staging scrape + local store API" result="pass" />
+    </verifications>
   </task>
 </tasks>

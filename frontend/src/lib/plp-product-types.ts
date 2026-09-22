@@ -3,6 +3,7 @@ export const PLP_PRODUCT_TYPES = [
   { slug: 'reis', label: 'Reis', badgeClass: 'bg-va-purple text-white' },
   { slug: 'studiedag', label: 'Studiedag', badgeClass: 'bg-va-yellow text-va-black' },
   { slug: 'wandeling', label: 'Wandeling', badgeClass: 'bg-va-orange text-white' },
+  { slug: 'rondleiding', label: 'Rondleiding', badgeClass: 'bg-va-brown text-white' },
   { slug: 'workshop', label: 'Workshop', badgeClass: 'bg-va-black text-white' },
 ] as const
 
@@ -14,6 +15,7 @@ export type ProductTypePluralMap = Partial<Record<PlpProductTypeSlug, string>>
 /** Used when General Settings has no plural for a type. */
 export const DEFAULT_PLP_PRODUCT_TYPE_PLURALS: ProductTypePluralMap = {
   reis: 'Reizen',
+  rondleiding: 'Rondleidingen',
 }
 
 const SLUG_SET = new Set<string>(PLP_PRODUCT_TYPES.map((t) => t.slug))

@@ -132,7 +132,7 @@ export default async function seedRegion({ container }: ExecArgs) {
   const taxProviderResult = await client.query(
     `UPDATE tax_region
      SET provider_id = $1, updated_at = NOW()
-     WHERE deleted_at IS NULL AND (provider_id IS NULL OR btrim(provider_id) = '')
+     WHERE deleted_at IS NULL AND provider_id IS DISTINCT FROM $1
      RETURNING country_code`,
     [SYSTEM_TAX_PROVIDER_ID]
   )

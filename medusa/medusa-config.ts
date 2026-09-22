@@ -5,6 +5,9 @@ import {
   promotionRuleDatePickerPlugin,
 } from "./src/admin/vite/promotion-rule-date-picker-plugin"
 import { emailNotificationModule } from "./src/lib/email-notification-config"
+import { patchMolliePluginDeletePayment } from "./src/lib/mollie-plugin-delete-patch"
+
+patchMolliePluginDeletePayment()
 
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim()

@@ -33,3 +33,21 @@ export function resolveCheckoutPaymentDestination(input: {
 
   return 'stay'
 }
+
+const DELETE_PAYMENT_SESSIONS_RE = /could not delete all payment sessions/i
+
+/** User-facing copy for checkout payment API errors. */
+export function checkoutPaymentErrorMessage(err: unknown): string {
+  const raw =
+    err instanceof Error
+      ? err.message
+      : typeof err === "string"
+        ? err
+        : err && typeof err === "object" && "message" in err
+          ? String((err as { message?: unknown }).message ?? "")
+          : ""
+  if (DELETE_PAYMENT_SESSIONS_RE.test(raw)) {
+    return "Je vorige betaalpoging kon niet worden afgesloten. Probeer het opnieuw."
+  }
+  return raw.trim() || "Betaling mislukt. Probeer het opnieuw of neem contact op."
+}

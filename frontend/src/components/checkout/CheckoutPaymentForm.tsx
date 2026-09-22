@@ -5,7 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { commerceClient } from '@/lib/commerce'
 import { clearCartId, dispatchCartUpdated, getActiveCart, getCartId, setCartId } from '@/lib/commerce/cart'
-import { resolveCheckoutPaymentDestination } from '@/lib/commerce/checkout-payment-guards'
+import {
+  checkoutPaymentErrorMessage,
+  resolveCheckoutPaymentDestination,
+} from '@/lib/commerce/checkout-payment-guards'
 import { getDefaultCheckoutAddress } from '@/lib/commerce/checkout-profile'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { trackAddPaymentInfo } from '@/lib/analytics/events/ecommerce'
@@ -265,8 +268,10 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
         }
         const errBody = result as { type: 'cart'; cart: Cart; error?: { message?: string } }
         showToast(
-          errBody.error?.message ??
-            'Bestelling afronden mislukt. Probeer het opnieuw of neem contact op.'
+          checkoutPaymentErrorMessage(
+            errBody.error?.message ??
+              'Bestelling afronden mislukt. Probeer het opnieuw of neem contact op.'
+          )
         )
         return
       }
@@ -283,8 +288,8 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
       }
 
       window.location.href = checkoutUrl
-    } catch (err: any) {
-      showToast(err.message ?? 'Betaling mislukt. Probeer het opnieuw of neem contact op.')
+    } catch (err: unknown) {
+      showToast(checkoutPaymentErrorMessage(err))
     } finally {
       setBusy(false)
     }

@@ -1,5 +1,11 @@
 /** PLP filter/badge product types (Salesforce record types mirrored on Medusa `product.type`). */
-export const PLP_PRODUCT_TYPE_SLUGS = ["reis", "studiedag", "wandeling", "workshop"] as const
+export const PLP_PRODUCT_TYPE_SLUGS = [
+  "reis",
+  "studiedag",
+  "wandeling",
+  "rondleiding",
+  "workshop",
+] as const
 
 export type PlpProductTypeSlug = (typeof PLP_PRODUCT_TYPE_SLUGS)[number]
 

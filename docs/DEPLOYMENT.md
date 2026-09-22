@@ -116,7 +116,7 @@ Without SMTP or SendGrid, OTP codes are logged on the Medusa server only (`[cust
 
 Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS origins, database, Redis, etc.
 
-**Tax-inclusive pricing (one-time):** after first Medusa setup or when tax/country config changes, run as the `medusa` user: `cd ~/app/medusa && npm run seed:region`. Seeds all EU countries on the EUR region, standard VAT rates, the system tax provider (`tp_system`) on every tax region, and EUR tax-inclusive price preference (Salesforce gross prices must not be surcharged with VAT). Without `provider_id` on a tax region, add-to-cart returns 500 (`Unable to retrieve the tax provider with id: null`) for that shipping country.
+**Tax-inclusive pricing (one-time):** after first Medusa setup or when tax/country config changes, run as the `medusa` user: `cd ~/app/medusa && npm run seed:region`. Seeds all EU countries on the EUR region, standard VAT rates, the system tax provider (`tp_system`) on every tax region, and EUR tax-inclusive price preference (Salesforce gross prices must not be surcharged with VAT). Re-run backfills any region whose `provider_id` is missing or not `tp_system`; without that, add-to-cart returns 500 (`Unable to retrieve the tax provider with id: null`) for that shipping country.
 
 **Visual editing (Presentation tool)** — required in `~/app/frontend/.env`:
 
