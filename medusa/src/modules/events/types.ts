@@ -3,7 +3,9 @@
  * - Product Group (business) ↔ Medusa `Product`
  * - Product (business) ↔ Medusa `ProductVariant`
  *
- * Extend `RECORD_TYPES` / `RecordType` when Salesforce introduces new group kinds.
+ * Extend `RECORD_TYPES` / `RecordType` when Salesforce introduces a new *coarse*
+ * group kind (catalog gating). Fine-grained Salesforce names (Wandeling, Reis, …)
+ * stay on Medusa `product.type` and map through `mapSalesforceRecordType()`.
  */
 export const RECORD_TYPES = [
   "collegereeks",

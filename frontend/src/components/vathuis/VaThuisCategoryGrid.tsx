@@ -50,7 +50,7 @@ export function VaThuisCategoryGrid({
                 'transition-[box-shadow,border-color,background-color] duration-200',
                 'outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-va-black',
               )}
-              aria-label={`${label} — bekijk VA Thuis colleges`}
+              aria-label={`${label} — bekijk VAthuis colleges`}
             >
               <div
                 className={cn(

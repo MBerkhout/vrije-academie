@@ -18,7 +18,7 @@ import { useItemListContext } from '@/components/analytics/ItemListProvider'
 import { trackViewItemList } from '@/lib/analytics/events/ecommerce'
 import { Spinner } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { listingProductAnchorId, keepLoadedListingItems } from '@/lib/listing-return-anchor'
+import { listingProductAnchorId, keepLoadedListingItems, readCachedListingItems, writeCachedListingItems, appendUniqueListingItems } from '@/lib/listing-return-anchor'
 import { useEnsureListingAnchorLoaded } from '@/components/plp/useEnsureListingAnchorLoaded'
 
 type PlpInfiniteResultsContextValue = {
@@ -59,34 +59,44 @@ export function PlpInfiniteResultsProvider({
   children,
 }: PlpInfiniteResultsProviderProps) {
   const list = useItemListContext()
-  const [events, setEvents] = useState(initialEvents)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
   const filterKey = useMemo(
     () => JSON.stringify({ filterState, sort }),
     [filterState, sort]
   )
+  const cacheKey = `plp:${filterKey}`
+  const [events, setEvents] = useState(() => readCachedListingItems(cacheKey, initialEvents))
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const eventsRef = useRef(events)
+  eventsRef.current = events
+  const loadingRef = useRef(false)
   const filterKeyRef = useRef(filterKey)
+
+  useEffect(() => {
+    writeCachedListingItems(cacheKey, events)
+  }, [cacheKey, events])
 
   useEffect(() => {
     const filtersChanged = filterKeyRef.current !== filterKey
     filterKeyRef.current = filterKey
-    setEvents((prev) =>
-      filtersChanged ? initialEvents : keepLoadedListingItems(prev, initialEvents),
-    )
+    setEvents((prev) => {
+      const next = filtersChanged ? initialEvents : keepLoadedListingItems(prev, initialEvents)
+      writeCachedListingItems(cacheKey, next)
+      return next
+    })
     if (filtersChanged) setError(null)
-  }, [initialEvents, filterKey])
+  }, [initialEvents, filterKey, cacheKey])
 
   const hasMore = events.length < totalCount
 
   const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return
+    if (loadingRef.current || eventsRef.current.length >= totalCount) return
 
+    loadingRef.current = true
     setLoading(true)
     setError(null)
-    const batchNumber = Math.floor(events.length / pageSize) + 1
-    const offset = events.length
+    const offset = eventsRef.current.length
+    const batchNumber = Math.floor(offset / pageSize) + 1
 
     try {
       const params = serializeFilterState({ ...filterState, sort: sort as PlpFilterState['sort'] })
@@ -99,7 +109,12 @@ export function PlpInfiniteResultsProvider({
       const data = (await response.json()) as { events?: EventCard[] }
       const next = data.events ?? []
       if (next.length > 0) {
-        setEvents((prev) => [...prev, ...next])
+        setEvents((prev) => {
+          const merged = appendUniqueListingItems(prev, next)
+          eventsRef.current = merged
+          writeCachedListingItems(cacheKey, merged)
+          return merged
+        })
         if (list) {
           trackViewItemList(list, next, {
             loadType: 'infinite_scroll',
@@ -110,9 +125,10 @@ export function PlpInfiniteResultsProvider({
     } catch {
       setError('Kon extra activiteiten niet laden. Probeer het opnieuw.')
     } finally {
+      loadingRef.current = false
       setLoading(false)
     }
-  }, [loading, hasMore, filterState, sort, events.length, pageSize, list])
+  }, [filterState, sort, pageSize, list, totalCount, cacheKey])
 
   useEnsureListingAnchorLoaded({
     knownIds: events.map((event) => listingProductAnchorId(event.handle)),

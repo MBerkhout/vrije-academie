@@ -15,7 +15,7 @@ export function VaThuisFeaturedGrid({
   title,
   events,
   stockThreshold,
-  catalogCtaLabel = 'Bekijk alle VA Thuis colleges',
+  catalogCtaLabel = 'Bekijk alle VAthuis colleges',
 }: VaThuisFeaturedGridProps) {
   if (!events.length) return null
 

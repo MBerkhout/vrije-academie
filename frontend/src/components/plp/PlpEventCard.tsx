@@ -6,9 +6,7 @@ import type { EventCard } from '@/lib/commerce/types'
 import { DeliveryTypeIcon } from '@/components/ui/DeliveryTypeIcon'
 import {
   plpEventDeliveryTypeDisplay,
-  plpEventHasMultipleDates,
   plpListingStockPresentation,
-  eventPricePrefixLabel,
   shouldShowEventDates,
 } from '@/lib/event-status-presentation'
 import { defaultMessages } from '@/lib/i18n/messages'
@@ -41,16 +39,13 @@ export function PlpEventCard({
   })
   const deliveryType = plpEventDeliveryTypeDisplay(event)
   const showDate = shouldShowEventDates(event)
-  const multipleDates = plpEventHasMultipleDates(event)
 
   const { soldOut } = plpListingStockPresentation(event, stockThreshold)
   const anchorId = listingProductAnchorId(event.handle)
 
   const priceFrom = event.price_from
-  const pricePrefix = eventPricePrefixLabel(event, {
-    from: defaultMessages.plp.cardPriceFrom,
-    for: defaultMessages.plp.cardPriceFor,
-  })
+  const datePrefix = defaultMessages.plp.cardDateFrom
+  const pricePrefix = defaultMessages.plp.cardPriceFrom
 
   return (
     <article
@@ -107,8 +102,7 @@ export function PlpEventCard({
 
         {showDate && event.earliest_start_at ? (
           <div className={cn('text-xs text-va-gray', equalizeHeight && 'min-h-[1.25rem]')}>
-            {multipleDates ? 'Vanaf ' : ''}
-            {formatDateShort(event.earliest_start_at)}
+            {datePrefix} {formatDateShort(event.earliest_start_at)}
           </div>
         ) : equalizeHeight ? (
           <div className="min-h-[1.25rem]" aria-hidden />

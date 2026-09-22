@@ -234,8 +234,8 @@ export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContac
               <div className="space-y-1 pt-1">
                 <h1 className="font-sans text-2xl md:text-3xl font-bold text-va-black leading-tight">
                   {order?.first_name
-                    ? <>Bedankt voor je inschrijving, {order.first_name}!</>
-                    : 'Bedankt voor je inschrijving!'}
+                    ? <>Bedankt voor je aankoop, {order.first_name}</>
+                    : 'Bedankt voor je aankoop'}
                 </h1>
                 {order?.email ? (
                   <p className="font-sans text-sm text-va-darkgray">

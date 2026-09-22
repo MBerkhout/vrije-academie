@@ -9,9 +9,9 @@ interface CatalogPageProps {
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'VA Thuis – ons aanbod | Vrije Academie',
+    title: 'VAthuis – ons aanbod | Vrije Academie',
     description:
-      'Bekijk alle on-demand colleges van VA Thuis. Kijk wanneer je wilt, waar je wilt.',
+      'Bekijk alle on-demand colleges van VAthuis. Kijk wanneer je wilt, waar je wilt.',
   }
 }
 

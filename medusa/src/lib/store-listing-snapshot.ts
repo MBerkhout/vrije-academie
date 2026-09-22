@@ -90,6 +90,7 @@ export type AgendaOccurrenceRow = {
   start_at: string | null
   end_at: string | null
   available_quantity: number
+  capacity: number
   is_free_trial: boolean
   registration_deadline_at: string | null
   price: number | null
@@ -546,6 +547,7 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
           start_at: (ei.start_at as string) ?? null,
           end_at: (ei.end_at as string) ?? null,
           available_quantity: Number(ei.available_quantity ?? 0),
+          capacity: Number((ei as { capacity?: number }).capacity ?? 0),
           is_free_trial: !!ei.is_free_trial,
           registration_deadline_at: (ei.registration_deadline_at as string) ?? null,
           price: priceCents && priceCents > 0 ? priceCents : null,

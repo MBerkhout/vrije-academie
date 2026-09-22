@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   clearListingReturnAnchor,
   keepLoadedListingItems,
+  readCachedListingItems,
+  writeCachedListingItems,
+  appendUniqueListingItems,
+  clearCachedListingItems,
   listingAgendaAnchorId,
   listingProductAnchorId,
   markListingReturnAnchor,
@@ -120,5 +124,27 @@ describe('keepLoadedListingItems', () => {
     const prev = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
     const incoming = [{ id: 'x' }, { id: 'y' }]
     expect(keepLoadedListingItems(prev, incoming)).toEqual(incoming)
+  })
+})
+
+describe('listing items cache', () => {
+  afterEach(() => {
+    clearCachedListingItems()
+  })
+
+  it('restores extra pages after a remount of the same listing', () => {
+    const first = [{ id: 'a' }, { id: 'b' }]
+    const loaded = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }]
+    writeCachedListingItems('plp:test', loaded)
+    expect(readCachedListingItems('plp:test', first)).toBe(loaded)
+  })
+
+  it('appends only unseen ids so overlapping loadMore cannot pad the list', () => {
+    const prev = [{ id: 'a' }, { id: 'b' }]
+    expect(appendUniqueListingItems(prev, [{ id: 'b' }, { id: 'c' }])).toEqual([
+      { id: 'a' },
+      { id: 'b' },
+      { id: 'c' },
+    ])
   })
 })

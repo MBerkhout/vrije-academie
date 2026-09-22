@@ -5,6 +5,8 @@ import { randomBytes } from "crypto"
 
 import { EU_COUNTRIES, EU_COUNTRY_CODES } from "../lib/eu-countries"
 
+const SYSTEM_TAX_PROVIDER_ID = "tp_system"
+
 const MOLLIE_PROVIDER_IDS = [
   "pp_mollie-hosted-checkout_mollie",
   "pp_mollie-ideal_mollie",
@@ -22,7 +24,7 @@ function generateId(): string {
 
 /**
  * Seed script: ensure a region exists with EUR currency, all EU countries,
- * tax-inclusive pricing, per-country tax regions, and Mollie payment providers.
+ * tax-inclusive pricing, per-country tax regions (system tax provider), and Mollie payment providers.
  *
  * Run with:  npm run seed:region
  *
@@ -75,6 +77,7 @@ export default async function seedRegion({ container }: ExecArgs) {
 
   const toCreate = EU_COUNTRIES.filter((c) => !taxRegionByCountry.has(c.code)).map((c) => ({
     country_code: c.code,
+    provider_id: SYSTEM_TAX_PROVIDER_ID,
     default_tax_rate: {
       name: `VAT ${c.labelEn}`,
       code: "vat",
@@ -125,6 +128,23 @@ export default async function seedRegion({ container }: ExecArgs) {
     connectionString: process.env.DATABASE_URL ?? "postgresql://medusa:medusa@localhost:5432/medusa",
   })
   await client.connect()
+
+  const taxProviderResult = await client.query(
+    `UPDATE tax_region
+     SET provider_id = $1, updated_at = NOW()
+     WHERE deleted_at IS NULL AND (provider_id IS NULL OR btrim(provider_id) = '')
+     RETURNING country_code`,
+    [SYSTEM_TAX_PROVIDER_ID]
+  )
+  const backfilled = (taxProviderResult.rows as { country_code: string }[]).map((r) => r.country_code)
+  if (backfilled.length) {
+    console.log(
+      `✓ Tax provider ${SYSTEM_TAX_PROVIDER_ID} backfilled on ${backfilled.length} region(s):`,
+      backfilled.sort().join(", ")
+    )
+  } else {
+    console.log(`✓ All tax regions already use ${SYSTEM_TAX_PROVIDER_ID}`)
+  }
 
   for (const providerId of MOLLIE_PROVIDER_IDS) {
     await client.query(

@@ -95,6 +95,7 @@ export async function PdpPageContent({
                 title={event.title}
                 onlineBadge={extras?.onlineBadge}
                 recordType={event.record_type}
+                productType={event.product_type}
                 categories={event.categories}
                 shareLabel={pdpLabels?.share}
               />

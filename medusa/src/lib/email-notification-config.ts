@@ -6,6 +6,8 @@ export type SmtpNotificationOptions = {
   host: string
   port: number
   secure: boolean
+  /** Skip opportunistic STARTTLS (needed for local Postfix snakeoil certs). */
+  ignoreTLS: boolean
   auth?: { user: string; pass: string }
 }
 
@@ -31,6 +33,26 @@ function parseSecure(env: Record<string, string | undefined>, port: number): boo
   return port === 465
 }
 
+export function isLoopbackSmtpHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase()
+  return (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized === "[::1]"
+  )
+}
+
+/** Loopback defaults to true; SMTP_IGNORE_TLS=true|false overrides. */
+export function parseIgnoreTls(
+  env: Record<string, string | undefined>,
+  host: string
+): boolean {
+  if (env.SMTP_IGNORE_TLS === "true" || env.SMTP_IGNORE_TLS === "1") return true
+  if (env.SMTP_IGNORE_TLS === "false" || env.SMTP_IGNORE_TLS === "0") return false
+  return isLoopbackSmtpHost(host)
+}
+
 /** SMTP takes precedence over SendGrid when both are set. */
 export function resolveEmailNotificationConfig(
   env: Record<string, string | undefined> = process.env
@@ -50,6 +72,7 @@ export function resolveEmailNotificationConfig(
         host,
         port,
         secure: parseSecure(env, port),
+        ignoreTLS: parseIgnoreTls(env, host),
         ...(user ? { auth: { user, pass: env.SMTP_PASS ?? "" } } : {}),
       },
     }

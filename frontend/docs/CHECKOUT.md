@@ -33,6 +33,7 @@ Field rules and the password-strength meter are shared with **`LoginForm`** (`/l
 - `src/lib/auth/account-field-validation.ts` — `validateAccountField` (email, passwords with `login` vs `register` policy, Dutch address fields, phone digit count 8–15, etc.)
 - `src/lib/auth/password-strength.ts` — `passwordStrengthLevel` / bar color helpers
 - `src/components/auth/ValidatedInput.tsx`, `PasswordStrengthMeter.tsx`
+- Password fields (`Input`, `ValidatedInput`, login password) include an eye toggle to show/hide the value.
 
 Presentation for each checkout sub-step lives in `src/components/checkout/login/` (`CheckoutLoginEmailStep`, `CheckoutLoginKnownStep`, `CheckoutGuestDetailsStep`).
 
@@ -103,10 +104,10 @@ After Mollie payment, Mollie redirects to `{MOLLIE_REDIRECT_URL}` (e.g. `http://
 Once the order is confirmed the URL is updated to `/bedankt?order={order.id}&token={view_token}` so the page can be bookmarked or revisited. The `view_token` is a 24-char HMAC-SHA256 (`THANK_YOU_SECRET` env → fallback `COOKIE_SECRET`). When visiting with both `?order=` and `?token=`, the backend validates the token before returning data.
 
 **Layout — two columns (lg+):**
-- **Left:** success icon + "Bedankt voor je inschrijving, {firstName}!" + "Je ontvangt een bevestiging op {email}" + bestelnummer + participation notices (zaal vs online, based on `event_item.delivery_type`) + "Vragen? Neem contact op" (phone + email from `generalSettings.footer.contact`).
-- **Right:** order summary card (items + totals).
+- **Left:** success icon + "Bedankt voor je aankoop, {firstName}" + "Je ontvangt een bevestiging op {email}" + bestelnummer + participation notices (zaal vs online, based on `event_item.delivery_type`) + "Vragen? Neem contact op" (phone + email from `generalSettings.footer.contact`).
+- **Right:** order summary card (items + totals). VA Thuis items show a "Bekijk VAthuis video" CTA to the product page.
 
-**Below (full width):** VA Thuis recommendations. Heading: "Duik alvast in {category} met onze online cursussen" (first catalog category of purchased products). CTA: "Alles van {category} online bekijken" → `/va-thuis/ons-aanbod?category={slug}`. Shows up to 4 cards; for VA Thuis orders uses similar-products logic with fallback to top catalog items.
+**Below (full width):** VAthuis recommendations. Heading: "Duik alvast in {category} met onze online cursussen" (first catalog category of purchased products). CTA: "Alles van {category} online bekijken" → `/va-thuis/ons-aanbod?category={slug}`; fallback "Ontdek VAthuis online". Shows up to 4 cards; for VAthuis orders uses similar-products logic with fallback to top catalog items.
 
 Clears `va_cart_id` when the order is confirmed.
 

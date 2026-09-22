@@ -3,6 +3,10 @@
 import type { InputHTMLAttributes } from 'react'
 import clsx from 'clsx'
 import type { FieldValidity } from '@/lib/auth/account-field-validation'
+import {
+  PasswordVisibilityToggle,
+  usePasswordVisibility,
+} from '@/components/ui/PasswordVisibilityToggle'
 
 export interface ValidatedInputProps {
   id?: string
@@ -48,6 +52,7 @@ export function ValidatedInput({
   const inputId = id ?? name
   const descriptionId = description ? `${inputId}-description` : undefined
   const errorId = isInvalid ? `${inputId}-error` : undefined
+  const { isPassword, visible, resolvedType, toggle } = usePasswordVisibility(type)
   return (
     <div>
       <label className="block font-sans text-sm font-medium text-va-black mb-1" htmlFor={inputId}>
@@ -58,8 +63,11 @@ export function ValidatedInput({
         <input
           id={inputId}
           name={name}
-          type={type}
+          type={resolvedType}
           autoComplete={autoComplete}
+          autoCapitalize={isPassword ? 'none' : undefined}
+          autoCorrect={isPassword ? 'off' : undefined}
+          spellCheck={isPassword ? false : undefined}
           placeholder={placeholder}
           min={min}
           max={max}
@@ -72,16 +80,21 @@ export function ValidatedInput({
           aria-invalid={isInvalid || undefined}
           aria-describedby={[descriptionId, errorId].filter(Boolean).join(' ') || undefined}
           className={clsx(
-            'w-full rounded-lg border px-3 py-2 pr-9 font-sans text-sm focus:outline-none transition-colors',
+            'w-full rounded-lg border px-3 py-2 font-sans text-sm focus:outline-none transition-colors',
+            isPassword ? 'pr-16' : 'pr-9',
             isInvalid && 'border-red-500 focus:border-red-600',
             isValid && 'border-green-500 focus:border-green-600',
             !isInvalid && !isValid && 'border-va-lightgray-300 focus:border-va-black'
           )}
         />
+        {isPassword ? (
+          <PasswordVisibilityToggle visible={visible} onToggle={toggle} disabled={disabled} />
+        ) : null}
         {(isValid || isInvalid) && (
           <span
             className={clsx(
-              'absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none',
+              'absolute top-1/2 -translate-y-1/2 pointer-events-none',
+              isPassword ? 'right-10' : 'right-3',
               isValid ? 'text-green-600' : 'text-red-600'
             )}
             aria-hidden

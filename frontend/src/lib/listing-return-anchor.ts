@@ -181,6 +181,39 @@ export function keepLoadedListingItems<T extends { id: string }>(
   return incoming
 }
 
+const loadedListingCache = new Map<string, { id: string }[]>()
+
+export function readCachedListingItems<T extends { id: string }>(
+  cacheKey: string,
+  incoming: T[],
+): T[] {
+  const prev = loadedListingCache.get(cacheKey) as T[] | undefined
+  if (!prev?.length) return incoming
+  return keepLoadedListingItems(prev, incoming)
+}
+
+export function writeCachedListingItems<T extends { id: string }>(
+  cacheKey: string,
+  items: T[],
+): void {
+  loadedListingCache.set(cacheKey, items)
+}
+
+export function appendUniqueListingItems<T extends { id: string }>(
+  prev: T[],
+  incoming: T[],
+): T[] {
+  if (incoming.length === 0) return prev
+  const seen = new Set(prev.map((item) => item.id))
+  const unique = incoming.filter((item) => !seen.has(item.id))
+  return unique.length > 0 ? [...prev, ...unique] : prev
+}
+
+export function clearCachedListingItems(cacheKey?: string): void {
+  if (cacheKey) loadedListingCache.delete(cacheKey)
+  else loadedListingCache.clear()
+}
+
 export function clearListingReturnAnchor(): void {
   if (typeof window === 'undefined') return
   try {

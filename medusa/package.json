@@ -22,6 +22,7 @@
     "legacy:import-passwords": "medusa exec ./src/scripts/import-legacy-passwords.ts --",
     "salesforce:import-one": "medusa exec ./src/scripts/import-one-productgroup.ts --",
     "salesforce:backfill-facets": "medusa exec ./src/scripts/backfill-event-item-facets.ts --",
+    "salesforce:backfill-record-types": "medusa exec ./src/scripts/backfill-event-group-record-types.ts",
     "salesforce:audit-facets": "medusa exec ./src/scripts/audit-event-item-facets.ts",
     "salesforce:inspect": "medusa exec ./src/scripts/inspect-salesforce-productgroup.ts --",
     "salesforce:inspect-order": "medusa exec ./src/scripts/inspect-salesforce-order.ts --",

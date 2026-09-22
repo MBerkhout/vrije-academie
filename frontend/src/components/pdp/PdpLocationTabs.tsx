@@ -10,7 +10,9 @@ import { PdpInstructorHoverCard } from '@/components/pdp/PdpInstructorHoverCard'
 import { resolveSessionInstructor } from '@/components/pdp/resolve-session-instructor'
 import type { GeneralSettings } from '@/lib/cms/types'
 import {
+  classNameForSessionCtaTone,
   minVariantPriceCents,
+  sessionCtaTone,
   sessionTableAvailabilityPresentation,
   shouldShowEventDates,
 } from '@/lib/event-status-presentation'
@@ -203,10 +205,10 @@ export function PdpLocationTabs({
   }
 
   const productExternalUrl = externalRegistrationUrl?.trim() || null
-  const sessionCtaMobileClassName =
-    'shrink-0 text-sm font-bold uppercase tracking-wide px-4 py-2 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'
-  const sessionCtaDesktopClassName =
-    'text-sm font-bold px-4 py-2 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-block text-center'
+  const sessionCtaSharedClassName =
+    'inline-flex items-center justify-center min-w-[14rem] w-full box-border whitespace-nowrap text-sm font-bold px-4 py-2 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'
+  const sessionCtaMobileClassName = `${sessionCtaSharedClassName} shrink-0 uppercase tracking-wide`
+  const sessionCtaDesktopClassName = sessionCtaSharedClassName
 
   const sessionsHeading =
     labels?.physicalSessionsHeading ??
@@ -221,6 +223,7 @@ export function PdpLocationTabs({
   const sortLocationLabel = labels?.sessionsSortLocation ?? t.sessionsSortLocation ?? t.tableLocation
   const allLocationsLabel = labels?.allLocationsTab ?? t.locationAll ?? 'Alle locaties'
   const soldOutLabel = labels?.soldOutLabel ?? 'Wachtlijst'
+  const almostFullLabel = defaultMessages.agenda.availabilityAlmostFull
   const primaryCtaLabel = labels?.primaryCta ?? 'Direct inschrijven'
   const freeTrialLabel = labels?.freeTrialBadge ?? 'Gratis proefles'
   const noSessionsMessage = labels?.noSessionsMessage ?? 'Momenteel geen sessies beschikbaar.'
@@ -307,16 +310,22 @@ export function PdpLocationTabs({
 
   const renderSessionCta = (
     variant: EventVariant,
-    opts: { className: string; isSoldOut: boolean; isFreeTrial: boolean },
+    opts: { className: string; tone: ReturnType<typeof sessionCtaTone>; isFreeTrial: boolean },
   ) => {
-    const { className, isSoldOut, isFreeTrial } = opts
+    const { className, tone, isFreeTrial } = opts
+    const isSoldOut = tone === 'sold_out'
+    const toneClassName = isFreeTrial && !isSoldOut
+      ? 'bg-va-yellow/60 text-va-black hover:bg-va-yellow'
+      : classNameForSessionCtaTone(tone)
     const ctaLabel = isSoldOut
       ? soldOutLabel
       : addingId === variant.id
         ? 'Bezig…'
         : isFreeTrial
           ? freeTrialLabel
-          : primaryCtaLabel
+          : tone === 'almost_full'
+            ? almostFullLabel
+            : primaryCtaLabel
 
     const sessionExternalUrl = sessionExternalRegistrationUrl(variant, productExternalUrl)
 
@@ -326,9 +335,9 @@ export function PdpLocationTabs({
           href={sessionExternalUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className={`${className} bg-va-yellow text-va-black hover:bg-va-yellow/90`}
+          className={`${className} ${toneClassName}`}
         >
-          {primaryCtaLabel}
+          {ctaLabel}
         </a>
       )
     }
@@ -344,7 +353,7 @@ export function PdpLocationTabs({
           title={event.title}
           variantId={variant.id}
           label={soldOutLabel}
-          className={`${className} bg-va-lightgray text-va-gray hover:bg-va-gray/20`}
+          className={`${className} ${toneClassName}`}
         >
           {ctaLabel}
         </WaitlistTrigger>
@@ -356,7 +365,7 @@ export function PdpLocationTabs({
         type="button"
         onClick={() => void handleRegister(variant.id)}
         disabled={addingId !== null}
-        className={`${className} ${isFreeTrial ? 'bg-va-yellow/60 text-va-black hover:bg-va-yellow' : 'bg-va-yellow text-va-black hover:bg-va-yellow/90'}`}
+        className={`${className} ${toneClassName}`}
       >
         {ctaLabel}
       </button>
@@ -494,9 +503,9 @@ export function PdpLocationTabs({
               const ei = variant.event_item
               const isOnline = isOnlineVariant(variant)
               const qty = ei?.available_quantity ?? 0
-              const isSoldOut = qty === 0
               const isFreeTrial = ei?.is_free_trial ?? false
               const availability = sessionTableAvailabilityPresentation(qty, threshold)
+              const ctaTone = sessionCtaTone(qty, ei?.capacity)
               const price = minVariantPriceCents(variant)
               const city = sessionCityLabel(ei, isOnline)
               const venue = sessionVenueLine(ei, isOnline)
@@ -543,7 +552,7 @@ export function PdpLocationTabs({
                       <span className={availability.className}>{availability.label}</span>
                       {renderSessionCta(variant, {
                         className: sessionCtaMobileClassName,
-                        isSoldOut,
+                        tone: ctaTone,
                         isFreeTrial,
                       })}
                     </div>
@@ -574,9 +583,9 @@ export function PdpLocationTabs({
                   const ei = variant.event_item
                   const isOnline = isOnlineVariant(variant)
                   const qty = ei?.available_quantity ?? 0
-                  const isSoldOut = qty === 0
                   const isFreeTrial = ei?.is_free_trial ?? false
                   const availability = sessionTableAvailabilityPresentation(qty, threshold)
+                  const ctaTone = sessionCtaTone(qty, ei?.capacity)
                   const price = minVariantPriceCents(variant)
 
                   return (
@@ -621,10 +630,10 @@ export function PdpLocationTabs({
                       <td className="py-4 pr-4 align-middle">
                         <span className={availability.className}>{availability.label}</span>
                       </td>
-                      <td className="py-4 align-middle">
+                      <td className="py-4 align-middle w-px whitespace-nowrap">
                         {renderSessionCta(variant, {
                           className: sessionCtaDesktopClassName,
-                          isSoldOut,
+                          tone: ctaTone,
                           isFreeTrial,
                         })}
                       </td>

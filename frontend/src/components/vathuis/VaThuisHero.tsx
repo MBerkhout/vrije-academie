@@ -31,7 +31,7 @@ export function VaThuisHero({ title, intro, imageUrl }: VaThuisHeroProps) {
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-va-gray-500 text-sm">
-              VA Thuis
+              VAthuis
             </div>
           )}
         </div>

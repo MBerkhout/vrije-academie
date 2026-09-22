@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 export async function generateMetadata(): Promise<Metadata> {
   const page = await cmsClient.getPage('va-thuis')
   return buildVaThuisPageMetadata(page, {
-    fallbackTitle: 'VA Thuis – on-demand colleges | Vrije Academie',
+    fallbackTitle: 'VAthuis – on-demand colleges | Vrije Academie',
     fallbackDescription:
       'Kijk wanneer je wilt, waar je wilt. Ontdek on-demand colleges van de Vrije Academie.',
     path: VATHUIS_BASE_PATH,

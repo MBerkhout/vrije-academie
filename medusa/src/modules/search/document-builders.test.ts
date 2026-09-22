@@ -15,7 +15,7 @@ describe("buildProductSearchDoc", () => {
     expect(doc).toMatchObject({
       id: "product-prod_1",
       title: "Leukste VAthuis lezing3",
-      subtitle: "VA Thuis",
+      subtitle: "VAthuis",
       url: "/va-thuis/leukste-vathuis-lezing3",
       has_future_activity: true,
     })

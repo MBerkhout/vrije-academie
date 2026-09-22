@@ -38,7 +38,7 @@ export async function loadVathuisEpisodeByKey(
   const vathuis = (product.metadata as Record<string, unknown> | null | undefined)
     ?.vathuis as VathuisMetadataShape | undefined
   if (!vathuis) {
-    throw new MedusaError(MedusaError.Types.NOT_FOUND, "VA Thuis metadata not found")
+    throw new MedusaError(MedusaError.Types.NOT_FOUND, "VAthuis metadata not found")
   }
 
   const episode = findVathuisEpisode(vathuis, parsed.chapterNumber, parsed.episodeNumber)

@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tasks prefix="SI" next_id="66" generated="2026-09-22T08:51">
+<tasks prefix="SI" next_id="88" generated="2026-09-22T18:59">
   <task id="1" status="done">
     <title>Align course list prices and times in columns</title>
     <summary>Put times and prices in two fixed columns so they line up neatly across course rows.</summary>
@@ -4499,12 +4499,12 @@
       <file path="frontend/src/components/checkout/CheckoutLoginForm.tsx" ts="2026-09-21T17:56" />
     </files>
   </task>
-  <task id="63" status="feedback_required">
+  <task id="63" status="done">
     <title>Fix PDP mobile gallery swipe</title>
     <summary>Mobile PDP image slider arrows work, but swipe/drag does not advance slides properly.</summary>
     <created>2026-09-21T18:07</created>
     <started>2026-09-21T18:07</started>
-    <done />
+    <done>2026-09-22T17:39</done>
     <human_estimate>45min</human_estimate>
     <story_points />
     <agents>Claude</agents>
@@ -4526,9 +4526,9 @@
     <branch />
     <branch_base_sha />
     <worktree />
-    <question>Phone can open the LAN URL; waiting for a swipe on the PDP gallery.</question>
+    <question />
     <question_about_tests />
-    <question_topic>Swipe gallery on phone</question_topic>
+    <question_topic />
     <question_blocking />
     <tags />
     <run_window_id />
@@ -4536,14 +4536,14 @@
     <planning_recommended />
     <planning_active />
     <auto_run />
-    <changelog_entry />
+    <changelog_entry>On a phone, swiping the product photo gallery now settles on the last image instead of bouncing back.</changelog_entry>
     <end_customer_visible />
     <start_date />
     <end_date />
     <deadline />
     <version />
     <session_id />
-    <changelog_snippet />
+    <changelog_snippet>On a phone, swiping the product photo gallery now settles on the last image instead of bouncing back.</changelog_snippet>
     <changelog_snippet_stale />
     <changelog_snippet_source />
     <jira_sync_failed />
@@ -4556,12 +4556,16 @@
       <event ts="2026-09-21T18:07">Need a mobile swipe/drag on a PDP gallery so we can see which snap path fights the gesture.</event>
       <event ts="2026-09-21T18:11">started</event>
       <event ts="2026-09-21T18:11">Phone can open the LAN URL; waiting for a swipe on the PDP gallery.</event>
+      <event ts="2026-09-22T17:30">started</event>
+      <event ts="2026-09-22T17:30">Last slide can snap flush left; please swipe right on a phone to confirm it feels right.</event>
+      <event ts="2026-09-22T17:39">started</event>
+      <event ts="2026-09-22T17:39">completed</event>
     </history>
-    <progress step="2" of="5" started="2026-09-21T18:08" label="Reproduce with logs" elapsed="240" step_ts="2026-09-21T18:11">
+    <progress step="5" of="5" started="2026-09-21T18:08" label="Verify swipe after fix" elapsed="84180" step_ts="2026-09-22T17:30">
       <step n="1" label="Instrument gallery swipe" done="2026-09-21T18:11" />
-      <step n="2" label="Reproduce with logs" />
-      <step n="3" label="Identify failing path" />
-      <step n="4" label="Fix with evidence" />
+      <step n="2" label="Reproduce with logs" done="2026-09-22T17:30" />
+      <step n="3" label="Identify failing path" done="2026-09-22T17:30" />
+      <step n="4" label="Fix with evidence" done="2026-09-22T17:30" />
       <step n="5" label="Verify swipe after fix" />
     </progress>
     <files>
@@ -4707,5 +4711,1607 @@
       <file path="medusa/src/modules/search/service.ts" ts="2026-09-22T08:48" />
       <file path="medusa/src/workflows/salesforce/steps/apply-customer-from-salesforce-step.ts" ts="2026-09-22T08:48" />
     </files>
+  </task>
+  <task id="66" status="done">
+    <title>Thank-you page copy: aankoop + VAthuis video</title>
+    <summary>Change thank-you heading from inschrijving to aankoop, and the VA Thuis CTA from Bekijk college to Bekijk VAthuis video.</summary>
+    <created>2026-09-22T17:14</created>
+    <started>2026-09-22T17:14</started>
+    <done>2026-09-22T17:14</done>
+    <human_estimate>15min</human_estimate>
+    <story_points>1</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-66.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-b67681a2</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>The thank-you page now greets with Bedankt voor je aankoop and the VA Thuis watch button says Bekijk VAthuis video.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:14">received, backlog</event>
+      <event ts="2026-09-22T17:14">concept written: tasks/SI-66.md</event>
+      <event ts="2026-09-22T17:14">started</event>
+      <event ts="2026-09-22T17:14">started run lane run-b67681a2</event>
+      <event ts="2026-09-22T17:14">progress plan: 3 steps</event>
+      <event ts="2026-09-22T17:14">in testing — running manual browser check</event>
+      <event ts="2026-09-22T17:16">verification: source copy check passed</event>
+      <event ts="2026-09-22T17:14">completed</event>
+    </history>
+    <progress step="3" of="3" started="2026-09-22T17:14" label="Update related strings and docs">
+      <step n="1" label="Update heading copy" done="2026-09-22T17:14" />
+      <step n="2" label="Update VAthuis CTA" done="2026-09-22T17:14" />
+      <step n="3" label="Update related strings and docs" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/thank-you/ThankYouPageContent.tsx" ts="2026-09-22T17:14" />
+      <file path="frontend/src/components/thank-you/ThankYouOrderSummary.tsx" ts="2026-09-22T17:14" />
+      <file path="frontend/src/app/(main)/bedankt/page.tsx" ts="2026-09-22T17:14" />
+      <file path="frontend/src/locales/nl.json" ts="2026-09-22T17:14" />
+      <file path="sanity/src/schemas/generalSettings.ts" ts="2026-09-22T17:15" />
+      <file path="frontend/docs/CHECKOUT.md" ts="2026-09-22T17:15" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-22T17:16" tool="source copy check" result="pass" />
+    </verifications>
+  </task>
+  <task id="67" status="done">
+    <title>Use VAthuis branding on the storefront</title>
+    <summary>Inventory VA Thuis mentions and change customer-facing site copy to VAthuis, matching header and filter labels.</summary>
+    <created>2026-09-22T17:14</created>
+    <started>2026-09-22T17:14</started>
+    <done>2026-09-22T17:14</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-67.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-4b58bbb3</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry>The storefront now shows the on-demand brand as VAthuis, without a space.</changelog_entry>
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>The storefront now shows the on-demand brand as VAthuis, without a space.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:14">received, backlog</event>
+      <event ts="2026-09-22T17:14">concept written: tasks/SI-67.md</event>
+      <event ts="2026-09-22T17:14">started</event>
+      <event ts="2026-09-22T17:14">started run lane run-4b58bbb3</event>
+      <event ts="2026-09-22T17:14">progress plan: 4 steps</event>
+      <event ts="2026-09-22T17:19">auto-detected: running Vitest</event>
+      <event ts="2026-09-22T17:19">auto-detected: running npm test</event>
+      <event ts="2026-09-22T17:19">auto-detected: running Vitest</event>
+      <event ts="2026-09-22T17:14">completed</event>
+    </history>
+    <progress step="3" of="4" started="2026-09-22T17:14" label="Update search subtitle + tests">
+      <step n="1" label="Inventory user-facing copy" done="2026-09-22T17:14" />
+      <step n="2" label="Update storefront strings" done="2026-09-22T17:14" />
+      <step n="3" label="Update search subtitle + tests" />
+      <step n="4" label="Update VATHUIS docs" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/vathuis/VaThuisHero.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/components/vathuis/VaThuisSubNav.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/components/vathuis/VaThuisListingPage.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/components/vathuis/VaThuisPdpPageContent.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/components/vathuis/VaThuisFeaturedGrid.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/components/vathuis/VaThuisCategoryGrid.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/components/thank-you/ThankYouVathuisRecommendations.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/app/(main)/va-thuis/page.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/app/(main)/va-thuis/ons-aanbod/page.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/app/(main)/va-thuis/[...slug]/page.tsx" ts="2026-09-22T17:18" />
+      <file path="frontend/src/locales/nl.json" ts="2026-09-22T17:18" />
+      <file path="frontend/src/lib/analytics/mappers/list-context.ts" ts="2026-09-22T17:18" />
+      <file path="frontend/src/app/api/plp/vathuis/route.ts" ts="2026-09-22T17:18" />
+      <file path="medusa/src/modules/search/document-builders.ts" ts="2026-09-22T17:18" />
+      <file path="medusa/src/modules/search/document-builders.test.ts" ts="2026-09-22T17:18" />
+      <file path="medusa/src/lib/vathuis-playback.ts" ts="2026-09-22T17:18" />
+      <file path="sanity/src/schemas/blocks/vathuisProductRow.ts" ts="2026-09-22T17:18" />
+      <file path="sanity/scripts/migrate-vathuis-landing-to-blocks.mjs" ts="2026-09-22T17:18" />
+      <file path="frontend/docs/VATHUIS.md" ts="2026-09-22T17:18" />
+      <file path="frontend/docs/CHECKOUT.md" ts="2026-09-22T17:19" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T17:19" />
+    </files>
+  </task>
+  <task id="68" status="done">
+    <title>Infinite scroll still stops after Back from a product</title>
+    <summary>After scrolling a listing, opening a product, and Back, the list only loads a bit more then infinite scroll stops.</summary>
+    <created>2026-09-22T17:20</created>
+    <started>2026-09-22T17:20</started>
+    <done>2026-09-22T18:44</done>
+    <human_estimate>1h</human_estimate>
+    <story_points>5</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-68.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-4fe97d48</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:20">received, backlog</event>
+      <event ts="2026-09-22T17:20">concept written: tasks/SI-68.md</event>
+      <event ts="2026-09-22T17:20">started</event>
+      <event ts="2026-09-22T17:20">started run lane run-4fe97d48</event>
+      <event ts="2026-09-22T17:21">progress plan: 4 steps</event>
+      <event ts="2026-09-22T17:37">in testing — running Vitest</event>
+      <event ts="2026-09-22T18:44">back to in-progress</event>
+      <event ts="2026-09-22T18:44">completed</event>
+    </history>
+    <progress step="3" of="4" started="2026-09-22T17:21" label="Fix from evidence" elapsed="1020" step_ts="2026-09-22T17:37">
+      <step n="1" label="Instrument keep/load/observer" done="2026-09-22T17:37" />
+      <step n="2" label="Reproduce with logs" done="2026-09-22T17:37" />
+      <step n="3" label="Fix from evidence" />
+      <step n="4" label="Verify" />
+    </progress>
+    <files>
+      <file path="frontend/src/lib/listing-return-anchor.ts" ts="2026-09-22T17:22" />
+      <file path="frontend/src/components/plp/useEnsureListingAnchorLoaded.ts" ts="2026-09-22T18:44" />
+      <file path="frontend/src/components/plp/PlpInfiniteResults.tsx" ts="2026-09-22T18:44" />
+    </files>
+  </task>
+  <task id="69" status="done">
+    <title>Check Medusa mail sending setup</title>
+    <summary>Verify whether Medusa is configured to actually send transactional emails (OTP, gift cards), including provider wiring and env.</summary>
+    <created>2026-09-22T17:21</created>
+    <started>2026-09-22T17:21</started>
+    <done>2026-09-22T17:21</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>3</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-69.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-b34dde6c</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:21">received, backlog</event>
+      <event ts="2026-09-22T17:21">started</event>
+      <event ts="2026-09-22T17:21">started run lane run-b34dde6c</event>
+      <event ts="2026-09-22T17:22">progress plan: 5 steps</event>
+      <event ts="2026-09-22T17:21">completed</event>
+    </history>
+    <files>
+      <file path="frontend/src/components/plp/PlpInfiniteResults.tsx" ts="2026-09-22T17:22" />
+      <file path="frontend/src/components/plp/useEnsureListingAnchorLoaded.ts" ts="2026-09-22T17:22" />
+      <file path="frontend/src/components/ui/PasswordVisibilityToggle.tsx" ts="2026-09-22T17:23" />
+      <file path="frontend/src/locales/nl.json" ts="2026-09-22T17:23" />
+      <file path="frontend/src/components/ui/Input.tsx" ts="2026-09-22T17:23" />
+      <file path="frontend/src/components/auth/ValidatedInput.tsx" ts="2026-09-22T17:23" />
+      <file path="frontend/src/components/ui/index.ts" ts="2026-09-22T17:23" />
+      <file path="frontend/src/components/auth/LoginForm.tsx" ts="2026-09-22T17:23" />
+      <file path="frontend/src/app/(main)/dev/components/page.tsx" ts="2026-09-22T17:24" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T17:24" />
+      <file path="frontend/docs/CHECKOUT.md" ts="2026-09-22T17:24" />
+      <file path="frontend/docs/README.md" ts="2026-09-22T17:24" />
+      <file path="frontend/src/components/ui/Input.password.test.tsx" ts="2026-09-22T17:24" />
+    </files>
+    <progress step="5" of="5" started="2026-09-22T17:22" label="Inspect staging/docs">
+      <step n="1" label="Write concept" done="2026-09-22T17:21" />
+      <step n="2" label="Inspect code wiring" done="2026-09-22T17:21" />
+      <step n="3" label="Inspect local env" done="2026-09-22T17:21" />
+      <step n="4" label="Inspect SendGrid provider" done="2026-09-22T17:21" />
+      <step n="5" label="Inspect staging/docs" />
+    </progress>
+  </task>
+  <task id="70" status="done">
+    <title>Password field eye toggle</title>
+    <summary>Add an eye control on password fields so users can show or hide the value while typing.</summary>
+    <created>2026-09-22T17:20</created>
+    <started>2026-09-22T17:20</started>
+    <done>2026-09-22T17:20</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>3</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-70.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>feature</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-7448dd97</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>Password fields have an eye button so you can show or hide the typed password.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:20">received, backlog</event>
+      <event ts="2026-09-22T17:20">started</event>
+      <event ts="2026-09-22T17:20">started run lane run-7448dd97</event>
+      <event ts="2026-09-22T17:22">progress plan: 5 steps</event>
+      <event ts="2026-09-22T17:20">in testing — running Vitest</event>
+      <event ts="2026-09-22T17:26">verification: manual browser check passed</event>
+      <event ts="2026-09-22T17:20">completed</event>
+    </history>
+    <progress step="5" of="5" started="2026-09-22T17:22" label="Tests and browser check">
+      <step n="1" label="Shared toggle + copy" done="2026-09-22T17:20" />
+      <step n="2" label="Wire Input and ValidatedInput" done="2026-09-22T17:20" />
+      <step n="3" label="LoginForm login password" done="2026-09-22T17:20" />
+      <step n="4" label="Docs" done="2026-09-22T17:20" />
+      <step n="5" label="Tests and browser check" />
+    </progress>
+    <verifications>
+      <verification ts="2026-09-22T17:26" tool="manual browser check" result="pass" />
+    </verifications>
+  </task>
+  <task id="71" status="done">
+    <title>Why Wandeling Vesting Bourtange shows lezing badge</title>
+    <summary>Investigate why https://v2.vrijeacademie.nl/ons-aanbod/wandeling-vesting-bourtange displays a lezing badge on a walking-tour product.</summary>
+    <created>2026-09-22T17:24</created>
+    <started>2026-09-22T17:24</started>
+    <done>2026-09-22T17:24</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>3</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-71.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-d2c72d23</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:24">received, backlog</event>
+      <event ts="2026-09-22T17:24">started</event>
+      <event ts="2026-09-22T17:24">started run lane run-d2c72d23</event>
+      <event ts="2026-09-22T17:25">auto-detected: running npm test</event>
+      <event ts="2026-09-22T17:26">verification: local store API passed</event>
+      <event ts="2026-09-22T17:24">completed</event>
+    </history>
+    <verifications>
+      <verification ts="2026-09-22T17:26" tool="local store API" result="pass" />
+    </verifications>
+  </task>
+  <task id="72" status="done">
+    <title>Enable staging Medusa SMTP mail</title>
+    <summary>Set SMTP_* on staging Medusa .env pointing at local Postfix, then reload PM2 so OTP and cadeaubon mail actually send.</summary>
+    <created>2026-09-22T17:27</created>
+    <started>2026-09-22T17:27</started>
+    <done>2026-09-22T17:27</done>
+    <human_estimate>20min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-72.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-7be0f5e8</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:27">received, backlog</event>
+      <event ts="2026-09-22T17:27">started</event>
+      <event ts="2026-09-22T17:27">started run lane run-7be0f5e8</event>
+      <event ts="2026-09-22T17:28">progress plan: 4 steps</event>
+      <event ts="2026-09-22T17:27">completed</event>
+    </history>
+    <progress step="4" of="4" started="2026-09-22T17:28" label="Verify provider">
+      <step n="1" label="Write concept" done="2026-09-22T17:27" />
+      <step n="2" label="Patch staging .env" done="2026-09-22T17:27" />
+      <step n="3" label="Reload PM2" done="2026-09-22T17:27" />
+      <step n="4" label="Verify provider" />
+    </progress>
+  </task>
+  <task id="73" status="done">
+    <title>Manual page cache clear in Sanity</title>
+    <summary>Add a hidden Studio document action so editors can invalidate a page's storefront ISR cache without waiting for the 60s window or a publish webhook.</summary>
+    <created>2026-09-22T17:27</created>
+    <started>2026-09-22T17:27</started>
+    <done>2026-09-22T17:27</done>
+    <human_estimate>1h</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-73.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>feature</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-68a3f910</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible>false</end_customer_visible>
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:27">received, backlog</event>
+      <event ts="2026-09-22T17:27">concept written: tasks/SI-73.md</event>
+      <event ts="2026-09-22T17:27">started</event>
+      <event ts="2026-09-22T17:27">started run lane run-68a3f910</event>
+      <event ts="2026-09-22T17:31">progress plan: 5 steps</event>
+      <event ts="2026-09-22T17:27">in testing — running Vitest</event>
+      <event ts="2026-09-22T17:27">back to in-progress</event>
+      <event ts="2026-09-22T17:27">in testing — running Vitest</event>
+      <event ts="2026-09-22T17:27">completed</event>
+    </history>
+    <progress step="4" of="5" started="2026-09-22T17:31" label="Docs and env">
+      <step n="1" label="Shared revalidate planner" done="2026-09-22T17:27" />
+      <step n="2" label="Studio CORS + API route" done="2026-09-22T17:27" />
+      <step n="3" label="Sanity pane action" done="2026-09-22T17:27" />
+      <step n="4" label="Docs and env" />
+      <step n="5" label="Tests" />
+    </progress>
+    <files>
+      <file path="frontend/src/app/api/revalidate/studio/route.ts" ts="2026-09-22T17:32" />
+      <file path="frontend/src/app/api/revalidate/sanity/route.ts" ts="2026-09-22T17:32" />
+      <file path="sanity/src/lib/clearCacheActions.ts" ts="2026-09-22T17:33" />
+      <file path="sanity/sanity.config.ts" ts="2026-09-22T17:33" />
+      <file path="frontend/src/components/pdp/PdpImageGallery.tsx" ts="2026-09-22T17:36" />
+    </files>
+  </task>
+  <task id="74" status="done">
+    <title>Check if staging OTP mail was sent</title>
+    <summary>Inspect Medusa and Postfix logs after the user requested an OTP to see whether the email was actually delivered.</summary>
+    <created>2026-09-22T17:31</created>
+    <started>2026-09-22T17:31</started>
+    <done>2026-09-22T17:31</done>
+    <human_estimate>15min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-74.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-75e6e2ce</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:31">received, backlog</event>
+      <event ts="2026-09-22T17:31">started</event>
+      <event ts="2026-09-22T17:31">started run lane run-75e6e2ce</event>
+      <event ts="2026-09-22T17:31">progress plan: 4 steps</event>
+      <event ts="2026-09-22T17:31">completed</event>
+    </history>
+    <progress step="3" of="4" started="2026-09-22T17:31" label="Inspect Medusa logs">
+      <step n="1" label="Write concept" done="2026-09-22T17:31" />
+      <step n="2" label="Inspect OTP DB" done="2026-09-22T17:31" />
+      <step n="3" label="Inspect Medusa logs" />
+      <step n="4" label="Inspect Postfix" />
+    </progress>
+    <files>
+      <file path="frontend/src/lib/cms/revalidate-sanity-plan.ts" ts="2026-09-22T17:32" />
+      <file path="frontend/src/lib/cms/apply-sanity-revalidate.ts" ts="2026-09-22T17:32" />
+      <file path="frontend/src/lib/cms/studio-revalidate-cors.ts" ts="2026-09-22T17:32" />
+    </files>
+  </task>
+  <task id="75" status="done">
+    <title>Which Salesforce record types are missing from EventGroup</title>
+    <summary>Decide whether Wandeling should be an EventGroup record_type, and list other Salesforce developer names that currently fall through to lezing.</summary>
+    <created>2026-09-22T17:33</created>
+    <started>2026-09-22T17:33</started>
+    <done>2026-09-22T17:33</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>3</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-75.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-5f9fb2b4</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:33">received, backlog</event>
+      <event ts="2026-09-22T17:33">started</event>
+      <event ts="2026-09-22T17:33">started run lane run-5f9fb2b4</event>
+      <event ts="2026-09-22T17:36">verification: Salesforce RecordType + Medusa product_type query passed</event>
+      <event ts="2026-09-22T17:33">completed</event>
+    </history>
+    <files>
+      <file path="sanity/src/lib/clearCacheActions.ts" ts="2026-09-22T17:34" />
+      <file path="frontend/src/lib/cms/revalidate-sanity-plan.test.ts" ts="2026-09-22T17:34" />
+      <file path="frontend/src/lib/cms/studio-revalidate-cors.test.ts" ts="2026-09-22T17:34" />
+      <file path="sanity/src/lib/__tests__/clearCacheActions.test.ts" ts="2026-09-22T17:34" />
+      <file path="sanity/docs/README.md" ts="2026-09-22T17:34" />
+      <file path="sanity/.env.example" ts="2026-09-22T17:34" />
+      <file path="frontend/.env.example" ts="2026-09-22T17:34" />
+      <file path="docs/DEPLOYMENT.md" ts="2026-09-22T17:34" />
+      <file path=".github/workflows/deploy-staging.yml" ts="2026-09-22T17:34" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T17:34" />
+      <file path="frontend/src/components/pdp/PdpImageGallery.tsx" ts="2026-09-22T17:34" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-22T17:36" tool="Salesforce RecordType + Medusa product_type query" result="pass" />
+    </verifications>
+  </task>
+  <task id="76" status="done">
+    <title>Fix local Postfix STARTTLS OTP send</title>
+    <summary>Work out how to make Medusa send via the local Postfix service without failing on the self-signed STARTTLS cert.</summary>
+    <created>2026-09-22T17:35</created>
+    <started>2026-09-22T17:35</started>
+    <done>2026-09-22T17:35</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>3</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-76.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-db11a09b</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:35">received, backlog</event>
+      <event ts="2026-09-22T17:35">started</event>
+      <event ts="2026-09-22T17:35">started run lane run-db11a09b</event>
+      <event ts="2026-09-22T17:35">progress plan: 4 steps</event>
+      <event ts="2026-09-22T17:35">auto-detected: running npm test</event>
+      <event ts="2026-09-22T17:35">completed</event>
+    </history>
+    <files>
+      <file path="docs/DEPLOYMENT.md" ts="2026-09-22T17:35" />
+      <file path="frontend/src/components/pdp/PdpImageGallery.tsx" ts="2026-09-22T17:35" />
+      <file path="medusa/src/scripts/tmp-query-productgroup-record-types.ts" ts="2026-09-22T17:35" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T17:35" />
+    </files>
+    <progress step="4" of="4" started="2026-09-22T17:35" label="Recommend fix">
+      <step n="1" label="Write concept" done="2026-09-22T17:35" />
+      <step n="2" label="Inspect Postfix TLS/relay" done="2026-09-22T17:35" />
+      <step n="3" label="Inspect nodemailer options" done="2026-09-22T17:35" />
+      <step n="4" label="Recommend fix" />
+    </progress>
+  </task>
+  <task id="77" status="done">
+    <title>Skip STARTTLS for local Postfix</title>
+    <summary>Pass ignoreTLS to nodemailer for loopback SMTP so OTP mail is not rejected on Postfix snakeoil certs.</summary>
+    <created>2026-09-22T17:37</created>
+    <started>2026-09-22T17:37</started>
+    <done>2026-09-22T17:37</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>3</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-77.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-257c6fc8</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:37">received, backlog</event>
+      <event ts="2026-09-22T17:37">started</event>
+      <event ts="2026-09-22T17:37">started run lane run-257c6fc8</event>
+      <event ts="2026-09-22T17:37">auto-detected: running npm test</event>
+      <event ts="2026-09-22T17:37">progress plan: 5 steps</event>
+      <event ts="2026-09-22T17:37">in testing — running Vitest</event>
+      <event ts="2026-09-22T17:37">completed</event>
+    </history>
+    <files>
+      <file path="sanity/src/lib/clearCacheActions.ts" ts="2026-09-22T17:37" />
+      <file path="medusa/src/lib/email-notification-config.ts" ts="2026-09-22T17:37" />
+      <file path="medusa/src/providers/smtp/service.ts" ts="2026-09-22T17:38" />
+      <file path="medusa/src/lib/email-notification-config.test.ts" ts="2026-09-22T17:38" />
+      <file path="medusa/.env.template" ts="2026-09-22T17:38" />
+      <file path="medusa/docs/CUSTOMER_AUTH.md" ts="2026-09-22T17:38" />
+      <file path="docs/DEPLOYMENT.md" ts="2026-09-22T17:38" />
+    </files>
+    <progress step="5" of="5" started="2026-09-22T17:37" label="Vitest">
+      <step n="1" label="Write concept" done="2026-09-22T17:37" />
+      <step n="2" label="Config ignoreTLS" done="2026-09-22T17:37" />
+      <step n="3" label="Provider pass-through" done="2026-09-22T17:37" />
+      <step n="4" label="Docs" done="2026-09-22T17:37" />
+      <step n="5" label="Vitest" />
+    </progress>
+  </task>
+  <task id="78" status="done">
+    <title>Hide VAthuis filter on agenda</title>
+    <summary>Show the VAthuis availability filter only on Ons aanbod, not on Agenda.</summary>
+    <created>2026-09-22T17:37</created>
+    <started>2026-09-22T17:37</started>
+    <done>2026-09-22T17:37</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-78.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-1fbe292c</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry>Agenda hides the VAthuis availability filter; it remains on Ons aanbod.</changelog_entry>
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>Agenda no longer shows the VAthuis availability checkbox; it stays on Ons aanbod.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:37">received, backlog</event>
+      <event ts="2026-09-22T17:37">started</event>
+      <event ts="2026-09-22T17:37">started run lane run-1fbe292c</event>
+      <event ts="2026-09-22T17:38">auto-detected: running Vitest</event>
+      <event ts="2026-09-22T17:38">progress plan: 5 steps</event>
+      <event ts="2026-09-22T17:40">auto-detected: running npm test</event>
+      <event ts="2026-09-22T17:37">completed</event>
+    </history>
+    <progress step="5" of="5" started="2026-09-22T17:38" label="Browser-check both listings" elapsed="180" step_ts="2026-09-22T17:40">
+      <step n="1" label="Hide VAthuis in agenda sidebar" done="2026-09-22T17:37" />
+      <step n="2" label="Drop leftover agenda query params" done="2026-09-22T17:37" />
+      <step n="3" label="Update listing docs" done="2026-09-22T17:37" />
+      <step n="4" label="Add unit tests" done="2026-09-22T17:40" />
+      <step n="5" label="Browser-check both listings" />
+    </progress>
+    <files>
+      <file path="frontend/src/lib/plp-delivery-types.ts" ts="2026-09-22T17:39" />
+      <file path="frontend/src/components/plp/PlpFilterSidebar.tsx" ts="2026-09-22T17:39" />
+      <file path="frontend/src/app/(main)/agenda/_state/url.ts" ts="2026-09-22T17:39" />
+      <file path="frontend/src/lib/listing-return-anchor.ts" ts="2026-09-22T17:39" />
+      <file path="frontend/src/components/plp/PlpInfiniteResults.tsx" ts="2026-09-22T17:39" />
+      <file path="frontend/docs/VATHUIS.md" ts="2026-09-22T17:39" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T17:39" />
+      <file path="frontend/docs/README.md" ts="2026-09-22T17:39" />
+      <file path="frontend/src/components/agenda/AgendaFilterSidebar.tsx" ts="2026-09-22T17:39" />
+      <file path="frontend/src/components/plp/PlpActiveChips.tsx" ts="2026-09-22T17:39" />
+      <file path="frontend/src/lib/listing-return-anchor.test.ts" ts="2026-09-22T17:39" />
+      <file path="frontend/src/lib/__tests__/plp-delivery-types.test.ts" ts="2026-09-22T17:40" />
+      <file path="frontend/src/app/(main)/agenda/_state/url.test.ts" ts="2026-09-22T17:40" />
+      <file path="frontend/src/components/pdp/PdpImageGallery.tsx" ts="2026-09-22T17:40" />
+      <file path="frontend/next.config.js" ts="2026-09-22T17:40" />
+    </files>
+  </task>
+  <task id="79" status="done">
+    <title>Mobile agenda layout and date filter</title>
+    <summary>On mobile, open the agenda filters with the date calendar first, and restack agenda cards as date/time, title, location, then button.</summary>
+    <created>2026-09-22T17:40</created>
+    <started>2026-09-22T17:40</started>
+    <done>2026-09-22T17:40</done>
+    <human_estimate>45min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-79.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-1fb2c718</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry>On phones, agenda listings stack each session as date/time, title, location and button, and the filter sheet opens on the day calendar.</changelog_entry>
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>On mobile, agenda cards stack date and time, title, location, then the button, and the filter drawer opens on the day calendar.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T17:40">received, backlog</event>
+      <event ts="2026-09-22T17:40">started</event>
+      <event ts="2026-09-22T17:40">started run lane run-1fb2c718</event>
+      <event ts="2026-09-22T17:42">progress plan: 4 steps</event>
+      <event ts="2026-09-22T17:40">in testing — running manual browser check</event>
+      <event ts="2026-09-22T17:40">completed</event>
+    </history>
+    <progress step="4" of="4" started="2026-09-22T17:42" label="Verify in browser">
+      <step n="1" label="Put calendar first in mobile filters" done="2026-09-22T17:40" />
+      <step n="2" label="Restack AgendaRow on mobile" done="2026-09-22T17:40" />
+      <step n="3" label="Update listing docs" done="2026-09-22T17:40" />
+      <step n="4" label="Verify in browser" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/plp/PlpFilterSidebar.tsx" ts="2026-09-22T17:42" />
+      <file path="frontend/src/components/agenda/AgendaFilterSidebar.tsx" ts="2026-09-22T17:43" />
+      <file path="frontend/src/locales/nl.json" ts="2026-09-22T17:43" />
+      <file path="frontend/src/components/agenda/AgendaRow.tsx" ts="2026-09-22T17:43" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T17:44" />
+      <file path="frontend/docs/README.md" ts="2026-09-22T17:44" />
+    </files>
+  </task>
+  <task id="80" status="done">
+    <title>PDP badge from product_type plus record_type aliases</title>
+    <summary>Show Salesforce product_type on the PDP for Wandeling/Reis/Workshop/Studiedag, link those to /ons-aanbod/{slug}, and map Live_Collegereeks / Excursies_Collegereeks / Online_Studiedag onto the coarse EventGroup enum.</summary>
+    <created>2026-09-22T18:45</created>
+    <started>2026-09-22T18:45</started>
+    <done>2026-09-22T18:45</done>
+    <human_estimate>1h</human_estimate>
+    <story_points>5</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-80.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-42f1b3fd</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>PDP chips for wandelingen, reizen, workshops and studiedagen now show that activity type and open the matching Ons aanbod landing.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T18:45">received, backlog</event>
+      <event ts="2026-09-22T18:45">started</event>
+      <event ts="2026-09-22T18:45">started run lane run-42f1b3fd</event>
+      <event ts="2026-09-22T18:45">in testing — running Vitest</event>
+      <event ts="2026-09-22T18:45">back to in-progress</event>
+      <event ts="2026-09-22T18:45">in testing — running Playwright</event>
+      <event ts="2026-09-22T18:50">verification: Vitest + browser PDP passed</event>
+      <event ts="2026-09-22T18:45">completed</event>
+    </history>
+    <verifications>
+      <verification ts="2026-09-22T18:50" tool="Vitest + browser PDP" result="pass" />
+    </verifications>
+  </task>
+  <task id="81" status="done">
+    <title>Investigate VA Thuis not adding to cart on staging</title>
+    <summary>Joline reported at 10:54 that VA Thuis no longer appears in the cart on mobile or desktop. Check staging logs around that time.</summary>
+    <created>2026-09-22T18:45</created>
+    <started>2026-09-22T18:45</started>
+    <done>2026-09-22T18:45</done>
+    <human_estimate>1h</human_estimate>
+    <story_points>5</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-81.md</concept>
+    <parent />
+    <subtasks />
+    <external_id>1218626219533438</external_id>
+    <external_url>https://app.asana.com/1/1201227469632723/project/1216380929305123/task/1218626219533438</external_url>
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-63edd00e</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T18:45">received, backlog</event>
+      <event ts="2026-09-22T18:45">started</event>
+      <event ts="2026-09-22T18:45">started run lane run-63edd00e</event>
+      <event ts="2026-09-22T18:45">progress plan: 4 steps</event>
+      <event ts="2026-09-22T18:48">auto-detected: running Vitest</event>
+      <event ts="2026-09-22T18:50">verification: staging nginx+pm2 logs passed</event>
+      <event ts="2026-09-22T18:45">completed</event>
+    </history>
+    <progress step="4" of="4" started="2026-09-22T18:45" label="Report findings">
+      <step n="1" label="Read Asana context" done="2026-09-22T18:45" />
+      <step n="2" label="Pull staging logs around 10:54" done="2026-09-22T18:45" />
+      <step n="3" label="Map add-to-cart path" done="2026-09-22T18:45" />
+      <step n="4" label="Report findings" />
+    </progress>
+    <files>
+      <file path="frontend/src/lib/pdp-activity-badge.ts" ts="2026-09-22T18:46" />
+      <file path="frontend/src/lib/pdp-activity-badge.test.ts" ts="2026-09-22T18:47" />
+      <file path="frontend/src/components/pdp/PdpHeader.tsx" ts="2026-09-22T18:47" />
+      <file path="frontend/src/app/(main)/ons-aanbod/[handle]/PdpPageContent.tsx" ts="2026-09-22T18:47" />
+      <file path="medusa/src/modules/salesforce-sync/mappings/productgroup.ts" ts="2026-09-22T18:47" />
+      <file path="medusa/src/modules/salesforce-sync/mappings/productgroup.test.ts" ts="2026-09-22T18:47" />
+      <file path="medusa/src/scripts/backfill-event-group-record-types.ts" ts="2026-09-22T18:47" />
+      <file path="medusa/package.json" ts="2026-09-22T18:47" />
+      <file path="frontend/src/lib/__tests__/routes.test.ts" ts="2026-09-22T18:47" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T18:47" />
+      <file path="medusa/docs/EVENTS.md" ts="2026-09-22T18:47" />
+      <file path="medusa/docs/SALESFORCE_SYNC.md" ts="2026-09-22T18:47" />
+      <file path="medusa/src/modules/events/types.ts" ts="2026-09-22T18:48" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-22T18:50" tool="staging nginx+pm2 logs" result="pass" />
+    </verifications>
+  </task>
+  <task id="82" status="done">
+    <title>Show full agenda titles</title>
+    <summary>Stop clamping agenda row titles so the full name is always visible, wrapping onto extra lines when needed.</summary>
+    <created>2026-09-22T18:48</created>
+    <started>2026-09-22T18:48</started>
+    <done>2026-09-22T18:48</done>
+    <human_estimate>15min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-82.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-346f8361</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry>Agenda session titles wrap fully instead of being truncated with an ellipsis.</changelog_entry>
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>Agenda titles wrap onto extra lines instead of being cut off with an ellipsis.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T18:48">received, backlog</event>
+      <event ts="2026-09-22T18:48">started</event>
+      <event ts="2026-09-22T18:48">started run lane run-346f8361</event>
+      <event ts="2026-09-22T18:48">progress plan: 3 steps</event>
+      <event ts="2026-09-22T18:48">in testing — running manual browser check</event>
+      <event ts="2026-09-22T18:48">completed</event>
+    </history>
+    <progress step="3" of="3" started="2026-09-22T18:48" label="Verify in browser">
+      <step n="1" label="Remove title line-clamp" done="2026-09-22T18:48" />
+      <step n="2" label="Update listing docs" done="2026-09-22T18:48" />
+      <step n="3" label="Verify in browser" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/agenda/AgendaRow.tsx" ts="2026-09-22T18:48" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T18:48" />
+      <file path="frontend/src/components/plp/PlpEventCard.tsx" ts="2026-09-22T18:48" />
+      <file path="frontend/src/locales/nl.json" ts="2026-09-22T18:48" />
+      <file path="frontend/src/lib/event-status-presentation.ts" ts="2026-09-22T18:49" />
+      <file path="frontend/docs/README.md" ts="2026-09-22T18:49" />
+    </files>
+  </task>
+  <task id="83" status="done">
+    <title>Always show Vanaf on listing product cards</title>
+    <summary>Ons aanbod product cards always prefix the date and price with Vanaf instead of a bare date or Voor.</summary>
+    <created>2026-09-22T18:47</created>
+    <started>2026-09-22T18:47</started>
+    <done>2026-09-22T18:47</done>
+    <human_estimate>15min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-83.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-f542cd21</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model>haiku</claude_model>
+    <planning_recommended>false</planning_recommended>
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <is_design />
+    <history>
+      <event ts="2026-09-22T18:47">received, backlog</event>
+      <event ts="2026-09-22T18:47">concept written: tasks/SI-83.md</event>
+      <event ts="2026-09-22T18:47">started</event>
+      <event ts="2026-09-22T18:47">started run lane run-f542cd21</event>
+      <event ts="2026-09-22T18:47">in testing — running browser</event>
+      <event ts="2026-09-22T18:47">completed</event>
+    </history>
+  </task>
+  <task id="84" status="done">
+    <title>PDP waitlist and bijna-vol CTA styling</title>
+    <summary>Make the PDP session Wachtlijst button as wide as Direct inschrijven, color it #bfbfbf / hover #4c4c4c, and color Bijna vol #f7373d / hover #E0282E.</summary>
+    <created>2026-09-22T18:47</created>
+    <started>2026-09-22T18:47</started>
+    <done>2026-09-22T18:47</done>
+    <human_estimate>30min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-84.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-57a8590e</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry>PDP session Wachtlijst buttons match Direct inschrijven in width, use grey #bfbfbf with hover #4c4c4c, and Bijna vol uses red #f7373d with hover #E0282E.</changelog_entry>
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>PDP session Wachtlijst buttons match Direct inschrijven in width, use grey #bfbfbf with hover #4c4c4c, and Bijna vol uses red #f7373d with hover #E0282E.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T18:47">received, backlog</event>
+      <event ts="2026-09-22T18:47">started</event>
+      <event ts="2026-09-22T18:47">started run lane run-57a8590e</event>
+      <event ts="2026-09-22T18:47">progress plan: 4 steps</event>
+      <event ts="2026-09-22T18:47">in testing — running Vitest</event>
+      <event ts="2026-09-22T18:47">back to in-progress</event>
+      <event ts="2026-09-22T18:55">auto-detected: running npm test</event>
+      <event ts="2026-09-22T18:55">auto-detected: running Vitest</event>
+      <event ts="2026-09-22T18:47">in testing — running Vitest</event>
+      <event ts="2026-09-22T18:57">verification: manual browser check passed</event>
+      <event ts="2026-09-22T18:47">completed</event>
+    </history>
+    <progress step="4" of="4" started="2026-09-22T18:47" label="Browser verify">
+      <step n="1" label="Shared CTA presentation" done="2026-09-22T18:47" />
+      <step n="2" label="Wire PDP session buttons" done="2026-09-22T18:47" />
+      <step n="3" label="Tests and docs" done="2026-09-22T18:47" />
+      <step n="4" label="Browser verify" />
+    </progress>
+    <files>
+      <file path="frontend/src/lib/event-status-presentation.ts" ts="2026-09-22T18:51" />
+      <file path="frontend/src/components/pdp/PdpLocationTabs.tsx" ts="2026-09-22T18:51" />
+      <file path="frontend/src/components/pdp/PdpBookingPanel.tsx" ts="2026-09-22T18:52" />
+      <file path="frontend/src/lib/event-status-presentation.test.ts" ts="2026-09-22T18:52" />
+      <file path="frontend/docs/components.md" ts="2026-09-22T18:52" />
+      <file path="medusa/src/lib/almost-full.test.ts" ts="2026-09-22T18:54" />
+      <file path="medusa/docs/SALESFORCE_SYNC.md" ts="2026-09-22T18:55" />
+      <file path="medusa/src/lib/agenda-listing-response.test.ts" ts="2026-09-22T18:55" />
+      <file path="medusa/docs/EVENTS.md" ts="2026-09-22T18:55" />
+      <file path="frontend/docs/README.md" ts="2026-09-22T18:56" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-22T18:57" tool="manual browser check" result="pass" />
+    </verifications>
+  </task>
+  <task id="85" status="done">
+    <title>Widen agenda title at tablet width</title>
+    <summary>Stack time over price below xl so the title column is wider and names wrap on word boundaries instead of mid-word.</summary>
+    <created>2026-09-22T18:52</created>
+    <started>2026-09-22T18:52</started>
+    <done>2026-09-22T18:52</done>
+    <human_estimate>20min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-85.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-a69d428a</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry>On tablet-sized agenda rows, time sits above price so titles stay readable instead of breaking mid-word.</changelog_entry>
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>On tablet widths, agenda rows stack time over price so titles have more room and wrap on whole words.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T18:52">received, backlog</event>
+      <event ts="2026-09-22T18:52">started</event>
+      <event ts="2026-09-22T18:52">started run lane run-a69d428a</event>
+      <event ts="2026-09-22T18:52">progress plan: 3 steps</event>
+      <event ts="2026-09-22T18:52">in testing — running manual browser check</event>
+      <event ts="2026-09-22T18:52">completed</event>
+    </history>
+    <progress step="3" of="3" started="2026-09-22T18:52" label="Verify at tablet and desktop widths">
+      <step n="1" label="Stack time over price below xl" done="2026-09-22T18:52" />
+      <step n="2" label="Update listing docs" done="2026-09-22T18:52" />
+      <step n="3" label="Verify at tablet and desktop widths" />
+    </progress>
+    <files>
+      <file path="frontend/docs/components.md" ts="2026-09-22T18:52" />
+      <file path="frontend/docs/README.md" ts="2026-09-22T18:52" />
+      <file path="frontend/src/components/agenda/AgendaRow.tsx" ts="2026-09-22T18:52" />
+      <file path="frontend/src/components/pdp/PdpLocationTabs.tsx" ts="2026-09-22T18:53" />
+    </files>
+  </task>
+  <task id="86" status="done">
+    <title>Set tp_system on all staging tax regions</title>
+    <summary>Backfill provider_id=tp_system on every EU tax region on staging so add-to-cart no longer 500s for non-NL shipping addresses.</summary>
+    <created>2026-09-22T18:52</created>
+    <started>2026-09-22T18:52</started>
+    <done>2026-09-22T18:52</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-86.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-c612021b</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T18:52">received, backlog</event>
+      <event ts="2026-09-22T18:52">started</event>
+      <event ts="2026-09-22T18:52">started run lane run-c612021b</event>
+      <event ts="2026-09-22T18:52">progress plan: 4 steps</event>
+      <event ts="2026-09-22T18:53">auto-detected: running Vitest</event>
+      <event ts="2026-09-22T18:52">in testing — running staging add-to-cart BE</event>
+      <event ts="2026-09-22T18:54">verification: staging add-to-cart BE passed</event>
+      <event ts="2026-09-22T18:52">completed</event>
+    </history>
+    <progress step="2" of="4" started="2026-09-22T18:52" label="Patch seed:region">
+      <step n="1" label="Backfill staging tax_region.provider_id" done="2026-09-22T18:52" />
+      <step n="2" label="Patch seed:region" />
+      <step n="3" label="Update docs" />
+      <step n="4" label="Verify staging counts" />
+    </progress>
+    <files>
+      <file path="medusa/src/scripts/seed-region.ts" ts="2026-09-22T18:53" />
+      <file path="medusa/docs/README.md" ts="2026-09-22T18:54" />
+      <file path="docs/DEPLOYMENT.md" ts="2026-09-22T18:54" />
+      <file path="medusa/docs/SALESFORCE_SYNC.md" ts="2026-09-22T18:54" />
+      <file path="frontend/tailwind.config.js" ts="2026-09-22T18:54" />
+      <file path="medusa/src/modules/events/migrations/Migration20260922180000.ts" ts="2026-09-22T18:54" />
+      <file path="medusa/src/modules/events/models/event-item.ts" ts="2026-09-22T18:54" />
+      <file path="medusa/src/modules/salesforce-sync/mappings/course-product.ts" ts="2026-09-22T18:54" />
+      <file path="medusa/src/modules/salesforce-sync/import-productgroup.ts" ts="2026-09-22T18:54" />
+      <file path="medusa/src/lib/store-listing-snapshot.ts" ts="2026-09-22T18:54" />
+      <file path="medusa/src/lib/almost-full.ts" ts="2026-09-22T18:54" />
+      <file path="medusa/src/api/store/agenda/route.ts" ts="2026-09-22T18:54" />
+      <file path="frontend/src/lib/commerce/types.ts" ts="2026-09-22T18:54" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-22T18:54" tool="staging add-to-cart BE" result="pass" />
+    </verifications>
+  </task>
+  <task id="87" status="done">
+    <title>Check staging revalidate secrets over SSH</title>
+    <summary>Confirm SANITY_STUDIO_REVALIDATE_SECRET and related cache-bust secrets are set on staging frontend and Medusa without printing their values.</summary>
+    <created>2026-09-22T18:57</created>
+    <started>2026-09-22T18:57</started>
+    <done>2026-09-22T18:57</done>
+    <human_estimate>15min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-87.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-6d377b12</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible>false</end_customer_visible>
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T18:57">received, backlog</event>
+      <event ts="2026-09-22T18:57">concept written: tasks/SI-87.md</event>
+      <event ts="2026-09-22T18:57">started</event>
+      <event ts="2026-09-22T18:57">started run lane run-6d377b12</event>
+      <event ts="2026-09-22T18:57">progress plan: 4 steps</event>
+      <event ts="2026-09-22T18:57">completed</event>
+    </history>
+    <progress step="4" of="4" started="2026-09-22T18:57" label="Compare hashes">
+      <step n="1" label="SSH frontend env" done="2026-09-22T18:57" />
+      <step n="2" label="SSH Medusa env" done="2026-09-22T18:57" />
+      <step n="3" label="GitHub secret list" done="2026-09-22T18:57" />
+      <step n="4" label="Compare hashes" />
+    </progress>
   </task>
 </tasks>

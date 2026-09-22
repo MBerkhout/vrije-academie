@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { deliveryTypeLabel, hasVathuisDeliveryFilter } from '../plp-delivery-types'
+import {
+  deliveryTypeLabel,
+  excludeVathuisDeliveryTypes,
+  hasVathuisDeliveryFilter,
+  listingDeliveryOptions,
+} from '../plp-delivery-types'
 
 describe('deliveryTypeLabel', () => {
   it('labels pre_recorded as VAthuis', () => {
@@ -17,5 +22,28 @@ describe('hasVathuisDeliveryFilter', () => {
     expect(hasVathuisDeliveryFilter(['online', 'pre_recorded'])).toBe(true)
     expect(hasVathuisDeliveryFilter(['online'])).toBe(false)
     expect(hasVathuisDeliveryFilter([])).toBe(false)
+  })
+})
+
+describe('listingDeliveryOptions', () => {
+  it('includes VAthuis by default', () => {
+    expect(listingDeliveryOptions().map((opt) => opt.value)).toEqual([
+      'online',
+      'offline',
+      'pre_recorded',
+    ])
+  })
+
+  it('omits VAthuis when asked', () => {
+    expect(listingDeliveryOptions(false).map((opt) => opt.value)).toEqual(['online', 'offline'])
+  })
+})
+
+describe('excludeVathuisDeliveryTypes', () => {
+  it('drops pre_recorded and keeps live types', () => {
+    expect(excludeVathuisDeliveryTypes(['online', 'pre_recorded', 'offline'])).toEqual([
+      'online',
+      'offline',
+    ])
   })
 })

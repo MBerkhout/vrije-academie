@@ -6,11 +6,16 @@ import {
   resolvePlpFilterHref,
   usesPlpCanonicalFilterHref,
 } from '@/app/(main)/ons-aanbod/_state/redirects'
-import { resolveClearAllHref, resolveFilterRemove, resolveFilterSerialize } from '@/lib/filter-url-helpers'
+import {
+  isAgendaBasePath,
+  resolveClearAllHref,
+  resolveFilterRemove,
+  resolveFilterSerialize,
+} from '@/lib/filter-url-helpers'
 import type { CategoryOption, TeacherOption } from '@/lib/cms/sanity-refs'
 import { cityLabelFromSlug } from '@/lib/commerce/resolve-city-slug'
 import { productTypeListLabelFromSlug, type ProductTypePluralMap } from '@/lib/plp-product-types'
-import { deliveryTypeLabel } from '@/lib/plp-delivery-types'
+import { deliveryTypeLabel, isVathuisDeliveryType } from '@/lib/plp-delivery-types'
 import { cn } from '@/lib/utils'
 import { listingPeriodChipLabel } from '@/lib/plp/listing-period-filter'
 import { PLP_BASE_PATH } from '@/lib/routes'
@@ -76,6 +81,7 @@ export function PlpActiveChips({
     chips.push({ key: 'recordTypes', value: v, label: v })
   }
   for (const v of filterState.deliveryTypes ?? []) {
+    if (isAgendaBasePath(basePath) && isVathuisDeliveryType(v)) continue
     chips.push({ key: 'deliveryTypes', value: v, label: deliveryTypeLabel(v) })
   }
   for (const v of filterState.dayParts ?? []) {

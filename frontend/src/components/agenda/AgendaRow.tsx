@@ -54,11 +54,19 @@ export function AgendaRow({ item }: AgendaRowProps) {
   const priceLabel = item.price ? formatPriceEur(item.price) : null
   const isSoldOut = item.status === 'sold_out'
 
+  const statusButtonClassName = cn(
+    'relative z-20 flex items-center justify-center px-4 py-3 text-xs font-bold uppercase tracking-wide',
+    'sm:px-4 sm:py-0 sm:min-w-[7.5rem]',
+    'xl:px-5 xl:pl-10 xl:pr-8 xl:min-w-[140px]',
+    statusClassName,
+  )
+
   return (
     <article
       id={anchorId}
       className={cn(
-        'group relative scroll-mt-32 grid grid-cols-[76px_minmax(0,1fr)_auto] sm:grid-cols-[76px_minmax(0,1fr)_auto_auto] items-stretch gap-0 bg-white border border-va-lightgray rounded-lg overflow-hidden transition-[box-shadow,border-color,opacity]',
+        'group relative scroll-mt-32 flex flex-col bg-white border border-va-lightgray rounded-lg overflow-hidden transition-[box-shadow,border-color,opacity]',
+        'sm:grid sm:grid-cols-[76px_minmax(0,1fr)_auto_auto] sm:items-stretch sm:gap-0',
         isSoldOut
           ? 'opacity-70 hover:border-va-lightgray'
           : 'hover:border-va-gray hover:shadow-md',
@@ -71,39 +79,52 @@ export function AgendaRow({ item }: AgendaRowProps) {
         aria-label={item.product_title}
       />
 
-      {/* Date cell */}
+      {/* Date / time — full-width header on mobile, left cell from sm */}
       <div
         className={cn(
-          'flex flex-col items-center justify-center py-3 px-2 text-center',
+          'flex items-baseline justify-between gap-3 px-4 py-2.5',
+          'sm:flex-col sm:items-center sm:justify-center sm:text-center sm:py-3 sm:px-2 sm:gap-0',
           isSoldOut ? 'bg-va-lightgray/80' : 'bg-va-lightgray/50',
         )}
       >
-        <div
-          className={cn(
-            'font-bold text-sm leading-none',
-            isSoldOut ? 'text-va-gray' : 'text-va-black',
-          )}
-        >
-          {dayNum} {monthLabel}
-        </div>
-        {timeRange ? (
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:flex-col sm:items-center sm:gap-0">
           <div
             className={cn(
-              'mt-1 text-xs leading-snug sm:hidden',
+              'font-bold text-sm leading-none',
               isSoldOut ? 'text-va-gray' : 'text-va-black',
             )}
           >
-            {timeRange}
+            {dayNum} {monthLabel}
           </div>
+          <div className="text-xs text-va-gray capitalize sm:mt-1">{weekday}</div>
+          {timeRange ? (
+            <div
+              className={cn(
+                'text-xs leading-snug sm:hidden',
+                isSoldOut ? 'text-va-gray' : 'text-va-black',
+              )}
+            >
+              {timeRange}
+            </div>
+          ) : null}
+        </div>
+        {priceLabel ? (
+          <p
+            className={cn(
+              'shrink-0 text-xs font-semibold tabular-nums sm:hidden',
+              isSoldOut ? 'text-va-gray' : 'text-va-black',
+            )}
+          >
+            {priceLabel}
+          </p>
         ) : null}
-        <div className="text-xs text-va-gray mt-1 capitalize">{weekday}</div>
       </div>
 
       {/* Title + location */}
-      <div className="flex flex-col justify-center px-4 py-3 min-w-0">
+      <div className="flex flex-col justify-center px-4 py-2 min-w-0 sm:py-3">
         <p
           className={cn(
-            'font-sans font-semibold text-sm leading-snug line-clamp-1',
+            'font-sans font-semibold text-sm leading-snug',
             isSoldOut
               ? 'text-va-gray'
               : 'text-va-black group-hover:underline underline-offset-2 decoration-va-black',
@@ -115,27 +136,18 @@ export function AgendaRow({ item }: AgendaRowProps) {
           <DeliveryTypeIcon isOnline={isOnline} />
           <span className="truncate">{locationLabel}</span>
         </div>
-        {priceLabel ? (
-          <p
-            className={cn(
-              'mt-1 text-xs font-semibold sm:hidden',
-              isSoldOut ? 'text-va-gray' : 'text-va-black',
-            )}
-          >
-            {priceLabel}
-          </p>
-        ) : null}
       </div>
 
-      {/* Time + price — tight pair, extra padding before the CTA */}
+      {/* Time + price — stacked below xl so the title keeps width; pair from xl */}
       <div
         className={cn(
-          'hidden sm:flex items-center py-3 pr-8 text-sm',
+          'hidden sm:flex flex-col items-end justify-center gap-0.5 py-3 pr-4 text-sm whitespace-nowrap',
+          'xl:flex-row xl:items-center xl:pr-8',
           isSoldOut ? 'text-va-gray' : 'text-va-black',
         )}
       >
-        <div className="w-40 shrink-0 text-right tabular-nums whitespace-nowrap">{timeRange}</div>
-        <div className="w-24 shrink-0 text-right font-semibold tabular-nums whitespace-nowrap">
+        <div className="tabular-nums xl:w-40 xl:shrink-0 xl:text-right">{timeRange}</div>
+        <div className="font-semibold tabular-nums xl:w-24 xl:shrink-0 xl:text-right">
           {priceLabel}
         </div>
       </div>
@@ -147,20 +159,10 @@ export function AgendaRow({ item }: AgendaRowProps) {
           title={item.product_title}
           variantId={item.variant_id}
           label={status.label}
-          className={cn(
-            'relative z-20 flex items-center justify-center px-5 sm:pl-10 sm:pr-8 text-xs font-bold uppercase tracking-wide min-w-[140px]',
-            statusClassName,
-          )}
+          className={statusButtonClassName}
         />
       ) : (
-        <div
-          className={cn(
-            'flex items-center justify-center px-5 sm:pl-10 sm:pr-8 text-xs font-bold uppercase tracking-wide min-w-[140px]',
-            statusClassName,
-          )}
-        >
-          {status.label}
-        </div>
+        <div className={statusButtonClassName}>{status.label}</div>
       )}
     </article>
   )

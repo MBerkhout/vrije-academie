@@ -120,7 +120,7 @@ function blocksFromLegacy(legacy) {
     title: legacy.featuredTitle ?? "Nieuw binnen",
     sourceType: "automated",
     limit: 8,
-    catalogCtaLabel: legacy.catalogCtaLabel ?? "Bekijk alle VA Thuis colleges",
+    catalogCtaLabel: legacy.catalogCtaLabel ?? "Bekijk alle VAthuis colleges",
   })
 
   blocks.push({
@@ -191,7 +191,7 @@ function defaultLandingBlocks() {
       title: "Nieuw binnen",
       sourceType: "automated",
       limit: 8,
-      catalogCtaLabel: "Bekijk alle VA Thuis colleges",
+      catalogCtaLabel: "Bekijk alle VAthuis colleges",
     },
     {
       _type: "vathuisTeachersBlock",
@@ -228,7 +228,7 @@ const nextBlocks = [...migratedBlocks, ...otherBlocks]
 const pageDoc = {
   _id: VATHUIS_CMS_PAGE_ID,
   _type: "page",
-  title: existing?.title ?? "VA Thuis",
+  title: existing?.title ?? "VAthuis",
   slug: { _type: "slug", current: VATHUIS_SLUG },
   isVaThuis: true,
   blocks: nextBlocks,

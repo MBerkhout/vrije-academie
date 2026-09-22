@@ -134,7 +134,7 @@ Salesforce `Price__c` is imported as a **gross consumer price**. Seed the defaul
 npm run seed:region
 ```
 
-Idempotent — safe to re-run after deploy. Links Mollie payment providers, sets `automatic_taxes`, and creates tax regions from `src/lib/eu-countries.ts`. Not part of the automatic deploy script; run manually on new environments.
+Idempotent — safe to re-run after deploy. Links Mollie payment providers, sets `automatic_taxes`, and creates tax regions from `src/lib/eu-countries.ts` with the system tax provider (`tp_system`) on every EU country (add-to-cart 500s if `provider_id` is null). Not part of the automatic deploy script; run manually on new environments.
 
 ## Medusa → Sanity: city mirror
 

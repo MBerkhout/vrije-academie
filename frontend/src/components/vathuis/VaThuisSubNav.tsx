@@ -7,7 +7,7 @@ import { VATHUIS_BASE_PATH, VATHUIS_CATALOG_PATH } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
-  { label: 'VA Thuis', href: VATHUIS_BASE_PATH, exact: true },
+  { label: 'VAthuis', href: VATHUIS_BASE_PATH, exact: true },
   { label: 'Ons aanbod', href: VATHUIS_CATALOG_PATH, exact: false },
 ] as const
 
@@ -16,7 +16,7 @@ export function VaThuisSubNav() {
 
   return (
     <nav
-      aria-label="VA Thuis"
+      aria-label="VAthuis"
       className="border-b border-va-darkgray-800 bg-va-black"
     >
       <div className={`${CONTAINER_CLASS} flex gap-6 py-3`}>

@@ -16,6 +16,8 @@ export const EventItem = model.define("event_item", {
   id: model.id().primaryKey(),
   delivery_type: model.enum([...DELIVERY_TYPES]),
   available_quantity: model.number().default(0),
+  /** Max seats (Salesforce `Maximum_capacity__c` / `Capacity__c`); not decremented on checkout. */
+  capacity: model.number().default(0),
   start_at: model.dateTime().nullable(),
   end_at: model.dateTime().nullable(),
   city: model.text().nullable(),

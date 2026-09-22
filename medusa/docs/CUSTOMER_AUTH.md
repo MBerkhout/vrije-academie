@@ -79,7 +79,10 @@ SMTP_FROM=noreply@vrijeacademie.nl
 # SMTP_USER=
 # SMTP_PASS=
 # SMTP_SECURE=false
+# SMTP_IGNORE_TLS=true
 ```
+
+Loopback hosts (`127.0.0.1`, `localhost`, `::1`) skip STARTTLS by default (`ignoreTLS`). Local Postfix advertises STARTTLS with a self-signed snakeoil cert; Nodemailer would otherwise abort. Override with `SMTP_IGNORE_TLS=true|false`. `SMTP_SECURE=false` only disables implicit TLS (port 465) — it does not disable STARTTLS.
 
 Authenticated relay (port 587 TLS, or 465 SSL):
 

@@ -9,6 +9,8 @@ import { useVathuisAccess } from '@/lib/commerce/use-vathuis-access'
 import { defaultMessages } from '@/lib/i18n/messages'
 import {
   bookableEventVariants,
+  bookingPanelPrimaryCtaTone,
+  classNameForSessionCtaTone,
   eventHasUnlimitedAvailability,
   eventIsFullySoldOut,
   eventPricePrefixLabel,
@@ -83,6 +85,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
     : (labels?.wishlist ?? t.bookingWishlist)
   const freeTrialLabel = labels?.freeTrialBadge ?? 'Gratis proefles'
   const waitlistCtaLabel = labels?.waitlistCta ?? t.waitlistCta ?? 'Aanmelden voor wachtlijst'
+  const almostFullLabel = defaultMessages.agenda.availabilityAlmostFull
 
   const priceFrom = event.price_from
   const pricePrefix = eventPricePrefixLabel(event, {
@@ -153,8 +156,13 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
   const usesExternalRegistration = Boolean(externalRegistrationUrl)
   const hasBookableSession = isBundleOnly || bookableEventVariants(event).length > 0
   const showPrimaryCta = usesExternalRegistration || hasBookableSession
-  const primaryCtaClassName =
-    'w-full bg-va-yellow text-va-black font-bold py-3 px-4 rounded-lg hover:bg-va-yellow/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'
+  const primaryCtaTone = isSoldOut ? 'sold_out' : bookingPanelPrimaryCtaTone(event)
+  const primaryCtaClassName = cn(
+    'w-full font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center',
+    classNameForSessionCtaTone(primaryCtaTone),
+  )
+  const enrollCtaLabel =
+    primaryCtaTone === 'almost_full' ? almostFullLabel : primaryCtaLabel
 
   return (
     <div id="booking-panel" className={panelClass}>
@@ -205,7 +213,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
             rel="noopener noreferrer"
             className={primaryCtaClassName}
           >
-            {primaryCtaLabel}
+            {enrollCtaLabel}
           </a>
         ) : isSoldOut && !(isBundleOnly && hasPurchasedAccess) ? (
           <WaitlistTrigger
@@ -226,7 +234,7 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
               ? 'Bezig…'
               : isBundleOnly
                 ? primaryBundleLabel
-                : primaryCtaLabel}
+                : enrollCtaLabel}
           </button>
         )
       ) : null}

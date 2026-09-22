@@ -314,7 +314,7 @@ Logic: `utils/import-rebooked-order.ts`. Webhook: unlinked `Order` updates attem
 - Pull **variant** from Salesforce into Medusa (product-level import only; product groups import variants via `vaProduct__c`).
 - Bidirectional product sync; admin UI for editing mappings.
 - Full Salesforce → Medusa order sync (only omboeking import + linked-order header stub pull).
-- Medusa tax-region wiring for Salesforce product VAT (stored as metadata only for now). **Store tax:** `npm run seed:region` seeds all EU countries, standard B2C VAT per country, and EUR **tax-inclusive** price preference (Salesforce gross prices are not surcharged).
+- Medusa tax-region wiring for Salesforce product VAT (stored as metadata only for now). **Store tax:** `npm run seed:region` seeds all EU countries, standard B2C VAT per country, `tp_system` on every tax region, and EUR **tax-inclusive** price preference (Salesforce gross prices are not surcharged).
 
 ## Product group import (`vaProductgroup__c`)
 
@@ -463,7 +463,7 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Net price | `Net_Price__c` | — (not imported) |
 | VAT rate | `VAT_Rate__c` | metadata `salesforce_vat_rate` (not used for cart tax; EU country tax regions from `seed:region`) |
 | Onderwerp (categories) | `Productgroup_Subject__c` (`;`-separated) | native `category_ids` + catalog category links → Sanity `categories` |
-| Record type | `Productgroup_Record_Type_Developer_Name__c` | `EventGroup.record_type` + Medusa `product.type` (`Lezingen_Thuis` / `Thuis_College` → `vathuis`) |
+| Record type | `Productgroup_Record_Type_Developer_Name__c` | Medusa `product.type` keeps the Salesforce name (`Wandeling`, `Reis`, …). `EventGroup.record_type` is a coarse enum via `mapSalesforceRecordType()`: Collegereeks / Live_Collegereeks → `collegereeks`; Lezing / Live_College → `lezing`; Excursie / Excursies_Collegereeks → `excursie`; Studiedag / Online_Studiedag → `studiedag`; Lezingen_Thuis / Thuis_College → `vathuis`; anything else (Wandeling, Reis, Workshop, Rondleiding, …) → `lezing`. Re-map existing groups after alias changes: `npm run salesforce:backfill-record-types`, then `npm run search:reindex` if OpenSearch is in use. |
 | Linked online catalog | `Linked_Online_Productgroup__c` | merged child variants on parent; metadata `salesforce_linked_online_productgroup_id` |
 | Zichtbaar op Website | `Visible_on_website__c` | Skip import / draft when unchecked; **Externe verhuur** groups always hidden |
 | Child zichtbaar op website | `Visible_On_Website__c` | Session omitted when unchecked or **Externe verhuur**; group can still list with no upcoming events |
@@ -484,7 +484,7 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Occurrence price | `Price__c` | variant EUR price → Sanity `priceFrom` |
 | Occurrence city | `Product_City__c` | `EventItem.city` / `city_slug` + `catalog_city_id` |
 | Occurrence location / venue | `Product_Location_Name__c`, `Account__c`, `Account__r.Name`, `Product_Location_Room__c`, `Product_Location_Room_Name__c` | `EventItem.location_name` + `catalog_location_id` |
-| Capacity / free trial | `Capacity__c`, `Free_Product__c` | `EventItem.available_quantity`, `is_free_trial` |
+| Capacity / free trial | `Maximum_capacity__c` / `Capacity__c`, `Free_Product__c` | `EventItem.capacity` (max, unchanged on checkout), `available_quantity` (remaining on import/sync + decremented on order), `is_free_trial` |
 | Latest start (group) | `Latest_Product_Start_Date__c` | future-only auto-import guard |
 | VAthuis episodes label | `Audience_Player_Episodes__c` | `metadata.vathuis.episode_count_label` |
 | VAthuis play time | `Audience_Player_Play_Time__c` | `metadata.vathuis.play_time` |

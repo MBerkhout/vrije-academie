@@ -20,9 +20,11 @@ interface AgendaFilterSidebarProps {
 }
 
 /**
- * Agenda-specific filter sidebar: calendar day picker on top + shared
+ * Agenda-specific filter sidebar: calendar day picker on top (desktop) or as
+ * the first open **Agenda** group in the mobile drawer, plus the shared
  * Ons-aanbod filter sidebar below (reused with `basePath="/agenda"` and
  * the agenda serializer that knows about the extra `date` field).
+ * VAthuis is omitted from Beschikbaarheid — on-demand has no agenda rows.
  */
 export function AgendaFilterSidebar({
   filterState,
@@ -41,6 +43,7 @@ export function AgendaFilterSidebar({
     router.push(`/agenda?${params.toString()}`)
   }
 
+  const dateSelected = Boolean(filterState.date)
   const sidebar = (
     <PlpFilterSidebar
       // Structurally compatible; agenda's extra `date` field is preserved by the serializer.
@@ -51,6 +54,17 @@ export function AgendaFilterSidebar({
       basePath="/agenda"
       mobileOnly={mobileOnly}
       productTypePlurals={productTypePlurals}
+      extraActiveCount={dateSelected ? 1 : 0}
+      leadingFilterGroup={
+        mobileOnly
+          ? {
+              title: 'Agenda',
+              defaultOpen: true,
+              activeCount: dateSelected ? 1 : 0,
+              children: <AgendaDayPicker value={filterState.date} onChange={setDate} />,
+            }
+          : undefined
+      }
     />
   )
 

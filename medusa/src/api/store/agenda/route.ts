@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
+import { isAlmostFullAvailability } from "../../../lib/almost-full"
 import { slimAgendaItemForResponse } from "../../../lib/agenda-listing-response"
 import { isSalesforceExterneVerhuur } from "../../../lib/salesforce-visible-on-website"
 import { LISTING_CACHE_TTL_SEC } from "../../../lib/store-listing-redis"
@@ -139,11 +140,19 @@ type AgendaStatus = "open" | "almost_full" | "sold_out" | "exclusief"
 
 function deriveStatus(it: {
   available_quantity: number
+  capacity?: number
   has_exclusief_tag: boolean
 }): AgendaStatus {
   if (it.has_exclusief_tag) return "exclusief"
   if (!it.available_quantity || it.available_quantity <= 0) return "sold_out"
-  if (it.available_quantity <= 3) return "almost_full"
+  if (
+    isAlmostFullAvailability({
+      available_quantity: it.available_quantity,
+      capacity: it.capacity,
+    })
+  ) {
+    return "almost_full"
+  }
   return "open"
 }
 

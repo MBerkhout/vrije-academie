@@ -740,7 +740,7 @@ export const generalSettings = defineType({
           title: "Stap 4 — Bevestiging",
           type: "object",
           fields: [
-            defineField({ name: "heading", type: "string", title: "Heading", initialValue: "Bedankt voor je inschrijving!" }),
+            defineField({ name: "heading", type: "string", title: "Heading", initialValue: "Bedankt voor je aankoop" }),
             defineField({ name: "subheading", type: "string", title: "Subheading", initialValue: "Je ontvangt een bevestiging per e-mail." }),
             defineField({ name: "orderNumberLabel", type: "string", title: "Bestelnummer label", initialValue: "Bestelnummer" }),
             defineField({ name: "backToOverviewLabel", type: "string", title: "Terug naar aanbod knop", initialValue: "Bekijk ons volledig aanbod" }),

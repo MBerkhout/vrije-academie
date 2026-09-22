@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: VaThuisSlugPageProps): Promis
   return buildProductPdpMetadata(
     productSeo,
     event,
-    'VA Thuis – Vrije Academie',
+    'VAthuis – Vrije Academie',
     vathuisProductPath(handle),
   )
 }

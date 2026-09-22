@@ -54,7 +54,7 @@ export const vathuisProductRowBlock = defineType({
       name: "catalogCtaLabel",
       title: "Catalog CTA label",
       type: "string",
-      initialValue: "Bekijk alle VA Thuis colleges",
+      initialValue: "Bekijk alle VAthuis colleges",
     }),
   ],
   preview: {

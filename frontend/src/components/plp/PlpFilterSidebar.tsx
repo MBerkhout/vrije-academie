@@ -7,12 +7,16 @@ import {
   resolvePlpFilterHref,
   usesPlpCanonicalFilterHref,
 } from '@/app/(main)/ons-aanbod/_state/redirects'
-import { resolveClearAllHref, resolveFilterSerialize } from '@/lib/filter-url-helpers'
+import {
+  isAgendaBasePath,
+  resolveClearAllHref,
+  resolveFilterSerialize,
+} from '@/lib/filter-url-helpers'
 import type { CategoryOption, TeacherOption } from '@/lib/cms/sanity-refs'
 import type { EventFacets } from '@/lib/commerce/types'
 import { PLP_PRODUCT_TYPES, productTypeListLabelFromSlug, type ProductTypePluralMap } from '@/lib/plp-product-types'
 import {
-  PLP_DELIVERY_OPTIONS,
+  listingDeliveryOptions,
   VATHUIS_DELIVERY_TYPE,
 } from '@/lib/plp-delivery-types'
 import { cn } from '@/lib/utils'
@@ -38,6 +42,15 @@ interface PlpFilterSidebarProps {
   catalogOnly?: boolean
   /** Listing plurals for Soort activiteit (PDP stays singular). */
   productTypePlurals?: ProductTypePluralMap
+  /** Extra selections not in PlpFilterState (e.g. agenda `date`) for the mobile badge. */
+  extraActiveCount?: number
+  /** Rendered first in the mobile drawer (e.g. agenda day picker). */
+  leadingFilterGroup?: {
+    title: string
+    children: React.ReactNode
+    activeCount?: number
+    defaultOpen?: boolean
+  }
 }
 
 type FilterVariant = 'light' | 'dark'
@@ -548,6 +561,8 @@ export function PlpFilterSidebar({
   variant = 'light',
   catalogOnly = false,
   productTypePlurals,
+  extraActiveCount = 0,
+  leadingFilterGroup,
 }: PlpFilterSidebarProps) {
   const router = useRouter()
   const serialize = resolveFilterSerialize(basePath)
@@ -569,15 +584,16 @@ export function PlpFilterSidebar({
     setDrawerOpen(true)
   }
 
-  const activeCount = catalogOnly
-    ? (filterState.categories?.length ?? 0) + (filterState.teachers?.length ?? 0)
-    : (filterState.categories?.length ?? 0) +
-      (filterState.productTypes?.length ?? 0) +
-      (filterState.teachers?.length ?? 0) +
-      (filterState.cities?.length ?? 0) +
-      (filterState.deliveryTypes?.length ?? 0) +
-      (filterState.dayParts?.length ?? 0) +
-      (filterState.periodStart || filterState.periodEnd ? 1 : 0)
+  const activeCount =
+    (catalogOnly
+      ? (filterState.categories?.length ?? 0) + (filterState.teachers?.length ?? 0)
+      : (filterState.categories?.length ?? 0) +
+        (filterState.productTypes?.length ?? 0) +
+        (filterState.teachers?.length ?? 0) +
+        (filterState.cities?.length ?? 0) +
+        (filterState.deliveryTypes?.length ?? 0) +
+        (filterState.dayParts?.length ?? 0) +
+        (filterState.periodStart || filterState.periodEnd ? 1 : 0)) + extraActiveCount
 
   function applyFilter(newState: PlpFilterState, meta?: { filterName: string; filterValue: string }) {
     if (meta) {
@@ -649,7 +665,7 @@ export function PlpFilterSidebar({
   const hasPeriodOptions =
     hasPeriodSelection || (facets?.months ?? []).some((m) => m.count > 0)
 
-  const deliveryOptions = PLP_DELIVERY_OPTIONS
+  const deliveryOptions = listingDeliveryOptions(!isAgendaBasePath(basePath))
     .map((opt) => ({ value: opt.value, label: opt.label, count: facetCount.delivery(opt.value) }))
     .filter((opt) =>
       opt.value === VATHUIS_DELIVERY_TYPE
@@ -683,6 +699,24 @@ export function PlpFilterSidebar({
 
     return (
       <div className="space-y-0">
+        {leadingFilterGroup && collapseGroups && (
+          <FilterGroupCollapsible
+            title={leadingFilterGroup.title}
+            defaultOpen={groupDefaultOpen(
+              leadingFilterGroup.defaultOpen ?? true,
+              collapseGroups,
+              leadingFilterGroup.defaultOpen ?? true,
+            )}
+            openWhenActive
+            showActiveCount={groupBadge}
+            largeTitle={largeTitle}
+            activeCount={leadingFilterGroup.activeCount ?? 0}
+            variant={variant}
+          >
+            {leadingFilterGroup.children}
+          </FilterGroupCollapsible>
+        )}
+
         {!catalogOnly && deliveryOptions.length > 0 && (
           <FilterGroupCollapsible
             title="Beschikbaarheid"

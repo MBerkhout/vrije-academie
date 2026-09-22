@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   plpCategoryHref,
   plpProductPath,
+  plpProductTypeHref,
   plpRecordTypeHref,
   PLP_BASE_PATH,
   VATHUIS_BASE_PATH,
@@ -20,6 +21,12 @@ describe('plpCategoryHref', () => {
 describe('plpProductPath', () => {
   it('uses same segment as category (disambiguated at runtime)', () => {
     expect(plpProductPath('my-course')).toBe(`${PLP_BASE_PATH}/my-course`)
+  })
+})
+
+describe('plpProductTypeHref', () => {
+  it('returns a path-based Soort activiteit landing', () => {
+    expect(plpProductTypeHref('wandeling')).toBe(`${PLP_BASE_PATH}/wandeling`)
   })
 })
 

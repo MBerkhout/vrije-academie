@@ -176,6 +176,8 @@ export interface EventVariant {
     id: string
     delivery_type: string
     available_quantity: number
+    /** Max seats; used for Bijna vol when ≤ 30% remaining. */
+    capacity?: number
     start_at?: string | null
     end_at?: string | null
     city?: string | null
@@ -232,6 +234,7 @@ export interface AgendaItem {
   start_at?: string | null
   end_at?: string | null
   available_quantity: number
+  capacity?: number
   is_free_trial?: boolean
   registration_deadline_at?: string | null
   price?: number | null

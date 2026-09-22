@@ -22,7 +22,7 @@ export type VaThuisListingPageProps = {
 
 export async function VaThuisListingPage({
   filterState,
-  pageTitle = 'VA Thuis – ons aanbod',
+  pageTitle = 'VAthuis – ons aanbod',
   introText,
 }: VaThuisListingPageProps) {
   const sort = filterState.sort ?? (filterState.q ? 'relevance' : 'order')
@@ -47,7 +47,7 @@ export async function VaThuisListingPage({
 
   const breadcrumbCrumbs = [
     { label: 'Home', href: '/' },
-    { label: 'VA Thuis', href: VATHUIS_BASE_PATH },
+    { label: 'VAthuis', href: VATHUIS_BASE_PATH },
     { label: 'Ons aanbod', href: VATHUIS_CATALOG_PATH },
   ]
 

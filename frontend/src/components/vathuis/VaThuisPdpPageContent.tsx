@@ -34,7 +34,7 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
 
   const crumbs = [
     { label: 'Home', href: '/' },
-    { label: 'VA Thuis', href: VATHUIS_BASE_PATH },
+    { label: 'VAthuis', href: VATHUIS_BASE_PATH },
     { label: event.title, href: vathuisProductPath(handle) },
   ]
 
@@ -79,7 +79,7 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
               <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="yellow" size="sm">
-                    VA Thuis – on demand
+                    VAthuis – on demand
                   </Badge>
                 </div>
                 <h1 className="font-sans text-2xl md:text-3xl font-bold text-white">

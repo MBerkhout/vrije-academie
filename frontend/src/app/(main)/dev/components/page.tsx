@@ -192,6 +192,7 @@ export default function DevComponentsPage() {
         <Section title="Input">
           <div className="max-w-sm space-y-4">
             <Input label="Email" type="email" placeholder="naam@voorbeeld.nl" />
+            <Input label="Wachtwoord" type="password" autoComplete="new-password" />
             <Input
               label="Met foutmelding"
               placeholder="Verplicht veld"

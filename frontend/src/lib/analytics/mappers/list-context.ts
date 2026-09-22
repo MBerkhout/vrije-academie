@@ -35,5 +35,5 @@ export function buildHomeCarouselListContext(blockKey: string, title?: string | 
 }
 
 export function buildVathuisListContext(): ItemListContext {
-  return { item_list_id: 'vathuis_aanbod', item_list_name: 'VA Thuis' }
+  return { item_list_id: 'vathuis_aanbod', item_list_name: 'VAthuis' }
 }

@@ -23,7 +23,7 @@ export function ThankYouVathuisRecommendations({ items, primaryCategory }: Props
 
   const ctaLabel = categoryLabel
     ? `Alles van ${categoryLabel} online bekijken`
-    : 'Ontdek VA Thuis online'
+    : 'Ontdek VAthuis online'
 
   return (
     <section className="bg-va-black px-4 py-8 md:px-8 md:py-10 space-y-6">

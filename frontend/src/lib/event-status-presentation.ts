@@ -12,7 +12,8 @@ import { defaultMessages, interpolate } from '@/lib/i18n'
  * - PLP / card image badge styles from free-text CMS values (`classNameForProductBadge`)
  * - PLP tile low-stock footnote vs sold-out (`plpListingStockPresentation`)
  * - PDP session table availability cell (`sessionTableAvailabilityPresentation`)
- * - PLP card delivery icon + date visibility (`plpEventDeliveryTypeDisplay`, `shouldShowEventDates`, `plpEventHasMultipleDates`)
+ * - PDP session CTA tone (`sessionCtaTone`, `bookingPanelPrimaryCtaTone`, `isAlmostFullAvailability`)
+ * - PLP card delivery icon + date visibility (`plpEventDeliveryTypeDisplay`, `shouldShowEventDates`)
  *
  * Add new keyword → style mappings for product badges here; keep order in
  * `PRODUCT_BADGE_RULES` meaningful (first matching rule wins).
@@ -131,7 +132,7 @@ export function shouldShowEventDates({ delivery_types, variants }: EventDateInpu
   return true
 }
 
-/** True when a PLP card should prefix the date with "Vanaf" (multiple future on-site session dates). */
+/** True when there are multiple future on-site session dates. */
 export function plpEventHasMultipleDates({ delivery_types, variants }: EventDateInput): boolean {
   if (!shouldShowEventDates({ delivery_types, variants })) return false
 
@@ -291,6 +292,83 @@ export function classNameForProductBadge(badge: string | null | undefined): stri
 /** From this many free spots onward, the PDP session table shows "Beschikbaar" instead of a count. */
 export const SESSION_AVAILABILITY_GENERIC_THRESHOLD = 10
 
+/** PDP waitlist CTA: #bfbfbf / hover #4c4c4c. */
+export const PDP_WAITLIST_CTA_CLASS =
+  'bg-[#bfbfbf] text-va-black hover:bg-[#4c4c4c] hover:text-white'
+
+/** PDP / agenda “Bijna vol” CTA: #f7373d / hover #E0282E. */
+export const PDP_ALMOST_FULL_CTA_CLASS =
+  'bg-[#f7373d] text-white hover:bg-[#E0282E]'
+
+export const PDP_OPEN_CTA_CLASS =
+  'bg-va-yellow text-va-black hover:bg-va-yellow/90'
+
+export type SessionCtaTone = 'sold_out' | 'almost_full' | 'open'
+
+/** When capacity is unknown, match legacy agenda rule (≤ 3 spots remaining). */
+export const ALMOST_FULL_FALLBACK_REMAINING_THRESHOLD = 3
+
+/** 30% of capacity, rounded up — "Bijna vol" when remaining seats are at or below this. */
+export function almostFullRemainingThreshold(capacity: number): number | null {
+  if (!Number.isFinite(capacity) || capacity <= 0) return null
+  return Math.ceil(capacity * 0.3)
+}
+
+export function isAlmostFullAvailability(input: {
+  available_quantity: number
+  capacity?: number | null
+}): boolean {
+  const remaining = Number(input.available_quantity ?? 0)
+  if (remaining <= 0) return false
+
+  const threshold = almostFullRemainingThreshold(Number(input.capacity ?? 0))
+  if (threshold === null) {
+    return remaining <= ALMOST_FULL_FALLBACK_REMAINING_THRESHOLD
+  }
+  return remaining <= threshold
+}
+
+/** Session-row CTA state (0 = waitlist; bijna vol = ≤ 30% capacity remaining). */
+export function sessionCtaTone(
+  availableQuantity: number,
+  capacity?: number | null,
+): SessionCtaTone {
+  if (availableQuantity <= 0) return 'sold_out'
+  if (isAlmostFullAvailability({ available_quantity: availableQuantity, capacity })) {
+    return 'almost_full'
+  }
+  return 'open'
+}
+
+/** Booking-panel primary CTA when every bookable session with spots left is bijna vol. */
+export function bookingPanelPrimaryCtaTone(
+  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id' | 'record_type'>,
+): SessionCtaTone {
+  if (eventHasUnlimitedAvailability(event)) return 'open'
+  const withSpots = bookableEventVariants(event).filter(
+    (variant) => variantAvailableQuantity(variant) > 0,
+  )
+  if (withSpots.length === 0) return 'sold_out'
+  const allAlmostFull = withSpots.every((variant) =>
+    isAlmostFullAvailability({
+      available_quantity: variantAvailableQuantity(variant),
+      capacity: variant.event_item?.capacity,
+    }),
+  )
+  return allAlmostFull ? 'almost_full' : 'open'
+}
+
+export function classNameForSessionCtaTone(tone: SessionCtaTone): string {
+  switch (tone) {
+    case 'sold_out':
+      return PDP_WAITLIST_CTA_CLASS
+    case 'almost_full':
+      return PDP_ALMOST_FULL_CTA_CLASS
+    default:
+      return PDP_OPEN_CTA_CLASS
+  }
+}
+
 export interface SessionTableAvailabilityPresentation {
   label: string
   className: string
@@ -386,7 +464,7 @@ export function presentationForAvailabilityStatus(
     case 'almost_full':
       return {
         label: a.availabilityAlmostFull,
-        className: 'bg-red-600 text-white hover:bg-red-700',
+        className: PDP_ALMOST_FULL_CTA_CLASS,
       }
     case 'exclusief':
       return {

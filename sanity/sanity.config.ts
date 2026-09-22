@@ -8,6 +8,7 @@ import { formSchema } from "@sanity/form-toolkit/form-schema"
 import { hubSpotInput } from "@sanity/form-toolkit/hubspot"
 import { schemaTypes } from "./src/schemas"
 import { resolve } from "./src/presentation/resolve"
+import { clearCacheDocumentActions } from "./src/lib/clearCacheActions"
 import { mirroredDocumentActions } from "./src/lib/mirrorActions"
 import { redirectAwareDocumentActions } from "./src/lib/redirectActions"
 import { PAGE_IN_FOLDER_TEMPLATE } from "./src/structure/page-tree"
@@ -73,7 +74,10 @@ export default defineConfig({
 
   document: {
     actions: (prev, context) =>
-      redirectAwareDocumentActions(mirroredDocumentActions(prev, context), context),
+      clearCacheDocumentActions(
+        redirectAwareDocumentActions(mirroredDocumentActions(prev, context), context),
+        context,
+      ),
     newDocumentOptions: (prev, { creationContext }) => {
       // Hide mirror types and contextual page templates from the global "Create new" menu
       const HIDDEN_GLOBAL_TEMPLATES = ["product", "category", "docent", PAGE_IN_FOLDER_TEMPLATE]

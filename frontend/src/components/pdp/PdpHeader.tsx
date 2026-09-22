@@ -2,18 +2,27 @@
 
 import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
-import { plpCategoryHref, plpRecordTypeHref } from '@/lib/routes'
+import { pdpActivityTypeBadge } from '@/lib/pdp-activity-badge'
+import { plpCategoryHref } from '@/lib/routes'
 
 interface PdpHeaderProps {
   title: string
   onlineBadge?: { enabled: boolean; text?: string } | null
   recordType?: string | null
+  productType?: string | null
   categories?: { id?: string; slug?: string; label: string }[]
   shareLabel?: string
 }
 
 /** PDP H1 + badges + share button */
-export function PdpHeader({ title, onlineBadge, recordType, categories, shareLabel = 'Delen' }: PdpHeaderProps) {
+export function PdpHeader({
+  title,
+  onlineBadge,
+  recordType,
+  productType,
+  categories,
+  shareLabel = 'Delen',
+}: PdpHeaderProps) {
   const handleShare = async () => {
     if (navigator.share) {
       await navigator.share({ title, url: window.location.href }).catch(() => null)
@@ -22,7 +31,7 @@ export function PdpHeader({ title, onlineBadge, recordType, categories, shareLab
     }
   }
 
-  const recordTypeHref = recordType ? plpRecordTypeHref(recordType) : null
+  const activityBadge = pdpActivityTypeBadge({ productType, recordType })
 
   return (
     <div className="flex flex-col gap-3">
@@ -52,20 +61,20 @@ export function PdpHeader({ title, onlineBadge, recordType, categories, shareLab
             </span>
           )
         })}
-        {recordType && (
-          recordTypeHref ? (
+        {activityBadge && (
+          activityBadge.href ? (
             <Link
-              href={recordTypeHref}
+              href={activityBadge.href}
               className="inline-flex hover:opacity-80 transition-opacity"
             >
               <Badge variant="record" size="sm">
-                {recordType}
+                {activityBadge.label}
               </Badge>
             </Link>
           ) : (
             <span className="inline-flex">
               <Badge variant="record" size="sm">
-                {recordType}
+                {activityBadge.label}
               </Badge>
             </span>
           )

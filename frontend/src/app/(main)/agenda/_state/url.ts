@@ -1,5 +1,6 @@
 import type { AgendaFilters } from '@/lib/commerce/types'
 import type { ReadonlyURLSearchParams } from 'next/navigation'
+import { excludeVathuisDeliveryTypes } from '@/lib/plp-delivery-types'
 
 export type AgendaFilterState = Omit<AgendaFilters, 'limit' | 'offset'>
 
@@ -35,7 +36,7 @@ export function parseFilterState(
     categories: getAll('category'),
     teachers: getAll('docent'),
     recordTypes: getAll('record_type'),
-    deliveryTypes: getAll('delivery_type'),
+    deliveryTypes: excludeVathuisDeliveryTypes(getAll('delivery_type')),
     cities: getAll('city'),
     dayParts: getAll('day_part'),
     periodStart: get('period_start') || undefined,
@@ -52,7 +53,7 @@ export function serializeFilterState(state: AgendaFilterState): URLSearchParams 
   for (const v of state.categories ?? []) p.append('category', v)
   for (const v of state.teachers ?? []) p.append('docent', v)
   for (const v of state.recordTypes ?? []) p.append('record_type', v)
-  for (const v of state.deliveryTypes ?? []) p.append('delivery_type', v)
+  for (const v of excludeVathuisDeliveryTypes(state.deliveryTypes)) p.append('delivery_type', v)
   for (const v of state.cities ?? []) p.append('city', v)
   for (const v of state.dayParts ?? []) p.append('day_part', v)
   if (state.periodStart) p.set('period_start', state.periodStart)

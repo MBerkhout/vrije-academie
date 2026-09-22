@@ -105,16 +105,25 @@ export function parseProductgroupSubjects(sf: SfProductgroupShape): string[] {
     .filter(Boolean)
 }
 
+/** Salesforce developer names that collapse onto EventGroup `RECORD_TYPES`. Unknown → lezing. */
+const SALESFORCE_RECORD_TYPE_ALIASES: Record<string, RecordType> = {
+  collegereeks: "collegereeks",
+  live_collegereeks: "collegereeks",
+  lezing: "lezing",
+  live_college: "lezing",
+  excursie: "excursie",
+  excursies_collegereeks: "excursie",
+  studiedag: "studiedag",
+  online_studiedag: "studiedag",
+  lezingen_thuis: "vathuis",
+  thuis_college: "vathuis",
+}
+
 export function mapSalesforceRecordType(
   developerName: string | null | undefined
 ): RecordType {
   const d = (developerName ?? "").trim().toLowerCase()
-  if (d === "collegereeks") return "collegereeks"
-  if (d === "lezing") return "lezing"
-  if (d === "excursie") return "excursie"
-  if (d === "studiedag") return "studiedag"
-  if (d === "lezingen_thuis" || d === "thuis_college") return "vathuis"
-  return "lezing"
+  return SALESFORCE_RECORD_TYPE_ALIASES[d] ?? "lezing"
 }
 
 /** Medusa `product_type.value` from Salesforce record type developer name. */

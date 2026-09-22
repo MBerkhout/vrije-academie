@@ -19,6 +19,7 @@ describe("resolveEmailNotificationConfig", () => {
       host: "127.0.0.1",
       port: 25,
       secure: false,
+      ignoreTLS: true,
       from: "noreply@vrijeacademie.nl",
     })
     expect(config.options.auth).toBeUndefined()
@@ -65,5 +66,27 @@ describe("resolveEmailNotificationConfig", () => {
     if (config.kind !== "smtp") return
     expect(config.options.auth).toEqual({ user: "va", pass: "secret" })
     expect(config.options.port).toBe(587)
+    expect(config.options.ignoreTLS).toBe(false)
+  })
+
+  it("skips STARTTLS for loopback hosts", () => {
+    const local = resolveEmailNotificationConfig({ SMTP_HOST: "localhost" })
+    const ipv6 = resolveEmailNotificationConfig({ SMTP_HOST: "::1" })
+    expect(local.kind === "smtp" && local.options.ignoreTLS).toBe(true)
+    expect(ipv6.kind === "smtp" && ipv6.options.ignoreTLS).toBe(true)
+  })
+
+  it("lets SMTP_IGNORE_TLS override the loopback default", () => {
+    const forcedOff = resolveEmailNotificationConfig({
+      SMTP_HOST: "127.0.0.1",
+      SMTP_IGNORE_TLS: "false",
+    })
+    expect(forcedOff.kind === "smtp" && forcedOff.options.ignoreTLS).toBe(false)
+
+    const forcedOn = resolveEmailNotificationConfig({
+      SMTP_HOST: "smtp.example.com",
+      SMTP_IGNORE_TLS: "true",
+    })
+    expect(forcedOn.kind === "smtp" && forcedOn.options.ignoreTLS).toBe(true)
   })
 })

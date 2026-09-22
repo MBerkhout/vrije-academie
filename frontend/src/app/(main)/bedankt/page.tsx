@@ -4,7 +4,7 @@ import { ThankYouPageContent } from '@/components/thank-you/ThankYouPageContent'
 import type { ThankYouContactInfo } from '@/components/thank-you/ThankYouPageContent'
 
 export const metadata = {
-  title: 'Bedankt voor je inschrijving – Vrije Academie',
+  title: 'Bedankt voor je aankoop – Vrije Academie',
 }
 
 function ThankYouFallback() {

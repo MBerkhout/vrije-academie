@@ -22,6 +22,6 @@ export async function GET(request: Request) {
       facets: result.facets,
     })
   } catch {
-    return NextResponse.json({ error: 'Failed to load VA Thuis catalog' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to load VAthuis catalog' }, { status: 500 })
   }
 }

@@ -17,6 +17,7 @@ export type SmtpProviderOptions = {
   host: string
   port: number
   secure?: boolean
+  ignoreTLS?: boolean
   auth?: { user: string; pass: string }
 }
 
@@ -54,6 +55,7 @@ class SmtpNotificationProviderService extends AbstractNotificationProviderServic
       host: options.host,
       port: options.port,
       secure: Boolean(options.secure),
+      ignoreTLS: Boolean(options.ignoreTLS),
       auth: options.auth?.user
         ? { user: options.auth.user, pass: options.auth.pass }
         : undefined,

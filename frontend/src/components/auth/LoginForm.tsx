@@ -13,6 +13,10 @@ import { usePdokAddressLookup } from '@/lib/address/usePdokAddressLookup'
 import { NlAddressFields } from '@/components/address/NlAddressFields'
 import { ValidatedInput } from '@/components/auth/ValidatedInput'
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
+import {
+  PasswordVisibilityToggle,
+  usePasswordVisibility,
+} from '@/components/ui/PasswordVisibilityToggle'
 import { defaultMessages } from '@/lib/i18n'
 
 type AccountSettings = NonNullable<GeneralSettings['account']>
@@ -90,6 +94,7 @@ export function LoginForm({ settings }: LoginFormProps) {
   const [hasPassword, setHasPassword] = useState(true)
   const [authMode, setAuthMode] = useState<AuthMode>('password')
   const [loginPassword, setLoginPassword] = useState('')
+  const loginPasswordVisibility = usePasswordVisibility('password')
   const [otpCode, setOtpCode] = useState('')
   const [otpSent, setOtpSent] = useState(false)
   const [otpResendCooldown, setOtpResendCooldown] = useState(0)
@@ -420,12 +425,25 @@ export function LoginForm({ settings }: LoginFormProps) {
                 <label className="block font-sans text-sm font-medium text-va-black mb-1" htmlFor="login-password">
                   {settings.passwordLabel ?? 'Wachtwoord'}
                 </label>
-                <input
-                  id="login-password" type="password" autoComplete="current-password"
-                  value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full border border-va-lightgray-300 px-3 py-2 font-sans text-sm focus:outline-none focus:border-va-black"
-                  disabled={busy}
-                />
+                <div className="relative">
+                  <input
+                    id="login-password"
+                    type={loginPasswordVisibility.resolvedType}
+                    autoComplete="current-password"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full border border-va-lightgray-300 px-3 py-2 pr-10 font-sans text-sm focus:outline-none focus:border-va-black"
+                    disabled={busy}
+                  />
+                  <PasswordVisibilityToggle
+                    visible={loginPasswordVisibility.visible}
+                    onToggle={loginPasswordVisibility.toggle}
+                    disabled={busy}
+                  />
+                </div>
               </div>
             )}
             {authMode === 'otp' && (

@@ -26,6 +26,7 @@ import CatalogModuleService from "../catalog/service"
 import type { SfCourseProductShape } from "./mappings/course-product"
 import {
   courseProductAvailableQuantity,
+  courseProductSessionCapacity,
   courseProductOptionLabel,
   courseProductPriceAmount,
   courseProductVariantTitle,
@@ -324,6 +325,7 @@ async function upsertEventItemForVariant(
   const patch = {
     delivery_type: delivery,
     available_quantity: qty,
+    capacity: courseProductSessionCapacity(child),
     start_at: startAt,
     end_at: endAt,
     city: cityFields.city,
@@ -349,6 +351,7 @@ async function upsertEventItemForVariant(
     const unchanged =
       existingItem.delivery_type === patch.delivery_type &&
       existingItem.available_quantity === patch.available_quantity &&
+      Number(existingItem.capacity ?? 0) === patch.capacity &&
       sameDate(existingItem.start_at as string | Date | null, patch.start_at) &&
       sameDate(existingItem.end_at as string | Date | null, patch.end_at) &&
       existingItem.city === patch.city &&

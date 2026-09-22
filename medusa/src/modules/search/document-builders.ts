@@ -101,7 +101,7 @@ export function buildProductSearchDoc(row: Record<string, unknown>): SearchDocum
     product_id: id,
     title,
     handle,
-    subtitle: vathuis ? "VA Thuis" : String(row.record_type ?? row.product_type ?? "Activiteit"),
+    subtitle: vathuis ? "VAthuis" : String(row.record_type ?? row.product_type ?? "Activiteit"),
     url: vathuis ? `/va-thuis/${encodeURIComponent(handle)}` : `/ons-aanbod/${handle}`,
     body: body || null,
     excerpt: truncateExcerpt(body || String(row.description ?? "")),

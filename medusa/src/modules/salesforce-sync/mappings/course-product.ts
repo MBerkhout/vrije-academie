@@ -92,6 +92,12 @@ export function inferDeliveryType(
   return "offline"
 }
 
+/** Unchanging max seats for a session (0 when unknown). */
+export function courseProductSessionCapacity(sf: SfCourseProductShape): number {
+  const max = sf.Maximum_capacity__c ?? sf.Capacity__c
+  return typeof max === "number" && max > 0 ? max : 0
+}
+
 export function courseProductAvailableQuantity(
   sf: SfCourseProductShape,
   groupRecordType?: string | null
@@ -99,8 +105,8 @@ export function courseProductAvailableQuantity(
   if (isVathuisRecordType(groupRecordType) || sf.Audience_Player_Article_Id__c) {
     return VATHUIS_UNLIMITED_AVAILABILITY
   }
-  const max = sf.Maximum_capacity__c ?? sf.Capacity__c
-  if (typeof max === "number" && max > 0) return max
+  const max = courseProductSessionCapacity(sf)
+  if (max > 0) return max
   const availability = (sf.Availability_capacity__c ?? "").toLowerCase()
   if (availability.includes("full") || availability.includes("vol")) return 0
   return 100

@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   formatPdpGalleryCaptionHtml,
   stripPdpGalleryCaptionHtml,
@@ -18,41 +18,6 @@ interface PdpImageGalleryProps {
 
 const TILE_CLASS =
   'relative aspect-[3/2] w-full overflow-hidden rounded-none bg-va-lightgray'
-
-function agentDebugLog(
-  hypothesisId: string,
-  location: string,
-  message: string,
-  data: Record<string, unknown>,
-) {
-  // #region agent log
-  const payload = JSON.stringify({
-    sessionId: 'dc50f5',
-    runId: 'pre-fix',
-    hypothesisId,
-    location,
-    message,
-    data,
-    timestamp: Date.now(),
-  })
-  fetch('http://127.0.0.1:7766/ingest/daa88646-6778-4a68-b046-b8741af3d131', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dc50f5' },
-    body: payload,
-  }).catch(() => {})
-  if (
-    typeof window !== 'undefined' &&
-    window.location.hostname !== 'localhost' &&
-    window.location.hostname !== '127.0.0.1'
-  ) {
-    fetch('/api/__debug-ingest', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dc50f5' },
-      body: payload,
-    }).catch(() => {})
-  }
-  // #endregion
-}
 
 const galleryArrowClass = cn(
   'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
@@ -126,7 +91,8 @@ function GalleryTile({
           src={image.url}
           alt={captionText ? captionText.replace(/\n/g, ' — ') : `${title} ${index + 1}`}
           fill
-          className="object-cover"
+          className="pointer-events-none select-none object-cover"
+          draggable={false}
           sizes="(max-width: 640px) 60vw, 25vw"
           priority={index === 0}
           fetchPriority={index === 0 ? 'high' : undefined}
@@ -162,10 +128,7 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
   const didDragRef = useRef(false)
-  const snapTimerRef = useRef<number | null>(null)
-  const pointerStartRef = useRef<{ x: number; y: number; scrollLeft: number; index: number; pointerType: string } | null>(null)
-  const pointerDownRef = useRef(false)
-  const loggedDragStartRef = useRef(false)
+  const pointerStartRef = useRef<{ x: number; y: number; scrollLeft: number; pointerType: string } | null>(null)
 
   const getSlides = useCallback(() => {
     const el = scrollerRef.current
@@ -218,7 +181,7 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
   }, [findNearestSlideIndex])
 
   const scrollToIndex = useCallback(
-    (index: number, reason = 'unspecified') => {
+    (index: number) => {
       const el = scrollerRef.current
       const slides = getSlides()
       const clamped = Math.max(0, Math.min(slides.length - 1, index))
@@ -226,16 +189,6 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
       if (!el || !target) return
 
       const left = getSlideScrollLeft(target)
-      agentDebugLog('B', 'PdpImageGallery.tsx:scrollToIndex', 'scrollToIndex called', {
-        reason,
-        index,
-        clamped,
-        scrollLeft: el.scrollLeft,
-        targetLeft: left,
-        skipped: Math.abs(el.scrollLeft - left) < 2,
-        pointerDown: pointerDownRef.current,
-        activeIndex,
-      })
       if (Math.abs(el.scrollLeft - left) < 2) return
 
       const previousSnap = el.style.scrollSnapType
@@ -253,27 +206,6 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
     },
     [getSlides, getSlideScrollLeft],
   )
-
-  const snapToNearestSlide = useCallback(() => {
-    scrollToIndex(findNearestSlideIndex(), 'snap-nearest')
-  }, [findNearestSlideIndex, scrollToIndex])
-
-  const scheduleSnapAfterScroll = useCallback(() => {
-    if (snapTimerRef.current != null) {
-      window.clearTimeout(snapTimerRef.current)
-    }
-    snapTimerRef.current = window.setTimeout(() => {
-      const el = scrollerRef.current
-      const nearest = findNearestSlideIndex()
-      agentDebugLog('A', 'PdpImageGallery.tsx:scheduleSnapAfterScroll', '80ms snap timer fired', {
-        pointerDown: pointerDownRef.current,
-        nearest,
-        scrollLeft: el?.scrollLeft ?? null,
-        activeIndex,
-      })
-      snapToNearestSlide()
-    }, 80)
-  }, [snapToNearestSlide])
 
   useEffect(() => {
     if (openIndex === null) return
@@ -302,154 +234,60 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
 
     const onScroll = () => {
       updateScrollState()
-      scheduleSnapAfterScroll()
     }
 
     updateScrollState()
     el.addEventListener('scroll', onScroll, { passive: true })
-
-    const onScrollEnd = () => {
-      snapToNearestSlide()
-    }
-    if ('onscrollend' in el) {
-      el.addEventListener('scrollend', onScrollEnd)
-    }
 
     const ro = new ResizeObserver(updateScrollState)
     ro.observe(el)
 
     return () => {
       el.removeEventListener('scroll', onScroll)
-      if ('onscrollend' in el) {
-        el.removeEventListener('scrollend', onScrollEnd)
-      }
       ro.disconnect()
-      if (snapTimerRef.current != null) {
-        window.clearTimeout(snapTimerRef.current)
-      }
     }
-  }, [updateScrollState, scheduleSnapAfterScroll, snapToNearestSlide, images.length])
+  }, [updateScrollState, images.length])
 
   const scrollByPage = useCallback(
     (direction: -1 | 1) => {
-      scrollToIndex(activeIndex + direction, direction === 1 ? 'arrow-next' : 'arrow-prev')
+      scrollToIndex(activeIndex + direction)
     },
     [activeIndex, scrollToIndex],
   )
 
   const handleScrollerPointerDown = (
-    clientX: number,
-    clientY: number,
-    pointerType: string,
-    targetTag: string,
+    event: ReactPointerEvent<HTMLDivElement>,
   ) => {
     const el = scrollerRef.current
+    const { clientX, clientY, pointerType } = event
     didDragRef.current = false
-    loggedDragStartRef.current = false
-    pointerDownRef.current = true
     pointerStartRef.current = el
-      ? { x: clientX, y: clientY, scrollLeft: el.scrollLeft, index: findNearestSlideIndex(), pointerType }
+      ? { x: clientX, y: clientY, scrollLeft: el.scrollLeft, pointerType }
       : null
-    agentDebugLog('C', 'PdpImageGallery.tsx:pointerdown', 'gallery pointerdown', {
-      pointerType,
-      targetTag,
-      scrollLeft: el?.scrollLeft ?? null,
-      index: pointerStartRef.current?.index ?? null,
-      activeIndex,
-    })
+    if (el && pointerType === 'mouse') {
+      el.style.scrollSnapType = 'none'
+      event.currentTarget.setPointerCapture(event.pointerId)
+    }
   }
 
   const handleScrollerPointerMove = (clientX: number, clientY: number) => {
     const start = pointerStartRef.current
     const el = scrollerRef.current
     if (!start) return
+    if (start.pointerType === 'mouse' && el) {
+      el.scrollLeft = start.scrollLeft - (clientX - start.x)
+    }
     if (Math.hypot(clientX - start.x, clientY - start.y) > 8) {
       didDragRef.current = true
-      if (!loggedDragStartRef.current) {
-        loggedDragStartRef.current = true
-        agentDebugLog('C', 'PdpImageGallery.tsx:pointermove', 'drag started', {
-          pointerType: start.pointerType,
-          deltaX: clientX - start.x,
-          deltaY: clientY - start.y,
-          scrollDelta: (el?.scrollLeft ?? 0) - start.scrollLeft,
-          scrollLeft: el?.scrollLeft ?? null,
-          startScrollLeft: start.scrollLeft,
-          startIndex: start.index,
-        })
-      }
     }
   }
 
-  const handleScrollerPointerUp = (clientX: number, eventType: string) => {
+  const handleScrollerPointerUp = () => {
     const el = scrollerRef.current
-    const start = pointerStartRef.current
     pointerStartRef.current = null
-    pointerDownRef.current = false
-
-    const deltaX = start ? clientX - start.x : 0
-    const scrollDelta = el && start ? el.scrollLeft - start.scrollLeft : 0
-    const nearest = findNearestSlideIndex()
-    const dragThreshold = 36
-    let branch = 'snap-fallback'
-
-    if (el && start && didDragRef.current) {
-      if (scrollDelta > dragThreshold || deltaX < -dragThreshold) {
-        branch = 'next'
-        agentDebugLog('B', 'PdpImageGallery.tsx:pointerup', 'gallery pointerup', {
-          eventType,
-          pointerType: start.pointerType,
-          branch,
-          deltaX,
-          scrollDelta,
-          nearest,
-          startIndex: start.index,
-          scrollLeft: el.scrollLeft,
-          didDrag: true,
-        })
-        scrollToIndex(start.index + 1, 'pointer-next')
-        window.requestAnimationFrame(() => {
-          didDragRef.current = false
-        })
-        return
-      }
-      if (scrollDelta < -dragThreshold || deltaX > dragThreshold) {
-        branch = 'prev'
-        agentDebugLog('B', 'PdpImageGallery.tsx:pointerup', 'gallery pointerup', {
-          eventType,
-          pointerType: start.pointerType,
-          branch,
-          deltaX,
-          scrollDelta,
-          nearest,
-          startIndex: start.index,
-          scrollLeft: el.scrollLeft,
-          didDrag: true,
-        })
-        scrollToIndex(start.index - 1, 'pointer-prev')
-        window.requestAnimationFrame(() => {
-          didDragRef.current = false
-        })
-        return
-      }
-      branch = 'below-threshold'
-    } else if (!didDragRef.current) {
-      branch = 'tap'
+    if (el) {
+      el.style.scrollSnapType = ''
     }
-
-    agentDebugLog('D', 'PdpImageGallery.tsx:pointerup', 'gallery pointerup', {
-      eventType,
-      pointerType: start?.pointerType ?? null,
-      branch,
-      deltaX,
-      scrollDelta,
-      nearest,
-      startIndex: start?.index ?? null,
-      scrollLeft: el?.scrollLeft ?? null,
-      didDrag: didDragRef.current,
-    })
-
-    scheduleSnapAfterScroll()
-
     window.requestAnimationFrame(() => {
       didDragRef.current = false
     })
@@ -468,30 +306,14 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
           role="region"
           aria-label={`Afbeeldingen bij ${title}`}
           className={cn(
-            'flex touch-pan-x gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory snap-start',
-            'cursor-grab active:cursor-grabbing',
+            'flex touch-pan-x gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory snap-start',
+            'cursor-grab active:cursor-grabbing select-none',
             'pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           )}
-          onPointerDown={(e) =>
-            handleScrollerPointerDown(
-              e.clientX,
-              e.clientY,
-              e.pointerType,
-              (e.target as HTMLElement)?.tagName ?? 'unknown',
-            )
-          }
+          onPointerDown={handleScrollerPointerDown}
           onPointerMove={(e) => handleScrollerPointerMove(e.clientX, e.clientY)}
-          onPointerUp={(e) => handleScrollerPointerUp(e.clientX, e.type)}
-          onPointerCancel={(e) => handleScrollerPointerUp(e.clientX, e.type)}
-          onPointerLeave={(e) => {
-            if (pointerDownRef.current) {
-              agentDebugLog('E', 'PdpImageGallery.tsx:pointerleave', 'pointer left scroller while down', {
-                pointerType: e.pointerType,
-                scrollLeft: scrollerRef.current?.scrollLeft ?? null,
-                didDrag: didDragRef.current,
-              })
-            }
-          }}
+          onPointerUp={handleScrollerPointerUp}
+          onPointerCancel={handleScrollerPointerUp}
         >
           {images.map((image, i) => {
             const isActive = i === activeIndex
@@ -550,6 +372,12 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
             </div>
             )
           })}
+          {images.length > 1 && (
+            <div
+              aria-hidden
+              className="w-[calc(40%-6px)] shrink-0 snap-none"
+            />
+          )}
         </div>
 
         {showMobileControls && (

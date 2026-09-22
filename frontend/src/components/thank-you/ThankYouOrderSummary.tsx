@@ -110,7 +110,7 @@ export function ThankYouOrderItems({
                   href={watchHref}
                   className="inline-flex items-center justify-center bg-va-yellow text-va-black font-sans font-semibold text-sm px-4 py-2 hover:bg-va-yellow/90 transition-colors"
                 >
-                  Bekijk college
+                  Bekijk VAthuis video
                 </Link>
               ) : null}
             </div>

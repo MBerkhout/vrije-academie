@@ -11,6 +11,16 @@ export function isVathuisDeliveryType(value: string): boolean {
   return value === VATHUIS_DELIVERY_TYPE
 }
 
+/** Agenda has no on-demand rows; VAthuis belongs on Ons aanbod only. */
+export function listingDeliveryOptions(includeVathuis = true) {
+  if (includeVathuis) return [...PLP_DELIVERY_OPTIONS]
+  return PLP_DELIVERY_OPTIONS.filter((opt) => !isVathuisDeliveryType(opt.value))
+}
+
+export function excludeVathuisDeliveryTypes(deliveryTypes?: string[] | null): string[] {
+  return (deliveryTypes ?? []).filter((value) => !isVathuisDeliveryType(value))
+}
+
 export function deliveryTypeLabel(value: string): string {
   if (value === 'online') return 'Online'
   if (value === 'offline') return 'Op locatie'

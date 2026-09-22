@@ -106,7 +106,8 @@ Copy the values from local `medusa/.env` (do not commit them). Reload PM2 after 
 |----------|---------|
 | `SMTP_HOST` | SMTP hostname (`127.0.0.1` for local postfix, or the organisation relay) |
 | `SMTP_PORT` | Optional, default `587` (`25` for local postfix, `465` implies SSL) |
-| `SMTP_SECURE` | Optional, `true`/`false` (default: true only when port is 465) |
+| `SMTP_SECURE` | Optional, `true`/`false` (default: true only when port is 465). Does **not** disable STARTTLS. |
+| `SMTP_IGNORE_TLS` | Optional. Default `true` for `127.0.0.1`/`localhost`/`::1` so Nodemailer does not STARTTLS against local Postfix snakeoil. Set `false` to allow STARTTLS. |
 | `SMTP_USER` / `SMTP_PASS` | Optional; omit for unauthenticated localhost |
 | `SMTP_FROM` | From address (default `noreply@vrijeacademie.nl`) |
 | `SENDGRID_API_KEY` / `SENDGRID_FROM` | Fallback when `SMTP_HOST` is unset |
@@ -115,7 +116,7 @@ Without SMTP or SendGrid, OTP codes are logged on the Medusa server only (`[cust
 
 Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS origins, database, Redis, etc.
 
-**Tax-inclusive pricing (one-time):** after first Medusa setup or when tax/country config changes, run as the `medusa` user: `cd ~/app/medusa && npm run seed:region`. Seeds all EU countries on the EUR region, standard VAT rates, and EUR tax-inclusive price preference (Salesforce gross prices must not be surcharged with VAT).
+**Tax-inclusive pricing (one-time):** after first Medusa setup or when tax/country config changes, run as the `medusa` user: `cd ~/app/medusa && npm run seed:region`. Seeds all EU countries on the EUR region, standard VAT rates, the system tax provider (`tp_system`) on every tax region, and EUR tax-inclusive price preference (Salesforce gross prices must not be surcharged with VAT). Without `provider_id` on a tax region, add-to-cart returns 500 (`Unable to retrieve the tax provider with id: null`) for that shipping country.
 
 **Visual editing (Presentation tool)** — required in `~/app/frontend/.env`:
 
@@ -214,8 +215,9 @@ In the repo: **Settings → Secrets and variables → Actions**
 | `SANITY_AUTH_TOKEN` | Token from [sanity.io/manage](https://sanity.io/manage) (Deploy / API) |
 | `SANITY_STUDIO_PROJECT_ID` | Sanity project ID (also used as the hosted studio subdomain on first deploy) |
 | `SANITY_STUDIO_DATASET` | Dataset name (e.g. `production` or `staging`) |
+| `SANITY_STUDIO_REVALIDATE_SECRET` | Bearer secret baked into hosted Studio for **Clear page cache** (same value as frontend `SANITY_STUDIO_REVALIDATE_SECRET`) |
 
-CI also sets `SANITY_STUDIO_PREVIEW_URL` to `https://v2.vrijeacademie.nl` for the Presentation tool (bundled at deploy time).
+CI also sets `SANITY_STUDIO_PREVIEW_URL` to `https://v2.vrijeacademie.nl` for the Presentation tool (bundled at deploy time). `SANITY_STUDIO_REVALIDATE_SECRET` is bundled the same way for the page ⋯ **Clear page cache** action.
 
 You do **not** need a separate studio hostname secret. CI sets `studioHost` from `SANITY_STUDIO_PROJECT_ID`, so the first deploy registers `https://<project-id>.sanity.studio` automatically. Only add `SANITY_STUDIO_HOSTNAME` if you later want a custom subdomain instead of the project ID.
 
@@ -350,10 +352,10 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 
 | Route type | Caching |
 |------------|---------|
-| CMS pages (`[...slug]`) | ISR, `revalidate = 60` — on-demand bust via Sanity webhook (`POST /api/revalidate/sanity`) on page publish |
+| CMS pages (`[...slug]`) | ISR, `revalidate = 60` — on-demand bust via Sanity webhook (`POST /api/revalidate/sanity`) on page publish, or Studio **Clear page cache** (`POST /api/revalidate/studio`) |
 | PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 600 s hard cache for `sort=order` and `sort=start_date`; default `/agenda` (no filters) uses 600 s hard cache for `sort=start_date` and `sort=start_date_desc` |
 | PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail + similar cached in Redis (600 s); React `cache()` dedupes per request |
-| Homepage | ISR, `revalidate = 60`; on-demand bust via Sanity webhook on home page publish |
+| Homepage | ISR, `revalidate = 60`; on-demand bust via Sanity webhook on home page publish, or Studio **Clear page cache** |
 | Header / footer (`generalSettings`, `menu`) | ISR, `revalidate = 60` on `(main)/layout`; on-demand bust via the same webhook (`general-settings` tag + `(main)` and `(checkout)` layouts + batched `revalidatePath` for all storefront URLs) |
 | Redirect rules | In-memory, 60 s TTL |
 
@@ -397,6 +399,8 @@ Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an i
 
 Set `SANITY_REVALIDATE_SECRET` in `~/app/frontend/.env` on the server. Sanity signs the request body; the route verifies via `next-sanity/webhook` `parseBody`. VA Thuis pages (`va-thuis/…`) are skipped — those routes are `force-dynamic`. `generalSettings` and `menu` publishes bust the `general-settings` fetch tag, the `(main)` and `(checkout)` layouts, then queue a background pass that calls `revalidatePath` for every storefront URL (sitemap paths including `noIndex` CMS rows, plus private chrome such as `/winkelwagen` and `/mijn-account/*`) in batches of 50 with a 100 ms pause between batches so regeneration does not spike. **Category** publishes bust `/`, `/va-thuis`, and `/ons-aanbod/{slug}` so tile thumbnails do not wait on ISR. Draft-only General Settings is invisible on the storefront — publish the singleton. The 60 s ISR window remains as a fallback when the webhook is not configured or fails.
 
+**Manual page cache clear from Studio:** page documents expose **Clear page cache** in the document ⋯ menu (not the Publish bar). It POSTs `{ _type, slug }` to `https://v2.vrijeacademie.nl/api/revalidate/studio` with `Authorization: Bearer SANITY_STUDIO_REVALIDATE_SECRET`. Set that secret on the frontend server **and** as a GitHub Actions secret so hosted Studio can send it (it is bundled into Studio JS — use a **different** string from the webhook HMAC `SANITY_REVALIDATE_SECRET`). CORS allows `http://localhost:3333` and `https://*.sanity.studio`. Unlike the webhook, this also revalidates VA Thuis paths.
+
 Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600` on listing and event detail routes.
 
 ### PM2 cluster mode
@@ -427,3 +431,4 @@ Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set
 | `frontend/src/lib/agenda/cached-default-listing.ts` | Next.js hard cache for default Agenda |
 | `frontend/src/app/api/revalidate/plp/route.ts` | Webhook to bust PLP + Agenda hard caches |
 | `frontend/src/app/api/revalidate/sanity/route.ts` | Webhook to bust CMS page ISR cache on Sanity publish |
+| `frontend/src/app/api/revalidate/studio/route.ts` | Studio ⋯ menu to bust a single page ISR cache |
