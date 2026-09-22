@@ -17,7 +17,8 @@ import { PlpLiveListing } from '@/components/plp/PlpLiveListing'
 import { JsonLd } from '@/components/common/JsonLd'
 import { buildBreadcrumbListJsonLd, buildCollectionPageJsonLd, buildItemListJsonLd } from '@/lib/json-ld'
 import { eventIsFullySoldOut } from '@/lib/event-status-presentation'
-import { PLP_BASE_PATH, plpProductPath } from '@/lib/routes'
+import { productTypePluralsFromCms } from '@/lib/plp-product-types'
+import { PLP_BASE_PATH, productDetailPath } from '@/lib/routes'
 
 export type PlpBreadcrumbCrumb = { label: string; href: string }
 
@@ -75,6 +76,7 @@ export async function PlpListingPage({
 
   const stockThreshold = settings?.pdp?.lowStockThreshold ?? 5
   const plpCopy = settings?.plp
+  const productTypePlurals = productTypePluralsFromCms(plpCopy?.productTypePlurals)
   const resolvedPageTitle = pageTitle ?? settings?.plp?.pageTitle ?? 'Ons aanbod'
   const breadcrumbCrumbs: PlpBreadcrumbCrumb[] = [
     { label: 'Home', href: '/' },
@@ -91,7 +93,10 @@ export async function PlpListingPage({
           name: resolvedPageTitle,
           numberOfItems: count,
           items: events.slice(0, 24).map((event) => ({
-            path: plpProductPath(event.handle),
+            path: productDetailPath(event.handle, {
+              purchaseMode: event.purchase_mode,
+              recordType: event.record_type,
+            }),
             name: event.title,
             image: event.thumbnail ?? event.image_urls?.[0] ?? undefined,
             priceFromCents: event.price_from,
@@ -144,6 +149,7 @@ export async function PlpListingPage({
             emptyStateSubtext={plpCopy?.emptyStateSubtext}
             loadMoreLabel={plpCopy?.loadMoreLabel}
             loadError={eventsResult === null}
+            productTypePlurals={productTypePlurals}
           />
         </div>
       </div>

@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import type { VathuisChapter, VathuisEpisode, VathuisPlaybackConfig } from '@/lib/commerce/types'
+import { useRouter } from 'next/navigation'
+import type { EventCard, VathuisChapter, VathuisEpisode, VathuisPlaybackConfig } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
 import { preloadAudiencePlayer } from '@/lib/audience-player/runtime'
 import { commerceClient } from '@/lib/commerce'
+import { addVariantToCart } from '@/lib/commerce/cart'
 import { useVathuisAccess } from '@/lib/commerce/use-vathuis-access'
 import { defaultMessages } from '@/lib/i18n/messages'
 import { formatDateShort } from '@/lib/locale-format'
@@ -14,6 +16,7 @@ import { PdpEpisodePreviewModal } from '@/components/pdp/PdpEpisodePreviewModal'
 import { cn } from '@/lib/utils'
 
 interface PdpEpisodesTableProps {
+  event: EventCard
   productHandle: string
   chapters?: VathuisChapter[]
   episodes: VathuisEpisode[]
@@ -53,6 +56,7 @@ function ChevronDownIcon({ className }: { className?: string }) {
 }
 
 export function PdpEpisodesTable({
+  event,
   productHandle,
   chapters = [],
   episodes,
@@ -60,11 +64,19 @@ export function PdpEpisodesTable({
   settings,
   variant = 'light',
 }: PdpEpisodesTableProps) {
+  const router = useRouter()
   const labels = settings?.pdp?.labels
   const t = defaultMessages.pdp
   const { access: vathuisAccess } = useVathuisAccess(productHandle)
   const hasPurchasedAccess = Boolean(vathuisAccess.hasAccess)
   const accessExpiresAt = vathuisAccess.expiresAt
+  const [buying, setBuying] = useState(false)
+
+  const bundleVariant = useMemo(() => {
+    const bundleVariantId = event.bundle_variant_id
+    if (!bundleVariantId) return null
+    return (event.variants ?? []).find((v) => v.id === bundleVariantId) ?? null
+  }, [event])
 
   const resolvedChapters = useMemo(() => {
     if (chapters.length > 0) return chapters
@@ -189,9 +201,23 @@ export function PdpEpisodesTable({
     [playlist, resolveEpisodePlayback],
   )
 
+  async function handleBuyAll() {
+    if (!bundleVariant) {
+      scrollToBookingPanel()
+      return
+    }
+    setBuying(true)
+    try {
+      await addVariantToCart(bundleVariant.id, { event, variant: bundleVariant })
+      router.push('/winkelwagen')
+    } finally {
+      setBuying(false)
+    }
+  }
+
   async function handleWatchEpisode(episode: VathuisEpisode, chapterNumber: number) {
     if (!canWatchEpisode(episode)) {
-      scrollToBookingPanel()
+      void handleBuyAll()
       return
     }
 
@@ -230,7 +256,6 @@ export function PdpEpisodesTable({
   const heading = labels?.episodesHeading ?? t.episodesHeading ?? 'Lessen'
   const chapterLabel = labels?.chapterLabel ?? t.episodesChapterLabel ?? 'Hoofdstuk'
   const episodeCol = labels?.episodeColumn ?? t.episodesEpisodeColumn ?? 'Aflevering'
-  const durationCol = labels?.durationColumn ?? t.episodesDurationColumn ?? 'Duur'
   const descriptionCol = labels?.descriptionColumn ?? t.episodesDescriptionColumn ?? 'Beschrijving'
   const watchLabel = labels?.watchEpisode ?? t.episodesWatchEpisode ?? 'Bekijk aflevering'
   const buyLabel = labels?.bundleCta ?? t.episodesBuyAll ?? 'Koop alle lessen'
@@ -310,7 +335,6 @@ export function PdpEpisodesTable({
             <thead>
               <tr className={cn('border-b text-xs uppercase tracking-wide', borderClass, mutedClass)}>
                 <th className="text-left py-3 pr-4 font-medium">{episodeCol}</th>
-                <th className="text-left py-3 pr-4 font-medium">{durationCol}</th>
                 <th className="text-left py-3 pr-4 font-medium hidden md:table-cell">
                   {descriptionCol}
                 </th>
@@ -329,12 +353,14 @@ export function PdpEpisodesTable({
                     className={cn('border-b', rowBorderClass)}
                   >
                     <td className="py-4 pr-4 align-top">
-                      <span className={cn('font-semibold', cellTitleClass)}>
-                        {episode.number}. {episode.title}
-                      </span>
-                    </td>
-                    <td className={cn('py-4 pr-4 align-top whitespace-nowrap', mutedClass)}>
-                      {episode.duration_label ? `${episode.duration_label} minuten` : '—'}
+                      <div className="flex flex-col gap-0.5">
+                        <span className={cn('font-semibold', cellTitleClass)}>
+                          {episode.number}. {episode.title}
+                        </span>
+                        <span className={mutedClass}>
+                          {episode.duration_label ? `${episode.duration_label} minuten` : '—'}
+                        </span>
+                      </div>
                     </td>
                     <td className={cn('py-4 pr-4 align-top hidden md:table-cell', mutedClass)}>
                       {episode.description ?? '—'}
@@ -357,9 +383,10 @@ export function PdpEpisodesTable({
                           variant="secondary"
                           size="sm"
                           className="uppercase tracking-wide text-xs opacity-80"
-                          onClick={scrollToBookingPanel}
+                          disabled={buying}
+                          onClick={() => void handleBuyAll()}
                         >
-                          {buyLabel}
+                          {buying ? 'Bezig…' : buyLabel}
                         </Button>
                       )}
                     </td>

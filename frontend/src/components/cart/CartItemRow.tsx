@@ -5,9 +5,9 @@ import Link from 'next/link'
 import { plpProductPath } from '@/lib/routes'
 import clsx from 'clsx'
 import type { CartItem } from '@/lib/commerce/types'
-import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
+import { isVathuisCartLine, type CartItemExtras } from '@/lib/commerce/cart-item-extras'
 import { formatPriceEur } from '@/lib/locale-format'
-import { isGiftCardPurchaseLineItem } from '@/lib/commerce/gift-card'
+import { isGiftCardPurchaseLineItem, resolveLineItemThumbnail } from '@/lib/commerce/gift-card'
 import { buildCartLineItemDetailBlocks } from '@/lib/commerce/line-item-details'
 import { CartLineItemDetails } from '@/components/cart/CartLineItemDetails'
 
@@ -25,15 +25,15 @@ interface CartItemRowProps {
 function CartQuantityStepper({
   item,
   updating,
-  isGiftPurchase,
+  quantityLocked,
   onQuantityChange,
 }: {
   item: CartItem
   updating: boolean
-  isGiftPurchase: boolean
+  quantityLocked: boolean
   onQuantityChange: (itemId: string, quantity: number) => Promise<void>
 }) {
-  if (isGiftPurchase) {
+  if (quantityLocked) {
     return <span className="font-sans text-sm text-va-darkgray tabular-nums">1</span>
   }
 
@@ -80,12 +80,13 @@ export function CartItemRow({
   onQuantityChange,
   onRemove,
 }: CartItemRowProps) {
-  const thumbnail = extras?.thumbnail ?? (item as any).thumbnail ?? null
+  const thumbnail = resolveLineItemThumbnail(item, extras)
   const handle = extras?.product_handle
   const title = extras?.product_title ?? item.title
 
   const lineTotal = item.total ?? item.unit_price * item.quantity
   const isGiftPurchase = isGiftCardPurchaseLineItem(item)
+  const quantityLocked = isGiftPurchase || isVathuisCartLine(extras)
 
   const detailBlocks = buildCartLineItemDetailBlocks(item, extras, {
     groupBookingNotice,
@@ -136,7 +137,7 @@ export function CartItemRow({
             <CartQuantityStepper
               item={item}
               updating={updating}
-              isGiftPurchase={isGiftPurchase}
+              quantityLocked={quantityLocked}
               onQuantityChange={onQuantityChange}
             />
           </div>

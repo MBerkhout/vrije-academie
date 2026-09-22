@@ -305,7 +305,7 @@ export function sessionTableAvailabilityPresentation(
 
   if (availableQuantity === 0) {
     return {
-      label: t.bookingSoldOutLabel ?? 'Volgeboekt',
+      label: t.bookingSoldOutLabel ?? 'Wachtlijst',
       className: 'text-xs font-medium text-va-gray bg-va-lightgray px-2 py-0.5 rounded-none',
     }
   }

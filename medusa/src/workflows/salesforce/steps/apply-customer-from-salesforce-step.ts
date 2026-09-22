@@ -127,6 +127,14 @@ export const applyCustomerFromSalesforceStep = createStep(
       targetMedusaId = linked?.medusa_id ?? null
     }
 
+    if (!targetMedusaId && mapped.email) {
+      const [byEmail] = await customerService.listAndCountCustomers(
+        { email: mapped.email.toLowerCase().trim() },
+        { take: 1, select: ["id"] }
+      )
+      targetMedusaId = byEmail?.id ?? null
+    }
+
     if (targetMedusaId) {
       await setIncomingLock(sync, targetMedusaId, input.salesforceId, salesforceAccountId)
 

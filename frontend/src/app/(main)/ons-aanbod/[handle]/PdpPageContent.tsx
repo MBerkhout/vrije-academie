@@ -115,6 +115,7 @@ export async function PdpPageContent({
         {isBundleOnly && (event.vathuis?.chapters?.length || vathuisEpisodes.length) > 0 ? (
           <div className={CONTAINER_CLASS}>
             <PdpEpisodesTable
+              event={event}
               productHandle={handle}
               chapters={event.vathuis?.chapters}
               episodes={vathuisEpisodes}

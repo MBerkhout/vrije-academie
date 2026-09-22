@@ -264,7 +264,13 @@ export const sanityClient: CMSClient = {
         searchSubmitLabel,
         emptyStateHeading,
         emptyStateSubtext,
-        loadMoreLabel
+        loadMoreLabel,
+        productTypePlurals {
+          reis,
+          studiedag,
+          wandeling,
+          workshop
+        }
       },
       pdp {
         lowStockThreshold,

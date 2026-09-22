@@ -20,7 +20,7 @@ import type { GeneralSettings } from '@/lib/cms/types'
 import type { EventCard } from '@/lib/commerce/types'
 import { bookingPanelExternalRegistrationUrl } from '@/lib/commerce/external-registration-url'
 import { PdpFeaturedInstructor } from '@/components/pdp/PdpFeaturedInstructor'
-import { PdpWaitlistModal } from '@/components/pdp/PdpWaitlistModal'
+import { WaitlistTrigger } from '@/components/waitlist/WaitlistTrigger'
 
 interface PdpBookingPanelProps {
   event: EventCard
@@ -39,7 +39,7 @@ function computeSignal(event: EventCard, settings: GeneralSettings | null): stri
 
   if (eventHasUnlimitedAvailability(event)) return null
 
-  if (eventIsFullySoldOut(event)) return templates?.soldOut ?? 'Volgeboekt'
+  if (eventIsFullySoldOut(event)) return templates?.soldOut ?? 'Wachtlijst'
 
   const qty = minPositiveBookableQuantity(event) ?? event.min_available_quantity
   if (qty !== null && qty !== undefined && qty <= threshold) {
@@ -71,7 +71,6 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
   const scrollToSessions = onScrollToSessions ?? defaultScrollToSessions
   const router = useRouter()
   const [addingId, setAddingId] = useState<string | null>(null)
-  const [waitlistOpen, setWaitlistOpen] = useState(false)
   const { isInWishlist, pendingHandle, toggle, loading: wishlistLoading } = useWishlist()
   const labels = settings?.pdp?.labels
   const t = defaultMessages.pdp
@@ -208,30 +207,29 @@ export function PdpBookingPanel({ event, settings, customUrgencyMessage, onlineB
           >
             {primaryCtaLabel}
           </a>
+        ) : isSoldOut && !(isBundleOnly && hasPurchasedAccess) ? (
+          <WaitlistTrigger
+            handle={event.handle}
+            title={event.title}
+            className={primaryCtaClassName}
+            label={waitlistCtaLabel}
+          >
+            {waitlistCtaLabel}
+          </WaitlistTrigger>
         ) : (
           <button
-            onClick={() => {
-              if (isSoldOut && !(isBundleOnly && hasPurchasedAccess)) {
-                setWaitlistOpen(true)
-                return
-              }
-              void handleRegister()
-            }}
+            onClick={() => void handleRegister()}
             disabled={addingId !== null}
             className={primaryCtaClassName}
           >
-            {isSoldOut && !(isBundleOnly && hasPurchasedAccess)
-              ? waitlistCtaLabel
-              : addingId
-                ? 'Bezig…'
-                : isBundleOnly
-                  ? primaryBundleLabel
-                  : primaryCtaLabel}
+            {addingId
+              ? 'Bezig…'
+              : isBundleOnly
+                ? primaryBundleLabel
+                : primaryCtaLabel}
           </button>
         )
       ) : null}
-
-      <PdpWaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} event={event} />
 
       <button
         type="button"

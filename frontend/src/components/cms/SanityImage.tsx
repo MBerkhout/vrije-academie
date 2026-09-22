@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { urlFor } from '@/lib/cms'
+import { sanityImageSrc, DEFAULT_SANITY_IMAGE_QUALITY } from '@/lib/cms/image-url'
 import { cn } from '@/lib/utils'
 
 interface SanityImageProps {
@@ -14,6 +14,8 @@ interface SanityImageProps {
   sizes?: string
   /** LCP candidate: eager load with high fetch priority and Next.js preload. */
   priority?: boolean
+  /** Next.js + Sanity CDN quality (1–100). Default 80. */
+  quality?: number
 }
 
 export function SanityImage({
@@ -26,20 +28,18 @@ export function SanityImage({
   fill,
   sizes = '100vw',
   priority = false,
+  quality = DEFAULT_SANITY_IMAGE_QUALITY,
 }: SanityImageProps) {
   if (!source?.asset) return null
 
-  const defaultWidth = priority ? 1920 : 1200
-  const defaultHeight = priority ? 1080 : 675
-
-  /**
-   * Default urlFor uses width+height, which makes Sanity's CDN *crop* to that box.
-   * For `contain` we need the full uncropped asset (only downscaled for performance).
-   */
-  const src =
-    objectFit === 'contain'
-      ? urlFor(source).maxWidth(width ?? defaultWidth).auto('format').url()
-      : urlFor(source).width(width ?? defaultWidth).height(height ?? defaultHeight).url()
+  const src = sanityImageSrc(source, {
+    width,
+    height,
+    fill,
+    objectFit,
+    quality,
+    priority,
+  })
   const alt = source.alt ?? ''
   const objectClass = objectFit === 'contain' ? 'object-contain' : 'object-cover'
 
@@ -63,6 +63,7 @@ export function SanityImage({
           alt={alt}
           fill
           sizes={sizes}
+          quality={quality}
           className={cn(objectClass, 'object-center')}
           {...loadingProps}
         />
@@ -74,10 +75,11 @@ export function SanityImage({
     <Image
       src={src}
       alt={alt}
-      width={width ?? defaultWidth}
-      height={height ?? defaultHeight}
+      width={width ?? (priority ? 1920 : 1200)}
+      height={height ?? (priority ? 1080 : 675)}
       className={cn(aspectRatio, objectClass, 'object-center', className)}
       sizes={sizes !== '100vw' ? sizes : undefined}
+      quality={quality}
       {...loadingProps}
     />
   )

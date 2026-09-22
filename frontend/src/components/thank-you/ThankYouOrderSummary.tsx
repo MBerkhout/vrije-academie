@@ -9,6 +9,7 @@ import {
 } from '@/lib/commerce/line-item-details'
 import { CartLineItemDetails } from '@/components/cart/CartLineItemDetails'
 import { OrderSummaryThumbnail } from '@/components/checkout/CheckoutOrderSummary'
+import { resolveLineItemThumbnail } from '@/lib/commerce/gift-card'
 import { formatPriceEur } from '@/lib/locale-format'
 import { vatIncludedLabel } from '@/lib/commerce/vat'
 import { productDetailPath, vathuisProductPath } from '@/lib/routes'
@@ -40,6 +41,7 @@ function itemToExtras(item: CheckoutConfirmationItem): CartItemExtras {
     thumbnail: item.thumbnail ?? null,
     event_item: item.event_item,
     vathuis: item.vathuis,
+    is_vathuis: item.is_vathuis,
     instructor_names: item.instructor_names,
   }
 }
@@ -63,6 +65,7 @@ export function ThankYouOrderItems({
           onlineCityFallback: true,
           quantityLabel: buildLineItemQuantityLabel(cartItem as any),
         })
+        const thumbnail = resolveLineItemThumbnail(cartItem, extras)
         const productHref = linkToProduct ? productHrefForItem(item) : null
         const watchHref =
           item.is_vathuis && item.product_handle
@@ -71,16 +74,16 @@ export function ThankYouOrderItems({
 
         return (
           <li key={item.id} className="flex gap-3 items-start border-b border-va-lightgray-200 pb-4 last:border-0 last:pb-0">
-            {item.thumbnail ? (
+            {thumbnail ? (
               productHref ? (
                 <Link
                   href={productHref}
                   className="shrink-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-va-yellow"
                 >
-                  <OrderSummaryThumbnail src={item.thumbnail} alt={item.title} />
+                  <OrderSummaryThumbnail src={thumbnail} alt={item.title} />
                 </Link>
               ) : (
-                <OrderSummaryThumbnail src={item.thumbnail} alt={item.title} />
+                <OrderSummaryThumbnail src={thumbnail} alt={item.title} />
               )
             ) : null}
             <div className="flex-1 min-w-0 space-y-2">

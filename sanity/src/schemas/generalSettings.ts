@@ -160,6 +160,39 @@ export const generalSettings = defineType({
           type: "string",
           initialValue: "Laad meer activiteiten",
         }),
+        defineField({
+          name: "productTypePlurals",
+          title: "Product type plurals",
+          type: "object",
+          description:
+            "Listing labels for Soort activiteit (filter, chips, /ons-aanbod/{type}). The PDP badge keeps the singular Salesforce name (e.g. Reis).",
+          fields: [
+            defineField({
+              name: "reis",
+              title: "Reis",
+              type: "string",
+              initialValue: "Reizen",
+            }),
+            defineField({
+              name: "studiedag",
+              title: "Studiedag",
+              type: "string",
+              initialValue: "Studiedagen",
+            }),
+            defineField({
+              name: "wandeling",
+              title: "Wandeling",
+              type: "string",
+              initialValue: "Wandelingen",
+            }),
+            defineField({
+              name: "workshop",
+              title: "Workshop",
+              type: "string",
+              initialValue: "Workshops",
+            }),
+          ],
+        }),
       ],
     }),
     defineField({
@@ -205,7 +238,7 @@ export const generalSettings = defineType({
               name: "soldOut",
               title: "Sold out",
               type: "string",
-              initialValue: "Volgeboekt",
+              initialValue: "Wachtlijst",
             }),
           ],
         }),
@@ -258,7 +291,7 @@ export const generalSettings = defineType({
               name: "physicalSessionsHeading",
               title: "Physical sessions heading",
               type: "string",
-              initialValue: "Fysieke sessies",
+              initialValue: "Data en locaties",
             }),
             defineField({
               name: "onlineSessionsHeading",
@@ -288,7 +321,7 @@ export const generalSettings = defineType({
               name: "sessionsHeading",
               title: "Sessions heading (deprecated)",
               type: "string",
-              initialValue: "Fysieke sessies",
+              initialValue: "Data en locaties",
               description: "Deprecated — use Physical sessions heading instead.",
             }),
             defineField({
@@ -301,7 +334,7 @@ export const generalSettings = defineType({
             defineField({ name: "similarHeading", title: "Similar courses heading", type: "string", initialValue: "Vergelijkbare cursussen" }),
             defineField({ name: "relatedHeading", title: "Related products heading", type: "string", initialValue: "Gerelateerd" }),
             defineField({ name: "noSessionsMessage", title: "No sessions message", type: "string", initialValue: "Momenteel geen sessies beschikbaar." }),
-            defineField({ name: "soldOutLabel", title: "Sold out label", type: "string", initialValue: "Volgeboekt" }),
+            defineField({ name: "soldOutLabel", title: "Sold out label", type: "string", initialValue: "Wachtlijst" }),
             defineField({ name: "episodesHeading", title: "Episodes heading", type: "string", initialValue: "Lessen" }),
             defineField({ name: "chapterLabel", title: "Chapter label", type: "string", initialValue: "Hoofdstuk" }),
             defineField({ name: "episodeColumn", title: "Episode column", type: "string", initialValue: "Aflevering" }),

@@ -18,6 +18,8 @@ import { useItemListContext } from '@/components/analytics/ItemListProvider'
 import { trackViewItemList } from '@/lib/analytics/events/ecommerce'
 import { Spinner } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { listingProductAnchorId, keepLoadedListingItems } from '@/lib/listing-return-anchor'
+import { useEnsureListingAnchorLoaded } from '@/components/plp/useEnsureListingAnchorLoaded'
 
 type PlpInfiniteResultsContextValue = {
   shownEnd: number
@@ -65,10 +67,15 @@ export function PlpInfiniteResultsProvider({
     () => JSON.stringify({ filterState, sort }),
     [filterState, sort]
   )
+  const filterKeyRef = useRef(filterKey)
 
   useEffect(() => {
-    setEvents(initialEvents)
-    setError(null)
+    const filtersChanged = filterKeyRef.current !== filterKey
+    filterKeyRef.current = filterKey
+    setEvents((prev) =>
+      filtersChanged ? initialEvents : keepLoadedListingItems(prev, initialEvents),
+    )
+    if (filtersChanged) setError(null)
   }, [initialEvents, filterKey])
 
   const hasMore = events.length < totalCount
@@ -79,10 +86,11 @@ export function PlpInfiniteResultsProvider({
     setLoading(true)
     setError(null)
     const batchNumber = Math.floor(events.length / pageSize) + 1
+    const offset = events.length
 
     try {
       const params = serializeFilterState({ ...filterState, sort: sort as PlpFilterState['sort'] })
-      params.set('offset', String(events.length))
+      params.set('offset', String(offset))
       params.set('limit', String(pageSize))
 
       const response = await fetch(`/api/plp/events?${params.toString()}`)
@@ -105,6 +113,13 @@ export function PlpInfiniteResultsProvider({
       setLoading(false)
     }
   }, [loading, hasMore, filterState, sort, events.length, pageSize, list])
+
+  useEnsureListingAnchorLoaded({
+    knownIds: events.map((event) => listingProductAnchorId(event.handle)),
+    hasMore,
+    loading,
+    loadMore,
+  })
 
   const value: PlpInfiniteResultsContextValue = {
     shownEnd: Math.min(events.length, totalCount),

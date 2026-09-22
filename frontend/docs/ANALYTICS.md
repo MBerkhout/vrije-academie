@@ -65,7 +65,7 @@ Consent defaults to **denied**; Cookiebot callbacks push `consent_update` with C
 | `select_cadeaubon_bedrag` | `GiftCardPurchaseForm` |
 | `scroll` / outbound `click` | site-wide trackers |
 | `login` / `sign_up` / `logout` | `CustomerProvider` |
-| `view_waitlist_form` / `waitlist_signup` / `newsletter_signup` | `PdpWaitlistModal` (sold-out PDP) |
+| `view_waitlist_form` / `waitlist_signup` / `newsletter_signup` | `WaitlistModal` (sold-out CTAs on PDP, agenda, PLP) |
 | `share` | PDP invite e-mail link |
 
 ## Tests

@@ -16,6 +16,8 @@ import { serializeVathuisFilterState, VATHUIS_PAGE_SIZE } from '@/app/(main)/va-
 import { VaThuisResultsGrid } from '@/components/vathuis/VaThuisResultsGrid'
 import { Spinner } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { listingProductAnchorId, keepLoadedListingItems } from '@/lib/listing-return-anchor'
+import { useEnsureListingAnchorLoaded } from '@/components/plp/useEnsureListingAnchorLoaded'
 
 type VaThuisInfiniteContextValue = {
   shownEnd: number
@@ -62,10 +64,13 @@ export function VaThuisInfiniteResultsProvider({
     () => JSON.stringify({ filterState, sort }),
     [filterState, sort]
   )
+  const filterKeyRef = useRef(filterKey)
 
   useEffect(() => {
-    setEvents(initialEvents)
-    setError(null)
+    const filtersChanged = filterKeyRef.current !== filterKey
+    filterKeyRef.current = filterKey
+    setEvents((prev) => (filtersChanged ? initialEvents : keepLoadedListingItems(prev, initialEvents)))
+    if (filtersChanged) setError(null)
   }, [initialEvents, filterKey])
 
   const hasMore = events.length < totalCount
@@ -98,6 +103,13 @@ export function VaThuisInfiniteResultsProvider({
       setLoading(false)
     }
   }, [loading, hasMore, filterState, sort, events.length, pageSize])
+
+  useEnsureListingAnchorLoaded({
+    knownIds: events.map((event) => listingProductAnchorId(event.handle)),
+    hasMore,
+    loading,
+    loadMore,
+  })
 
   const value: VaThuisInfiniteContextValue = {
     shownEnd: Math.min(events.length, totalCount),

@@ -59,6 +59,8 @@ export interface TextBlock extends Block {
   title?: string
   titleSize?: 'h1' | 'h2' | 'h3' | 'h4'
   titleAlignment?: 'left' | 'center' | 'right'
+  subtitle?: string
+  showTitleDivider?: boolean
   content?: PortableTextBlock[]
   contentWidth?: 'narrow' | 'normal' | 'wide'
 }
@@ -138,6 +140,8 @@ export interface HeroBlock extends Block {
   topPanelCtaEnabled?: boolean
   topPanelCtaLabel?: string
   topPanelCtaUrl?: string
+  /** When false, hide the Meld je aan card. Unset/true keeps it (existing heroes). */
+  newsletterEnabled?: boolean
   /** Destination for the newsletter "Aanmelden" CTA. */
   newsletterSignupUrl?: string
 }
@@ -480,6 +484,13 @@ export interface GeneralSettings {
     emptyStateHeading?: string
     emptyStateSubtext?: string
     loadMoreLabel?: string
+    /** Listing labels for Soort activiteit. PDP badges stay singular. */
+    productTypePlurals?: {
+      reis?: string
+      studiedag?: string
+      wandeling?: string
+      workshop?: string
+    }
   }
   pdp?: {
     lowStockThreshold?: number

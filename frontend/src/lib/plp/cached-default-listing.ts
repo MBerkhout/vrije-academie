@@ -25,7 +25,7 @@ export const getHardCachedDefaultPlpListing = unstable_cache(
       limit: PAGE_SIZE,
       offset: 0,
     }),
-  ['plp-default-listing-v1'],
+  ['plp-default-listing-v2'],
   { revalidate: PLP_HARD_CACHE_SEC, tags: [PLP_DEFAULT_CACHE_TAG] }
 )
 

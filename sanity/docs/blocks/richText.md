@@ -12,7 +12,11 @@ Portable Text content block for formatted text content. Supports headings, bold,
 | Margin Bottom | String | No | Bottom margin (0-64px or custom) |
 | Width | String | No | Full width or container |
 | Background Color | String | No | Block background color |
+| Heading | String | No | Optional heading above the content (size H1–H4, left/center/right) |
+| Subtitle | Text | No | Optional line under the heading. Shown only when a heading is set. |
+| Line between title and subtitle | Boolean | No | Renders a 4px yellow bar as wide as the heading, between heading and subtitle. Shown in Studio only when both are set. |
 | Content | Portable Text | Yes | Formatted text content |
+| Content width | String | No | Narrow / normal / wide |
 
 ## Supported Formatting
 
@@ -22,6 +26,7 @@ Portable Text content block for formatted text content. Supports headings, bold,
 - H2 (section heading)
 - H3 (subsection heading)
 - Blockquote (quoted text)
+- Bullet and numbered lists (storefront hanging indent: marker left, wrapped text stays to the right)
 
 ### Marks
 - **Bold** (strong)
@@ -46,6 +51,15 @@ The Afbeelding (Image) block supports:
 - Conditional visibility: only relevant fields show per media type
 
 ## Example Usage
+
+**Page header** (title + subtitle + line):
+```
+Rich Text Block
+├── Heading: "Vraag het gratis magazine aan" (H1)
+├── Subtitle: "Bekijk hier ons nieuwste magazine! …"
+├── Line between title and subtitle: on
+└── Content: (optional body below)
+```
 
 **Article Introduction**:
 ```

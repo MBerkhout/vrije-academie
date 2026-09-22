@@ -8,7 +8,7 @@ Full-width hero section with an image slider and a right column: a **Top Panel**
 
 The hero is split into two columns:
 - **Left (2/3):** Image slider with title, optional subtitle, yellow **chevron** previous/next controls at the bottom left and right, and dot navigation centered below.
-- **Right (1/3):** **Top panel** and **newsletter** use the same chrome: **white** background, **border** only (no drop shadow). The top card has text (and CTA) on the left, optional **Image** on the right (full image visible, `contain` in the area—no yellow divider). The newsletter card has heading *Meld je aan*, subtext, and a primary **Aanmelden** button; the button URL is set in the **Newsletter** tab (**Aanmeldlink**).
+- **Right (1/3):** **Top panel** and optional **newsletter** use the same chrome: **white** background, **border** only (no drop shadow). The top card has text (and CTA) on the left, optional **Image** on the right (full image visible, `contain` in the area—no yellow divider). The newsletter card (when **Show newsletter** is on) has heading *Meld je aan*, subtext, and a primary **Aanmelden** button; the button URL is set in the **Newsletter** tab (**Aanmeldlink**). Turning the newsletter off leaves the top panel to fill the right column.
 
 ## Fields
 
@@ -36,7 +36,8 @@ The hero is split into two columns:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| Aanmeldlink | URL | No | If set, the *Aanmelden* button navigates here. If empty, the button is shown disabled. |
+| Show newsletter | Boolean | No | Default on. Turn off to hide the *Meld je aan* card. Unset on older heroes still shows the card. |
+| Aanmeldlink | URL | No | If set, the *Aanmelden* button navigates here. If empty, the button is shown disabled. Hidden when **Show newsletter** is off. |
 
 ### Style (tab)
 
@@ -47,7 +48,7 @@ The hero is split into two columns:
 
 ## Newsletter card
 
-Copy is fixed: title **Meld je aan**, subtext **Schrijf je hier in voor onze nieuwsbrief!**, primary button **Aanmelden** (link from **Aanmeldlink** in the CMS). No form fields in this block.
+Shown when **Show newsletter** is on (default; also when the field is unset). Copy is fixed: title **Meld je aan**, subtext **Schrijf je hier in voor onze nieuwsbrief!**, primary button **Aanmelden** (link from **Aanmeldlink** in the CMS). No form fields in this block.
 
 ## Design Notes
 

@@ -272,6 +272,8 @@ export interface EventFacets {
   cities: { slug: string; label: string; count: number }[]
   delivery_type: { slug: string; count: number }[]
   day_part: { slug: string; count: number }[]
+  /** YYYY-MM keys for future dated sessions (period filter). */
+  months: { slug: string; count: number }[]
 }
 
 export interface Cart {
@@ -394,6 +396,7 @@ export interface Order {
   items?: OrderItem[]
   payment_status?: string
   created_at?: string
+  metadata?: Record<string, unknown>
 }
 
 export interface OrderItem {
@@ -494,6 +497,8 @@ export interface CommerceClient {
   upsertCheckoutShippingAddress(input: CustomerCheckoutAddressInput): Promise<Customer>
   /** Copy customer profile + default address onto the cart for payment. */
   syncCartFromCustomer(customer: Customer, cartId: string): Promise<Cart>
+  /** Logged-in: merge open customer carts into the oldest cart (outside checkout). */
+  syncAccountCart(cartId?: string): Promise<Cart>
   /** Logged-in: wishlist as product handles from customer.metadata. */
   getWishlistHandles(): Promise<string[]>
   /** Logged-in: add handle (prepended); merges full metadata. Throws if not authenticated. */
@@ -608,4 +613,5 @@ export interface JoinWaitlistInput {
   last_name: string
   email: string
   phone: string
+  variant_id?: string
 }

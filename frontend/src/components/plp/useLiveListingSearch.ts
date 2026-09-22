@@ -65,7 +65,7 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
       params.set('offset', '0')
 
       const nextUrl = params.toString() ? `${basePath}?${params.toString()}` : basePath
-      window.history.replaceState(null, '', nextUrl)
+      window.history.replaceState(window.history.state, '', nextUrl)
 
       setSearching(true)
       setSearchError(null)

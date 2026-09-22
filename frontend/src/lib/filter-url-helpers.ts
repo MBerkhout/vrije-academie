@@ -13,7 +13,7 @@ import {
   serializeVathuisFilterState,
   type VathuisFilterState,
 } from '@/app/(main)/va-thuis/_state/url'
-import { VATHUIS_CATALOG_PATH } from '@/lib/routes'
+import { PLP_BASE_PATH, VATHUIS_CATALOG_PATH } from '@/lib/routes'
 
 export const AGENDA_BASE_PATH = '/agenda'
 
@@ -42,6 +42,13 @@ export function resolveFilterSerialize(basePath: string) {
     return (state: PlpFilterState) => serializeVathuisFilterState(toVathuisFilterState(state))
   }
   return serializePlpState
+}
+
+/** Unfiltered listing URL for Reset / Wis alle filters. Path-scoped PLPs (category, type, city) return to `/ons-aanbod`. */
+export function resolveClearAllHref(basePath: string): string {
+  if (isAgendaBasePath(basePath)) return AGENDA_BASE_PATH
+  if (isVathuisCatalogPath(basePath)) return VATHUIS_CATALOG_PATH
+  return PLP_BASE_PATH
 }
 
 export function resolveFilterRemove(basePath: string) {

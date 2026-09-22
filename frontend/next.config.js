@@ -4,7 +4,11 @@ const NOINDEX_HOST = 'v2.vrijeacademie.nl'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Phone testing on the LAN (`http://192.168.1.45:3000`).
+  allowedDevOrigins: ['192.168.1.45'],
   images: {
+    // Next 16 defaults to [75] only; SanityImage uses 80, category thumbs 90.
+    qualities: [75, 80, 90],
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.sanity.io' },
       { protocol: 'https', hostname: 'res.cloudinary.com' },

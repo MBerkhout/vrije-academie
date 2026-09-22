@@ -12,7 +12,7 @@ Medusa v2 heeft geen ingebouwd gift-card domein zoals v1. Deze shop gebruikt een
 
 - Standaard **handle**: `digitale-cadeaubon` (override met env `GIFT_CARD_PRODUCT_HANDLE`)
 - Aanmaken: `npm run seed:gift-card` (na bestaande shipping profile + regio)
-- Toevoegen aan winkelwagen: `POST /store/gift-cards/add-to-cart` met `amount` in **centen** en `metadata.gift_card` op de line item (via workflow)
+- Toevoegen aan winkelwagen: `POST /store/gift-cards/add-to-cart` met `amount` in **centen**. De line item krijgt `unit_price` in **major EUR** (zelfde schaal als andere winkelwagenregels) plus `metadata.gift_card.amount_cents`.
 
 ## Store API
 
@@ -42,19 +42,21 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 
 ## Aankoop (code uitgeven)
 
-- Zelfde subscriber: line items met `metadata.gift_card` → `createForOrderLine` + e-mail via **notification** module (`template: gift-card-purchased`, fallback: log).
+- Zelfde subscriber: line items met `metadata.gift_card` → `createForOrderLine` + e-mail via **notification** module (`template: gift-card-purchased`, fallback: log). SMTP (`SMTP_HOST`) of SendGrid (`SENDGRID_API_KEY`); zie [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md#email-optional). Body heeft `text` én `html`.
 - Idempotent per orderregel: `source_line_item_id` + `purchased_by_order_id`.
 - **Notification `data`**: o.a. `name` en `recipient_name` (zelfde waarde: voornaam/label van de ontvanger), `code`, `amount_euros`, `sender_name`, `message`, `order_id`. Gebruik in je SendGrid-/admin-template **`{{name}}`** (of `recipient_name`) voor de aanhef; zonder `name` blijft een placeholder letterlijk staan.
 
 ## Frontend
 
 - Kooppagina: **`/cadeaubon`** — CMS Page `pageCadeaubon` (`[slug]` + `GiftCardBlock`); zie `sanity/docs/CADEAUBON.md`.
+- Cart/checkout-thumbnail: statische storefront **`/branding/cadeaubon-thumb.jpg`** (`resolveLineItemThumbnail`).
 - Kortingsveld: `commerceClient.applyCode` — promo eerst of gift eerst afhankelijk van `GIFT-` prefix.
 
 ## Env
 
 - `GIFT_CARD_PRODUCT_HANDLE` — optioneel, default `digitale-cadeaubon`
 - `GIFT_CARD_EXPIRY_YEARS` — optioneel, default `2`
+- E-mail (cadeaubon naar ontvanger): zelfde SMTP/SendGrid als OTP — zie [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md#email-optional)
 
 ## Testflow (kort)
 

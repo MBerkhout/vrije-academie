@@ -13,6 +13,7 @@ import { usePdokAddressLookup } from '@/lib/address/usePdokAddressLookup'
 import { NlAddressFields } from '@/components/address/NlAddressFields'
 import { ValidatedInput } from '@/components/auth/ValidatedInput'
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
+import { defaultMessages } from '@/lib/i18n'
 
 type AccountSettings = NonNullable<GeneralSettings['account']>
 
@@ -48,6 +49,30 @@ type RegisterStep = 1 | 2 | 3
 type LoginStep = 'email' | 'auth'
 type AuthMode = 'password' | 'otp'
 
+export function isExistingAccountError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? '')
+  const lower = msg.toLowerCase()
+  return lower.includes('exist') || lower.includes('already')
+}
+
+function RegisterExistsMessage({ onLoginClick }: { onLoginClick: () => void }) {
+  const copy = defaultMessages.auth.login
+  const [before, after] = copy.registerExists.split('{loginLink}')
+  return (
+    <p className="font-sans text-xs text-red-600">
+      {before}
+      <button
+        type="button"
+        onClick={onLoginClick}
+        className="underline underline-offset-2 text-va-orange hover:text-va-black"
+      >
+        {copy.registerExistsLoginLink}
+      </button>
+      {after}
+    </p>
+  )
+}
+
 export function LoginForm({ settings }: LoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -57,6 +82,7 @@ export function LoginForm({ settings }: LoginFormProps) {
   const [mode, setMode] = useState<Mode>('login')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [emailTaken, setEmailTaken] = useState(false)
 
   // ── Login state
   const [loginStep, setLoginStep] = useState<LoginStep>('email')
@@ -118,6 +144,8 @@ export function LoginForm({ settings }: LoginFormProps) {
   const { addressLookup } = usePdokAddressLookup({
     postalCode,
     houseNumber,
+    street,
+    city,
     manualAddress,
     countryCode: country,
     onMatch: (s, c) => {
@@ -154,11 +182,18 @@ export function LoginForm({ settings }: LoginFormProps) {
 
   function switchMode(next: 'login' | 'register') {
     setError(null)
+    setEmailTaken(false)
     setRegStep(1)
     setLoginStep('email')
     setOtpCode('')
     setOtpSent(false)
     setMode(next)
+  }
+
+  function goToLoginFromExistingAccount() {
+    const email = regEmail
+    switchMode('login')
+    setLoginEmail(email)
   }
 
   async function sendLoginOtp() {
@@ -293,6 +328,7 @@ export function LoginForm({ settings }: LoginFormProps) {
 
   async function handleRegisterSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (emailTaken) return
     setError(null)
     setBusy(true)
     try {
@@ -312,12 +348,12 @@ export function LoginForm({ settings }: LoginFormProps) {
       })
       router.push(returnTo)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : ''
-      setError(
-        msg.toLowerCase().includes('exist') || msg.toLowerCase().includes('already')
-          ? 'Er bestaat al een account met dit e-mailadres.'
-          : 'Registreren mislukt. Probeer het opnieuw.'
-      )
+      if (isExistingAccountError(err)) {
+        setEmailTaken(true)
+        setError(defaultMessages.auth.login.registerExists)
+      } else {
+        setError(defaultMessages.auth.login.registerFailed)
+      }
     } finally {
       setBusy(false)
     }
@@ -596,11 +632,19 @@ export function LoginForm({ settings }: LoginFormProps) {
                   </span>
                 </div>
               </div>
-              {error && <p className="font-sans text-xs text-red-600">{error}</p>}
-              <button type="submit" disabled={busy} className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60">
+              {emailTaken ? (
+                <RegisterExistsMessage onLoginClick={goToLoginFromExistingAccount} />
+              ) : error ? (
+                <p className="font-sans text-xs text-red-600">{error}</p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={busy || emailTaken}
+                className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
                 {busy ? '…' : 'Account aanmaken'}
               </button>
-              <button type="button" onClick={() => { setError(null); setRegStep(2) }} className="font-sans text-xs text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors">
+              <button type="button" onClick={() => { setError(null); setEmailTaken(false); setRegStep(2) }} className="font-sans text-xs text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors">
                 Terug
               </button>
             </form>

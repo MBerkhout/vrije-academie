@@ -5,7 +5,8 @@ import { defineImageField } from "../objects/imageField"
 /**
  * Catalog category — mirrored from Medusa.
  * `medusaId`, `slug`, and `label` are managed by Medusa and must not be edited in the Studio.
- * Editorial fields (`title`, `description`, `image`, `linkUrl`, `seo`) are preserved on Medusa sync.
+ * Editorial fields (`title`, `description`, `image`, `linkUrl`, `seo`) are publishable in Studio
+ * and preserved on Medusa sync.
  */
 export const category = defineType({
   name: "category",

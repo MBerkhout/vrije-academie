@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
+import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/order-import-metadata"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { pushOrderToSalesforceWorkflowId } from "../workflows/salesforce/push-order-salesforce"
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
@@ -17,9 +18,13 @@ export default async function salesforceSyncOrderCompleted({
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const orderModule = container.resolve(Modules.ORDER)
   const id = data.id
-  const order = await orderModule.retrieveOrder(id)
+  const order = await orderModule.retrieveOrder(id, { select: ["id", "status", "metadata"] })
   if (order.status !== "completed") {
     logger.info(`[salesforce-sync] skip order ${id} status=${order.status}`)
+    return
+  }
+  if (isImportedSalesforceOrder(order.metadata as Record<string, unknown> | null)) {
+    logger.info(`[salesforce-sync] skip imported Salesforce order ${id}`)
     return
   }
   await runSalesforceWorkflow(container, pushOrderToSalesforceWorkflowId, { orderId: id }, {

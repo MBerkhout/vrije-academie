@@ -25,14 +25,20 @@ export type VathuisProductMetadata = {
   episodes: VathuisEpisode[]
 }
 
+export function isVathuisProductMetadata(
+  metadata: Record<string, unknown> | null | undefined
+): boolean {
+  const raw = metadata?.vathuis
+  if (!raw || typeof raw !== "object") return false
+  return (raw as Record<string, unknown>).purchase_mode === "bundle_only"
+}
+
 /** Labels for cart / checkout line sublines (Salesforce fields with episode fallbacks). */
 export function vathuisCartDisplayFromProductMetadata(
   metadata: Record<string, unknown> | null | undefined
 ): { episode_count_label: string | null; play_time: string | null } | null {
-  const raw = metadata?.vathuis
-  if (!raw || typeof raw !== "object") return null
-  const vathuis = raw as Record<string, unknown>
-  if (vathuis.purchase_mode !== "bundle_only") return null
+  if (!isVathuisProductMetadata(metadata)) return null
+  const vathuis = metadata!.vathuis as Record<string, unknown>
 
   let episode_count_label =
     typeof vathuis.episode_count_label === "string"

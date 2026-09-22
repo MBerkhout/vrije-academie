@@ -3,6 +3,8 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 
+import { emailContent, hasEmailProvider } from "../../../lib/email-content"
+
 export type OtpPurpose = "login" | "set_password"
 
 const PURPOSE_SUBJECT: Record<OtpPurpose, string> = {
@@ -33,8 +35,11 @@ function purposeBody(purpose: OtpPurpose, code: string): string {
   ].join("\n")
 }
 
-function hasConfiguredEmailProvider(): boolean {
-  return Boolean(process.env.SENDGRID_API_KEY?.trim())
+export function buildOtpEmailContent(purpose: OtpPurpose, code: string) {
+  return emailContent({
+    subject: PURPOSE_SUBJECT[purpose],
+    text: purposeBody(purpose, code),
+  })
 }
 
 function logOtpToConsole(
@@ -58,10 +63,9 @@ export async function sendOtpEmail(
     error: (msg: string) => void
   }
 
-  const subject = PURPOSE_SUBJECT[input.purpose]
-  const text = purposeBody(input.purpose, input.code)
+  const content = buildOtpEmailContent(input.purpose, input.code)
 
-  if (!hasConfiguredEmailProvider()) {
+  if (!hasEmailProvider()) {
     logOtpToConsole(logger, input)
     return
   }
@@ -78,7 +82,7 @@ export async function sendOtpEmail(
         code: input.code,
         purpose: input.purpose,
       },
-      content: { subject, text },
+      content,
       trigger_type: "customer-otp",
       resource_type: "customer",
       idempotency_key: `customer-otp-${input.email}-${Date.now()}`,

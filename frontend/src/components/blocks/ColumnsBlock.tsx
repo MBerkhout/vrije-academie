@@ -233,25 +233,25 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
               <Link
                 href={href}
                 className={cn(
-                  'group flex overflow-hidden rounded-lg border border-va-lightgray bg-white shadow-sm',
+                  'group flex items-stretch overflow-hidden rounded-lg border border-va-lightgray bg-white shadow-sm',
                   'transition-[box-shadow,border-color] hover:border-va-black/25 hover:shadow-md',
                   'outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2',
                 )}
               >
-                <div className="relative h-[88px] w-[88px] shrink-0 rounded-l-lg bg-va-lightgray overflow-hidden">
+                <div className="relative w-[88px] min-h-[88px] shrink-0 self-stretch overflow-hidden rounded-l-lg bg-va-lightgray">
                   {thumbnailUrl ? (
                     <Image
                       src={thumbnailUrl}
                       alt=""
                       fill
-                      className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                      className="object-cover object-center"
                       sizes="88px"
                     />
                   ) : null}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   {title ? (
-                    <p className="flex flex-1 items-start px-2.5 py-2 font-sans text-xs font-semibold leading-snug line-clamp-3 text-va-black group-hover:text-va-orange md:px-3 md:py-2.5 md:text-sm md:line-clamp-none">
+                    <p className="px-2.5 py-2 font-sans text-xs font-semibold leading-snug line-clamp-3 text-va-black group-hover:text-va-orange md:px-3 md:py-2.5 md:text-sm md:line-clamp-none">
                       {title}
                     </p>
                   ) : null}
@@ -263,13 +263,13 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
                           cta_color: product.ctaColor,
                           cta_color_hover: product.ctaColorHover,
                         }}
-                        className="px-2.5 md:px-3"
+                        className="mt-auto px-2.5 md:px-3"
                         showChevron
                       />
                     ) : (
                     <span
                       className={cn(
-                        'flex items-center justify-between gap-1 border-t border-va-lightgray px-2.5 py-1.5 md:px-3',
+                        'mt-auto flex items-center justify-between gap-1 border-t border-va-lightgray px-2.5 py-1.5 md:px-3',
                         'font-sans text-[10px] font-bold uppercase tracking-wide',
                         ctaClass ?? 'bg-white text-va-black',
                       )}

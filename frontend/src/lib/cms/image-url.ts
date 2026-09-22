@@ -18,3 +18,45 @@ const builder = createImageUrlBuilder(client)
 export function urlFor(source: SanityImageSource) {
   return builder.image(source)
 }
+
+export const DEFAULT_SANITY_IMAGE_QUALITY = 80
+
+export function sanityImageSrc(
+  source: SanityImageSource,
+  options: {
+    width?: number
+    height?: number
+    fill?: boolean
+    objectFit?: 'cover' | 'contain'
+    quality?: number
+    priority?: boolean
+  } = {},
+): string {
+  const {
+    width,
+    height,
+    fill = false,
+    objectFit = 'cover',
+    quality = DEFAULT_SANITY_IMAGE_QUALITY,
+    priority = false,
+  } = options
+
+  const defaultWidth = priority ? 1920 : 1200
+  const defaultHeight = priority ? 1080 : 675
+  const image = urlFor(source).auto('format').quality(quality)
+
+  if (width != null && height != null) {
+    return image.width(width).height(height).url()
+  }
+
+  /**
+   * `fill` / `contain` let CSS size the box. Forcing width+height here makes
+   * Sanity crop to 16:9 (and upscale small assets), which goes soft in portrait
+   * thumbs. `fit=max` downscales only — never upscales.
+   */
+  if (fill || objectFit === 'contain') {
+    return image.width(width ?? defaultWidth).fit('max').url()
+  }
+
+  return image.width(width ?? defaultWidth).height(height ?? defaultHeight).url()
+}

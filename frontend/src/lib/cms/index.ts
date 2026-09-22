@@ -5,7 +5,7 @@
 
 export * from './types'
 export { anchorIdFromString } from '../anchor-id'
-export { urlFor } from './image-url'
+export { urlFor, sanityImageSrc, DEFAULT_SANITY_IMAGE_QUALITY } from './image-url'
 export {
   CONTAINER_CLASS,
   CONTAINER_PADDING_CLASS,

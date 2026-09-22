@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { Cart, CartItem } from '@/lib/commerce/types'
+import type { Cart } from '@/lib/commerce/types'
 import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
+import { resolveLineItemThumbnail } from '@/lib/commerce/gift-card'
 import { buildCartLineItemDetailBlocks, buildLineItemQuantityLabel, type BuildLineItemDetailsOptions } from '@/lib/commerce/line-item-details'
 import { CartLineItemDetails } from '@/components/cart/CartLineItemDetails'
 import { formatPriceEur } from '@/lib/locale-format'
@@ -110,13 +111,6 @@ function CheckoutHelpAndTrust({
       />
     </div>
   )
-}
-
-export function resolveLineItemThumbnail(
-  item: Pick<CartItem, 'thumbnail'>,
-  extras: CartItemExtras | null | undefined
-): string | null {
-  return extras?.thumbnail ?? item.thumbnail ?? null
 }
 
 export function OrderSummaryThumbnail({ src, alt }: { src: string; alt: string }) {

@@ -89,6 +89,30 @@ Create `.env` on the server (never commit these):
 
 After changing Medusa `.env`, reload PM2 (`pm2 startOrReload ecosystem.config.cjs`) and re-push the order: `npm run salesforce:push -- --type=order --action=push --display-id=N`.
 
+**VA Thuis / Audience Player (staging)** — required in `~/app/medusa/.env` or preview and purchased playback return 500 (`Audience Player OAuth credentials are not configured`) and the storefront shows “Deze preview is momenteel niet beschikbaar.”:
+
+| Variable | Purpose |
+|----------|---------|
+| `AUDIENCE_PLAYER_CLIENT_ID` | OAuth client id from Audience Player support (also accepts `AUDIENCE_PLAYER_OAUTH_CLIENT_ID`) |
+| `AUDIENCE_PLAYER_CLIENT_SECRET` | OAuth client secret (also accepts `AUDIENCE_PLAYER_OAUTH_CLIENT_SECRET`) |
+| `AUDIENCE_PLAYER_PROJECT_ID` | Optional, default `14` |
+| `AUDIENCE_PLAYER_PREVIEW_EMAIL` | Optional, default `vathuis-preview@vrijeacademie.nl` — that user must be entitled to play preview articles |
+
+Copy the values from local `medusa/.env` (do not commit them). Reload PM2 after editing. Smoke-test: `GET https://medusa.vrijeacademie.nl/store/events/art-nouveau/episodes/1-1/preview-playback` with the publishable API key should return `{ playback: { token, articleId, assetId, … } }`.
+
+**Transactional email (staging)** — OTP login codes and cadeaubon mail. Add to `~/app/medusa/.env` (SMTP wins if both are set). Reload PM2 after editing. Configure SPF/DKIM/DMARC for the From domain.
+
+| Variable | Purpose |
+|----------|---------|
+| `SMTP_HOST` | SMTP hostname (`127.0.0.1` for local postfix, or the organisation relay) |
+| `SMTP_PORT` | Optional, default `587` (`25` for local postfix, `465` implies SSL) |
+| `SMTP_SECURE` | Optional, `true`/`false` (default: true only when port is 465) |
+| `SMTP_USER` / `SMTP_PASS` | Optional; omit for unauthenticated localhost |
+| `SMTP_FROM` | From address (default `noreply@vrijeacademie.nl`) |
+| `SENDGRID_API_KEY` / `SENDGRID_FROM` | Fallback when `SMTP_HOST` is unset |
+
+Without SMTP or SendGrid, OTP codes are logged on the Medusa server only (`[customer-otp]`).
+
 Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS origins, database, Redis, etc.
 
 **Tax-inclusive pricing (one-time):** after first Medusa setup or when tax/country config changes, run as the `medusa` user: `cd ~/app/medusa && npm run seed:region`. Seeds all EU countries on the EUR region, standard VAT rates, and EUR tax-inclusive price preference (Salesforce gross prices must not be surcharged with VAT).
@@ -243,7 +267,7 @@ cd ~/app && git rm --cached frontend/next-env.d.ts && git reset --hard origin/st
 
 ## Frontend troubleshooting
 
-**Category tiles without images on staging, but correct locally** — The homepage is built during `npm run build`. If Sanity category images were added after the last deploy, redeploy the frontend (push to `staging` or run `frontend/scripts/deploy.sh`). The home route revalidates every 60s after deploy; see `frontend/docs/components.md` (troubleshooting §6).
+**Category tiles without images on staging, but correct locally** — Category `image` lives on the mirrored Sanity `category` document and must be **published** (drafts are invisible on the storefront). After publish, `POST /api/revalidate/sanity` busts `/`, `/va-thuis`, and `/ons-aanbod/{slug}` when the webhook includes `_type == "category"`. Without the webhook, wait up to 60 s or redeploy. See `frontend/docs/components.md` (troubleshooting §6).
 
 **Frontend keeps restarting every 15–40 min, breaks Sanity Presentation/live preview** — PM2 `error log path` will show `App [frontend] exceeds --max-memory-restart value`. Two independent causes, both fixed:
 
@@ -327,10 +351,10 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 | Route type | Caching |
 |------------|---------|
 | CMS pages (`[...slug]`) | ISR, `revalidate = 60` — on-demand bust via Sanity webhook (`POST /api/revalidate/sanity`) on page publish |
-| PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 600 s hard cache for `sort=order` and `sort=start_date` |
+| PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 600 s hard cache for `sort=order` and `sort=start_date`; default `/agenda` (no filters) uses 600 s hard cache for `sort=start_date` and `sort=start_date_desc` |
 | PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail + similar cached in Redis (600 s); React `cache()` dedupes per request |
 | Homepage | ISR, `revalidate = 60`; on-demand bust via Sanity webhook on home page publish |
-| Header / footer (`generalSettings`, `menu`) | ISR, `revalidate = 60` on `(main)/layout`; on-demand bust via the same webhook (`general-settings` tag) |
+| Header / footer (`generalSettings`, `menu`) | ISR, `revalidate = 60` on `(main)/layout`; on-demand bust via the same webhook (`general-settings` tag + `(main)` and `(checkout)` layouts + batched `revalidatePath` for all storefront URLs) |
 | Redirect rules | In-memory, 60 s TTL |
 
 ### Medusa API caching
@@ -346,12 +370,13 @@ PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized li
 | Base query cache | `medusa/src/lib/store-query-cache.ts` | Product ids + event-group links (used when building snapshots) |
 | Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart bust: full PLP on create/delete; on update only when product is in first 24 slots; orders bust registration counts only |
 | Frontend PLP hard cache | `frontend/src/lib/plp/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/ons-aanbod` with `sort=order` or `sort=start_date`; bust via `POST /api/revalidate/plp` |
+| Frontend Agenda hard cache | `frontend/src/lib/agenda/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/agenda` with `sort=start_date` or `sort=start_date_desc`; bust via the same `POST /api/revalidate/plp` (`agenda-default` tag) |
 
 **PLP/Agenda/VA Thuis/registration-counts snapshots (`loadCached` in `store-listing-snapshot.ts`) use stale-while-revalidate**: each entry is stored as `{ value, builtAt }` with a 1 h physical Redis TTL (`LISTING_CACHE_HARD_TTL_SEC`), but is treated as due-for-refresh once `builtAt` is older than `LISTING_CACHE_TTL_SEC` (600 s). A stale entry is still returned instantly; a background rebuild refreshes it without blocking the request. Only a true cold start (nothing cached anywhere yet) blocks. Event detail caching (`store-event-detail.ts`) does **not** use this pattern yet — it still blocks on a cache miss.
 
 Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an in-process fallback is used per worker (holds the same envelope, never auto-expires — always superseded by the next successful rebuild).
 
-**Optional env for immediate PLP bust on catalog changes** (same secret on both sides):
+**Optional env for immediate PLP + Agenda bust on catalog changes** (same secret on both sides):
 
 | Service | Variable | Example |
 |---------|----------|---------|
@@ -366,11 +391,11 @@ Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an i
 | URL | `https://v2.vrijeacademie.nl/api/revalidate/sanity` |
 | Dataset | `production` (and `staging` if applicable) |
 | Trigger on | Create, Update, Delete |
-| Filter | `_type in ["page", "generalSettings", "menu"]` |
-| Projection | `{ "_type": _type, "slug": slug.current, "isVaThuis": isVaThuis }` |
+| Filter | `_type in ["page", "generalSettings", "menu", "category"]` |
+| Projection | `{ "_type": _type, "slug": coalesce(slug.current, slug), "isVaThuis": isVaThuis }` |
 | Secret | Same string as frontend `SANITY_REVALIDATE_SECRET` |
 
-Set `SANITY_REVALIDATE_SECRET` in `~/app/frontend/.env` on the server. Sanity signs the request body; the route verifies via `next-sanity/webhook` `parseBody`. VA Thuis pages (`va-thuis/…`) are skipped — those routes are `force-dynamic`. `generalSettings` and `menu` publishes bust the `general-settings` fetch tag and the main layout (header/footer). Draft-only General Settings is invisible on the storefront — publish the singleton. The 60 s ISR window remains as a fallback when the webhook is not configured or fails.
+Set `SANITY_REVALIDATE_SECRET` in `~/app/frontend/.env` on the server. Sanity signs the request body; the route verifies via `next-sanity/webhook` `parseBody`. VA Thuis pages (`va-thuis/…`) are skipped — those routes are `force-dynamic`. `generalSettings` and `menu` publishes bust the `general-settings` fetch tag, the `(main)` and `(checkout)` layouts, then queue a background pass that calls `revalidatePath` for every storefront URL (sitemap paths including `noIndex` CMS rows, plus private chrome such as `/winkelwagen` and `/mijn-account/*`) in batches of 50 with a 100 ms pause between batches so regeneration does not spike. **Category** publishes bust `/`, `/va-thuis`, and `/ons-aanbod/{slug}` so tile thumbnails do not wait on ISR. Draft-only General Settings is invisible on the storefront — publish the singleton. The 60 s ISR window remains as a fallback when the webhook is not configured or fails.
 
 Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600` on listing and event detail routes.
 
@@ -399,5 +424,6 @@ Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set
 | `medusa/src/lib/store-similar-events.ts` | Similar courses from PLP snapshot |
 | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart cache bust on catalog/order changes |
 | `frontend/src/lib/plp/cached-default-listing.ts` | Next.js hard cache for default PLP |
-| `frontend/src/app/api/revalidate/plp/route.ts` | Webhook to bust PLP hard cache |
+| `frontend/src/lib/agenda/cached-default-listing.ts` | Next.js hard cache for default Agenda |
+| `frontend/src/app/api/revalidate/plp/route.ts` | Webhook to bust PLP + Agenda hard caches |
 | `frontend/src/app/api/revalidate/sanity/route.ts` | Webhook to bust CMS page ISR cache on Sanity publish |

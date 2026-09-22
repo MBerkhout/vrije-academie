@@ -30,7 +30,7 @@ Steps 2–4 of the 4-step booking flow: **Inloggen → Betaling → Bevestiging*
 
 Field rules and the password-strength meter are shared with **`LoginForm`** (`/login`):
 
-- `src/lib/auth/account-field-validation.ts` — `validateAccountField` (email, passwords with `login` vs `register` policy, Dutch address fields, etc.)
+- `src/lib/auth/account-field-validation.ts` — `validateAccountField` (email, passwords with `login` vs `register` policy, Dutch address fields, phone digit count 8–15, etc.)
 - `src/lib/auth/password-strength.ts` — `passwordStrengthLevel` / bar color helpers
 - `src/components/auth/ValidatedInput.tsx`, `PasswordStrengthMeter.tsx`
 
@@ -48,7 +48,7 @@ email  ──(lookup)──► known ──(password or OTP)──► /checkout/
 |-------|-------------|
 | `email` | Single email field + Volgende; `GET /store/customer/lookup` → `{ exists, hasPassword }` |
 | `known` | **Has password:** password login or OTP button → 6-digit code. **No password:** OTP sent automatically. No guest bypass. |
-| `unknown` | Address form + newsletter opt-in. The phone field helper (`#phone-description`) uses `font-sans text-xs text-va-gray` and explains the number is only used for order updates. Always `POST /store/customer/register-passwordless` (passwordless account + JWT). |
+| `unknown` | Address form + newsletter opt-in. The phone field is optional; when filled it must have **8–15 digits** (`validateAccountField('phone')`, formatting `+`/`-`/`()`/spaces allowed). The helper (`#phone-description`) uses `font-sans text-xs text-va-gray` and explains the number is only used for order updates. Always `POST /store/customer/register-passwordless` (passwordless account + JWT). **Note:** emails that exist as Salesforce Person Accounts but not yet in Medusa are treated as **known** (OTP login); Medusa creates the customer on first OTP request. |
 | `logged_in_details` | Same address form for **logged-in** users; e-mail read-only. The phone field has the same order-update explanation. Saves to **Medusa customer** first, then syncs the cart. |
 
 **Data ownership**
@@ -58,7 +58,7 @@ email  ──(lookup)──► known ──(password or OTP)──► /checkout/
 
 Helpers: `src/lib/commerce/checkout-profile.ts` (`isCustomerProfileComplete`, `getDefaultCheckoutAddress`, `customerToShippingPayload`, `isCartShippingComplete`).
 
-**Land (EU):** `CountryCombobox` in `NlAddressFields` — pinned **Nederland, België, Duitsland**, then all 27 EU member states in Dutch A–Z (searchable). PDOK postcode lookup remains NL-only; other EU countries use manual straat/plaats. Data: `src/lib/address/eu-countries.ts`.
+**Land (EU):** `CountryCombobox` in `NlAddressFields` — pinned **Nederland, België, Duitsland**, then all 27 EU member states in Dutch A–Z (searchable). PDOK postcode lookup remains NL-only; other EU countries use manual straat/plaats. A filled straat/plaats is kept on hydrate, save, and Wijzigen unless postcode or huisnummer change. Data: `src/lib/address/eu-countries.ts`.
 
 OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `customerLookup`, `requestOtp`, `verifyOtp`, `registerPasswordless`.
 
@@ -73,7 +73,7 @@ OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `cus
 
 ## Step 3 — Betaling (`betaling/page.tsx`, `CheckoutPaymentOrderOverview`, `CheckoutPaymentForm`)
 
-**`CheckoutPaymentOrderOverview`** (above the form): loads cart + **`fetchCartExtras`**. All line items via **`OrderSummaryLineItems`** (bold title, thumbnail, **`buildLineItemQuantityLabel`**, **`onlineCityFallback`**) + **`OrderSummaryTotalsBlock`**. Same component in the sidebar on inloggen/bevestiging. Totals use gross producten + **waarvan BTW (X%)** (see `docs/CART.md` → Pricing & BTW).
+**`CheckoutPaymentOrderOverview`** (above the form): loads cart + **`fetchCartExtras`**. All line items via **`OrderSummaryLineItems`** (bold title, thumbnail, **`buildLineItemQuantityLabel`**, **`onlineCityFallback`**) + **`OrderSummaryTotalsBlock`**. Same component in the sidebar on inloggen/bevestiging. Cadeaubon purchase lines use **`/branding/cadeaubon-thumb.jpg`** (`resolveLineItemThumbnail`). Totals use gross producten + **waarvan BTW (X%)** (see `docs/CART.md` → Pricing & BTW).
 
 **`CheckoutPaymentForm`** loads cart. When the cart total is positive, loads `GET /store/payment-providers?region_id={cart.region_id}` (effect re-runs if the total crosses zero, e.g. gift card removed). Renders:
 1. Personal details — **logged-in:** from `Customer` (default checkout address) after `syncCartFromCustomer`; **guest:** from cart `shipping_address`. **Gegevens aanpassen** links to `/checkout/inloggen?bewerken=1`, where account gegevens can be edited (or the user can log out).

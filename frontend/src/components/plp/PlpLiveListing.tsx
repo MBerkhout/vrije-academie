@@ -23,6 +23,7 @@ import { PlpEmptyState } from '@/components/plp/PlpEmptyState'
 import { PlpListingAnalytics } from '@/components/analytics/PlpListingAnalytics'
 import { Spinner } from '@/components/ui'
 import { useLiveListingSearch } from '@/components/plp/useLiveListingSearch'
+import type { ProductTypePluralMap } from '@/lib/plp-product-types'
 
 type PlpLiveListingProps = {
   basePath: string
@@ -38,6 +39,7 @@ type PlpLiveListingProps = {
   emptyStateSubtext?: string
   loadMoreLabel?: string
   loadError?: boolean
+  productTypePlurals?: ProductTypePluralMap
 }
 
 function plpSortForQuery(query: string, filterState: PlpFilterState): string {
@@ -63,6 +65,7 @@ export function PlpLiveListing({
   emptyStateSubtext,
   loadMoreLabel,
   loadError = false,
+  productTypePlurals,
 }: PlpLiveListingProps) {
   const [ssrRecovery, setSsrRecovery] = useState<{
     events: EventCard[]
@@ -162,6 +165,7 @@ export function PlpLiveListing({
             teachers={teachers}
             cityOptions={facets?.cities}
             basePath={basePath}
+            productTypePlurals={productTypePlurals}
           />
         )}
       </div>
@@ -195,6 +199,7 @@ export function PlpLiveListing({
             facets={facets}
             mobileOnly
             basePath={basePath}
+            productTypePlurals={productTypePlurals}
           />
         </div>
         <PlpEmptyState
@@ -224,6 +229,7 @@ export function PlpLiveListing({
             facets={facets}
             mobileOnly
             basePath={basePath}
+            productTypePlurals={productTypePlurals}
           />
         </div>
         <div className={searching ? 'opacity-60 pointer-events-none transition-opacity' : undefined}>
@@ -261,6 +267,7 @@ export function PlpLiveListing({
               teachers={teachers}
               facets={facets}
               basePath={basePath}
+              productTypePlurals={productTypePlurals}
             />
           </aside>
           <div className="flex-1 min-w-0">{resultsBody}</div>

@@ -11,12 +11,11 @@ export default async function CheckoutLayout({
   const settings = await cmsClient.getGeneralSettings()
   const checkout = settings?.checkout
   const cart = settings?.cart
-  const backHref = cart?.continueShoppingUrl?.trim() || '/winkelwagen'
 
   return (
     <div className="max-w-[1240px] mx-auto px-4 md:px-8 min-[1304px]:px-0 py-8">
       <Link
-        href={backHref}
+        href="/winkelwagen"
         className="inline-flex items-center gap-1.5 font-sans text-sm text-va-darkgray hover:text-va-black transition-colors mb-4"
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>

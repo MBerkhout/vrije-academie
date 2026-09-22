@@ -96,7 +96,15 @@ function staticEntries(): SitemapEntry[] {
   return paths.map((path) => ({ path }))
 }
 
-export async function fetchSitemapEntries(): Promise<SitemapEntry[]> {
+export type FetchSitemapEntriesOptions = {
+  /** Include noIndex CMS rows (for cache busting; omitted from public sitemap.xml). */
+  includeNoIndex?: boolean
+}
+
+export async function fetchSitemapEntries(
+  options: FetchSitemapEntriesOptions = {},
+): Promise<SitemapEntry[]> {
+  const { includeNoIndex = false } = options
   const [pages, categories, products, cities] = await Promise.all([
     staticClient.fetch<SitemapPageRow[]>(SITEMAP_PAGES_QUERY),
     staticClient.fetch<SitemapCategoryRow[]>(SITEMAP_CATEGORIES_QUERY),
@@ -108,7 +116,7 @@ export async function fetchSitemapEntries(): Promise<SitemapEntry[]> {
   const seen = new Set(entries.map((e) => e.path))
 
   for (const row of pages ?? []) {
-    if (row.noIndex) continue
+    if (!includeNoIndex && row.noIndex) continue
     const path = pagePath(row)
     if (seen.has(path)) continue
     seen.add(path)
@@ -116,7 +124,7 @@ export async function fetchSitemapEntries(): Promise<SitemapEntry[]> {
   }
 
   for (const row of categories ?? []) {
-    if (row.noIndex || !row.slug) continue
+    if ((!includeNoIndex && row.noIndex) || !row.slug) continue
     const path = plpCategoryHref(row.slug)
     if (seen.has(path)) continue
     seen.add(path)
@@ -124,7 +132,7 @@ export async function fetchSitemapEntries(): Promise<SitemapEntry[]> {
   }
 
   for (const row of products ?? []) {
-    if (row.noIndex || !row.handle) continue
+    if ((!includeNoIndex && row.noIndex) || !row.handle) continue
     const path = productDetailPath(row.handle, {
       recordType: row.recordType,
       purchaseMode: row.recordType === 'vathuis' ? 'bundle_only' : undefined,
@@ -135,7 +143,7 @@ export async function fetchSitemapEntries(): Promise<SitemapEntry[]> {
   }
 
   for (const row of cities ?? []) {
-    if (row.noIndex || !row.slug) continue
+    if ((!includeNoIndex && row.noIndex) || !row.slug) continue
     const path = plpCityHref(row.slug)
     if (seen.has(path)) continue
     seen.add(path)

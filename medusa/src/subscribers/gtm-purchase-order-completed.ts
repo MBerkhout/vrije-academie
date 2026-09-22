@@ -1,5 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import {
   buildGtmPurchasePayload,
@@ -7,6 +7,7 @@ import {
   markGtmPurchaseSent,
 } from "../lib/gtm/build-purchase-payload"
 import { sendSgtmPurchaseEventWithRetry } from "../lib/gtm/send-sgtm-event"
+import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/order-import-metadata"
 
 /**
  * Server-side purchase event for sGTM (not browser dataLayer).
@@ -22,6 +23,12 @@ export default async function gtmPurchaseOnOrderCompleted({
 
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const orderId = data.id
+  const orderModule = container.resolve(Modules.ORDER)
+  const order = await orderModule.retrieveOrder(orderId, { select: ["id", "metadata"] })
+  if (isImportedSalesforceOrder(order.metadata as Record<string, unknown> | null)) {
+    logger.info(`[gtm-purchase] skip imported Salesforce order ${orderId}`)
+    return
+  }
 
   try {
     if (await hasGtmPurchaseBeenSent(container, orderId)) {

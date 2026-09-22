@@ -8,6 +8,7 @@ import { serializeFilterState } from '@/app/(main)/agenda/_state/url'
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
 import type { CategoryOption, TeacherOption } from '@/lib/cms/sanity-refs'
 import type { EventFacets } from '@/lib/commerce/types'
+import type { ProductTypePluralMap } from '@/lib/plp-product-types'
 
 interface AgendaFilterSidebarProps {
   filterState: AgendaFilterState
@@ -15,6 +16,7 @@ interface AgendaFilterSidebarProps {
   teachers: TeacherOption[]
   facets?: EventFacets
   mobileOnly?: boolean
+  productTypePlurals?: ProductTypePluralMap
 }
 
 /**
@@ -28,6 +30,7 @@ export function AgendaFilterSidebar({
   teachers,
   facets,
   mobileOnly = false,
+  productTypePlurals,
 }: AgendaFilterSidebarProps) {
   const router = useRouter()
 
@@ -47,6 +50,7 @@ export function AgendaFilterSidebar({
       facets={facets}
       basePath="/agenda"
       mobileOnly={mobileOnly}
+      productTypePlurals={productTypePlurals}
     />
   )
 

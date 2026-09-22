@@ -3,7 +3,7 @@ import { createClient } from "redis"
 import { invalidateBaseEventDataCache } from "./store-query-cache"
 
 /** Bump when listing snapshot shape or eligibility rules change so stale Redis rows are ignored. */
-const LISTING_SNAPSHOT_VERSION = 3
+const LISTING_SNAPSHOT_VERSION = 4
 
 export const REDIS_KEY_PLP = `store:listing:plp:v${LISTING_SNAPSHOT_VERSION}`
 export const REDIS_KEY_AGENDA = `store:listing:agenda:v${LISTING_SNAPSHOT_VERSION}`

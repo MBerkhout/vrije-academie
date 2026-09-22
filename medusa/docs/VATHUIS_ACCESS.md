@@ -35,6 +35,20 @@ Skips gift-card lines. Only products with `event_group.record_type === 'vathuis'
 
 Preview and purchased episodes both use the **embed-player SDK** in the frontend modal. Autoplay requires `play()` to run in the same user-gesture chain as the click (see Audience Player embed-player README).
 
+## Required env (Medusa)
+
+Without these, `preview-playback` and purchased embed return 500 (`Audience Player OAuth credentials are not configured`) and the PDP modal shows “Deze preview is momenteel niet beschikbaar.”
+
+| Variable | Required | Default |
+|----------|----------|---------|
+| `AUDIENCE_PLAYER_CLIENT_ID` or `AUDIENCE_PLAYER_OAUTH_CLIENT_ID` | yes | — |
+| `AUDIENCE_PLAYER_CLIENT_SECRET` or `AUDIENCE_PLAYER_OAUTH_CLIENT_SECRET` | yes | — |
+| `AUDIENCE_PLAYER_PROJECT_ID` | no | `14` |
+| `AUDIENCE_PLAYER_API_URL` | no | `https://api.audienceplayer.com` |
+| `AUDIENCE_PLAYER_PREVIEW_EMAIL` | no | `vathuis-preview@vrijeacademie.nl` |
+
+`AUDIENCE_PLAYER_PREVIEW_EMAIL` is auto-registered via `ClientUserAuthenticate`. That user must be allowed to play preview articles (local POC against Art Nouveau article `339` / asset `200` succeeds). After changing env, reload Medusa.
+
 Public `GET /store/events/:handle` may still expose tenant `/_embed/video-player` URLs in `embed_url` for reference; the storefront modal does not iframe them.
 
 ## Salesforce alignment

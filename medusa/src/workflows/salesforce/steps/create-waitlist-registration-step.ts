@@ -29,24 +29,35 @@ export type CreateWaitlistRegistrationOutput = {
 export const createWaitlistRegistrationStep = createStep(
   { name: "create-waitlist-registration", maxRetries: 5, retryInterval: 30 },
   async (input: CreateWaitlistRegistrationInput, { container }) => {
-    if (
-      input.prep.skipped ||
-      !input.prep.customerId ||
-      !input.prep.vaProductId ||
-      !input.prep.registrationExternalId ||
-      input.customer.skipped ||
-      !input.customer.salesforceAccountId ||
-      !input.customer.salesforceContactId
-    ) {
+    if (input.prep.skipped) {
       return new StepResponse<CreateWaitlistRegistrationOutput>({
         skipped: true,
         salesforceRegistrationId: null,
       })
     }
 
+    if (
+      !input.prep.customerId ||
+      !input.prep.vaProductId ||
+      !input.prep.registrationExternalId
+    ) {
+      throw new Error("Waitlist signup is missing customer or Salesforce product link")
+    }
+
     const sync = container.resolve("salesforceSync") as InstanceType<
       typeof SalesforceSyncModuleService
     >
+    const row = await sync.getStateByMedusaId("customer", input.prep.customerId)
+    const accountId =
+      input.customer.salesforceAccountId?.trim() || row?.salesforce_account_id?.trim() || null
+    const contactId =
+      input.customer.salesforceContactId?.trim() || row?.salesforce_id?.trim() || null
+
+    if (input.customer.skipped || !accountId || !contactId) {
+      throw new Error(
+        `Customer ${input.prep.customerId} has no Salesforce Person Account link for waitlist`
+      )
+    }
 
     const externalId = input.prep.registrationExternalId
     let regSfId = await resolveExistingSalesforceId(sync, "registration", externalId, () =>
@@ -55,8 +66,8 @@ export const createWaitlistRegistrationStep = createStep(
 
     const fields = waitlistRegistrationToSalesforce({
       externalId,
-      accountId: input.customer.salesforceAccountId,
-      contactId: input.customer.salesforceContactId,
+      accountId,
+      contactId,
       vaProductId: input.prep.vaProductId,
       quantity: input.prep.quantity,
       participantEmail: input.prep.email,

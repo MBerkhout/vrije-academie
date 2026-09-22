@@ -68,22 +68,32 @@ function portableTextComponents(tone: 'default' | 'onDark') {
     },
     list: {
       bullet: ({ children }: { children?: React.ReactNode }) => (
-        <ul className={cn('list-disc list-inside mb-4 space-y-1', D ? 'marker:text-va-yellow' : 'marker:text-va-orange')}>
+        <ul
+          className={cn(
+            'mb-4 list-outside list-disc space-y-1 ps-6 [&>li]:break-words',
+            D ? 'marker:text-va-yellow' : 'marker:text-va-orange',
+          )}
+        >
           {children}
         </ul>
       ),
       number: ({ children }: { children?: React.ReactNode }) => (
-        <ol className={cn('list-decimal list-inside mb-4 space-y-1', D ? 'text-white/90' : 'text-va-darkgray')}>
+        <ol
+          className={cn(
+            'mb-4 list-outside list-decimal space-y-1 ps-6 [&>li]:break-words',
+            D ? 'text-white/90' : 'text-va-darkgray',
+          )}
+        >
           {children}
         </ol>
       ),
     },
     listItem: {
       bullet: ({ children }: { children?: React.ReactNode }) => (
-        <li className={cn('font-sans', body)}>{children}</li>
+        <li className={cn('font-sans [&>p]:mb-0', body)}>{children}</li>
       ),
       number: ({ children }: { children?: React.ReactNode }) => (
-        <li className={cn('font-sans', body)}>{children}</li>
+        <li className={cn('font-sans [&>p]:mb-0', body)}>{children}</li>
       ),
     },
   }

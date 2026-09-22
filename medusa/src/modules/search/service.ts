@@ -16,6 +16,7 @@ import {
 } from "./document-builders"
 import { getOpenSearchClient, getSearchIndexName, isOpenSearchConfigured } from "./client"
 import { SEARCH_INDEX_MAPPINGS, SEARCH_INDEX_SETTINGS } from "./index-mapping"
+import { buildSearchQuery } from "./query"
 import type {
   SearchDocKind,
   SearchDocument,
@@ -51,60 +52,6 @@ function docToHit(doc: SearchDocument): SearchHit {
     href: doc.url,
     excerpt: doc.excerpt ?? truncateExcerpt(doc.body),
     thumbnailUrl: doc.thumbnail_url ?? undefined,
-  }
-}
-
-function buildSearchQuery(
-  q: string,
-  kinds: SearchDocKind[],
-  limit: number,
-  options?: { futureProductsOnly?: boolean }
-): Record<string, unknown> {
-  const filters: Record<string, unknown>[] = [{ terms: { kind: kinds } }]
-
-  if (options?.futureProductsOnly) {
-    filters.push({
-      bool: {
-        should: [
-          { term: { has_future_activity: true } },
-          { bool: { must_not: [{ term: { kind: "product" } }] } },
-        ],
-        minimum_should_match: 1,
-      },
-    })
-  }
-
-  return {
-    size: limit,
-    query: {
-      bool: {
-        must: [
-          {
-            multi_match: {
-              query: q,
-              fields: [
-                "title^4",
-                "title.autocomplete^3",
-                "handle^2",
-                "body",
-                "excerpt",
-                "category_labels^2",
-                "docent_names^2",
-                "city_labels^2",
-                "location_names^2",
-                "tags",
-                "subtitle",
-              ],
-              type: "best_fields" as const,
-              fuzziness: "AUTO" as const,
-              prefix_length: 1,
-            },
-          },
-        ],
-        filter: filters,
-      },
-    },
-    sort: [{ _score: { order: "desc" } }, { "title.keyword": { order: "asc" } }],
   }
 }
 

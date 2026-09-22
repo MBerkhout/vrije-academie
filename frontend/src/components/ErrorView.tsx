@@ -1,6 +1,7 @@
 import { CONTAINER_CLASS } from '@/lib/cms'
 import { Button } from '@/components/ui'
 import { defaultMessages, interpolate } from '@/lib/i18n/messages'
+import { ScrollToTopOnMount } from '@/components/common/ScrollToTopOnMount'
 
 interface ErrorViewProps {
   onRetry?: () => void
@@ -14,6 +15,7 @@ export function ErrorView({ onRetry, digest, standalone = false }: ErrorViewProp
 
   return (
     <section className="py-12 md:py-16 border-b border-va-lightgray/80">
+      <ScrollToTopOnMount />
       <div className={CONTAINER_CLASS}>
         {standalone ? (
           <div className="mb-10">

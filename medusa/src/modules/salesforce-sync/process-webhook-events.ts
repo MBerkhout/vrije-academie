@@ -28,6 +28,7 @@ import {
   webhookQueueConcurrency,
   webhookQueueMaxAttempts,
 } from "./utils/webhook-queue-config"
+import { importRebookedOrderIfApplicable } from "./utils/import-rebooked-order"
 import {
   extractWebhookApplyResult,
   webhookOutcomeFromApply,
@@ -255,6 +256,30 @@ async function processWebhookEventRow(
   }
 
   if (entityType === "order" && !linkedMedusaId) {
+    const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+    try {
+      const imported = await importRebookedOrderIfApplicable(container, pullSalesforceId)
+      if (imported) {
+        logger.info(
+          `[salesforce-sync] imported omboeking order ${pullSalesforceId} → ${imported.medusaOrderId}`
+        )
+        return {
+          outcome: "done",
+          entityType,
+          medusaId: imported.medusaOrderId,
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      logger.warn(
+        `[salesforce-sync] omboeking import failed for ${pullSalesforceId}: ${msg}`
+      )
+      return {
+        outcome: "failed",
+        entityType,
+        error: msg,
+      }
+    }
     return {
       outcome: "skipped",
       entityType,

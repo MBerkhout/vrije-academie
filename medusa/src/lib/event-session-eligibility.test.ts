@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  futureSessionsForListing,
   productEligibleForPlpListing,
   productHasFutureAvailableSession,
   productHasFutureSession,
@@ -45,5 +46,17 @@ describe("productHasFutureSession", () => {
 describe("productHasFutureAvailableSession", () => {
   it("is false when there are no event items", () => {
     expect(productHasFutureAvailableSession([])).toBe(false)
+  })
+})
+
+describe("futureSessionsForListing", () => {
+  it("keeps on-demand and future sessions, drops past dated sessions", () => {
+    expect(
+      futureSessionsForListing([
+        { start_at: past },
+        { start_at: future },
+        { start_at: null },
+      ])
+    ).toEqual([{ start_at: future }, { start_at: null }])
   })
 })

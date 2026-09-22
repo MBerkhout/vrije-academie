@@ -43,4 +43,50 @@ describe('TextBlock', () => {
     const inner = wrapper.querySelector('.max-w-xl')
     expect(inner).toBeTruthy()
   })
+
+  it('renders subtitle under the heading', () => {
+    render(
+      <TextBlock
+        block={{
+          ...baseBlock,
+          title: 'Page title',
+          titleSize: 'h1',
+          subtitle: 'Optional intro line',
+        }}
+      />,
+    )
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Page title')
+    expect(screen.getByText('Optional intro line')).toBeInTheDocument()
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument()
+  })
+
+  it('renders a divider between title and subtitle when enabled', () => {
+    render(
+      <TextBlock
+        block={{
+          ...baseBlock,
+          title: 'Page title',
+          titleSize: 'h1',
+          subtitle: 'Optional intro line',
+          showTitleDivider: true,
+        }}
+      />,
+    )
+    const divider = screen.getByRole('separator')
+    expect(divider).toHaveClass('h-1', 'w-full', 'bg-va-yellow')
+  })
+
+  it('does not render a divider without a subtitle', () => {
+    render(
+      <TextBlock
+        block={{
+          ...baseBlock,
+          title: 'Page title',
+          titleSize: 'h1',
+          showTitleDivider: true,
+        }}
+      />,
+    )
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument()
+  })
 })

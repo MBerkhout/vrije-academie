@@ -86,11 +86,12 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
                   {event.title}
                 </h1>
                 {event.vathuis?.episode_count_label || event.vathuis?.play_time ? (
-                  <p className="text-sm text-va-gray-300">
-                    {[event.vathuis?.episode_count_label, event.vathuis?.play_time]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
+                  <div className="flex flex-col gap-0.5 text-sm text-va-gray-300">
+                    {event.vathuis?.episode_count_label ? (
+                      <p>{event.vathuis.episode_count_label}</p>
+                    ) : null}
+                    {event.vathuis?.play_time ? <p>{event.vathuis.play_time}</p> : null}
+                  </div>
                 ) : null}
               </div>
               <div className="mt-6 text-white [&_.pdp-body_.text-va-darkgray]:text-white/90 [&_.pdp-body_.text-va-black]:text-white [&_.pdp-body_a]:text-va-yellow">
@@ -113,6 +114,7 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
         {(event.vathuis?.chapters?.length || vathuisEpisodes.length) > 0 ? (
           <div className={`${CONTAINER_CLASS} text-white`}>
             <PdpEpisodesTable
+              event={event}
               productHandle={handle}
               chapters={event.vathuis?.chapters}
               episodes={vathuisEpisodes}

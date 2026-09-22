@@ -10,6 +10,12 @@ export function medusaMajorToCents(amount: number): number {
   return Math.round(amount * 100)
 }
 
+/** Cart/order `unit_price` is major EUR (e.g. 50 = €50). */
+export function centsToMedusaMajor(cents: number): number {
+  if (!Number.isFinite(cents) || cents <= 0) return 0
+  return Math.round(cents) / 100
+}
+
 export function priceRowsToCents(prices: PriceRow[] | null | undefined): number[] {
   return (prices ?? [])
     .map((p) => medusaMajorToCents(Number(p.amount ?? 0)))

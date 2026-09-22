@@ -15,7 +15,7 @@ Step 1 of the 4-step checkout flow (default step titles in code: **Summary → L
 
 CartView  (client, src/components/cart/CartView.tsx)
   └─ reads va_cart_id cookie
-  └─ commerceClient.getCart(cartId)          — Medusa SDK; amounts normalized to cents in `normalize-store-money.ts` (gift-card purchase lines: `is_giftcard` or `metadata.gift_card`, unit price already in cents)
+  └─ commerceClient.getCart(cartId)          — Medusa SDK; amounts (catalog and cadeaubon) normalized from major EUR to cents in `normalize-store-money.ts`
   └─ GET /store/cart/extras?cart_id=…        — enriched session data
   └─ dispatches window Event 'va:cart-updated' after every mutation
   └─ line items are sorted deterministically (`created_at` / `createdAt`, then `id`) so quantity updates cannot reshuffle rows — see `src/lib/commerce/cart-sort.ts`
@@ -25,6 +25,14 @@ CartView  (client, src/components/cart/CartView.tsx)
 
 Cart ID is stored in a **first-party cookie** named **`va_cart_id`** (constant `CART_COOKIE` in `src/lib/commerce/cart-cookie-name.ts`; 30-day max-age, SameSite=Lax in `cart.ts`). The header cart-count bubble listens for `va:cart-updated` events on `window` and re-fetches `/api/cart/count`.
 
+### Logged-in cart sync (cross-device)
+
+When a customer is logged in **outside checkout**, the storefront calls `POST /store/carts/sync` (`commerceClient.syncAccountCart`) via `ensureAccountCartSynced()` in `src/lib/commerce/cart.ts`. Medusa merges all open carts for that customer into the **oldest** cart (same variant quantities are combined; VA Thuis bundles stay qty 1; gift-card purchase lines stay separate). The cookie is then updated to that canonical cart id.
+
+**Checkout is excluded:** on `/checkout/*` the device keeps its current `va_cart_id` cart (login may still attach that cart to the customer, but no merge or cart swap). After leaving checkout, sync runs once on the next page.
+
+Guests keep a cookie-only cart until they log in outside checkout.
+
 ## Cart extras API
 
 `GET /store/cart/extras?cart_id=…` (Medusa, requires `x-publishable-api-key`).
@@ -33,6 +41,7 @@ Returns per-line-item:
 - `product_handle`, `product_title`, `thumbnail`
 - `event_item`: `start_at`, `end_at`, `city`, `delivery_type`
 - `vathuis`: for online courses (`metadata.vathuis.purchase_mode: bundle_only`) — `episode_count_label` and `play_time` from Salesforce (`Audience_Player_Episodes__c`, `Audience_Player_Play_Time__c`), with fallbacks from synced episode metadata when those fields are empty
+- `is_vathuis`: true for those bundles so the cart can lock quantity at 1
 - `instructor_names`: string[]
 
 This avoids stuffing metadata into Medusa line items; the SDK cart response stays canonical.
@@ -50,7 +59,7 @@ Vast NL-blok onder het kortingscodeveld: `cart.discountOrderHelp` in `frontend/s
 - Zelfde invoerveld als kortingscode: geldige **promotiecodes** (Medusa) of **interne** codes (`GIFT-…`) die via `POST /store/cart/gift-cards` als **cart credit line** worden geboekt.
 - Na wijziging van aantallen wordt `commerceClient.syncGiftCardCredits` aangeroepen zodat toegepaste bonnen opnieuw tegen het nieuwe subtotaal worden afgezet.
 - Kooppagina voor nieuwe bonnen: **`/cadeaubon`** — CMS Page `pageCadeaubon` met blok **Cadeaubon (koop)**; zie `sanity/docs/CADEAUBON.md`. Het formulier (`GiftCardPurchaseForm` via `GiftCardBlock`) gebruikt dezelfde patronen als de checkout-stap **Gegevens**: `ValidatedInput` / `ValidatedTextarea`, `FieldValidity` (groene rand + vinkje na geldige blur, rood bij fout), e-mailregels via `validateAccountField('email', …)`, en NL-teksten onder `auth.validation` in `locales/nl.json` (o.a. `giftCardRecipientNameRequired`, `giftCardAmountInvalid`).
-- Een **gekochte** digitale bon als regel: secundaire regelinfo komt uit **`buildCartLineItemDetailBlocks`** (`src/lib/commerce/line-item-details.ts`) en één renderer **`CartLineItemDetails`** (`src/components/cart/CartLineItemDetails.tsx`) — zelfde pipeline op **Betaling** en in orderregels (zie `docs/CHECKOUT.md`). Shape voor extras: `CartItemExtras` in `src/lib/commerce/cart-item-extras.ts`; laden via `fetchCartExtras` (`src/lib/commerce/fetch-cart-extras.ts`).
+- Een **gekochte** digitale bon als regel: secundaire regelinfo komt uit **`buildCartLineItemDetailBlocks`** (`src/lib/commerce/line-item-details.ts`) en één renderer **`CartLineItemDetails`** (`src/components/cart/CartLineItemDetails.tsx`) — zelfde pipeline op **Betaling** en in orderregels (zie `docs/CHECKOUT.md`). Shape voor extras: `CartItemExtras` in `src/lib/commerce/cart-item-extras.ts`; laden via `fetchCartExtras` (`src/lib/commerce/fetch-cart-extras.ts`). Thumbnail: statische **`/branding/cadeaubon-thumb.jpg`** (`resolveLineItemThumbnail` in `src/lib/commerce/gift-card.ts`) — winkelwagen, checkout-overzicht en bedankt/orderregels.
 
 Zie ook [`medusa/docs/GIFT-CARDS.md`](../../medusa/docs/GIFT-CARDS.md).
 
@@ -62,7 +71,7 @@ Zie ook [`medusa/docs/GIFT-CARDS.md`](../../medusa/docs/GIFT-CARDS.md).
 | `CartView` | Client root: loads cart + extras, owns mutations |
 | `CartLineItemDetails` | Rendert `LineItemDetailBlock[]` (`session`, `vathuis`, `instructors`, `quantity_label`, `gift_recipient`, `notice`) — varianten `cart` / `payment` / `summary` |
 | `GiftCardRecipientLine` | Alleen de **Voor:**-regel; aangeroepen vanuit `CartLineItemDetails` |
-| `CartItemRow` | Thumbnail, title, `CartLineItemDetails`, qty selector, remove |
+| `CartItemRow` | Thumbnail, title, `CartLineItemDetails`, qty selector (locked at **1** without −/+ for cadeaubon purchases and VA Thuis bundles), remove |
 | `DiscountCodeForm` | Kortings- **en** cadeauboncodes (zelfde veld); `commerceClient.applyCode`; verwijderen: `removePromoCodes` (alleen niet-automatische promo) / `removeGiftCardCode` (cadeaubon). Promoties met `is_automatic` uit de Store API tonen geen verwijderknop. |
 | `OrderSummary` | Subtotal (gross producten) / discount / cadeaubon-tegoed (`credit_line_total`) / **waarvan BTW (X%)** / total |
 
@@ -88,7 +97,7 @@ Checkout lives in `src/app/(checkout)/checkout/` so it does **not** use the main
 - **Order summary** (`CheckoutOrderSummary` via `CheckoutContentWithSummary`): on **`/checkout/betaling`**, the main column uses **`CheckoutPaymentOrderOverview`** (order block + **`OrderSummaryDetails`**); the sidebar is **`CheckoutOrderSummaryHelpTrustOnly`** (Hulp nodig + USPs, no order heading or lines). On **`/checkout/inloggen`** and **`/checkout/bevestiging`**, the sidebar is the full summary: on **mobile**, collapsible header + line items + totals; on **`lg+`**, full heading row + lines + totals, then **Hulp nodig** (phone, e-mail, opening hours from **Footer → contact**, belkosten disclaimer stripped) and **TrustSignals** (`cart.trustSecure`, etc.).
 - **Footer** (`CheckoutShellFooter`): single link — **Algemene voorwaarden** resolved from **Footer → topMenuSecondary** (first item whose label matches `/voorwaarden/i`), otherwise `/algemene-voorwaarden`.
 
-The inner `checkout/layout.tsx` shows **Terug naar winkelwagen** (arrow + text) instead of breadcrumbs; the target is `cart.continueShoppingUrl` from Sanity when set, else `/winkelwagen`.
+The inner `checkout/layout.tsx` shows **Terug naar winkelwagen** (arrow + text) instead of breadcrumbs; the target is `/winkelwagen`. The cart’s **Verder winkelen** link still uses `cart.continueShoppingUrl` (Ons aanbod).
 
 ## Regel-details uitbreiden
 

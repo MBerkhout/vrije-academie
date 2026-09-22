@@ -12,6 +12,7 @@ import {
 
 import GiftCardModuleService from "../modules/gift-card/service"
 import { GIFT_CARD_MODULE } from "../modules/gift-card"
+import { centsToMedusaMajor } from "./medusa-price-to-cents"
 import { refetchStoreCart, toNumber } from "./store-cart"
 
 export const GIFT_CARD_REFERENCE = "gift_card"
@@ -106,7 +107,8 @@ export async function addGiftCardProductToCart(input: {
         {
           variant_id: variantId,
           quantity: 1,
-          unit_price: amountCents,
+          // Cart unit_price is major EUR; amount_cents stays on metadata for issuance.
+          unit_price: centsToMedusaMajor(amountCents),
           is_tax_inclusive: true,
           requires_shipping: false,
           is_giftcard: true,
@@ -175,6 +177,18 @@ async function stripGiftCardCredits(container: MedusaContainer, cartId: string) 
       await gift.releaseReservationsForCart(mid.gift_card_id, cartId)
     }
   }
+}
+
+/** Release gift-card credit lines and clear saved redemption metadata on a cart. */
+export async function clearGiftCardCreditsFromCart(
+  container: MedusaContainer,
+  cartId: string
+): Promise<void> {
+  await stripGiftCardCredits(container, cartId)
+  const cart = await refetchStoreCart(container, cartId)
+  const meta = { ...(cart.metadata ?? {}) }
+  meta.gift_card_redemptions = [] as { code: string; gift_card_id: string }[]
+  await container.resolve(Modules.CART).updateCarts(cartId, { metadata: meta })
 }
 
 export async function applyGiftCardCode(

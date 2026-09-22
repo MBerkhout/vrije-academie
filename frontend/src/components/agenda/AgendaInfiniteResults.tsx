@@ -16,6 +16,8 @@ import { serializeFilterState } from '@/app/(main)/agenda/_state/url'
 import { AgendaResultsList } from '@/components/agenda/AgendaResultsList'
 import { Spinner } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { listingAgendaAnchorId, keepLoadedListingItems } from '@/lib/listing-return-anchor'
+import { useEnsureListingAnchorLoaded } from '@/components/plp/useEnsureListingAnchorLoaded'
 
 type AgendaInfiniteResultsContextValue = {
   shownEnd: number
@@ -62,10 +64,13 @@ export function AgendaInfiniteResultsProvider({
     () => JSON.stringify({ filterState, sort }),
     [filterState, sort]
   )
+  const filterKeyRef = useRef(filterKey)
 
   useEffect(() => {
-    setItems(initialItems)
-    setError(null)
+    const filtersChanged = filterKeyRef.current !== filterKey
+    filterKeyRef.current = filterKey
+    setItems((prev) => (filtersChanged ? initialItems : keepLoadedListingItems(prev, initialItems)))
+    if (filtersChanged) setError(null)
   }, [initialItems, filterKey])
 
   const hasMore = items.length < totalCount
@@ -98,6 +103,13 @@ export function AgendaInfiniteResultsProvider({
       setLoading(false)
     }
   }, [loading, hasMore, filterState, sort, items.length, pageSize])
+
+  useEnsureListingAnchorLoaded({
+    knownIds: items.map((item) => listingAgendaAnchorId(item.id, item.variant_id)),
+    hasMore,
+    loading,
+    loadMore,
+  })
 
   const value: AgendaInfiniteResultsContextValue = {
     shownEnd: Math.min(items.length, totalCount),

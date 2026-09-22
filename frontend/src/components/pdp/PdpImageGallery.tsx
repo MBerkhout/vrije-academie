@@ -19,6 +19,41 @@ interface PdpImageGalleryProps {
 const TILE_CLASS =
   'relative aspect-[3/2] w-full overflow-hidden rounded-none bg-va-lightgray'
 
+function agentDebugLog(
+  hypothesisId: string,
+  location: string,
+  message: string,
+  data: Record<string, unknown>,
+) {
+  // #region agent log
+  const payload = JSON.stringify({
+    sessionId: 'dc50f5',
+    runId: 'pre-fix',
+    hypothesisId,
+    location,
+    message,
+    data,
+    timestamp: Date.now(),
+  })
+  fetch('http://127.0.0.1:7766/ingest/daa88646-6778-4a68-b046-b8741af3d131', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dc50f5' },
+    body: payload,
+  }).catch(() => {})
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    fetch('/api/__debug-ingest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'dc50f5' },
+      body: payload,
+    }).catch(() => {})
+  }
+  // #endregion
+}
+
 const galleryArrowClass = cn(
   'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
   'border border-va-lightgray-300 bg-white text-va-black',
@@ -104,7 +139,7 @@ function GalleryTile({
           aria-hidden
           className={cn(
             'bg-white p-2 text-left text-[14px] leading-snug text-va-black',
-            'whitespace-pre-line line-clamp-4 shadow-[0_2px_10px_rgba(0,0,0,0.08)]',
+            'whitespace-pre-line shadow-[0_2px_10px_rgba(0,0,0,0.08)]',
             isOpen ? 'mt-2 max-sm:block' : 'max-sm:hidden',
             'sm:pointer-events-none sm:absolute sm:left-0 sm:right-0 sm:top-full sm:z-20 sm:mt-1.5 sm:opacity-0',
             'sm:transition-opacity sm:duration-200',
@@ -128,7 +163,9 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
   const [canScrollNext, setCanScrollNext] = useState(false)
   const didDragRef = useRef(false)
   const snapTimerRef = useRef<number | null>(null)
-  const pointerStartRef = useRef<{ x: number; y: number; scrollLeft: number; index: number } | null>(null)
+  const pointerStartRef = useRef<{ x: number; y: number; scrollLeft: number; index: number; pointerType: string } | null>(null)
+  const pointerDownRef = useRef(false)
+  const loggedDragStartRef = useRef(false)
 
   const getSlides = useCallback(() => {
     const el = scrollerRef.current
@@ -181,7 +218,7 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
   }, [findNearestSlideIndex])
 
   const scrollToIndex = useCallback(
-    (index: number) => {
+    (index: number, reason = 'unspecified') => {
       const el = scrollerRef.current
       const slides = getSlides()
       const clamped = Math.max(0, Math.min(slides.length - 1, index))
@@ -189,6 +226,16 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
       if (!el || !target) return
 
       const left = getSlideScrollLeft(target)
+      agentDebugLog('B', 'PdpImageGallery.tsx:scrollToIndex', 'scrollToIndex called', {
+        reason,
+        index,
+        clamped,
+        scrollLeft: el.scrollLeft,
+        targetLeft: left,
+        skipped: Math.abs(el.scrollLeft - left) < 2,
+        pointerDown: pointerDownRef.current,
+        activeIndex,
+      })
       if (Math.abs(el.scrollLeft - left) < 2) return
 
       const previousSnap = el.style.scrollSnapType
@@ -208,7 +255,7 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
   )
 
   const snapToNearestSlide = useCallback(() => {
-    scrollToIndex(findNearestSlideIndex())
+    scrollToIndex(findNearestSlideIndex(), 'snap-nearest')
   }, [findNearestSlideIndex, scrollToIndex])
 
   const scheduleSnapAfterScroll = useCallback(() => {
@@ -216,6 +263,14 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
       window.clearTimeout(snapTimerRef.current)
     }
     snapTimerRef.current = window.setTimeout(() => {
+      const el = scrollerRef.current
+      const nearest = findNearestSlideIndex()
+      agentDebugLog('A', 'PdpImageGallery.tsx:scheduleSnapAfterScroll', '80ms snap timer fired', {
+        pointerDown: pointerDownRef.current,
+        nearest,
+        scrollLeft: el?.scrollLeft ?? null,
+        activeIndex,
+      })
       snapToNearestSlide()
     }, 80)
   }, [snapToNearestSlide])
@@ -277,52 +332,121 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
 
   const scrollByPage = useCallback(
     (direction: -1 | 1) => {
-      scrollToIndex(activeIndex + direction)
+      scrollToIndex(activeIndex + direction, direction === 1 ? 'arrow-next' : 'arrow-prev')
     },
     [activeIndex, scrollToIndex],
   )
 
-  const handleScrollerPointerDown = (clientX: number, clientY: number) => {
+  const handleScrollerPointerDown = (
+    clientX: number,
+    clientY: number,
+    pointerType: string,
+    targetTag: string,
+  ) => {
     const el = scrollerRef.current
     didDragRef.current = false
+    loggedDragStartRef.current = false
+    pointerDownRef.current = true
     pointerStartRef.current = el
-      ? { x: clientX, y: clientY, scrollLeft: el.scrollLeft, index: findNearestSlideIndex() }
+      ? { x: clientX, y: clientY, scrollLeft: el.scrollLeft, index: findNearestSlideIndex(), pointerType }
       : null
+    agentDebugLog('C', 'PdpImageGallery.tsx:pointerdown', 'gallery pointerdown', {
+      pointerType,
+      targetTag,
+      scrollLeft: el?.scrollLeft ?? null,
+      index: pointerStartRef.current?.index ?? null,
+      activeIndex,
+    })
   }
 
   const handleScrollerPointerMove = (clientX: number, clientY: number) => {
     const start = pointerStartRef.current
+    const el = scrollerRef.current
     if (!start) return
     if (Math.hypot(clientX - start.x, clientY - start.y) > 8) {
       didDragRef.current = true
+      if (!loggedDragStartRef.current) {
+        loggedDragStartRef.current = true
+        agentDebugLog('C', 'PdpImageGallery.tsx:pointermove', 'drag started', {
+          pointerType: start.pointerType,
+          deltaX: clientX - start.x,
+          deltaY: clientY - start.y,
+          scrollDelta: (el?.scrollLeft ?? 0) - start.scrollLeft,
+          scrollLeft: el?.scrollLeft ?? null,
+          startScrollLeft: start.scrollLeft,
+          startIndex: start.index,
+        })
+      }
     }
   }
 
-  const handleScrollerPointerUp = (clientX: number) => {
+  const handleScrollerPointerUp = (clientX: number, eventType: string) => {
     const el = scrollerRef.current
     const start = pointerStartRef.current
     pointerStartRef.current = null
+    pointerDownRef.current = false
+
+    const deltaX = start ? clientX - start.x : 0
+    const scrollDelta = el && start ? el.scrollLeft - start.scrollLeft : 0
+    const nearest = findNearestSlideIndex()
+    const dragThreshold = 36
+    let branch = 'snap-fallback'
 
     if (el && start && didDragRef.current) {
-      const deltaX = clientX - start.x
-      const scrollDelta = el.scrollLeft - start.scrollLeft
-      const dragThreshold = 36
-
       if (scrollDelta > dragThreshold || deltaX < -dragThreshold) {
-        scrollToIndex(start.index + 1)
+        branch = 'next'
+        agentDebugLog('B', 'PdpImageGallery.tsx:pointerup', 'gallery pointerup', {
+          eventType,
+          pointerType: start.pointerType,
+          branch,
+          deltaX,
+          scrollDelta,
+          nearest,
+          startIndex: start.index,
+          scrollLeft: el.scrollLeft,
+          didDrag: true,
+        })
+        scrollToIndex(start.index + 1, 'pointer-next')
         window.requestAnimationFrame(() => {
           didDragRef.current = false
         })
         return
       }
       if (scrollDelta < -dragThreshold || deltaX > dragThreshold) {
-        scrollToIndex(start.index - 1)
+        branch = 'prev'
+        agentDebugLog('B', 'PdpImageGallery.tsx:pointerup', 'gallery pointerup', {
+          eventType,
+          pointerType: start.pointerType,
+          branch,
+          deltaX,
+          scrollDelta,
+          nearest,
+          startIndex: start.index,
+          scrollLeft: el.scrollLeft,
+          didDrag: true,
+        })
+        scrollToIndex(start.index - 1, 'pointer-prev')
         window.requestAnimationFrame(() => {
           didDragRef.current = false
         })
         return
       }
+      branch = 'below-threshold'
+    } else if (!didDragRef.current) {
+      branch = 'tap'
     }
+
+    agentDebugLog('D', 'PdpImageGallery.tsx:pointerup', 'gallery pointerup', {
+      eventType,
+      pointerType: start?.pointerType ?? null,
+      branch,
+      deltaX,
+      scrollDelta,
+      nearest,
+      startIndex: start?.index ?? null,
+      scrollLeft: el?.scrollLeft ?? null,
+      didDrag: didDragRef.current,
+    })
 
     scheduleSnapAfterScroll()
 
@@ -348,10 +472,26 @@ export function PdpImageGallery({ images, title }: PdpImageGalleryProps) {
             'cursor-grab active:cursor-grabbing',
             'pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           )}
-          onPointerDown={(e) => handleScrollerPointerDown(e.clientX, e.clientY)}
+          onPointerDown={(e) =>
+            handleScrollerPointerDown(
+              e.clientX,
+              e.clientY,
+              e.pointerType,
+              (e.target as HTMLElement)?.tagName ?? 'unknown',
+            )
+          }
           onPointerMove={(e) => handleScrollerPointerMove(e.clientX, e.clientY)}
-          onPointerUp={(e) => handleScrollerPointerUp(e.clientX)}
-          onPointerCancel={(e) => handleScrollerPointerUp(e.clientX)}
+          onPointerUp={(e) => handleScrollerPointerUp(e.clientX, e.type)}
+          onPointerCancel={(e) => handleScrollerPointerUp(e.clientX, e.type)}
+          onPointerLeave={(e) => {
+            if (pointerDownRef.current) {
+              agentDebugLog('E', 'PdpImageGallery.tsx:pointerleave', 'pointer left scroller while down', {
+                pointerType: e.pointerType,
+                scrollLeft: scrollerRef.current?.scrollLeft ?? null,
+                didDrag: didDragRef.current,
+              })
+            }
+          }}
         >
           {images.map((image, i) => {
             const isActive = i === activeIndex

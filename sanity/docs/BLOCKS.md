@@ -66,10 +66,14 @@ All blocks include these fields:
 - Long-form text sections
 
 **Fields**:
+- Optional heading: title, size (H1–H4), alignment
+- Optional subtitle under the heading
+- **Line between title and subtitle**: boolean; shows a 4px yellow bar as wide as the heading when both heading and subtitle are set
 - Content: Portable Text array (supports headings, bold, italic, links)
+- Content width: narrow / normal / wide
 
 **Supported Styles**:
-- Normal, H1, H2, H3, Blockquote
+- Normal, H1, H2, H3, Blockquote, bullet and numbered lists
 
 **Supported Marks**:
 - Bold, Italic
@@ -80,6 +84,9 @@ All blocks include these fields:
 Rich Text Block
 ├── Margin: Top 24px, Bottom 24px
 ├── Width: Container
+├── Heading: "Vraag het gratis magazine aan" (H1)
+├── Subtitle: "Bekijk hier ons nieuwste magazine!"
+├── Line between title and subtitle: on
 └── Content: [Portable Text with formatting]
 ```
 
@@ -152,9 +159,9 @@ Image Block
 
 **Studio**: Each item in **Items** shows a list preview title (referenced category **Label** or custom **Label**), not “Untitled”.
 
-**Frontend**: Blocks stored **inline** on a page (no `_ref` on the block) still need GROQ to expand `items[].category->` (including `slug`, optional **Custom title**, `image`); see `INLINE_PAGE_BLOCK_LAYOUT` / inline branches in `frontend/src/lib/cms/page-query.ts`. Bibliotheek tiles link to `/ons-aanbod/{slug}` by default, or to **`linkUrl`** when set on the mirrored category. Tile label uses the category **Custom title** when set, otherwise Medusa **Label**.
+**Frontend**: Blocks stored **inline** on a page (no `_ref` on the block) still need GROQ to expand `items[].category->` (including `slug`, optional **Custom title**, `image`); see `INLINE_PAGE_BLOCK_LAYOUT` / inline branches in `frontend/src/lib/cms/page-query.ts`. Bibliotheek tiles link to `/ons-aanbod/{slug}` by default, or to **`linkUrl`** when set on the mirrored category. Tile label uses the category **Custom title** when set, otherwise Medusa **Label**. Tile thumbs use `SanityImage` `fill` (`fit=max`, quality 90) so the 75px strip is not cropped to 16:9.
 
-**Homepage seed**: To wire the eight “Populaire vakgebieden” tiles (library refs + editorial images from [vrijeacademie.nl](https://www.vrijeacademie.nl/)), run `npm run seed:homepage-categories --prefix sanity` (requires `SANITY_API_WRITE_TOKEN`). Images are stored on mirrored `category` documents (`image`), not on block items. After changing category images or SEO in Studio, run `npm run search:reindex --prefix medusa` (or rely on the Sanity search webhook) so header search picks up thumbnails.
+**Homepage seed**: To wire the eight “Populaire vakgebieden” tiles (library refs + editorial images from [vrijeacademie.nl](https://www.vrijeacademie.nl/)), run `npm run seed:homepage-categories --prefix sanity` (requires `SANITY_API_WRITE_TOKEN`). Images are stored on mirrored `category` documents (`image`), not on block items. Several live-site Cloudinary URLs are only ~180–290px; replace those in Studio with at least ~400px on the short edge if a tile still looks soft. **Publish** the category after changing **Image** / SEO (same as products). After publish, run `npm run search:reindex --prefix medusa` (or rely on the Sanity search webhook) so header search picks up thumbnails.
 
 ---
 
@@ -206,7 +213,7 @@ Image Block
 **Nested column types**:
 - Text, Media, Highlight card, Product cards, CTA card, Person card (not arbitrary nested blocks)
 
-**Product cards column**: Pick up to three mirrored **Product** references; optional **Card CTA label** (same text on each card, e.g. “VAthuis – ON DEMAND”). Frontend uses `thumbnailUrl`, `handle`, and `plpProductPath`. Seed homepage trio: `npm run seed:homepage-product-columns --prefix sanity`.
+**Product cards column**: Pick up to three mirrored **Product** references; optional **Card CTA label** (same text on each card, e.g. “VAthuis – ON DEMAND”). Frontend uses `thumbnailUrl`, `handle`, and `plpProductPath`. Each card’s thumbnail is `88px` wide and stretches to the card height (covers a wrapping title). Seed homepage trio: `npm run seed:homepage-product-columns --prefix sanity`.
 
 **Example Usage**:
 ```

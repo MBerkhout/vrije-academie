@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getCachedEvent } from '@/lib/commerce/server'
+import { cmsClient } from '@/lib/cms/server'
 import {
   getCategoryBySlug,
   categoryDisplayTitle,
@@ -10,8 +11,8 @@ import { buildProductPdpMetadata, buildSeoMetadata } from '@/lib/cms/seo-metadat
 import { plpCategoryHref, plpProductPath, plpProductTypeHref, vathuisProductPath } from '@/lib/routes'
 import { PlpListingPage } from '@/components/plp/PlpListingPage'
 import { parseFilterState, serializeFilterState } from '../_state/url'
-import { resolvePlpFilterHref, singleProductTypeRedirectTarget } from '../_state/redirects'
-import { isPlpProductTypeSlug, productTypeLabelFromSlug } from '@/lib/plp-product-types'
+import { resolvePlpFilterHref } from '../_state/redirects'
+import { isPlpProductTypeSlug, productTypeListLabelFromSlug, productTypePluralsFromCms } from '@/lib/plp-product-types'
 import { PdpPageContent } from './PdpPageContent'
 
 export const dynamic = 'force-dynamic'
@@ -40,7 +41,11 @@ export async function generateMetadata({ params }: HandlePageProps): Promise<Met
   }
 
   if (isPlpProductTypeSlug(handle)) {
-    const label = productTypeLabelFromSlug(handle)
+    const settings = await cmsClient.getGeneralSettings()
+    const label = productTypeListLabelFromSlug(
+      handle,
+      productTypePluralsFromCms(settings?.plp?.productTypePlurals),
+    )
     return {
       title: `Ons aanbod in ${label} – ${siteName}`,
       description: `Bekijk ${label.toLowerCase()} van ${siteName}.`,
@@ -134,7 +139,11 @@ export default async function HandlePage({ params, searchParams }: HandlePagePro
       const query = serializeFilterState(filterState).toString()
       redirect(query ? `${basePath}?${query}` : basePath)
     }
-    const label = productTypeLabelFromSlug(handle)
+    const settings = await cmsClient.getGeneralSettings()
+    const label = productTypeListLabelFromSlug(
+      handle,
+      productTypePluralsFromCms(settings?.plp?.productTypePlurals),
+    )
     const pageTitle = `Ons aanbod in ${label}`
 
     return (

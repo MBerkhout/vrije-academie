@@ -195,6 +195,7 @@ The `generalSettings` document contains:
   - **Vaak gezocht**: Optional shortcuts (label + internal or external link) listed under the search field in the search overlay; submit runs on **Enter** (no separate Zoek button).
   - **Cart URL**: Path for cart icon + badge matching (default `/winkelwagen`).
   - **Sticky header**: Optional `position: sticky` behavior.
+- **Product listing page (Ons aanbod)**: H1, search/empty-state copy, and **Product type plurals** (Reis → Reizen, etc.) used on the Soort activiteit filter, chips, and `/ons-aanbod/{type}` titles. PDP badges keep the singular Salesforce name.
 - **Footer**
   - **Footer top — link column 1**: Primary quick links (yellow rule). **Juridisch / praktisch** links live in the bottom row (see below), not beside this column.
   - **Footer — juridisch / praktisch menu**: Menu for Voorwaarden, Privacy, Adverteren, etc. Rendered in the **bottom** footer row (heading from **Footer bottom — legal column heading**, default “Juridisch”). Do not add a separate “Nieuwsbrief” column; that slot is replaced on the site by this block.
@@ -264,6 +265,7 @@ src/schemas/
 ## Documentation
 
 - [BLOCKS.md](./BLOCKS.md) - Complete block catalog with usage examples
+- [MIRRORED_TYPES.md](./MIRRORED_TYPES.md) - Medusa-synced product / category / docent documents
 - [REDIRECTS.md](./REDIRECTS.md) - URL redirects and delete-with-redirect flow
 - [blocks/](./blocks/) - Individual block documentation
 - [OPEN_POINTS.md](./OPEN_POINTS.md) - Future considerations

@@ -21,6 +21,7 @@ import {
   formatPriceEur,
   formatTimeRange,
 } from '@/lib/locale-format'
+import { WaitlistTrigger } from '@/components/waitlist/WaitlistTrigger'
 
 interface PdpLocationTabsProps {
   event: EventCard
@@ -207,7 +208,11 @@ export function PdpLocationTabs({
   const sessionCtaDesktopClassName =
     'text-sm font-bold px-4 py-2 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-block text-center'
 
-  const sessionsHeading = labels?.sessionsHeading ?? t.locationSessions ?? 'Sessies'
+  const sessionsHeading =
+    labels?.physicalSessionsHeading ??
+    labels?.sessionsHeading ??
+    t.physicalSessionsHeading ??
+    'Data en locaties'
   const deliveryFilterBothLabel = t.deliveryFilterBoth ?? 'Alle'
   const deliveryFilterOnlineLabel = t.deliveryFilterOnline ?? 'Online'
   const deliveryFilterOfflineLabel = t.deliveryFilterOffline ?? 'Fysiek'
@@ -215,7 +220,7 @@ export function PdpLocationTabs({
   const sortDateLabel = labels?.sessionsSortDate ?? t.sessionsSortDate ?? t.tableDate
   const sortLocationLabel = labels?.sessionsSortLocation ?? t.sessionsSortLocation ?? t.tableLocation
   const allLocationsLabel = labels?.allLocationsTab ?? t.locationAll ?? 'Alle locaties'
-  const soldOutLabel = labels?.soldOutLabel ?? 'Volgeboekt'
+  const soldOutLabel = labels?.soldOutLabel ?? 'Wachtlijst'
   const primaryCtaLabel = labels?.primaryCta ?? 'Direct inschrijven'
   const freeTrialLabel = labels?.freeTrialBadge ?? 'Gratis proefles'
   const noSessionsMessage = labels?.noSessionsMessage ?? 'Momenteel geen sessies beschikbaar.'
@@ -332,12 +337,26 @@ export function PdpLocationTabs({
       return <span className="text-sm text-va-gray">—</span>
     }
 
+    if (isSoldOut) {
+      return (
+        <WaitlistTrigger
+          handle={event.handle}
+          title={event.title}
+          variantId={variant.id}
+          label={soldOutLabel}
+          className={`${className} bg-va-lightgray text-va-gray hover:bg-va-gray/20`}
+        >
+          {ctaLabel}
+        </WaitlistTrigger>
+      )
+    }
+
     return (
       <button
         type="button"
         onClick={() => void handleRegister(variant.id)}
-        disabled={isSoldOut || addingId !== null}
-        className={`${className} ${isFreeTrial ? 'bg-va-yellow/60 text-va-black hover:bg-va-yellow' : isSoldOut ? 'bg-va-lightgray text-va-gray' : 'bg-va-yellow text-va-black hover:bg-va-yellow/90'}`}
+        disabled={addingId !== null}
+        className={`${className} ${isFreeTrial ? 'bg-va-yellow/60 text-va-black hover:bg-va-yellow' : 'bg-va-yellow text-va-black hover:bg-va-yellow/90'}`}
       >
         {ctaLabel}
       </button>

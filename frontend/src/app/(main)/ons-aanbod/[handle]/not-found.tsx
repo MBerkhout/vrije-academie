@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { PLP_BASE_PATH } from '@/lib/routes'
 import { CONTAINER_CLASS } from '@/lib/cms'
+import { ScrollToTopOnMount } from '@/components/common/ScrollToTopOnMount'
 
 export default function PdpNotFound() {
   return (
     <div className={`${CONTAINER_CLASS} py-24 text-center flex flex-col items-center gap-6`}>
+      <ScrollToTopOnMount />
       <h1 className="font-sans text-3xl font-bold text-va-black">Activiteit niet gevonden</h1>
       <p className="text-va-gray max-w-md">
         De activiteit die je zoekt bestaat niet (meer) of is verplaatst.

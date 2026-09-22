@@ -4,9 +4,11 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 
-import GiftCardModuleService from "../modules/gift-card/service"
-import { GIFT_CARD_MODULE } from "../modules/gift-card"
+import { emailContent } from "../lib/email-content"
 import { GIFT_CARD_REFERENCE } from "../lib/gift-card-cart"
+import { medusaMajorToCents } from "../lib/medusa-price-to-cents"
+import { GIFT_CARD_MODULE } from "../modules/gift-card"
+import GiftCardModuleService from "../modules/gift-card/service"
 
 /**
  * On order.placed: issue gift cards for purchased lines with metadata.gift_card,
@@ -53,7 +55,7 @@ export default async function giftCardsOnOrderPlaced({
     const amountCents =
       typeof gc.amount_cents === "number" && Number.isFinite(gc.amount_cents)
         ? gc.amount_cents
-        : Math.round(unit * qty)
+        : medusaMajorToCents(unit) * qty
 
     try {
       const card = await gift.createForOrderLine({
@@ -102,10 +104,7 @@ export default async function giftCardsOnOrderPlaced({
             message: gc.message,
             order_id: orderId,
           },
-          content: {
-            subject,
-            text,
-          },
+          content: emailContent({ subject, text }),
           trigger_type: "gift-card.purchased",
           resource_id: orderId,
           resource_type: "order",

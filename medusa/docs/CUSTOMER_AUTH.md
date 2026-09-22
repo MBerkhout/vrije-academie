@@ -10,10 +10,12 @@ Storefront checkout and `/login` use Medusa `customer` + `emailpass`, with custo
 { "exists": true, "hasPassword": false }
 ```
 
-- `exists` — customer row in Medusa Customer module
+- `exists` — customer row in Medusa Customer module **or** a matching Salesforce Person Account Contact (`IsPersonAccount = true`, same email). Lookup only queries Salesforce (SOQL); it does **not** create a Medusa customer.
 - `hasPassword` — `emailpass` provider identity has a stored password hash **or** a legacy Django PBKDF2 hash exists (`legacyPassword` module)
 
-Salesforce-imported customers without auth credentials → `exists: true`, `hasPassword: false` → OTP login.
+Salesforce-only emails → `exists: true`, `hasPassword: false` → storefront OTP login (same as bulk-imported customers).
+
+**Login-time import:** when `POST /store/auth/otp/request` runs for login and no Medusa customer exists yet, Medusa pulls the Contact from Salesforce (creates customer + sync link), then sends the 6-digit code. Verify + JWT behave like any passwordless customer (`ensurePasswordlessAuthIdentity` on OTP verify).
 
 Customers imported from the old site with Django password hashes → `exists: true`, `hasPassword: true` → password login (see [Legacy password migration](#legacy-password-migration)).
 
@@ -64,18 +66,39 @@ npx medusa exec ./src/scripts/verify-legacy-password.ts -- \
 
 - 6-digit code, 10 min TTL, max 3 requests / 15 min per email, max 5 verify attempts
 - Codes stored hashed in `customer_otp_challenge` (`customerOtp` module)
-- Email via SendGrid when `SENDGRID_API_KEY` is set; otherwise logged to Medusa stdout as `[customer-otp] email → code` (dev). Medusa loads a notification module without a provider by default — the adapter checks `SENDGRID_API_KEY` explicitly before calling it.
+- Email via SMTP (`SMTP_HOST`) or SendGrid (`SENDGRID_API_KEY`); otherwise logged to Medusa stdout as `[customer-otp] email → code` (dev). SMTP wins if both are set. Bodies include `text` and `html` (SendGrid only sends `html`).
 
 ### Email (optional)
 
-Set in `medusa/.env`:
+Set in `medusa/.env`. Prefer SMTP for the staging/production server:
+
+```env
+SMTP_HOST=127.0.0.1
+SMTP_PORT=25
+SMTP_FROM=noreply@vrijeacademie.nl
+# SMTP_USER=
+# SMTP_PASS=
+# SMTP_SECURE=false
+```
+
+Authenticated relay (port 587 TLS, or 465 SSL):
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
+SMTP_FROM=noreply@vrijeacademie.nl
+```
+
+SendGrid fallback when `SMTP_HOST` is unset:
 
 ```env
 SENDGRID_API_KEY=...
 SENDGRID_FROM=noreply@example.com
 ```
 
-When `SENDGRID_API_KEY` is set, `medusa-config.ts` registers `@medusajs/notification-sendgrid`.
+When `SMTP_HOST` is set, `medusa-config.ts` registers the custom SMTP provider (`src/providers/smtp`, nodemailer). When only `SENDGRID_API_KEY` is set, it registers `@medusajs/notification-sendgrid`. SPF/DKIM/DMARC for the From domain is required for inbox delivery.
 
 ## Admin (support)
 
@@ -133,6 +156,7 @@ Optional profile fields (website → Medusa `customer.metadata` → Salesforce):
 - `src/modules/customer-otp/` — challenge storage + send adapter
 - `src/modules/legacy-password/` — Django PBKDF2 hash storage for migration
 - `src/lib/customer-auth/helpers.ts` — lookup, JWT issuance, registration, password migration, admin password reset
+- `src/lib/customer-auth/ensure-salesforce-customer.ts` — Salesforce contact lookup + login-time customer import before OTP
 - `src/lib/customer-auth/django-pbkdf2.ts` — Django PBKDF2 verifier
 - `src/admin/widgets/customer-auth-widget.tsx` — Admin customer detail support panel
 

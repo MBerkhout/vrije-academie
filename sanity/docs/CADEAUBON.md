@@ -5,6 +5,7 @@ Koop-pagina content staat in een **Page** (document id `pageCadeaubon`, slug **`
 ## Frontend
 
 - Route: **`/[slug]`** → `GiftCardBlock` rendert het koopformulier (plus andere blokken op de Page).
+- Winkelwagen / checkout thumbnail: `frontend/public/branding/cadeaubon-thumb.jpg`.
 
 ## Studio
 

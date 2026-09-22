@@ -21,7 +21,7 @@ Daarna kan `plpPage` uit de dataset verwijderd worden. De storefront leest tijde
 
 ## Category landing pages
 
-Er is **geen** aparte Sanity Page per categorie. Gemirrorde **`category`**-documenten (`slug`, `label`) sturen de storefront naar `/ons-aanbod/{slug}` met titel “Ons aanbod in {label}” (of **Custom title** indien ingevuld). Optionele velden:
+Er is **geen** aparte Sanity Page per categorie. Gemirrorde **`category`**-documenten (`slug`, `label`) sturen de storefront naar `/ons-aanbod/{slug}` met titel “Ons aanbod in {label}” (of **Custom title** indien ingevuld). **Publish** in Studio na wijzigingen aan image/titel/SEO — anders blijven die velden concept. Optionele velden:
 
 | Veld | Gebruik |
 |------|---------|
@@ -32,6 +32,10 @@ Er is **geen** aparte Sanity Page per categorie. Gemirrorde **`category`**-docum
 | **SEO** | `title`, `description`, `image` voor metadata / Open Graph |
 
 Presentation preview opent de category-PLP in de storefront.
+
+## Product-type landing pages
+
+`/ons-aanbod/reis` (and studiedag / wandeling / workshop) use the same PLP. Listing labels come from **General Settings → Product listing page → Product type plurals**. Empty Reis falls back to **Reizen**. The PDP record-type badge stays the singular Salesforce name.
 
 ## Storefront sort
 

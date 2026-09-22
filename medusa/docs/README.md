@@ -7,7 +7,7 @@ Medusa 2 backend for commerce around events (lectures, series, excursions) model
 - **Product Group** = Medusa `Product` + linked `EventGroup` (`record_type`).
 - **Product** (ticket/instance) = Medusa `ProductVariant` + linked `EventItem` (`delivery_type`, `available_quantity`).
 - Optional **properties** (key/value) on the group or each variant for storefront filters.
-- Cart, checkout, promotions: default Medusa, plus **event-specific promotion target rules** (see Promotions below). Line item quantity &gt; 1 is allowed.
+- Cart, checkout, promotions: default Medusa, plus **event-specific promotion target rules** (see Promotions below). Line item quantity &gt; 1 is allowed for sessions; **VA Thuis** bundles stay at quantity 1 (`POST /store/carts/:id/line-items` skips a second add).
 
 See [EVENTS.md](./EVENTS.md) for the domain model and API details. Unified typo-tolerant search: [SEARCH.md](./SEARCH.md). Customer OTP / passwordless checkout: [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md).
 
@@ -108,6 +108,8 @@ Event date/city values are written to line item metadata server-side when a vari
 
 **Included VAT preview:** `POST /store/carts/:id/tax-preview` sets a minimal NL shipping country when the cart has catalog lines but no calculable `tax_total`, so storefront totals can show Medusa-extracted BTW (incl. product-type rules such as BTW laag). Also runs automatically after add-to-cart.
 
+**Logged-in cart sync:** `POST /store/carts/sync` (customer JWT required) merges all open carts for the logged-in customer into the oldest cart. Optional body `{ cart_id }` transfers a guest cart first. Implementation: `src/lib/account-cart-sync.ts`. The storefront skips this during `/checkout/*` so payment stays on the device cart.
+
 Implementation: `src/lib/event-line-item-metadata.ts`, `src/lib/promotion-event-rule-attributes.ts`, admin Vite plugin `src/admin/vite/promotion-rule-date-picker-plugin.ts` (patches the prebuilt dashboard promotion rule field for event date pickers), optional reference override under `src/admin/overrides/medusa-dashboard/.../rule-value-form-field/`, and core route overrides under `src/api/admin/promotions/` and `src/api/store/carts/[id]/line-items/`. Re-verify after every Medusa upgrade (`src/lib/medusa-core-imports.ts`, date-picker Vite plugin vs dashboard dist chunk shape).
 
 ## Catalog cities (plaatsen)
@@ -148,6 +150,7 @@ See [SANITY_SYNC.md](./SANITY_SYNC.md). Cities sync as Sanity `city` documents (
 
 ## Documentation
 
+- [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md) — OTP / passwordless checkout, SMTP + SendGrid
 - [EVENTS.md](./EVENTS.md) — module fields, availability, store filters
 - [SANITY_SYNC.md](./SANITY_SYNC.md) — Sanity mirror
 - [SALESFORCE_SYNC.md](./SALESFORCE_SYNC.md) — Salesforce connector

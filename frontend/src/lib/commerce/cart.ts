@@ -12,6 +12,63 @@ export type AddToCartTrackingContext = {
   quantity?: number
 }
 
+let syncedCustomerId: string | null = null
+let accountCartSyncInFlight: Promise<string | null> | null = null
+
+export function isCheckoutPath(pathname?: string): boolean {
+  const path =
+    pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '')
+  return path.startsWith('/checkout')
+}
+
+export function resetAccountCartSync(): void {
+  syncedCustomerId = null
+  accountCartSyncInFlight = null
+}
+
+/**
+ * Merge open customer carts into the account cart (outside checkout only).
+ * Returns the active cart id when sync ran or was already done for this customer.
+ */
+export async function ensureAccountCartSynced(): Promise<string | null> {
+  if (typeof window === 'undefined') return getCartId()
+  if (isCheckoutPath()) return getCartId()
+
+  const customer = await commerceClient.getCustomer()
+  if (!customer?.id) {
+    resetAccountCartSync()
+    return getCartId()
+  }
+
+  if (syncedCustomerId === customer.id) {
+    return getCartId()
+  }
+
+  if (accountCartSyncInFlight) {
+    return accountCartSyncInFlight
+  }
+
+  accountCartSyncInFlight = (async () => {
+    try {
+      const localCartId = getCartId()
+      const cart = await commerceClient.syncAccountCart(localCartId ?? undefined)
+      if (cart?.id) {
+        setCartId(cart.id)
+        dispatchCartUpdated()
+      }
+      syncedCustomerId = customer.id
+      return cart?.id ?? getCartId()
+    } catch {
+      syncedCustomerId = customer.id
+      return getCartId()
+    } finally {
+      accountCartSyncInFlight = null
+    }
+  })()
+
+  return accountCartSyncInFlight
+}
+
 export function getCartId(): string | null {
   if (typeof document === 'undefined') return null
   const match = document.cookie.match(new RegExp(`(?:^|; )${CART_COOKIE}=([^;]*)`))
@@ -70,6 +127,10 @@ export async function getActiveCart(): Promise<Cart | null> {
 }
 
 export async function getOrCreateCartId(): Promise<string> {
+  if (typeof window !== 'undefined' && !isCheckoutPath()) {
+    await ensureAccountCartSynced()
+  }
+
   const existingId = getCartId()
   try {
     const active = await getActiveCart()
@@ -89,9 +150,24 @@ export async function addVariantToCart(
   tracking?: AddToCartTrackingContext
 ): Promise<void> {
   const cartId = await getOrCreateCartId()
-  await commerceClient.addToCart(cartId, variantId, tracking?.quantity ?? 1)
+  const isVathuisBundle = tracking?.event?.purchase_mode === 'bundle_only'
+  const quantity = isVathuisBundle ? 1 : tracking?.quantity ?? 1
+
+  if (isVathuisBundle) {
+    const cart = await commerceClient.getCart(cartId)
+    const existing = cart?.items?.find((item) => item.variant_id === variantId)
+    if (existing) {
+      if (existing.quantity > 1) {
+        await commerceClient.updateCartItem(cartId, existing.id, 1)
+        dispatchCartUpdated()
+      }
+      return
+    }
+  }
+
+  await commerceClient.addToCart(cartId, variantId, quantity)
   dispatchCartUpdated()
   if (tracking) {
-    trackAddToCart(tracking.event, tracking.variant, tracking.quantity ?? 1)
+    trackAddToCart(tracking.event, tracking.variant, quantity)
   }
 }

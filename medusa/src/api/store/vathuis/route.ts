@@ -2,6 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { filterProductsBySearchQuery, sortByRelevanceRank } from "../../../lib/search-query"
 import { getVathuisListingSnapshot } from "../../../lib/store-listing-snapshot"
+import { taxonomyFacetsFromListingRows } from "../../../lib/merge-vathuis-into-plp"
 import {
   sortListingBySalesforceOrder,
   tieBreakByTitle,
@@ -50,45 +51,6 @@ function sortVathuisList(
   return sorted
 }
 
-function buildVathuisFacets(list: Record<string, unknown>[]) {
-  const categoryCounts: Record<string, { slug: string; label: string; count: number }> = {}
-  const docentCounts: Record<string, { slug: string; name: string; count: number }> = {}
-
-  for (const product of list) {
-    for (const category of (product.categories ?? []) as {
-      slug?: string
-      label?: string
-    }[]) {
-      if (!category.slug) continue
-      if (!categoryCounts[category.slug]) {
-        categoryCounts[category.slug] = {
-          slug: category.slug,
-          label: category.label ?? category.slug,
-          count: 0,
-        }
-      }
-      categoryCounts[category.slug].count++
-    }
-
-    for (const docent of (product.docenten ?? []) as { slug?: string; name?: string }[]) {
-      if (!docent.slug) continue
-      if (!docentCounts[docent.slug]) {
-        docentCounts[docent.slug] = {
-          slug: docent.slug,
-          name: docent.name ?? docent.slug,
-          count: 0,
-        }
-      }
-      docentCounts[docent.slug].count++
-    }
-  }
-
-  return {
-    categories: Object.values(categoryCounts),
-    docenten: Object.values(docentCounts),
-  }
-}
-
 /**
  * GET /store/vathuis — VAthuis on-demand catalog (excluded from Ons aanbod / Agenda).
  */
@@ -127,7 +89,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     relevanceRank = searchResult.rankByProductId
   }
 
-  const facets = buildVathuisFacets(list)
+  const facets = taxonomyFacetsFromListingRows(list)
   const count = list.length
   list = sortVathuisList(list, sort, relevanceRank)
   list = list.slice(offset, offset + limit)

@@ -8,7 +8,6 @@ import {
   assertValidEmail,
   ensurePasswordlessAuthIdentity,
   getCustomerByEmail,
-  linkAuthIdentityToCustomer,
 } from "../customer-auth/helpers"
 
 export type WaitlistCustomerInput = {
@@ -96,6 +95,7 @@ export async function resolveWaitlistCustomer(
   }
 
   const authIdentity = await ensurePasswordlessAuthIdentity(container, email)
+  // createCustomerAccountWorkflow already writes customer_id onto the auth identity.
   const workflow = createCustomerAccountWorkflow(container)
   const { result: customer } = await workflow.run({
     input: {
@@ -109,10 +109,6 @@ export async function resolveWaitlistCustomer(
       },
     },
   })
-
-  if (!authIdentity.app_metadata?.customer_id) {
-    await linkAuthIdentityToCustomer(container, authIdentity.id, customer.id)
-  }
 
   return { customerId: customer.id }
 }

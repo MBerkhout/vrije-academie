@@ -10,6 +10,16 @@ body {
   @apply font-sans text-sm text-va-darkgray bg-white;
 }
 
+/* iOS Safari zooms focused form controls when computed font-size is below 16px.
+   Keep pinch-zoom enabled; bump field type on touch / small viewports instead. */
+@media (max-width: 1023px), (hover: none) and (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):not([type='image']),
+  textarea,
+  select {
+    font-size: 1rem !important;
+  }
+}
+
 @layer utilities {
   .scrollbar-va {
     scrollbar-width: thin;

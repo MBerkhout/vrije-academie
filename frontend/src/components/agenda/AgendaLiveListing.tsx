@@ -24,6 +24,8 @@ import {
   AgendaInfiniteResultsProvider,
 } from '@/components/agenda/AgendaInfiniteResults'
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
+import type { ProductTypePluralMap } from '@/lib/plp-product-types'
+import { resolveAgendaSort } from '@/lib/agenda/hard-cache-sort'
 
 const AGENDA_SORT_OPTIONS = [
   { value: 'start_date', label: 'Eerstvolgende eerst' },
@@ -45,11 +47,11 @@ type AgendaLiveListingProps = {
   emptyStateSubtext?: string
   loadMoreLabel?: string
   loadError?: boolean
+  productTypePlurals?: ProductTypePluralMap
 }
 
-function agendaSortForQuery(query: string, filterState: AgendaFilterState): string {
-  if (query.trim()) return 'relevance'
-  return filterState.sort ?? 'start_date'
+function agendaSortForQuery(_query: string, filterState: AgendaFilterState): string {
+  return resolveAgendaSort(filterState.sort)
 }
 
 function mergeAgendaQuery(
@@ -72,6 +74,7 @@ export function AgendaLiveListing({
   emptyStateSubtext,
   loadMoreLabel,
   loadError = false,
+  productTypePlurals,
 }: AgendaLiveListingProps) {
   const {
     query,
@@ -131,6 +134,7 @@ export function AgendaLiveListing({
             cityOptions={facets?.cities}
             basePath="/agenda"
             extraChips={extraChips}
+            productTypePlurals={productTypePlurals}
           />
         )}
       </div>
@@ -156,6 +160,7 @@ export function AgendaLiveListing({
             teachers={teachers}
             facets={facets}
             mobileOnly
+            productTypePlurals={productTypePlurals}
           />
         </div>
         <PlpEmptyState
@@ -185,6 +190,7 @@ export function AgendaLiveListing({
             teachers={teachers}
             facets={facets}
             mobileOnly
+            productTypePlurals={productTypePlurals}
           />
         </div>
         <div className={searching ? 'opacity-60 pointer-events-none transition-opacity' : undefined}>
@@ -220,6 +226,7 @@ export function AgendaLiveListing({
               categories={categories}
               teachers={teachers}
               facets={facets}
+              productTypePlurals={productTypePlurals}
             />
           </aside>
           <div className="flex-1 min-w-0">{resultsBody}</div>

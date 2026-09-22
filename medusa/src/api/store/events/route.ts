@@ -1,7 +1,14 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { isSalesforceExterneVerhuur } from "../../../lib/salesforce-visible-on-website"
-import { getPlpListingSnapshot, getRegistrationCountsByProduct } from "../../../lib/store-listing-snapshot"
+import { getPlpListingSnapshot, getRegistrationCountsByProduct, getVathuisListingSnapshot } from "../../../lib/store-listing-snapshot"
+import {
+  countPreRecordedDelivery,
+  injectVathuisDeliveryFacet,
+  isVathuisListingRow,
+  mergeVathuisIntoPlpList,
+  taxonomyFacetsFromListingRows,
+} from "../../../lib/merge-vathuis-into-plp"
 import { LISTING_CACHE_TTL_SEC } from "../../../lib/store-listing-redis"
 import { filterProductsBySearchQuery, sortByRelevanceRank } from "../../../lib/search-query"
 import {
@@ -15,10 +22,28 @@ import {
   tieBreakEventsByStartThenTitle,
   tieBreakByTitle,
 } from "../../../lib/listing-sort"
+import {
+  dayPartFromStartAt,
+  earliestMatchingSessionStartAt,
+  futureEventItemsMatchSessionFilters,
+  listingSessionFiltersOmitting,
+  matchingListingSessions,
+  uniqueFutureDayParts,
+  uniqueFutureMonthKeys,
+  uniqueSessionCityRefs,
+  type ListingSessionFilters,
+} from "../../../lib/listing-future-filters"
+import type { EventItemListingRow } from "../../../lib/event-session-eligibility"
 
 function parseArrayParam(val: string | string[] | undefined): string[] {
   if (!val) return []
   return (Array.isArray(val) ? val : [val]).flatMap((v) => v.split(",")).filter(Boolean)
+}
+
+function eventItemsFromListingProduct(p: Record<string, unknown>): EventItemListingRow[] {
+  return ((p.variants ?? []) as Array<{ event_item?: EventItemListingRow | null }>)
+    .map((variant) => variant.event_item)
+    .filter((ei): ei is EventItemListingRow => Boolean(ei))
 }
 
 function setListingCacheHeaders(res: MedusaResponse): void {
@@ -57,9 +82,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   }
 
   const snapshot = await getPlpListingSnapshot(req.scope)
+  const vathuisSnapshot = await getVathuisListingSnapshot(req.scope)
   let list = [...snapshot.list].filter(
     (p) => !isSalesforceExterneVerhuur(p.title as string | undefined, p.record_type as string | undefined)
   )
+  list = mergeVathuisIntoPlpList(list, vathuisSnapshot.list)
 
   if (recordTypes.length) {
     list = list.filter((p) => {
@@ -110,43 +137,44 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     )
   }
 
+  const sessionFilters: ListingSessionFilters = {
+    citySlugs,
+    dayParts,
+    periodStart,
+    periodEnd,
+  }
+
+  list = list.filter(
+    (p) =>
+      isVathuisListingRow(p) ||
+      futureEventItemsMatchSessionFilters(eventItemsFromListingProduct(p), sessionFilters)
+  )
+
+  list = list.map((p) => {
+    if (isVathuisListingRow(p)) return p
+    const earliest = earliestMatchingSessionStartAt(
+      eventItemsFromListingProduct(p),
+      sessionFilters
+    )
+    return {
+      ...p,
+      earliest_start_at: earliest,
+      day_part_of_earliest: dayPartFromStartAt(earliest),
+    }
+  })
+
+  const vathuisFacetCount = countPreRecordedDelivery(list)
+
   if (deliveryTypes.length) {
     list = list.filter((p) =>
       ((p.delivery_types ?? []) as string[]).some((dt) => deliveryTypes.includes(dt))
     )
+  } else {
+    list = list.filter((p) => !isVathuisListingRow(p))
   }
 
-  if (citySlugs.length) {
-    list = list.filter((p) =>
-      ((p.cities ?? []) as CityRef[]).some((c) => citySlugs.includes(c.slug))
-    )
-  }
-
-  if (dayParts.length) {
-    list = list.filter(
-      (p) => p.day_part_of_earliest && dayParts.includes(p.day_part_of_earliest as string)
-    )
-  }
-
-  if (periodStart) {
-    const from = new Date(periodStart).getTime()
-    list = list.filter(
-      (p) => p.earliest_start_at && new Date(p.earliest_start_at as string).getTime() >= from
-    )
-  }
-  if (periodEnd) {
-    const to = new Date(periodEnd).getTime()
-    list = list.filter(
-      (p) => p.earliest_start_at && new Date(p.earliest_start_at as string).getTime() <= to
-    )
-  }
-
-  const facets = buildFacets(
-    list,
-    snapshot.catLinksAll,
-    snapshot.docLinksAll,
-    snapshot.eventGroupLinks
-  )
+  const facets = buildFacets(list, snapshot.eventGroupLinks, sessionFilters)
+  const facetsWithVathuis = injectVathuisDeliveryFacet(facets, vathuisFacetCount)
   const count = list.length
   const registrationCounts =
     sort === "popularity" ? await getRegistrationCountsByProduct(req.scope) : null
@@ -154,7 +182,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   list = list.slice(offset, offset + limit)
 
   setListingCacheHeaders(res)
-  res.json({ events: list, count, facets })
+  res.json({ events: list, count, facets: facetsWithVathuis })
 }
 
 function propertyMapFromRows(rows: unknown[]): Record<string, string> {
@@ -239,9 +267,8 @@ function sortList(
 
 function buildFacets(
   list: Record<string, unknown>[],
-  catLinks: { product_id: string; catalog_category?: { slug: string; label: string } | null }[],
-  docLinks: { product_id: string; docent?: { slug: string; name: string } | null }[],
-  eventGroupLinks: { product_id: string; event_group?: { record_type?: string } | null }[]
+  eventGroupLinks: { product_id: string; event_group?: { record_type?: string } | null }[],
+  sessionFilters: ListingSessionFilters
 ): Record<string, unknown> {
   const productIds = new Set(list.map((p) => p.id as string))
 
@@ -252,38 +279,44 @@ function buildFacets(
     if (rt) recordTypeCounts[rt] = (recordTypeCounts[rt] ?? 0) + 1
   }
 
-  const categoryCounts: Record<string, { slug: string; label: string; count: number }> = {}
-  for (const row of catLinks) {
-    if (!productIds.has(row.product_id) || !row.catalog_category) continue
-    const slug = row.catalog_category.slug
-    if (!categoryCounts[slug]) {
-      categoryCounts[slug] = { slug, label: row.catalog_category.label, count: 0 }
-    }
-    categoryCounts[slug].count++
-  }
-
-  const docentCounts: Record<string, { slug: string; name: string; count: number }> = {}
-  for (const row of docLinks) {
-    if (!productIds.has(row.product_id) || !row.docent) continue
-    const slug = row.docent.slug
-    if (!docentCounts[slug]) {
-      docentCounts[slug] = { slug, name: row.docent.name, count: 0 }
-    }
-    docentCounts[slug].count++
-  }
+  const { categories, docenten } = taxonomyFacetsFromListingRows(list)
 
   const cityCounts: Record<string, { slug: string; label: string; count: number }> = {}
   const deliveryTypeCounts: Record<string, number> = {}
   const dayPartCounts: Record<string, number> = {}
+  const monthCounts: Record<string, number> = {}
   const productTypeCounts: Record<string, { slug: string; label: string; count: number }> = {}
 
   for (const p of list) {
-    incrementCityFacetCounts(cityCounts, (p.cities ?? []) as CityRef[])
+    const eventItems = eventItemsFromListingProduct(p)
+    const timeFiltered = matchingListingSessions(
+      eventItems,
+      listingSessionFiltersOmitting(sessionFilters, "city")
+    )
+    const cityFiltered = matchingListingSessions(
+      eventItems,
+      listingSessionFiltersOmitting(sessionFilters, "day_part")
+    )
+    const periodFiltered = matchingListingSessions(
+      eventItems,
+      listingSessionFiltersOmitting(sessionFilters, "period")
+    )
+
+    if (sessionFilters.dayParts.length || sessionFilters.periodStart || sessionFilters.periodEnd) {
+      incrementCityFacetCounts(cityCounts, uniqueSessionCityRefs(timeFiltered))
+    } else {
+      incrementCityFacetCounts(cityCounts, (p.cities ?? []) as CityRef[])
+    }
+
     for (const dt of (p.delivery_types ?? []) as string[]) {
       deliveryTypeCounts[dt] = (deliveryTypeCounts[dt] ?? 0) + 1
     }
-    const dp = p.day_part_of_earliest as string | undefined
-    if (dp) dayPartCounts[dp] = (dayPartCounts[dp] ?? 0) + 1
+    for (const dp of uniqueFutureDayParts(cityFiltered)) {
+      dayPartCounts[dp] = (dayPartCounts[dp] ?? 0) + 1
+    }
+    for (const month of uniqueFutureMonthKeys(periodFiltered)) {
+      monthCounts[month] = (monthCounts[month] ?? 0) + 1
+    }
     const ptSlug = productTypeToSlug(p.product_type as string | undefined)
     if (ptSlug) {
       if (!productTypeCounts[ptSlug]) {
@@ -300,10 +333,11 @@ function buildFacets(
   return {
     record_type: Object.entries(recordTypeCounts).map(([slug, count]) => ({ slug, count })),
     product_type: Object.values(productTypeCounts),
-    categories: Object.values(categoryCounts),
-    docenten: Object.values(docentCounts),
+    categories,
+    docenten,
     cities: sortCityFacetsByCount(Object.values(cityCounts)),
     delivery_type: Object.entries(deliveryTypeCounts).map(([slug, count]) => ({ slug, count })),
     day_part: Object.entries(dayPartCounts).map(([slug, count]) => ({ slug, count })),
+    months: Object.entries(monthCounts).map(([slug, count]) => ({ slug, count })),
   }
 }

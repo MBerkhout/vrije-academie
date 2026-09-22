@@ -1,5 +1,6 @@
-import Link from 'next/link'
 import { DeliveryTypeIcon } from '@/components/ui/DeliveryTypeIcon'
+import { ListingAnchorLink } from '@/components/plp/ListingAnchorLink'
+import { listingAgendaAnchorId } from '@/lib/listing-return-anchor'
 import { plpProductPath } from '@/lib/routes'
 import type { AgendaItem } from '@/lib/commerce/types'
 import {
@@ -8,6 +9,7 @@ import {
 } from '@/lib/event-status-presentation'
 import { formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
+import { WaitlistTrigger } from '@/components/waitlist/WaitlistTrigger'
 
 interface AgendaRowProps {
   item: AgendaItem
@@ -43,6 +45,7 @@ export function AgendaRow({ item }: AgendaRowProps) {
   })
 
   const href = plpProductPath(item.product_handle)
+  const anchorId = listingAgendaAnchorId(item.id, item.variant_id)
   const status = presentationForAvailabilityStatus(item.status, { city: item.city })
   const statusClassName = status.className
     .split(' ')
@@ -53,15 +56,17 @@ export function AgendaRow({ item }: AgendaRowProps) {
 
   return (
     <article
+      id={anchorId}
       className={cn(
-        'group relative grid grid-cols-[76px_1fr_auto_auto] sm:grid-cols-[76px_1fr_auto_auto_auto] items-stretch gap-0 bg-white border border-va-lightgray rounded-lg overflow-hidden transition-[box-shadow,border-color,opacity]',
+        'group relative scroll-mt-32 grid grid-cols-[76px_minmax(0,1fr)_auto] sm:grid-cols-[76px_minmax(0,1fr)_auto_auto] items-stretch gap-0 bg-white border border-va-lightgray rounded-lg overflow-hidden transition-[box-shadow,border-color,opacity]',
         isSoldOut
           ? 'opacity-70 hover:border-va-lightgray'
           : 'hover:border-va-gray hover:shadow-md',
       )}
     >
-      <Link
+      <ListingAnchorLink
         href={href}
+        anchorId={anchorId}
         className="absolute inset-0 z-10 rounded-lg"
         aria-label={item.product_title}
       />
@@ -122,39 +127,41 @@ export function AgendaRow({ item }: AgendaRowProps) {
         ) : null}
       </div>
 
-      {/* Time */}
+      {/* Time + price — tight pair, extra padding before the CTA */}
       <div
         className={cn(
-          'hidden sm:flex items-center px-4 py-3 text-sm whitespace-nowrap',
+          'hidden sm:flex items-center py-3 pr-8 text-sm',
           isSoldOut ? 'text-va-gray' : 'text-va-black',
         )}
       >
-        {timeRange}
-      </div>
-
-      {/* Price */}
-      {priceLabel ? (
-        <div
-          className={cn(
-            'hidden sm:flex items-center px-4 py-3 text-sm font-semibold whitespace-nowrap',
-            isSoldOut ? 'text-va-gray' : 'text-va-black',
-          )}
-        >
+        <div className="w-40 shrink-0 text-right tabular-nums whitespace-nowrap">{timeRange}</div>
+        <div className="w-24 shrink-0 text-right font-semibold tabular-nums whitespace-nowrap">
           {priceLabel}
         </div>
-      ) : (
-        <div className="hidden sm:block" aria-hidden />
-      )}
+      </div>
 
       {/* Availability label */}
-      <div
-        className={cn(
-          'flex items-center justify-center px-5 sm:px-8 text-xs font-bold uppercase tracking-wide min-w-[140px]',
-          statusClassName,
-        )}
-      >
-        {status.label}
-      </div>
+      {isSoldOut ? (
+        <WaitlistTrigger
+          handle={item.product_handle}
+          title={item.product_title}
+          variantId={item.variant_id}
+          label={status.label}
+          className={cn(
+            'relative z-20 flex items-center justify-center px-5 sm:pl-10 sm:pr-8 text-xs font-bold uppercase tracking-wide min-w-[140px]',
+            statusClassName,
+          )}
+        />
+      ) : (
+        <div
+          className={cn(
+            'flex items-center justify-center px-5 sm:pl-10 sm:pr-8 text-xs font-bold uppercase tracking-wide min-w-[140px]',
+            statusClassName,
+          )}
+        >
+          {status.label}
+        </div>
+      )}
     </article>
   )
 }

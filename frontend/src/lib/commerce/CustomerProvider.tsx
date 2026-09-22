@@ -8,8 +8,14 @@ import {
   useCallback,
   type ReactNode,
 } from 'react'
+import { usePathname } from 'next/navigation'
 import { commerceClient } from '@/lib/commerce'
 import { trackLogin, trackLogout, trackSignUp } from '@/lib/analytics/events/engagement'
+import {
+  ensureAccountCartSynced,
+  isCheckoutPath,
+  resetAccountCartSync,
+} from '@/lib/commerce/cart'
 import type { Customer, RegisterInput } from './types'
 
 interface CustomerContextValue {
@@ -31,6 +37,7 @@ const CustomerContext = createContext<CustomerContextValue>({
 })
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -46,6 +53,11 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refresh().finally(() => setLoading(false))
   }, [refresh])
+
+  useEffect(() => {
+    if (!customer?.id || isCheckoutPath(pathname)) return
+    void ensureAccountCartSynced()
+  }, [customer?.id, pathname])
 
   // Listen for external customer updates (e.g. from another tab or component)
   useEffect(() => {
@@ -71,6 +83,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await commerceClient.logout()
     setCustomer(null)
+    resetAccountCartSync()
     trackLogout()
     window.dispatchEvent(new Event('va:customer-updated'))
   }, [])

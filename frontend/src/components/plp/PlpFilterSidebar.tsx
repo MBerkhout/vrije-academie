@@ -5,18 +5,24 @@ import { useRouter } from 'next/navigation'
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
 import {
   resolvePlpFilterHref,
-  isCategoryScopedPlpPath,
-  isProductTypeScopedPlpPath,
   usesPlpCanonicalFilterHref,
 } from '@/app/(main)/ons-aanbod/_state/redirects'
-import { resolveFilterSerialize } from '@/lib/filter-url-helpers'
+import { resolveClearAllHref, resolveFilterSerialize } from '@/lib/filter-url-helpers'
 import type { CategoryOption, TeacherOption } from '@/lib/cms/sanity-refs'
 import type { EventFacets } from '@/lib/commerce/types'
-import { PLP_PRODUCT_TYPES } from '@/lib/plp-product-types'
+import { PLP_PRODUCT_TYPES, productTypeListLabelFromSlug, type ProductTypePluralMap } from '@/lib/plp-product-types'
+import {
+  PLP_DELIVERY_OPTIONS,
+  VATHUIS_DELIVERY_TYPE,
+} from '@/lib/plp-delivery-types'
 import { cn } from '@/lib/utils'
 import { PLP_BASE_PATH } from '@/lib/routes'
 import { trackFilterChange } from '@/lib/analytics/events/ecommerce'
 import { sortFacetsByCount } from '@/lib/commerce/city-facets'
+import {
+  listingPeriodControls,
+  listingPeriodSelectionDates,
+} from '@/lib/plp/listing-period-filter'
 
 interface PlpFilterSidebarProps {
   filterState: PlpFilterState
@@ -30,6 +36,8 @@ interface PlpFilterSidebarProps {
   variant?: 'light' | 'dark'
   /** Category + docent filters only (VA Thuis catalog). */
   catalogOnly?: boolean
+  /** Listing plurals for Soort activiteit (PDP stays singular). */
+  productTypePlurals?: ProductTypePluralMap
 }
 
 type FilterVariant = 'light' | 'dark'
@@ -438,123 +446,87 @@ function CollapsibleMultiSelectChecklist({
   )
 }
 
-const MONTHS = [
-  { value: 1, label: 'Jan' },
-  { value: 2, label: 'Feb' },
-  { value: 3, label: 'Mrt' },
-  { value: 4, label: 'Apr' },
-  { value: 5, label: 'Mei' },
-  { value: 6, label: 'Jun' },
-  { value: 7, label: 'Jul' },
-  { value: 8, label: 'Aug' },
-  { value: 9, label: 'Sep' },
-  { value: 10, label: 'Okt' },
-  { value: 11, label: 'Nov' },
-  { value: 12, label: 'Dec' },
-]
-
-const VOORJAAR_MONTHS = [1, 2, 3, 4, 5, 6]
-const NAJAAR_MONTHS = [7, 8, 9, 10, 11, 12]
-
-function pad(n: number) {
-  return n.toString().padStart(2, '0')
-}
-
-function lastDayOfMonth(year: number, month: number) {
-  return new Date(year, month, 0).getDate()
-}
+const SEASON_LABELS = {
+  voorjaar: 'Voorjaar',
+  najaar: 'Najaar',
+} as const
 
 function PeriodeFilter({
   periodStart,
   periodEnd,
   onChange,
+  monthCounts,
 }: {
   periodStart?: string
   periodEnd?: string
   onChange: (start?: string, end?: string) => void
+  monthCounts?: Record<string, number>
 }) {
-  const year = periodStart ? parseInt(periodStart.slice(0, 4)) : new Date().getFullYear()
-  const startMonth = periodStart ? parseInt(periodStart.slice(5, 7)) : null
-  const endMonth = periodEnd ? parseInt(periodEnd.slice(5, 7)) : null
-  const isSingleMonth = startMonth !== null && startMonth === endMonth
+  const { seasons, months } = listingPeriodControls({
+    monthCounts,
+    periodStart,
+    periodEnd,
+  })
+  if (seasons.length === 0 && months.length === 0) return null
 
-  const isVoorjaar =
-    periodStart === `${year}-01-01` && periodEnd === `${year}-06-30`
-  const isNajaar =
-    periodStart === `${year}-07-01` && periodEnd === `${year}-12-31`
-
-  function selectMonth(m: number) {
-    if (isSingleMonth && startMonth === m) {
+  function selectMonth(month: number, selected: boolean) {
+    if (selected) {
       onChange(undefined, undefined)
       return
     }
-    onChange(
-      `${year}-${pad(m)}-01`,
-      `${year}-${pad(m)}-${pad(lastDayOfMonth(year, m))}`,
-    )
+    const range = listingPeriodSelectionDates({ kind: 'month', month })
+    onChange(range.start, range.end)
   }
 
-  function selectSeason(season: 'voorjaar' | 'najaar') {
-    if (season === 'voorjaar') {
-      if (isVoorjaar) { onChange(undefined, undefined); return }
-      onChange(`${year}-01-01`, `${year}-06-30`)
-    } else {
-      if (isNajaar) { onChange(undefined, undefined); return }
-      onChange(`${year}-07-01`, `${year}-12-31`)
+  function selectSeason(season: 'voorjaar' | 'najaar', selected: boolean) {
+    if (selected) {
+      onChange(undefined, undefined)
+      return
     }
-  }
-
-  function isMonthActive(m: number) {
-    if (isSingleMonth && startMonth === m) return true
-    if (isVoorjaar && VOORJAAR_MONTHS.includes(m)) return true
-    if (isNajaar && NAJAAR_MONTHS.includes(m)) return true
-    return false
+    const range = listingPeriodSelectionDates({ kind: 'season', season })
+    onChange(range.start, range.end)
   }
 
   return (
     <div className="space-y-3">
-      {/* Season shortcuts */}
-      <div className="flex gap-2">
-        {(
-          [
-            { key: 'voorjaar', label: 'Voorjaar', active: isVoorjaar },
-            { key: 'najaar', label: 'Najaar', active: isNajaar },
-          ] as const
-        ).map(({ key, label, active }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => selectSeason(key)}
-            className={cn(
-              'flex-1 text-sm py-1.5 border transition-colors font-medium',
-              active
-                ? 'bg-va-yellow border-va-yellow text-va-black'
-                : 'border-va-lightgray text-va-darkgray hover:border-va-darkgray hover:bg-va-lightgray/50',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Month grid – 7 columns so Jan–Jul top row, Aug–Dec bottom row */}
-      <div className="grid grid-cols-7 gap-1">
-        {MONTHS.map((m) => (
-          <button
-            key={m.value}
-            type="button"
-            onClick={() => selectMonth(m.value)}
-            className={cn(
-              'text-xs py-1.5 border transition-colors text-center leading-none',
-              isMonthActive(m.value)
-                ? 'bg-va-yellow border-va-yellow text-va-black font-semibold'
-                : 'border-va-lightgray text-va-darkgray hover:border-va-darkgray hover:bg-va-lightgray/50',
-            )}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
+      {seasons.length > 0 && (
+        <div className="flex gap-2">
+          {seasons.map((season) => (
+            <button
+              key={season.key}
+              type="button"
+              onClick={() => selectSeason(season.key, season.selected)}
+              className={cn(
+                'flex-1 text-sm py-1.5 border transition-colors font-medium',
+                season.selected
+                  ? 'bg-va-yellow border-va-yellow text-va-black'
+                  : 'border-va-lightgray text-va-darkgray hover:border-va-darkgray hover:bg-va-lightgray/50',
+              )}
+            >
+              {SEASON_LABELS[season.key]}
+            </button>
+          ))}
+        </div>
+      )}
+      {months.length > 0 && (
+        <div className="grid grid-cols-7 gap-1">
+          {months.map((month) => (
+            <button
+              key={month.value}
+              type="button"
+              onClick={() => selectMonth(month.value, month.selected)}
+              className={cn(
+                'text-xs py-1.5 border transition-colors text-center leading-none',
+                month.selected
+                  ? 'bg-va-yellow border-va-yellow text-va-black font-semibold'
+                  : 'border-va-lightgray text-va-darkgray hover:border-va-darkgray hover:bg-va-lightgray/50',
+              )}
+            >
+              {month.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -565,11 +537,6 @@ const DAY_PARTS = [
   { value: 'avond', label: 'Avond' },
 ]
 
-const DELIVERY_OPTIONS = [
-  { value: 'online', label: 'Online' },
-  { value: 'offline', label: 'Op locatie' },
-  { value: 'pre_recorded', label: 'Pre-recorded' },
-]
 
 export function PlpFilterSidebar({
   filterState,
@@ -580,6 +547,7 @@ export function PlpFilterSidebar({
   basePath = PLP_BASE_PATH,
   variant = 'light',
   catalogOnly = false,
+  productTypePlurals,
 }: PlpFilterSidebarProps) {
   const router = useRouter()
   const serialize = resolveFilterSerialize(basePath)
@@ -650,22 +618,8 @@ export function PlpFilterSidebar({
   }
 
   function clearAll() {
-    if (catalogOnly) {
-      router.push(basePath)
-      return
-    }
-    if (isCategoryScopedPlpPath(basePath) || isProductTypeScopedPlpPath(basePath)) {
-      router.push(basePath)
-      return
-    }
-    router.push(PLP_BASE_PATH)
+    router.push(resolveClearAllHref(basePath))
   }
-
-  const citiesFromFacets = facets?.cities?.map((c) => ({
-    value: c.slug,
-    label: c.label ?? c.slug,
-    count: c.count,
-  })) ?? []
 
   // Build facet count lookups
   const facetCount = {
@@ -680,9 +634,28 @@ export function PlpFilterSidebar({
   const isVisible = (slug: string, active: string[], count: number) =>
     count > 0 || active.includes(slug)
 
-  const deliveryOptions = DELIVERY_OPTIONS
-    .map((opt) => ({ ...opt, count: facetCount.delivery(opt.value) }))
-    .filter((opt) => isVisible(opt.value, filterState.deliveryTypes ?? [], opt.count))
+  const citiesFromFacets = (facets?.cities ?? [])
+    .map((c) => ({
+      value: c.slug,
+      label: c.label ?? c.slug,
+      count: c.count,
+    }))
+    .filter((opt) => isVisible(opt.value, filterState.cities ?? [], opt.count))
+
+  const monthCounts = Object.fromEntries(
+    (facets?.months ?? []).map((m) => [m.slug, m.count]),
+  )
+  const hasPeriodSelection = Boolean(filterState.periodStart || filterState.periodEnd)
+  const hasPeriodOptions =
+    hasPeriodSelection || (facets?.months ?? []).some((m) => m.count > 0)
+
+  const deliveryOptions = PLP_DELIVERY_OPTIONS
+    .map((opt) => ({ value: opt.value, label: opt.label, count: facetCount.delivery(opt.value) }))
+    .filter((opt) =>
+      opt.value === VATHUIS_DELIVERY_TYPE
+        ? true
+        : isVisible(opt.value, filterState.deliveryTypes ?? [], opt.count),
+    )
 
   const categoryOptions = categories
     .map((c) => ({ value: c.slug, label: c.label, count: facetCount.category(c.slug) }))
@@ -690,7 +663,7 @@ export function PlpFilterSidebar({
 
   const productTypeOptions = PLP_PRODUCT_TYPES.map((t) => ({
     value: t.slug,
-    label: t.label,
+    label: productTypeListLabelFromSlug(t.slug, productTypePlurals),
     count: facetCount.productType(t.slug),
   })).filter((opt) => isVisible(opt.value, filterState.productTypes ?? [], opt.count))
 
@@ -829,7 +802,7 @@ export function PlpFilterSidebar({
           </FilterGroupCollapsible>
         )}
 
-        {!catalogOnly && (
+        {!catalogOnly && hasPeriodOptions && (
         <FilterGroupCollapsible
           title="Periode"
           defaultOpen={groupDefaultOpen(false, collapseGroups)}
@@ -841,6 +814,7 @@ export function PlpFilterSidebar({
           <PeriodeFilter
             periodStart={filterState.periodStart}
             periodEnd={filterState.periodEnd}
+            monthCounts={monthCounts}
             onChange={(start, end) =>
               applyFilter({ ...filterState, periodStart: start, periodEnd: end })
             }

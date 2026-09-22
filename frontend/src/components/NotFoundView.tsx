@@ -1,9 +1,11 @@
 import { CONTAINER_CLASS } from '@/lib/cms'
 import { Button } from '@/components/ui'
+import { ScrollToTopOnMount } from '@/components/common/ScrollToTopOnMount'
 
 export function NotFoundView() {
   return (
     <section className="py-12 md:py-16 border-b border-va-lightgray/80">
+      <ScrollToTopOnMount />
       <div className={CONTAINER_CLASS}>
         <h1 className="font-sans text-3xl md:text-4xl font-bold text-va-black leading-tight mb-4">
           404: Deze pagina kan niet gevonden worden

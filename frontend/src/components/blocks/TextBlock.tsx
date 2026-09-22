@@ -24,22 +24,51 @@ export function TextBlock({ block, tone = 'default' }: { block: TextBlockType; t
   const cw = cleanBlockValue(block.contentWidth) ?? 'normal'
   const widthClass =
     TEXT_CONTENT_WIDTH_CLASS[cw as keyof typeof TEXT_CONTENT_WIDTH_CLASS] ?? TEXT_CONTENT_WIDTH_CLASS.normal
-  const alignmentClass = TITLE_CLASS[cleanBlockValue(block.titleAlignment) ?? 'left']
+  const titleAlignment = cleanBlockValue(block.titleAlignment) ?? 'left'
+  const alignmentClass = TITLE_CLASS[titleAlignment]
+  const title = cleanBlockValue(block.title)?.trim()
+  const subtitle = cleanBlockValue(block.subtitle)?.trim()
+  const showDivider = Boolean(block.showTitleDivider) && Boolean(title) && Boolean(subtitle)
 
   return (
     <BlockWrapper block={block}>
       <div className={cn('font-sans w-full mx-auto', widthClass)}>
         {block.title && (
-          <TitleTag
+          <div
             className={cn(
-              getTitleSizeClass(block.titleSize),
-              'font-bold mb-4',
+              'w-fit max-w-full',
+              titleAlignment === 'center' && 'mx-auto',
+              titleAlignment === 'right' && 'ml-auto',
+            )}
+          >
+            <TitleTag
+              className={cn(
+                getTitleSizeClass(block.titleSize),
+                'font-bold',
+                subtitle || showDivider ? 'mb-0' : 'mb-4',
+                isDark ? 'text-white' : 'text-va-black',
+                alignmentClass,
+              )}
+            >
+              {block.title}
+            </TitleTag>
+            {showDivider && (
+              <hr className="mt-3 mb-3 h-1 w-full border-0 bg-va-yellow" />
+            )}
+          </div>
+        )}
+        {subtitle && (
+          <p
+            className={cn(
+              getTitleSizeClass('h3'),
+              'font-semibold mb-4',
+              !showDivider && 'mt-2',
               isDark ? 'text-white' : 'text-va-black',
               alignmentClass,
             )}
           >
-            {block.title}
-          </TitleTag>
+            {subtitle}
+          </p>
         )}
         {block.content && block.content.length > 0 && (
           <div>

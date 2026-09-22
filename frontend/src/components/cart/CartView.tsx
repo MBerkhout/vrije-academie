@@ -14,6 +14,7 @@ import type { Cart } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
 import { appliedDiscountEntriesFromCart, type AppliedDiscountEntry } from '@/lib/commerce/gift-card'
 import { CartItemRow, type CartItemExtras } from './CartItemRow'
+import { isVathuisCartLine } from '@/lib/commerce/cart-item-extras'
 import { DiscountCodeForm } from './DiscountCodeForm'
 import { fetchCartExtras } from '@/lib/commerce/fetch-cart-extras'
 import { OrderSummary } from './OrderSummary'
@@ -75,6 +76,8 @@ export function CartView({ settings }: CartViewProps) {
   const handleQuantityChange = useCallback(
     async (itemId: string, quantity: number) => {
       if (!cart) return
+      const extrasForLine = extras.find((e) => e.line_item_id === itemId) ?? null
+      if (isVathuisCartLine(extrasForLine)) return
       const prev = cart
       const line = cart.items.find((i) => i.id === itemId)
       const quantityOld = line?.quantity ?? 0

@@ -16,6 +16,7 @@ import type LegacyPasswordModuleService from "../../modules/legacy-password/serv
 import { enqueueCustomerPullFromSalesforce } from "../../modules/salesforce-sync/utils/enqueue-customer-pull"
 import { enqueueCustomerPushToSalesforce } from "../../modules/salesforce-sync/utils/enqueue-customer-push"
 import { verifyDjangoPbkdf2Password } from "./django-pbkdf2"
+import { salesforcePersonContactIdByEmail } from "./ensure-salesforce-customer"
 
 const EMAILPASS_PROVIDER = "emailpass"
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -95,7 +96,8 @@ export async function lookupCustomerAuth(
   )
 
   if (!customers.length) {
-    return { exists: false, hasPassword: false }
+    const contactId = await salesforcePersonContactIdByEmail(container, normalized)
+    return { exists: Boolean(contactId), hasPassword: false }
   }
 
   const identities = await listAuthIdentitiesByEmail(container, normalized)

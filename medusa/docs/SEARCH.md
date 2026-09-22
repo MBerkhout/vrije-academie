@@ -59,7 +59,7 @@ Indexed from the PLP listing snapshot plus the VA Thuis listing snapshot: `title
 
 Full rebuild (`search:reindex`) reads those snapshots. **Per-product reindex** (Salesforce webhook / `product.updated`) does **not** rely on the cached VA Thuis snapshot: it loads the published bundle from the database. Otherwise a webhook that runs before the 10-minute listing cache refreshes would **remove** the product from `/zoeken` even though the PDP is live.
 
-Query uses Dutch analyzer + `fuzziness: AUTO` (e.g. `kollege` → `college`).
+Query requires **all terms** (`cross_fields` + `operator: and` on title, handle, onderwerp, docent, plaats, locatie). Body/excerpt is not a required match, so `Colleges Iran` does not return every college series or a Georgia/Armenia text that merely mentions Iran. Light typo tolerance (`fuzziness: 1`) applies only to title/handle — not to autocomplete ngrams (e.g. `kollege` → `college`). Prefix tokens such as `rijks` still match `Rijksmuseum` via `title.autocomplete`.
 
 ## Fallback
 

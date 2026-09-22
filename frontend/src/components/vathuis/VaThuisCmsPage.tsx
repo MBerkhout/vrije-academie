@@ -45,11 +45,17 @@ export function VaThuisCmsPage({ page }: VaThuisCmsPageProps) {
         <JsonLd key={schema['@type'] as string} data={schema} />
       ))}
       {blocks.map((block) => {
-        const b = block as { titleSize?: string; titleAlignment?: string }
-        const hasTitleOptions = 'titleSize' in block || 'titleAlignment' in block
+        const b = block as {
+          titleSize?: string
+          titleAlignment?: string
+          subtitle?: string
+          showTitleDivider?: boolean
+        }
+        const hasTitleOptions =
+          'titleSize' in block || 'titleAlignment' in block || 'subtitle' in block || 'showTitleDivider' in block
         const blockId = block._key ?? block._id
         const blockKey = hasTitleOptions
-          ? `${blockId}-${b.titleSize ?? ''}-${b.titleAlignment ?? ''}`
+          ? `${blockId}-${b.titleSize ?? ''}-${b.titleAlignment ?? ''}-${b.subtitle ?? ''}-${b.showTitleDivider ? '1' : '0'}`
           : blockId
         return <BlockRenderer key={blockKey} block={block} tone="onDark" />
       })}

@@ -254,12 +254,14 @@ Salesforce **Person Accounts** (`Contact` + `Account`, `IsPersonAccount = true`)
 
 | Direction | Trigger | Behaviour |
 |-----------|---------|-----------|
-| SF → Medusa | OTP/password login, `POST /store/customer/me/sync-from-salesforce`, webhook, bulk import, admin pull | Pull Contact fields + default shipping address + marketing metadata |
+| SF → Medusa | OTP/password login, **login OTP request** (lazy import when Medusa customer missing), `POST /store/customer/me/sync-from-salesforce`, webhook, bulk import, admin pull | Pull Contact fields + default shipping address + marketing metadata |
 | Medusa → SF | `customer.created` / `customer.updated`, `POST /store/customer/me/push-to-salesforce` (after registration/address save) | **Create:** `POST Account` (`PersonMailing*`, `PersonBirthdate`, …) + `PATCH Contact` (`Mailing*`, `Birthdate`). **Update:** split `PATCH Account` (profile / address) + `PATCH Contact`. Birthdate stored in Medusa as `metadata.sf_birthdate` (ISO `YYYY-MM-DD`). |
 
 **Field map** (`mappings/customer.ts`): name, email, phone, mailing address (Account `PersonMailing*` + `Billing*` + `Shipping*`, Contact `Mailing*`), `Same_account_address__c` (= true when website uses one address for billing/shipping), salutation/initials/birthdate/IBAN (metadata), newsletter/magazine/editorial/opt-in flags (metadata). **Push:** `Newsletter__c` is written when `metadata.sf_newsletter === true` (e.g. waitlist signup). Country codes map NL/BE/DE ↔ Salesforce labels via `utils/country-code.ts`.
 
 **Bulk import:** `npm run salesforce:import-customers` — SOQL `Contact WHERE IsPersonAccount = true AND Active__c = true AND Email != null`. Flags: `--dry-run`, `--limit=N`, `--all` (omit Active filter). Creates Medusa customers **without passwords** (OTP login). **Do not run full import until reviewed.**
+
+**Login-time import (lazy):** `GET /store/customer/lookup` treats Salesforce Person Accounts as known (`exists: true`, no Medusa row yet). First `POST /store/auth/otp/request` for that email runs `pullCustomerFromSalesforceWorkflow` synchronously, then emails the OTP. Uses the same Contact-by-email matcher as post-login pull (`findContactIdByEmail`, no `Active__c` filter). Helper: `src/lib/customer-auth/ensure-salesforce-customer.ts`. Apply step links an existing Medusa customer by email instead of creating a duplicate.
 
 **Registration push** requires `SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID` (customer Person Account record type, not Teacher). Staging sandbox Participant: `0121t000000QIr0AAG`. If this env var is missing, customer create fails (`SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID must be set…`) and the order push then fails with `has no Salesforce Person Account link after push` — the order stays in Medusa only. Set the var, reload Medusa, then `npm run salesforce:push -- --type=order --action=push --display-id=N`.
 
@@ -271,7 +273,7 @@ Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push
 |--------|-------------------|--------|
 | Order header | `Order` | `Website_Order__c`, `Order_Origin__c: Website`, `Payment_Method__c` (`IDEAL`, `CREDITCARD`, `PAYPAL`, `BANCONTACT`, `GIFTCARD`, `KLARNA`, `GRATIS`), `Ideal_Transaction_Id__c` (Mollie). After lines: `Product__c` (vaProduct), `Registration__c`, `Product2__c` from the first seat (Lightning header lookups). |
 | Event line (per seat) | `Registration__c` + product `OrderItem` | Links `vaProduct__c` via variant sync state; `Status__c: Ingeschreven`; `Order_Item__c` points at the product `OrderItem`. Writable name on the line is `ProductName__c` (`Product_Name__c` / `Is_Discount__c` are formulas). |
-| Waitlist signup (sold-out PDP) | `Registration__c` only | `POST /store/events/:handle/waitlist` — no order; `Status__c: Wachtlijst`; `Number_Of_People__c`; customer `Newsletter__c` pushed when `metadata.sf_newsletter` is true. |
+| Waitlist signup (sold-out session or product) | `Registration__c` only | `POST /store/events/:handle/waitlist` (optional `variant_id`) — no order; `Status__c: Wachtlijst`; `Number_Of_People__c`; customer `Newsletter__c` pushed when `metadata.sf_newsletter` is true. Signup is an in-process function (`lib/waitlist/join-event-waitlist.ts`) so Person Account push finishes before `Registration__c` is created. Nested waitlist workflows returned before Salesforce IDs existed. |
 | Promotion discount | discount `OrderItem` | Negative `UnitPrice`, `ProductName__c: Korting`, `Discount_Code__c`, same `Registration__c` |
 | Gift card purchase | `OrderItem` + `Voucher__c` | `Giftcard_*` fields; voucher sync state `entity_type: voucher` |
 | Gift card redemption | voucher `OrderItem` | negative amount, `Voucher__c` lookup |
@@ -293,11 +295,25 @@ npm run salesforce:inspect-order -- --salesforce-id=801...
 
 Mappings: `mappings/order.ts`, `order-item.ts`, `registration.ts`. Loader: `load-order-push-data.ts`.
 
+### Omboeking → mijn-account (Salesforce → Medusa)
+
+When staff rebook in Salesforce (phone/invoice order with a negative **OrderItem** and `Registration__c.Status__c: Omgeboekt` on the credited line), Medusa can import the **new enrollment line only** for display in **mijn-account** — no payment, no push back to Salesforce, no seat decrement.
+
+Detection: unlinked Salesforce `Order` + credit line (`Quantity < 0`) whose registration is **Omgeboekt** + positive line with **Ingeschreven** registration; original website order must already exist in `salesforce_sync_state`.
+
+Import sets order metadata `imported_from_salesforce: true`, links sync state, and marks the original Medusa order `hidden_from_account: true` (not canceled).
+
+```bash
+npm run salesforce:import-rebooked-order -- --salesforce-id=801...
+```
+
+Logic: `utils/import-rebooked-order.ts`. Webhook: unlinked `Order` updates attempt omboeking import before `no_linked_medusa_row`.
+
 ## Out of scope (current)
 
 - Pull **variant** from Salesforce into Medusa (product-level import only; product groups import variants via `vaProduct__c`).
 - Bidirectional product sync; admin UI for editing mappings.
-- Salesforce → Medusa order pull beyond header email/status stub.
+- Full Salesforce → Medusa order sync (only omboeking import + linked-order header stub pull).
 - Medusa tax-region wiring for Salesforce product VAT (stored as metadata only for now). **Store tax:** `npm run seed:region` seeds all EU countries, standard B2C VAT per country, and EUR **tax-inclusive** price preference (Salesforce gross prices are not surcharged).
 
 ## Product group import (`vaProductgroup__c`)
@@ -332,12 +348,12 @@ curl -X POST /admin/salesforce/productgroups/import -d '{"salesforce_id":"a05Mz0
 |------------------|-----------------|--------|
 | `Account` | `customer` or `docent` (RecordTypeId + sync state) | Pull |
 | `Contact` | `customer` | Pull |
-| `Order` | `order` | Pull when linked |
+| `Order` | `order` | Pull when linked; **omboeking import** when unlinked (see above) |
 | `Product2` | `product` / `variant` | Pull / import |
 | `vaProductgroup__c` | `productgroup` | Pull / auto-import if not yet in Medusa (+ linked-online parents) |
 | `vaProduct__c` | parent `productgroup` | Pull parent group (auto-import parent if missing) |
 
-`create` and `update` for **product**, **productgroup**, **customer**, and **docent** run a pull even when Medusa has no linked row yet. Product groups then use the same auto-import guards as other webhook pulls (`manual: false`). Hidden or past groups are **skipped** (`not_visible_on_website` / `past_dates`) instead of `no_linked_medusa_row`. **Orders** still skip when unlinked.
+`create` and `update` for **product**, **productgroup**, **customer**, and **docent** run a pull even when Medusa has no linked row yet. Product groups then use the same auto-import guards as other webhook pulls (`manual: false`). Hidden or past groups are **skipped** (`not_visible_on_website` / `past_dates`) instead of `no_linked_medusa_row`. **Orders** without a Medusa link attempt **omboeking import** first; otherwise skipped.
 
 `method: delete` — soft-archive (`draft` product / `is_active=false` docent) for **product**, **productgroup**, **docent** only; **customer** and **order** deletes are logged as `skipped` (no destructive action). Unsupported types (`OrderItem`, `Registration__c`, `Voucher__c`, …) are logged and skipped. Auto-import uses the **future-only guard** and **Zichtbaar op Website** (see below). Manual CLI/API ignores the date guard but still skips hidden groups.
 
@@ -366,7 +382,7 @@ Salesforce record types **`Lezingen_Thuis`** and **`Thuis_College`** map to on-d
 - **Episode preview** — first episode of chapter 1 gets `preview_available: true`. Playback config (SDK + token) is fetched at runtime via `GET /store/events/:handle/episodes/:episodeKey/preview-playback`.
 - Optional env: `AUDIENCE_PLAYER_PROJECT_ID` (default `14`), `AUDIENCE_PLAYER_API_URL`, `AUDIENCE_PLAYER_CLIENT_ID`, `AUDIENCE_PLAYER_CLIENT_SECRET`, `AUDIENCE_PLAYER_PREVIEW_EMAIL`
 
-Storefront: `GET /store/events/:handle` exposes `purchase_mode`, `bundle_variant_id`, `vathuis.chapters`, `vathuis.episodes`, and `vathuis.audience_player`. PDP shows a chapter dropdown, episode table (aflevering / duur / beschrijving), **Bekijk aflevering** (preview modal with iframe) or **Koop alle lessen** per row, plus the bundle CTA in `PdpBookingPanel`.
+Storefront: `GET /store/events/:handle` exposes `purchase_mode`, `bundle_variant_id`, `vathuis.chapters`, `vathuis.episodes`, and `vathuis.audience_player`. PDP shows a chapter dropdown, episode table (title with duration underneath, beschrijving), **Bekijk aflevering** (preview modal with iframe) or **Koop alle lessen** per locked row (adds the bundle to the cart and goes to `/winkelwagen`), plus the bundle CTA in `PdpBookingPanel`.
 
 **Purchase access:** see `medusa/docs/VATHUIS_ACCESS.md` — 3-month entitlement after completed order; full embed URLs only via authenticated customer API.
 

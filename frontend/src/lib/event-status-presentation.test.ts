@@ -4,6 +4,7 @@ import {
   eventIsFullySoldOut,
   minPositiveBookableQuantity,
   plpListingStockPresentation,
+  sessionTableAvailabilityPresentation,
 } from './event-status-presentation'
 
 const futureStart = '2099-06-01T10:00:00.000Z'
@@ -64,6 +65,12 @@ describe('minPositiveBookableQuantity', () => {
 
   it('returns null when every session is sold out', () => {
     expect(minPositiveBookableQuantity(makeEvent([0, 0]))).toBeNull()
+  })
+})
+
+describe('sessionTableAvailabilityPresentation', () => {
+  it('shows Wachtlijst when a session has zero spots', () => {
+    expect(sessionTableAvailabilityPresentation(0, 5).label).toBe('Wachtlijst')
   })
 })
 

@@ -1,11 +1,14 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
+import { slimAgendaItemForResponse } from "../../../lib/agenda-listing-response"
 import { isSalesforceExterneVerhuur } from "../../../lib/salesforce-visible-on-website"
+import { LISTING_CACHE_TTL_SEC } from "../../../lib/store-listing-redis"
 import {
   getAgendaListingSnapshot,
   type AgendaOccurrenceRow,
 } from "../../../lib/store-listing-snapshot"
 import { sortCityFacetsByCount } from "../../../lib/city-refs"
+import { monthKeyFromStartAt, sessionStartInPeriod } from "../../../lib/listing-future-filters"
 import SearchModuleService from "../../../modules/search/service"
 import { agendaItemMatchesQuery } from "../../../modules/search/in-memory-search"
 
@@ -15,7 +18,10 @@ function parseArrayParam(val: string | string[] | undefined): string[] {
 }
 
 function setListingCacheHeaders(res: MedusaResponse): void {
-  res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60")
+  res.setHeader(
+    "Cache-Control",
+    `public, s-maxage=${LISTING_CACHE_TTL_SEC}, stale-while-revalidate=${LISTING_CACHE_TTL_SEC}`
+  )
 }
 
 /**
@@ -100,13 +106,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   if (dayParts.length) {
     items = items.filter((it) => it.day_part && dayParts.includes(it.day_part))
   }
-  if (periodStart) {
-    const from = new Date(periodStart).getTime()
-    items = items.filter((it) => it.start_at && new Date(it.start_at).getTime() >= from)
-  }
-  if (periodEnd) {
-    const to = new Date(periodEnd).getTime() + 24 * 60 * 60 * 1000 - 1
-    items = items.filter((it) => it.start_at && new Date(it.start_at).getTime() <= to)
+  if (periodStart || periodEnd) {
+    items = items.filter((it) => sessionStartInPeriod(it.start_at, periodStart, periodEnd))
   }
   if (dateOnly) {
     items = items.filter((it) => it.start_at && sameLocalDay(it.start_at, dateOnly))
@@ -119,7 +120,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   items = items.slice(offset, offset + limit)
 
   setListingCacheHeaders(res)
-  res.json({ items, count, facets })
+  res.json({
+    items: items.map((it) => slimAgendaItemForResponse(it)),
+    count,
+    facets,
+  })
 }
 
 function sameLocalDay(iso: string, ymd: string): boolean {
@@ -185,6 +190,7 @@ function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
   const delivery: Record<string, number> = {}
   const cities: Record<string, { slug: string; label: string; count: number }> = {}
   const daypart: Record<string, number> = {}
+  const months: Record<string, number> = {}
   const categoriesMap: Record<string, { slug: string; label: string; count: number }> = {}
   const docentenMap: Record<string, { slug: string; name: string; count: number }> = {}
   const recordType: Record<string, number> = {}
@@ -198,6 +204,8 @@ function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
       cities[slug].count++
     }
     if (it.day_part) daypart[it.day_part] = (daypart[it.day_part] ?? 0) + 1
+    const month = monthKeyFromStartAt(it.start_at)
+    if (month) months[month] = (months[month] ?? 0) + 1
     if (it.record_type) recordType[it.record_type] = (recordType[it.record_type] ?? 0) + 1
     for (const c of it.categories as { slug?: string; label?: string }[]) {
       const slug = c.slug
@@ -224,5 +232,6 @@ function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
     cities: sortCityFacetsByCount(Object.values(cities)),
     delivery_type: Object.entries(delivery).map(([slug, count]) => ({ slug, count })),
     day_part: Object.entries(daypart).map(([slug, count]) => ({ slug, count })),
+    months: Object.entries(months).map(([slug, count]) => ({ slug, count })),
   }
 }

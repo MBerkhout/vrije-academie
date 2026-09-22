@@ -43,8 +43,15 @@ export function PlpSortSelect({
   }
 
   const sortFromUrl = searchParams.get('sort')
+  const allowedSorts = new Set(options.map((opt) => opt.value))
   const defaultSort = hasQuery ? 'relevance' : 'order'
-  const active = sortFromUrl ?? currentSort ?? defaultSort
+  const active = (
+    sortFromUrl && allowedSorts.has(sortFromUrl)
+      ? sortFromUrl
+      : allowedSorts.has(currentSort)
+        ? currentSort
+        : defaultSort
+  )
 
   return (
     <select

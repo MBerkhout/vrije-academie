@@ -1,5 +1,6 @@
 import Image from 'next/image'
-import Link from 'next/link'
+import { ListingAnchorLink } from '@/components/plp/ListingAnchorLink'
+import { listingProductAnchorId } from '@/lib/listing-return-anchor'
 import { vathuisProductPath } from '@/lib/routes'
 import type { EventCard } from '@/lib/commerce/types'
 import { plpListingStockPresentation } from '@/lib/event-status-presentation'
@@ -7,6 +8,8 @@ import { formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
 import { ProductCardCtaBar } from '@/components/plp/ProductCardCtaBar'
 import { PlpEventCardWishlistButton } from '@/components/plp/PlpEventCardWishlistButton'
+import { WaitlistTrigger } from '@/components/waitlist/WaitlistTrigger'
+import { defaultMessages } from '@/lib/i18n/messages'
 
 interface VaThuisEventCardProps {
   event: EventCard
@@ -29,14 +32,16 @@ export function VaThuisEventCard({
   equalizeHeight = false,
 }: VaThuisEventCardProps) {
   const href = vathuisProductPath(event.handle)
+  const anchorId = listingProductAnchorId(event.handle)
   const meta = vathuisMetaLine(event)
   const { soldOut } = plpListingStockPresentation(event, stockThreshold)
   const priceFrom = event.price_from
 
   return (
     <article
+      id={anchorId}
       className={cn(
-        'relative group rounded-lg border border-va-darkgray-700 overflow-hidden flex flex-col bg-va-darkgray-900 hover:border-va-darkgray-600 transition-colors',
+        'relative group scroll-mt-32 rounded-lg border border-va-darkgray-700 overflow-hidden flex flex-col bg-va-darkgray-900 hover:border-va-darkgray-600 transition-colors',
         equalizeHeight && 'h-full',
         soldOut && 'opacity-70',
         className,
@@ -82,12 +87,13 @@ export function VaThuisEventCard({
             equalizeHeight && 'min-h-[3.75rem] md:min-h-[2.5rem]',
           )}
         >
-          <Link
+          <ListingAnchorLink
             href={href}
+            anchorId={anchorId}
             className="group-hover:underline underline-offset-2 after:absolute after:inset-0 after:content-['']"
           >
             {event.title}
-          </Link>
+          </ListingAnchorLink>
         </h3>
 
         {meta ? (
@@ -104,7 +110,12 @@ export function VaThuisEventCard({
               </span>
             ) : null}
             {soldOut && (
-              <span className="text-xs text-va-gray-400">Uitverkocht</span>
+              <WaitlistTrigger
+                handle={event.handle}
+                title={event.title}
+                className="relative z-20 text-xs font-medium text-va-gray-400 hover:text-white hover:underline underline-offset-2"
+                label={defaultMessages.plp.cardSoldOut}
+              />
             )}
           </div>
           <span className="text-xs md:text-sm font-medium text-white/80 flex items-center gap-1 group-hover:underline underline-offset-2 shrink-0">

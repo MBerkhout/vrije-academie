@@ -6,6 +6,7 @@ import {
 } from "@medusajs/framework/utils"
 import type { ICustomerModuleService } from "@medusajs/framework/types"
 
+import { ensureMedusaCustomerFromSalesforce } from "../../../../../lib/customer-auth/ensure-salesforce-customer"
 import {
   assertValidEmail,
   getCustomerByEmail,
@@ -39,8 +40,11 @@ export async function POST(req: MedusaStoreRequest, res: MedusaResponse): Promis
       email = assertValidEmail(body.email ?? "")
       const customer = await getCustomerByEmail(req.scope, email)
       if (!customer) {
-        res.json({ sent: true })
-        return
+        const medusaId = await ensureMedusaCustomerFromSalesforce(req.scope, email)
+        if (!medusaId) {
+          res.json({ sent: true })
+          return
+        }
       }
     }
 

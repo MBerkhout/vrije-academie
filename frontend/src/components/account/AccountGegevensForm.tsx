@@ -55,6 +55,8 @@ export function AccountGegevensForm() {
   const { addressLookup } = usePdokAddressLookup({
     postalCode,
     houseNumber,
+    street,
+    city,
     manualAddress,
     countryCode: country,
     onMatch: (s, c) => {

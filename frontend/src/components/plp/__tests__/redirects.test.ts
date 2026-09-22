@@ -50,4 +50,13 @@ describe('resolvePlpFilterHref', () => {
       resolvePlpFilterHref({ categories: ['kunstgeschiedenis'], teachers: ['jan'] })
     ).toBe(`${PLP_BASE_PATH}?category=kunstgeschiedenis&docent=jan`)
   })
+
+  it('keeps pre_recorded delivery on the Ons aanbod query string', () => {
+    expect(resolvePlpFilterHref({ deliveryTypes: ['pre_recorded'] })).toBe(
+      `${PLP_BASE_PATH}?delivery_type=pre_recorded`
+    )
+    expect(
+      resolvePlpFilterHref({ categories: ['kunstgeschiedenis'], deliveryTypes: ['pre_recorded'] })
+    ).toBe(`${PLP_BASE_PATH}?category=kunstgeschiedenis&delivery_type=pre_recorded`)
+  })
 })

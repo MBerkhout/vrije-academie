@@ -1,10 +1,11 @@
 import { revalidateTag } from 'next/cache'
 
+import { AGENDA_DEFAULT_CACHE_TAG } from '@/lib/agenda/cached-default-listing'
 import { PLP_DEFAULT_CACHE_TAG } from '@/lib/plp/cached-default-listing'
 
 /**
  * POST /api/revalidate/plp
- * Busts the Next.js hard cache for default `/ons-aanbod`.
+ * Busts the Next.js hard cache for default `/ons-aanbod` and `/agenda`.
  * Called by Medusa when listing snapshot cache is invalidated (top-of-list product changes).
  */
 export async function POST(req: Request): Promise<Response> {
@@ -19,5 +20,9 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   revalidateTag(PLP_DEFAULT_CACHE_TAG, { expire: 0 })
-  return Response.json({ revalidated: true, tag: PLP_DEFAULT_CACHE_TAG })
+  revalidateTag(AGENDA_DEFAULT_CACHE_TAG, { expire: 0 })
+  return Response.json({
+    revalidated: true,
+    tags: [PLP_DEFAULT_CACHE_TAG, AGENDA_DEFAULT_CACHE_TAG],
+  })
 }

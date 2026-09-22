@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { plpProductPath } from '@/lib/routes'
+import { productDetailPath } from '@/lib/routes'
 import { SelectItemLink } from '@/components/analytics/SelectItemLink'
 import type { EventCard } from '@/lib/commerce/types'
 import { DeliveryTypeIcon } from '@/components/ui/DeliveryTypeIcon'
@@ -15,7 +15,9 @@ import { defaultMessages } from '@/lib/i18n/messages'
 import { formatDateShort, formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
 import { PlpEventCardWishlistButton } from './PlpEventCardWishlistButton'
+import { listingProductAnchorId } from '@/lib/listing-return-anchor'
 import { ProductCardCtaBar } from './ProductCardCtaBar'
+import { WaitlistTrigger } from '@/components/waitlist/WaitlistTrigger'
 
 interface PlpEventCardProps {
   event: EventCard
@@ -33,12 +35,16 @@ export function PlpEventCard({
   equalizeHeight = false,
   index,
 }: PlpEventCardProps) {
-  const href = plpProductPath(event.handle)
+  const href = productDetailPath(event.handle, {
+    purchaseMode: event.purchase_mode,
+    recordType: event.record_type,
+  })
   const deliveryType = plpEventDeliveryTypeDisplay(event)
   const showDate = shouldShowEventDates(event)
   const multipleDates = plpEventHasMultipleDates(event)
 
   const { soldOut } = plpListingStockPresentation(event, stockThreshold)
+  const anchorId = listingProductAnchorId(event.handle)
 
   const priceFrom = event.price_from
   const pricePrefix = eventPricePrefixLabel(event, {
@@ -48,8 +54,9 @@ export function PlpEventCard({
 
   return (
     <article
+      id={anchorId}
       className={cn(
-        'relative group rounded-lg border border-va-lightgray overflow-hidden flex flex-col bg-white hover:shadow-md transition-shadow',
+        'relative group scroll-mt-32 rounded-lg border border-va-lightgray overflow-hidden flex flex-col bg-white hover:shadow-md transition-shadow',
         equalizeHeight && 'h-full',
         soldOut && 'opacity-70',
         className,
@@ -115,7 +122,11 @@ export function PlpEventCard({
               </span>
             ) : null}
             {soldOut && (
-              <span className="text-xs text-va-gray">Uitverkocht</span>
+              <WaitlistTrigger
+                handle={event.handle}
+                title={event.title}
+                className="relative z-20 text-xs font-medium text-va-gray hover:text-va-black hover:underline underline-offset-2"
+              />
             )}
           </div>
           <span className="text-xs md:text-sm font-medium text-va-black flex items-center gap-1 group-hover:underline underline-offset-2 shrink-0">

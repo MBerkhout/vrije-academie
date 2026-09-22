@@ -38,6 +38,12 @@ export function appliedDiscountEntriesFromCart(cart: {
   return [...promos, ...gifts]
 }
 
+/** Default Medusa product handle; keep in sync with `DEFAULT_GIFT_CARD_HANDLE` in Medusa. */
+export const DEFAULT_GIFT_CARD_HANDLE = "digitale-cadeaubon"
+
+/** Storefront thumbnail for cadeaubon purchase lines (cart, checkout, order summary). */
+export const GIFT_CARD_THUMBNAIL_SRC = "/branding/cadeaubon-thumb.jpg"
+
 /** Line-item metadata when purchasing a digital gift card (Medusa `metadata.gift_card`). */
 export type GiftCardPurchaseLineMeta = {
   recipient_name?: string
@@ -52,6 +58,23 @@ export function isGiftCardPurchaseLineItem(item: {
   if (item.is_giftcard) return true
   const meta = item.metadata
   return !!(meta && typeof meta === "object" && "gift_card" in meta)
+}
+
+export function resolveLineItemThumbnail(
+  item: {
+    thumbnail?: string | null
+    is_giftcard?: boolean
+    metadata?: Record<string, unknown> | null
+  },
+  extras?: { thumbnail?: string | null; product_handle?: string | null } | null
+): string | null {
+  if (
+    isGiftCardPurchaseLineItem(item) ||
+    extras?.product_handle === DEFAULT_GIFT_CARD_HANDLE
+  ) {
+    return GIFT_CARD_THUMBNAIL_SRC
+  }
+  return extras?.thumbnail ?? item.thumbnail ?? null
 }
 
 export function getGiftCardPurchaseMetaFromLineItem(item: {

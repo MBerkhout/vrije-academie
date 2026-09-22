@@ -4,15 +4,15 @@ import { useRouter } from 'next/navigation'
 import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
 import {
   resolvePlpFilterHref,
-  isCategoryScopedPlpPath,
-  isProductTypeScopedPlpPath,
   usesPlpCanonicalFilterHref,
 } from '@/app/(main)/ons-aanbod/_state/redirects'
-import { resolveFilterRemove, resolveFilterSerialize } from '@/lib/filter-url-helpers'
+import { resolveClearAllHref, resolveFilterRemove, resolveFilterSerialize } from '@/lib/filter-url-helpers'
 import type { CategoryOption, TeacherOption } from '@/lib/cms/sanity-refs'
 import { cityLabelFromSlug } from '@/lib/commerce/resolve-city-slug'
-import { productTypeLabelFromSlug } from '@/lib/plp-product-types'
+import { productTypeListLabelFromSlug, type ProductTypePluralMap } from '@/lib/plp-product-types'
+import { deliveryTypeLabel } from '@/lib/plp-delivery-types'
 import { cn } from '@/lib/utils'
+import { listingPeriodChipLabel } from '@/lib/plp/listing-period-filter'
 import { PLP_BASE_PATH } from '@/lib/routes'
 
 interface PlpActiveChipsProps {
@@ -26,6 +26,7 @@ interface PlpActiveChipsProps {
   /** Extra chips to render for fields not in PlpFilterState (e.g. Agenda `date`).
    *  Removal uses the provided `removeFilter` with the key cast loosely. */
   extraChips?: { key: string; label: string }[]
+  productTypePlurals?: ProductTypePluralMap
 }
 
 type ChipDef = {
@@ -42,6 +43,7 @@ export function PlpActiveChips({
   className,
   basePath = PLP_BASE_PATH,
   extraChips = [],
+  productTypePlurals,
 }: PlpActiveChipsProps) {
   const router = useRouter()
   const serialize = resolveFilterSerialize(basePath)
@@ -64,37 +66,26 @@ export function PlpActiveChips({
     chips.push({ key: 'cities', value: slug, label: cityLabelFromSlug(slug, cityOptions) })
   }
   for (const v of filterState.productTypes ?? []) {
-    chips.push({ key: 'productTypes', value: v, label: productTypeLabelFromSlug(v) })
+    chips.push({
+      key: 'productTypes',
+      value: v,
+      label: productTypeListLabelFromSlug(v, productTypePlurals),
+    })
   }
   for (const v of filterState.recordTypes ?? []) {
     chips.push({ key: 'recordTypes', value: v, label: v })
   }
   for (const v of filterState.deliveryTypes ?? []) {
-    chips.push({ key: 'deliveryTypes', value: v, label: v === 'online' ? 'Online' : v === 'offline' ? 'Op locatie' : 'Pre-recorded' })
+    chips.push({ key: 'deliveryTypes', value: v, label: deliveryTypeLabel(v) })
   }
   for (const v of filterState.dayParts ?? []) {
     chips.push({ key: 'dayParts', value: v, label: v.charAt(0).toUpperCase() + v.slice(1) })
   }
   if (filterState.periodStart || filterState.periodEnd) {
-    const year = filterState.periodStart
-      ? filterState.periodStart.slice(0, 4)
-      : filterState.periodEnd?.slice(0, 4)
-    const startMonth = filterState.periodStart
-      ? parseInt(filterState.periodStart.slice(5, 7))
-      : null
-    const endMonth = filterState.periodEnd
-      ? parseInt(filterState.periodEnd.slice(5, 7))
-      : null
-    const MONTH_NAMES = ['Jan','Feb','Mrt','Apr','Mei','Jun','Jul','Aug','Sep','Okt','Nov','Dec']
-    let periodLabel = 'Periode'
-    if (filterState.periodStart === `${year}-01-01` && filterState.periodEnd === `${year}-06-30`) {
-      periodLabel = `Voorjaar ${year}`
-    } else if (filterState.periodStart === `${year}-07-01` && filterState.periodEnd === `${year}-12-31`) {
-      periodLabel = `Najaar ${year}`
-    } else if (startMonth !== null && startMonth === endMonth) {
-      periodLabel = `${MONTH_NAMES[startMonth - 1]} ${year}`
-    }
-    chips.push({ key: 'periodStart', label: periodLabel })
+    chips.push({
+      key: 'periodStart',
+      label: listingPeriodChipLabel(filterState.periodStart, filterState.periodEnd),
+    })
   }
 
   if (!chips.length && !extraChips.length) return null
@@ -117,11 +108,7 @@ export function PlpActiveChips({
   }
 
   function clearAll() {
-    if (isCategoryScopedPlpPath(basePath) || isProductTypeScopedPlpPath(basePath)) {
-      router.push(basePath)
-      return
-    }
-    router.push(PLP_BASE_PATH)
+    router.push(resolveClearAllHref(basePath))
   }
 
   return (

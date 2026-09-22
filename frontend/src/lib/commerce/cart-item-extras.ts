@@ -18,5 +18,11 @@ export interface CartItemExtras {
     episode_count_label: string | null
     play_time: string | null
   } | null
+  /** True for VA Thuis bundles (`purchase_mode: bundle_only`); quantity is locked at 1. */
+  is_vathuis?: boolean
   instructor_names: string[]
+}
+
+export function isVathuisCartLine(extras: CartItemExtras | null | undefined): boolean {
+  return Boolean(extras?.is_vathuis || extras?.vathuis)
 }

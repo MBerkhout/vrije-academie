@@ -51,6 +51,15 @@ export function productEligibleForEventsListing(
   return eventItems.some((ei) => isFutureOfflineSession(ei, nowMs))
 }
 
+/** Future sessions of any delivery type (on-demand `start_at` missing counts as future). */
+export function futureSessionsForListing<T extends EventItemSessionRow>(
+  eventItems: T[],
+  now: Date = new Date()
+): T[] {
+  const nowMs = now.getTime()
+  return eventItems.filter((ei) => isFutureSession(ei, nowMs))
+}
+
 /** Future on-site sessions used for PLP city / day_part / earliest_start_at aggregates. */
 export function futureOfflineSessionsForListing(
   eventItems: EventItemListingRow[],

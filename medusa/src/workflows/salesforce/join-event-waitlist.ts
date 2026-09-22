@@ -5,10 +5,14 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
+import { pushCustomerToSalesforceWorkflow } from "./push-customer-salesforce"
 import { createWaitlistRegistrationStep } from "./steps/create-waitlist-registration-step"
-import { ensureOrderCustomerSalesforceStep } from "./steps/ensure-order-customer-salesforce-step"
 import { prepareJoinWaitlistStep } from "./steps/prepare-join-waitlist-step"
 
+/**
+ * Historical workflow. Store waitlist signup uses `joinEventWaitlist` in-process
+ * (`src/lib/waitlist/join-event-waitlist.ts`) so Salesforce IDs exist before Registration__c.
+ */
 export const joinEventWaitlistWorkflowId = "join-event-waitlist"
 
 export type JoinEventWaitlistWorkflowInput = {
@@ -18,6 +22,7 @@ export type JoinEventWaitlistWorkflowInput = {
   last_name: string
   email: string
   phone: string
+  variant_id?: string | null
   authenticatedCustomerId?: string | null
 }
 
@@ -26,16 +31,21 @@ export const joinEventWaitlistWorkflow = createWorkflow(
   function (input: WorkflowData<JoinEventWaitlistWorkflowInput>) {
     const prep = prepareJoinWaitlistStep(input)
 
-    const customer = ensureOrderCustomerSalesforceStep(
-      transform({ prep }, ({ prep }) => ({
-        skipped: prep.skipped,
-        customerId: prep.customerId,
-        medusaId: prep.medusaId,
-      }))
-    )
+    const pushed = pushCustomerToSalesforceWorkflow.runAsStep({
+      input: transform({ prep }, ({ prep }) => ({
+        customerId: prep.customerId as string,
+      })),
+    })
 
     const registration = createWaitlistRegistrationStep(
-      transform({ prep, customer }, ({ prep, customer }) => ({ prep, customer }))
+      transform({ prep, pushed }, ({ prep }) => ({
+        prep,
+        customer: {
+          skipped: false,
+          salesforceAccountId: null,
+          salesforceContactId: null,
+        },
+      }))
     )
 
     return new WorkflowResponse(registration)

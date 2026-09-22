@@ -36,9 +36,10 @@ export default async function CityPlpPage({ params, searchParams }: CityPlpPageP
   if (!city) notFound()
 
   const paramsResolved = await searchParams
+  const parsed = parseFilterState(paramsResolved)
   const basePath = plpCityHref(citySlug)
   const filterState = {
-    ...parseFilterState(paramsResolved),
+    ...parsed,
     cities: [citySlug],
   }
   const pageParam = Number((paramsResolved.page as string) ?? '1')

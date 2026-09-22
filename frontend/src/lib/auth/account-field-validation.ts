@@ -85,11 +85,15 @@ export function validateAccountField(
     case 'lastName':
       if (!v) return { state: 'invalid', message: msg.lastNameRequired }
       return { state: 'valid' }
-    case 'phone':
+    case 'phone': {
       if (!v) return { state: 'idle' }
-      if (!/^[+0-9\s\-()]{6,}$/.test(v))
+      if (!/^[+0-9\s\-()]+$/.test(v))
+        return { state: 'invalid', message: msg.phoneInvalid }
+      const digits = v.replace(/\D/g, '')
+      if (digits.length < 8 || digits.length > 15)
         return { state: 'invalid', message: msg.phoneInvalid }
       return { state: 'valid' }
+    }
     case 'postalCode': {
       const countryCode = extra?.countryCode ?? 'NL'
       if (!v) return { state: 'invalid', message: msg.postalRequired }

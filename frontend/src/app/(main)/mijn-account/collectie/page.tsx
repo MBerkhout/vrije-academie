@@ -2,7 +2,7 @@ import { defaultMessages } from '@/lib/i18n/messages'
 import { noIndexMetadata } from '@/lib/cms/seo-metadata'
 import { AccountVathuisCollection } from '@/components/account/AccountVathuisCollection'
 
-export const metadata = noIndexMetadata('Mijn collectie – Vrije Academie')
+export const metadata = noIndexMetadata("Mijn VAthuis video's – Vrije Academie")
 
 export default function AccountCollectiePage() {
   const t = defaultMessages.accountPage

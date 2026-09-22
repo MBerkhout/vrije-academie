@@ -75,6 +75,26 @@ export const textBlock = defineType({
       hidden: ({ parent }) => !parent?.title,
     }),
     defineField({
+      name: "subtitle",
+      title: "Subtitle",
+      type: "text",
+      rows: 2,
+      group: "content",
+      fieldset: "heading",
+      description: "Optional line under the heading (e.g. page intro).",
+      hidden: ({ parent }) => !parent?.title,
+    }),
+    defineField({
+      name: "showTitleDivider",
+      title: "Line between title and subtitle",
+      type: "boolean",
+      group: "content",
+      fieldset: "heading",
+      initialValue: false,
+      description: "Shows a 4px yellow bar as wide as the heading, between heading and subtitle.",
+      hidden: ({ parent }) => !parent?.title?.trim() || !parent?.subtitle?.trim(),
+    }),
+    defineField({
       name: "width",
       title: "Content width",
       type: "string",
@@ -104,15 +124,20 @@ export const textBlock = defineType({
     }),
   ],
   preview: {
-    select: { title: "title", content: "content" },
-    prepare({ title, content }) {
+    select: { title: "title", headingSubtitle: "subtitle", showTitleDivider: "showTitleDivider", content: "content" },
+    prepare({ title, headingSubtitle, showTitleDivider, content }) {
       const firstBlock = Array.isArray(content) ? content[0] : null
       const text = firstBlock && "children" in firstBlock
         ? (firstBlock.children as { text?: string }[]).map((c) => c.text).join("")
         : ""
+      const bits = [
+        headingSubtitle ? "Subtitle" : null,
+        showTitleDivider ? "Line" : null,
+        text ? text.slice(0, 50) + (text.length > 50 ? "…" : "") : null,
+      ].filter(Boolean)
       return {
         title: title || "Text",
-        subtitle: text ? text.slice(0, 50) + (text.length > 50 ? "…" : "") : "No content",
+        subtitle: bits.join(" · ") || "No content",
       }
     },
   },

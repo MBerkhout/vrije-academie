@@ -8,7 +8,7 @@
 
 ## Cart quantity & promotions
 
-Default Medusa behaviour: line items may have quantity &gt; 1. **Event-specific promotion target rules** are implemented (price threshold, event start date range, event city) — see [README.md](./README.md#event-specific-target-rules).
+Default Medusa behaviour: line items may have quantity &gt; 1, except **VA Thuis** bundles (`purchase_mode: bundle_only`), which stay at quantity 1 and are not added again when already in the cart. **Event-specific promotion target rules** are implemented (price threshold, event start date range, event city) — see [README.md](./README.md#event-specific-target-rules).
 
 Core route overrides (re-verify on Medusa upgrades):
 
@@ -45,7 +45,7 @@ Capacity is per **variant** (`EventItem.available_quantity`). Optional later: va
 
 ## Waitlist & reminders
 
-**Status**: Sold-out PDP waitlist is implemented — `POST /store/events/:handle/waitlist` creates a Salesforce `Registration__c` with `Status__c: Wachtlijst` and opts the customer into `Newsletter__c`. Future: email/calendar reminders, analytics refinements.
+**Status**: Waitlist is implemented on sold-out CTAs (PDP booking panel, session rows, agenda, fully sold-out PLP cards) — `POST /store/events/:handle/waitlist` (optional `variant_id` for a single session) creates a Salesforce `Registration__c` with `Status__c: Wachtlijst` and opts the customer into `Newsletter__c`. Session-level signup (one date sold out, others open) must send `variant_id`. Future: email/calendar reminders, analytics refinements.
 
 ## Multi-language
 

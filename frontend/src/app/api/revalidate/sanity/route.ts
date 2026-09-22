@@ -1,6 +1,11 @@
 import { revalidatePath, revalidateTag } from 'next/cache'
-import { type NextRequest } from 'next/server'
+import { after, type NextRequest } from 'next/server'
 import { parseBody } from 'next-sanity/webhook'
+
+import {
+  categoryPublishRevalidatePaths,
+  revalidateStorefrontCacheInBackground,
+} from '@/lib/cms/revalidate-storefront-cache'
 
 type SanityWebhookBody = {
   _type: string
@@ -34,7 +39,28 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (body._type === 'generalSettings' || body._type === 'menu') {
     revalidateTag('general-settings', { expire: 0 })
     revalidatePath('/', 'layout')
-    return Response.json({ revalidated: true, type: body._type, tag: 'general-settings' })
+    revalidatePath('/checkout', 'layout')
+    after(async () => {
+      try {
+        await revalidateStorefrontCacheInBackground()
+      } catch (err) {
+        console.error('Failed to revalidate storefront cache after menu/footer change', err)
+      }
+    })
+    return Response.json({
+      revalidated: true,
+      type: body._type,
+      tag: 'general-settings',
+      queued: 'storefront-paths',
+    })
+  }
+
+  if (body._type === 'category') {
+    const paths = categoryPublishRevalidatePaths(body.slug)
+    for (const path of paths) {
+      revalidatePath(path)
+    }
+    return Response.json({ revalidated: true, type: body._type, paths })
   }
 
   if (body._type !== 'page') {

@@ -21,6 +21,8 @@ Multi-column layout that supports nested blocks within each column. Enables side
 
 Each column object: **Width** (equal / narrow / wide), **Vertical alignment** (top / center / bottom), **Column type** (text, media, highlight card, product cards, CTA card, person card) and type-specific fields. Text / highlight / CTA titles use **Heading size** (H1–H4 button select, same as Text block) when a title is set.
 
+**Product cards:** each item is a horizontal card (thumbnail + title + CTA). The thumbnail is `88px` wide and stretches with the card so a wrapping title still lines up with the image.
+
 **Column width:** With **two or more** columns, Width controls each column’s **relative** share of the row (flex). With **one** column only, Equal and Wide keep full block width; **Narrow** limits content to a readable measure (~600px), similar to the Text block’s “Narrow” content width.
 
 ## Column types (content)

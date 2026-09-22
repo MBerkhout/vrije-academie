@@ -92,7 +92,7 @@ export const structure: StructureResolver = (S, context) =>
 
       S.divider(),
 
-      // Medusa-managed mirrors (read-only) — shown as flat items
+      // Medusa-managed mirrors — catalog fields are read-only; category/product editorial fields are publishable
       S.documentTypeListItem("product").title("Products"),
       S.documentTypeListItem("category").title("Categories"),
       S.documentTypeListItem("city").title("Plaatsen"),

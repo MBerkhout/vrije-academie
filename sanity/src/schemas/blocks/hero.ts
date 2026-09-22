@@ -163,11 +163,21 @@ export const heroBlock = defineType({
       group: "topPanel",
       hidden: ({ parent }) => !parent?.topPanelCtaEnabled,
     }),
+    defineField({
+      name: "newsletterEnabled",
+      title: "Show newsletter",
+      type: "boolean",
+      group: "newsletter",
+      initialValue: true,
+      description:
+        "Turn off to hide the Meld je aan card. Existing heroes keep showing it until this is turned off.",
+    }),
     defineCtaUrlField({
       name: "newsletterSignupUrl",
       title: "Aanmeldlink",
       group: "newsletter",
       description: "URL voor de knop Aanmelden (bijv. nieuwsbrief- of inschrijfpagina).",
+      hidden: ({ parent }) => parent?.newsletterEnabled === false,
     }),
     defineField({
       ...createLayoutField({ marginTop: "0", marginBottom: "0" } as BlockLayoutDefaults),

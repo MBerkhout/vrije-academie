@@ -3,6 +3,7 @@
  */
 
 import Medusa from '@medusajs/js-sdk'
+import { isOrderVisibleInAccount } from '@/lib/commerce/account-orders'
 import { getMedusaBackendUrl } from './medusa-backend-url'
 import type {
   CommerceClient,
@@ -65,13 +66,10 @@ import {
 } from './customer-birthdate'
 import { sortCityFacetsByCount } from './city-facets'
 import { filterFutureEventVariants } from '@/lib/event-status-presentation'
-import { isGiftCardPurchaseLineItem } from './gift-card'
 import {
   cartAggregateToStorefrontCents,
   lineUnitToStorefrontCents,
-  medusaMajorToCents,
   normalizeStoreCart,
-  parseMoney,
 } from './normalize-store-money'
 import { vatPercentFromCartLike } from './vat'
 
@@ -222,6 +220,7 @@ function normalizeEventFacets(raw: unknown): EventFacets {
     cities: sortCityFacetsByCount(f.cities ?? []),
     delivery_type: f.delivery_type ?? [],
     day_part: f.day_part ?? [],
+    months: f.months ?? [],
   }
 }
 
@@ -243,15 +242,9 @@ function setStoredJwt(token: string): void {
 
 function mapStoreOrderItem(raw: unknown): OrderItem {
   const o = raw as Record<string, unknown>
-  const isGiftcard = isGiftCardPurchaseLineItem({
-    is_giftcard: o.is_giftcard as boolean | undefined,
-    metadata: o.metadata as Record<string, unknown> | null | undefined,
-  })
-  const unit = lineUnitToStorefrontCents(o.unit_price, isGiftcard)
+  const unit = lineUnitToStorefrontCents(o.unit_price)
   const qty = typeof o.quantity === 'number' ? o.quantity : Number(o.quantity ?? 1)
-  const rawTotal = parseMoney(o.total)
-  const total =
-    rawTotal > 0 ? (isGiftcard ? rawTotal : medusaMajorToCents(rawTotal)) : unit * qty
+  const total = cartAggregateToStorefrontCents(o.total) || unit * qty
   return {
     id: String(o.id ?? ''),
     title: String(o.title ?? o.product_title ?? '—'),
@@ -266,37 +259,17 @@ function mapStoreOrderItem(raw: unknown): OrderItem {
 function mapStoreOrder(raw: unknown): Order {
   const o = raw as Record<string, unknown>
   const items = Array.isArray(o.items) ? o.items.map(mapStoreOrderItem) : undefined
-  const onlyGiftcardLines =
-    items != null &&
-    items.length > 0 &&
-    items.every((_, i) => {
-      const row = (o.items as unknown[])[i] as Record<string, unknown>
-      return isGiftCardPurchaseLineItem({
-        is_giftcard: row.is_giftcard as boolean | undefined,
-        metadata: row.metadata as Record<string, unknown> | null | undefined,
-      })
-    })
   return {
     id: String(o.id ?? ''),
     display_id: typeof o.display_id === 'number' ? o.display_id : undefined,
     status: String(o.status ?? ''),
     email: o.email as string | undefined,
-    total: onlyGiftcardLines ? parseMoney(o.total) : cartAggregateToStorefrontCents(o.total),
-    subtotal: onlyGiftcardLines
-      ? parseMoney(o.subtotal ?? o.total)
-      : cartAggregateToStorefrontCents(o.subtotal ?? o.total),
+    total: cartAggregateToStorefrontCents(o.total),
+    subtotal: cartAggregateToStorefrontCents(o.subtotal ?? o.total),
     discount_total:
-      o.discount_total !== undefined
-        ? onlyGiftcardLines
-          ? parseMoney(o.discount_total)
-          : cartAggregateToStorefrontCents(o.discount_total)
-        : undefined,
+      o.discount_total !== undefined ? cartAggregateToStorefrontCents(o.discount_total) : undefined,
     tax_total:
-      o.tax_total !== undefined
-        ? onlyGiftcardLines
-          ? parseMoney(o.tax_total)
-          : cartAggregateToStorefrontCents(o.tax_total)
-        : undefined,
+      o.tax_total !== undefined ? cartAggregateToStorefrontCents(o.tax_total) : undefined,
     tax_rate: vatPercentFromCartLike({
       items: o.items as unknown[] | undefined,
       tax_rate: typeof o.tax_rate === 'number' ? o.tax_rate : undefined,
@@ -305,6 +278,10 @@ function mapStoreOrder(raw: unknown): Order {
     items,
     payment_status: typeof o.payment_status === 'string' ? o.payment_status : undefined,
     created_at: typeof o.created_at === 'string' ? o.created_at : undefined,
+    metadata:
+      o.metadata && typeof o.metadata === 'object' && !Array.isArray(o.metadata)
+        ? (o.metadata as Record<string, unknown>)
+        : undefined,
   }
 }
 
@@ -1109,6 +1086,20 @@ export const medusaClient: CommerceClient = {
     return normalizeStoreCart(response.cart)
   },
 
+  async syncAccountCart(cartId?: string): Promise<Cart> {
+    const res = await storeFetch('/store/carts/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cartId ? { cart_id: cartId } : {}),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error((data as { message?: string }).message ?? 'CART_SYNC_FAILED')
+    }
+    const data = await res.json()
+    return ensureCartTaxCountry(normalizeStoreCart(data.cart))
+  },
+
   async getWishlistHandles(): Promise<string[]> {
     const c = await retrieveAuthenticatedCustomer()
     if (!c) return []
@@ -1261,9 +1252,11 @@ export const medusaClient: CommerceClient = {
     const { orders: rawOrders, count } = await medusa.store.order.list({
       limit,
       offset,
-      fields: '*items',
+      fields: '*items,+metadata',
     })
-    const orders = (rawOrders ?? []).map((row: unknown) => mapStoreOrder(row))
+    const orders = (rawOrders ?? [])
+      .map((row: unknown) => mapStoreOrder(row))
+      .filter((order) => isOrderVisibleInAccount(order))
     return { orders, count: typeof count === 'number' ? count : orders.length }
   },
 

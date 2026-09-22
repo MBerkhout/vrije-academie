@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { resolveClearAllHref } from '@/lib/filter-url-helpers'
 import { PLP_BASE_PATH } from '@/lib/routes'
 
 interface PlpEmptyStateProps {
@@ -17,6 +18,7 @@ export function PlpEmptyState({
   className,
   basePath = PLP_BASE_PATH,
 }: PlpEmptyStateProps) {
+  const clearHref = resolveClearAllHref(basePath)
   return (
     <div className={cn('flex flex-col items-center justify-center py-20 text-center gap-4', className)}>
       <div className="text-5xl text-va-lightgray" aria-hidden="true">🔍</div>
@@ -25,14 +27,14 @@ export function PlpEmptyState({
       <div className="flex gap-3 mt-2">
         {hasFilters && (
           <Link
-            href={basePath}
+            href={clearHref}
             className="text-sm font-medium text-va-black border border-va-lightgray px-4 py-2 hover:bg-va-lightgray transition-colors"
           >
             Wis filters
           </Link>
         )}
         <Link
-          href={basePath}
+          href={clearHref}
           className="text-sm font-medium bg-va-yellow text-va-black px-4 py-2 hover:bg-va-yellow/80 transition-colors"
         >
           Bekijk alles

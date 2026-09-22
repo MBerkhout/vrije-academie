@@ -79,6 +79,10 @@ Fonts load via **`next/font/google`** in `src/app/layout.tsx` (self-hosted at bu
 </p>
 ```
 
+#### Form fields
+
+Body and most inputs use `text-sm` (14px). On touch / viewports below `lg`, `globals.css` forces `input`, `textarea`, and `select` to **16px** so iOS Safari does not zoom on focus. Do not set `maximum-scale=1` on the viewport to work around this.
+
 #### Muted Label / Metadata
 ```tsx
 <span className="font-sans text-xs text-va-gray uppercase tracking-wide">
@@ -253,3 +257,4 @@ Use `@/components/ui/Badge` everywhere so colors and spacing stay consistent.
 - Color contrast meets WCAG AA standards
 - Semantic HTML structure
 - Keyboard navigation support
+- Form fields stay zoomable: 16px type on mobile instead of locking the viewport scale

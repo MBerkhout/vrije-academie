@@ -7,6 +7,7 @@ import {
 import variantEventItemLink from "../links/variant-event-item"
 import EventsModuleService from "../modules/events/service"
 import { isVathuisUnlimitedAvailability } from "../lib/vathuis-availability"
+import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/order-import-metadata"
 
 /**
  * When a Medusa order is completed, decrement `EventItem.available_quantity`
@@ -27,7 +28,13 @@ export default async function decrementAvailableQuantityOnOrderCompleted({
   const orderId = data.id
   const order = await orderModule.retrieveOrder(orderId, {
     relations: ["items"],
+    select: ["id", "status", "metadata", "items"],
   })
+
+  if (isImportedSalesforceOrder(order.metadata as Record<string, unknown> | null)) {
+    logger.info(`[events] skip inventory decrement for imported Salesforce order ${orderId}`)
+    return
+  }
 
   const items = order.items ?? []
   for (const lineItem of items) {

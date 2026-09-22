@@ -11,9 +11,10 @@ Three document types in the Studio are managed by Medusa and mirrored here autom
 ## Studio behaviour
 
 - **`product`**: **Publish** (and other default actions) plus **Open in Medusa**. Turn **Keep page body edits in Sanity** on after customizing **Page body** so Medusa sync stops replacing blocks with the product description.
-- **`category` / `docent`**: **Open in Medusa** only (no Publish/Discard). Medusa sync updates mirror fields only; Studio **`title`**, **`description`**, **`image`**, **`linkUrl`**, and **`seo`** on categories are kept across syncs.
+- **`category`**: **Publish** (and other default actions) plus **Open in Medusa**. Use this for editorial **`image`** (tile/search thumbnails), **`title`**, **`description`**, **`linkUrl`**, and **`seo`**. Medusa sync updates mirror fields only and preserves those Studio fields.
+- **`docent`**: **Open in Medusa** only (no Publish/Discard). All fields are read-only.
 - Creating mirrored types from the Studio is blocked.
-- Mirrored docs are grouped under **"Medusa (read-only)"** in the sidebar.
+- Mirrored docs sit at the bottom of the sidebar (Products, Categories, Plaatsen, Docenten).
 - Configure `SANITY_STUDIO_MEDUSA_ADMIN_URL` to point to the correct Medusa Admin URL.
 
 ## Sync

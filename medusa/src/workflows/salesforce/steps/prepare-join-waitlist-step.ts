@@ -14,6 +14,7 @@ export type JoinWaitlistInput = {
   last_name: string
   email: string
   phone: string
+  variant_id?: string | null
   authenticatedCustomerId?: string | null
 }
 
@@ -28,7 +29,7 @@ export type PrepareJoinWaitlistOutput = {
 }
 
 export const prepareJoinWaitlistStep = createStep(
-  { name: "prepare-join-waitlist", maxRetries: 2, retryInterval: 5 },
+  { name: "prepare-join-waitlist", maxRetries: 0 },
   async (input: JoinWaitlistInput, { container }) => {
     if (!Number.isInteger(input.quantity) || input.quantity < 1 || input.quantity > 99) {
       throw new MedusaError(
@@ -42,19 +43,23 @@ export const prepareJoinWaitlistStep = createStep(
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Event not found")
     }
 
-    const soldOut = eventIsFullySoldOut({
-      record_type: event.record_type as string | null | undefined,
-      purchase_mode: event.purchase_mode as string | null | undefined,
-      min_available_quantity: event.min_available_quantity as number | null | undefined,
-      variants: event.variants as Parameters<typeof eventIsFullySoldOut>[0]["variants"],
-      bundle_variant_id: event.bundle_variant_id as string | null | undefined,
-    })
+    const variantId = input.variant_id?.trim() || null
 
-    if (!soldOut) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Waitlist signup is only available when the activity is fully sold out"
-      )
+    if (!variantId) {
+      const soldOut = eventIsFullySoldOut({
+        record_type: event.record_type as string | null | undefined,
+        purchase_mode: event.purchase_mode as string | null | undefined,
+        min_available_quantity: event.min_available_quantity as number | null | undefined,
+        variants: event.variants as Parameters<typeof eventIsFullySoldOut>[0]["variants"],
+        bundle_variant_id: event.bundle_variant_id as string | null | undefined,
+      })
+
+      if (!soldOut) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Waitlist signup is only available when the activity is fully sold out"
+        )
+      }
     }
 
     const { customerId } = await resolveWaitlistCustomer(container, {
@@ -65,7 +70,7 @@ export const prepareJoinWaitlistStep = createStep(
       authenticatedCustomerId: input.authenticatedCustomerId,
     })
 
-    const { vaProductId } = await resolveWaitlistVaProductId(container, input.handle)
+    const { vaProductId } = await resolveWaitlistVaProductId(container, input.handle, variantId)
     const email = input.email.trim().toLowerCase()
     const registrationExternalId = buildWaitlistRegistrationExternalId(customerId, vaProductId)
 

@@ -52,7 +52,7 @@ const HARDCODED_LOGIN_PATH = '/login'
 
 const MOBILE_SECONDARY_NAV = [
   { label: 'Ons aanbod', href: PLP_BASE_PATH },
-  { label: 'Va thuis', href: VATHUIS_BASE_PATH },
+  { label: 'VAthuis', href: VATHUIS_BASE_PATH },
 ] as const
 
 function menuHasNormalizedPath(items: MenuItem[], path: string): boolean {

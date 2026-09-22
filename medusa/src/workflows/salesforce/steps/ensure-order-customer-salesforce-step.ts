@@ -1,8 +1,8 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { Modules } from "@medusajs/framework/utils"
 
+import { firstWorkflowError } from "../../../lib/workflow-failure"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
-import { pushCustomerToSalesforceWorkflowId } from "../push-customer-salesforce"
+import { pushCustomerToSalesforceWorkflow } from "../push-customer-salesforce"
 
 import type { PreparePushOrderOutput } from "./prepare-push-order-step"
 
@@ -40,14 +40,14 @@ export const ensureOrderCustomerSalesforceStep = createStep(
     let row = await sync.getStateByMedusaId("customer", input.customerId)
 
     if (!row?.salesforce_id || !row.salesforce_account_id) {
-      const engine = container.resolve(Modules.WORKFLOW_ENGINE) as {
-        run: (id: string, opts: Record<string, unknown>) => Promise<unknown>
-      }
-      await engine.run(pushCustomerToSalesforceWorkflowId, {
+      // In-process run: nested workflowEngine.run from a parent Redis workflow
+      // returns before the child writes Salesforce IDs (waitlist signup 400).
+      const { errors, thrownError } = await pushCustomerToSalesforceWorkflow(container).run({
         input: { customerId: input.customerId },
-        context: { eventGroupId: input.customerId },
-        throwOnError: true,
+        throwOnError: false,
       })
+      const failure = firstWorkflowError(thrownError, errors)
+      if (failure) throw failure
       row = await sync.getStateByMedusaId("customer", input.customerId)
     }
 

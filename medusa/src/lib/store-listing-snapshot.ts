@@ -28,8 +28,10 @@ import {
 import {
   futureAvailableSessionsForListing,
   futureOfflineSessionsForListing,
+  filterVariantsWithFutureSessions,
   productEligibleForPlpListing,
 } from "./event-session-eligibility"
+import { dayPartFromStartAt, uniqueFutureDayParts } from "./listing-future-filters"
 import { minPriceCentsFromVariants, medusaMajorToCents } from "./medusa-price-to-cents"
 import { ctaBarFieldsFromMetadata } from "./product-cta-bar"
 import { salesforceOrderFromMetadata } from "./listing-sort"
@@ -54,6 +56,7 @@ import {
   REDIS_KEY_REGISTRATIONS,
   REDIS_KEY_VATHUIS,
 } from "./store-listing-redis"
+import { isFutureAgendaStartAt } from "./agenda-listing-response"
 import {
   sortListingBySalesforceOrder,
   tieBreakEventsByStartThenTitle,
@@ -142,6 +145,7 @@ function toVathuisListingRow(
     product_type: (row.type as { value?: string } | null | undefined)?.value ?? null,
     categories,
     docenten,
+    delivery_types: ["pre_recorded"],
     price_from: minPriceCentsFromVariants(
       variants as Parameters<typeof minPriceCentsFromVariants>[0]
     ),
@@ -157,14 +161,6 @@ function toVathuisListingRow(
         }
       : null,
   }
-}
-
-function dayPartFromStartAt(startAt: string | null | undefined): string | null {
-  if (!startAt) return null
-  const hour = new Date(startAt).getHours()
-  if (hour < 12) return "ochtend"
-  if (hour < 17) return "middag"
-  return "avond"
 }
 
 async function resolveEligibleProductIds(
@@ -303,7 +299,7 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
   let list = (products ?? []) as Record<string, unknown>[]
 
   list = list.map((p) => {
-    const variants = filterStorefrontVisibleVariants(
+    const visibleVariants = filterStorefrontVisibleVariants(
       (p.variants ?? []) as Array<Record<string, unknown> & { metadata?: Record<string, unknown> | null }>
     ).filter(
       (v) =>
@@ -313,6 +309,7 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
           eventGroupByProduct[p.id as string]?.record_type
         )
     )
+    const variants = filterVariantsWithFutureSessions(visibleVariants, listingNow)
     const eventItems = variants.map((v) => v.event_item).filter(Boolean)
     const futureOfflineItems = futureOfflineSessionsForListing(
       eventItems as Parameters<typeof futureOfflineSessionsForListing>[0],
@@ -384,6 +381,10 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
       delivery_types: deliveryTypesOnProduct,
       earliest_start_at: earliestStartAt,
       day_part_of_earliest: dayPartFromStartAt(earliestStartAt),
+      day_parts: uniqueFutureDayParts(
+        eventItems as Parameters<typeof uniqueFutureDayParts>[0],
+        listingNow
+      ),
       price_from: priceFrom,
       min_available_quantity: minAvailableQty,
     }
@@ -480,6 +481,8 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
     ;(docentByProduct[r.product_id] ??= []).push(r.docent)
   }
 
+  const snapshotBuiltAt = Date.now()
+
   const items = (products ?? []).flatMap((product) => {
     const p = product as Record<string, unknown>
     const variants = filterStorefrontVisibleVariants(
@@ -501,6 +504,12 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
 
     return variants
       .filter((v) => v.event_item)
+      .filter((v) =>
+        isFutureAgendaStartAt(
+          (v.event_item as { start_at?: string | null }).start_at,
+          snapshotBuiltAt
+        )
+      )
       .map((v) => {
         const ei = v.event_item as Record<string, unknown>
         const prices = v.prices as { amount?: number }[] | undefined

@@ -134,5 +134,6 @@ Homepage category tile images can be re-seeded with `npm run seed:homepage-categ
 ## Sanity Studio behaviour
 
 - **Products** (`product`): default document actions (**Publish**, Discard, …) plus **Open in Medusa**. Creating new products from the Studio remains blocked; use Medusa, then **Push to Sanity** or wait for the subscriber.
-- **Categories / docenten**: only **Open in Medusa** (no Publish) — mirror fields + small editorial overrides are updated from Medusa on sync.
+- **Categories** (`category`): same as products — **Publish** plus **Open in Medusa**, so editorial thumbnails (`image`), title, description, `linkUrl`, and SEO can ship. Creating categories from Studio remains blocked.
+- **Docenten**: only **Open in Medusa** (no Publish) — all fields are read-only.
 - Mirrored catalog fields on `product` stay read-only in the form; editorial fields use per-field rules as before.

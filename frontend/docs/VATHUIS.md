@@ -12,6 +12,8 @@ On-demand lecture section with a dark theme, separate from Ons aanbod and Agenda
 
 VA Thuis products on `/ons-aanbod/[handle]` **301 redirect** to `/va-thuis/[handle]`.
 
+The Ons aanbod / Agenda **Beschikbaarheid** filter labels `delivery_type=pre_recorded` as **VAthuis**. It stays on the current listing as a checkbox. The unfiltered facet count is the VAthuis catalog size (not leftover PLP `pre_recorded` rows). On Ons aanbod, checking it merges those products into the grid (`GET /store/events`) and uses the same category/docent facet source as `/va-thuis/ons-aanbod`; the unfiltered catalog still excludes them.
+
 Route constants: `frontend/src/lib/routes.ts` (`VATHUIS_BASE_PATH`, `VATHUIS_CATALOG_PATH`, `vathuisProductPath`, `productDetailPath`).
 
 ## Data
@@ -30,10 +32,10 @@ All under `frontend/src/components/vathuis/`:
 - `VaThuisSubNav` — section sub-navigation (landing / catalog)
 - `VaThuisEventCard` — dark card with play overlay + episode meta
 - `VaThuisListingPage` / `VaThuisLiveListing` — catalog shell
-- `VaThuisPdpPageContent` — dark PDP (episodes table, booking panel). Shows only the **VA Thuis – on demand** badge (no category badges). Featured docent stays in the right-hand booking panel: photo left, name + title right.
+- `VaThuisPdpPageContent` — dark PDP (episodes table, booking panel). Shows only the **VA Thuis – on demand** badge (no category badges). Title meta (episode count, play time) is stacked under the heading. Episode duration sits under the lesson title (no separate Duur column). Featured docent stays in the right-hand booking panel: photo left, name + title right, bio underneath (Salesforce `Web_Body__c`).
 - `VaThuisCmsPage` — renders CMS `page.blocks` via `BlockRenderer` (`tone="onDark"`)
 
-**Purchase access:** after buying a bundle, logged-in customers can watch all episodes for **3 months** (`PdpEpisodesTable` unlock + `/mijn-account/collectie`). Preview and purchased playback both use the Audience Player **embed-player SDK** (not iframes) so `play()` can run in the user’s click gesture; tokens come from Medusa — see `medusa/docs/VATHUIS_ACCESS.md`.
+**Purchase access:** after buying a bundle, logged-in customers can watch all episodes for **3 months** (`PdpEpisodesTable` unlock + **Mijn VAthuis video's** at `/mijn-account/collectie`). Locked episode rows use **Koop alle lessen** to add the bundle to the cart and go to `/winkelwagen` (same as the booking-panel CTA). A VA Thuis college can be ordered **once per order**: cart −/+ quantity controls are hidden, and adding the same bundle again leaves quantity at 1. Preview and purchased playback both use the Audience Player **embed-player SDK** (not iframes) so `play()` can run in the user’s click gesture; tokens come from Medusa (`GET …/preview-playback` / authenticated embed). If Medusa lacks `AUDIENCE_PLAYER_CLIENT_ID` + `AUDIENCE_PLAYER_CLIENT_SECRET`, the modal shows “Deze preview is momenteel niet beschikbaar.” — see `medusa/docs/VATHUIS_ACCESS.md`.
 
 Dark shell: `app/(main)/va-thuis/layout.tsx` (`bg-va-black`).
 

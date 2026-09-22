@@ -4,6 +4,7 @@ import {
   promotionRuleDatePickerEsbuildPlugin,
   promotionRuleDatePickerPlugin,
 } from "./src/admin/vite/promotion-rule-date-picker-plugin"
+import { emailNotificationModule } from "./src/lib/email-notification-config"
 
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim()
@@ -73,26 +74,7 @@ export default defineConfig({
     vathuisAccess: {
       resolve: "./src/modules/vathuis-access",
     },
-    ...(process.env.SENDGRID_API_KEY
-      ? {
-          notification: {
-            resolve: "@medusajs/medusa/notification",
-            options: {
-              providers: [
-                {
-                  resolve: "@medusajs/medusa/notification-sendgrid",
-                  id: "sendgrid",
-                  options: {
-                    channels: ["email"],
-                    api_key: process.env.SENDGRID_API_KEY,
-                    from: process.env.SENDGRID_FROM ?? "noreply@vrijeacademie.nl",
-                  },
-                },
-              ],
-            },
-          },
-        }
-      : {}),
+    ...emailNotificationModule(),
     payment: {
       resolve: "@medusajs/medusa/payment",
       options: {

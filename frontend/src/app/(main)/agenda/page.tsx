@@ -4,7 +4,14 @@ import { commerceClient } from '@/lib/commerce'
 import { cmsClient } from '@/lib/cms/server'
 import { getPlpPage, getCategoriesForFilter, getTeachersForFilter } from '@/lib/cms/sanity-refs'
 import { CONTAINER_CLASS } from '@/lib/cms'
-import { parseFilterState, PAGE_SIZE, serializeFilterState } from './_state/url'
+import {
+  parseFilterState,
+  PAGE_SIZE,
+  serializeFilterState,
+  hasActiveFilters,
+} from './_state/url'
+import { getHardCachedAgendaListing } from '@/lib/agenda/cached-default-listing'
+import { isHardCachedAgendaSort, resolveAgendaSort } from '@/lib/agenda/hard-cache-sort'
 
 import { PlpBreadcrumbs } from '@/components/plp/PlpBreadcrumbs'
 import { PlpBanner } from '@/components/plp/PlpBanner'
@@ -14,6 +21,7 @@ import { AgendaLiveListing } from '@/components/agenda/AgendaLiveListing'
 import { JsonLd } from '@/components/common/JsonLd'
 import { buildCollectionPageJsonLd, buildItemListJsonLd } from '@/lib/json-ld'
 import { PLP_BASE_PATH, plpProductPath } from '@/lib/routes'
+import { productTypePluralsFromCms } from '@/lib/plp-product-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,22 +46,27 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
     redirect(query ? `/agenda?${query}` : '/agenda')
   }
 
-  const sort =
-    filterState.sort ?? (filterState.q ? 'relevance' : 'start_date')
+  const sort = resolveAgendaSort(filterState.sort)
+  const useHardAgendaCache =
+    !hasActiveFilters(filterState) && isHardCachedAgendaSort(sort)
+
+  const agendaPromise = useHardAgendaCache
+    ? getHardCachedAgendaListing(sort).catch(() => null)
+    : commerceClient
+        .getAgendaPaginated({
+          ...filterState,
+          sort,
+          limit: PAGE_SIZE,
+          offset: 0,
+        })
+        .catch(() => null)
 
   const [plpData, settings, categories, teachers, result] = await Promise.all([
     getPlpPage(),
     cmsClient.getGeneralSettings(),
     getCategoriesForFilter(),
     getTeachersForFilter(),
-    commerceClient
-      .getAgendaPaginated({
-        ...filterState,
-        sort,
-        limit: PAGE_SIZE,
-        offset: 0,
-      })
-      .catch(() => null),
+    agendaPromise,
   ])
 
   const items = result?.items ?? []
@@ -66,6 +79,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
   ]
 
   const plpCopy = settings?.plp
+  const productTypePlurals = productTypePluralsFromCms(plpCopy?.productTypePlurals)
   const pageTitle = 'Agenda'
 
   const collectionPageJsonLd = buildCollectionPageJsonLd({
@@ -125,6 +139,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
           emptyStateSubtext={plpCopy?.emptyStateSubtext}
           loadMoreLabel={plpCopy?.loadMoreLabel}
           loadError={result === null}
+          productTypePlurals={productTypePlurals}
         />
       </div>
     </div>

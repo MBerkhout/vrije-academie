@@ -85,6 +85,7 @@ export function VaThuisCategoryGrid({
                     aspectRatio=""
                     className="h-full min-h-0"
                     sizes="75px"
+                    quality={90}
                   />
                 </div>
               ) : null}

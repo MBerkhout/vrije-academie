@@ -8,6 +8,14 @@ export const PLP_PRODUCT_TYPES = [
 
 export type PlpProductTypeSlug = (typeof PLP_PRODUCT_TYPES)[number]['slug']
 
+/** CMS / listing overrides for Soort activiteit. PDP badges stay singular. */
+export type ProductTypePluralMap = Partial<Record<PlpProductTypeSlug, string>>
+
+/** Used when General Settings has no plural for a type. */
+export const DEFAULT_PLP_PRODUCT_TYPE_PLURALS: ProductTypePluralMap = {
+  reis: 'Reizen',
+}
+
 const SLUG_SET = new Set<string>(PLP_PRODUCT_TYPES.map((t) => t.slug))
 
 const BADGE_CLASS_BY_SLUG = Object.fromEntries(
@@ -32,6 +40,33 @@ export function productTypeToSlug(value: string | null | undefined): PlpProductT
 export function productTypeLabelFromSlug(slug: string): string {
   if (isPlpProductTypeSlug(slug)) return LABEL_BY_SLUG[slug]
   return slug.charAt(0).toUpperCase() + slug.slice(1)
+}
+
+export function productTypePluralsFromCms(
+  cms?: ProductTypePluralMap | null,
+): ProductTypePluralMap {
+  if (!cms) return {}
+  const out: ProductTypePluralMap = {}
+  for (const type of PLP_PRODUCT_TYPES) {
+    const value = cms[type.slug]?.trim()
+    if (value) out[type.slug] = value
+  }
+  return out
+}
+
+/** Filter, chips, and product-type landing titles. PDP uses the singular Salesforce name. */
+export function productTypeListLabelFromSlug(
+  slug: string,
+  plurals?: ProductTypePluralMap | null,
+): string {
+  const key = slug.trim().toLowerCase()
+  if (isPlpProductTypeSlug(key)) {
+    const fromCms = plurals?.[key]?.trim()
+    if (fromCms) return fromCms
+    const fallback = DEFAULT_PLP_PRODUCT_TYPE_PLURALS[key]
+    if (fallback) return fallback
+  }
+  return productTypeLabelFromSlug(slug)
 }
 
 export function plpProductTypeBadgeClass(slug: PlpProductTypeSlug): string {

@@ -11,11 +11,12 @@ function isRenderablePhoto(url: string | null | undefined): url is string {
   return Boolean(url && /^https?:\/\//i.test(url))
 }
 
-/** VA Thuis sidebar: photo left, name + title right. */
+/** Highlighted teacher in the booking panel: photo, name, title, and bio. */
 export function PdpFeaturedInstructor({ instructor, variant = 'light' }: PdpFeaturedInstructorProps) {
   const name = instructor.name?.trim()
   const role = instructor.role?.trim()
   const photoUrl = instructor.photo_url?.trim()
+  const bio = instructor.bio?.trim()
 
   if (!name) return null
 
@@ -25,6 +26,7 @@ export function PdpFeaturedInstructor({ instructor, variant = 'light' }: PdpFeat
   const headingClass = isDark ? 'text-white' : 'text-va-black'
   const nameClass = isDark ? 'text-white' : 'text-va-black'
   const roleClass = isDark ? 'text-va-gray-300' : 'text-va-gray'
+  const bioClass = isDark ? 'text-va-gray-300' : 'text-va-darkgray'
   const placeholderClass = isDark ? 'bg-va-darkgray-800 text-va-gray-300' : 'bg-va-lightgray text-va-gray'
 
   return (
@@ -58,6 +60,9 @@ export function PdpFeaturedInstructor({ instructor, variant = 'light' }: PdpFeat
           {role ? <p className={cn('text-sm mt-0.5', roleClass)}>{role}</p> : null}
         </div>
       </div>
+      {bio ? (
+        <p className={cn('mt-3 text-sm leading-relaxed whitespace-pre-wrap', bioClass)}>{bio}</p>
+      ) : null}
     </section>
   )
 }

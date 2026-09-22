@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/util
 
 import SalesforceSyncModuleService from "../../modules/salesforce-sync/service"
 import { isFutureSession } from "../event-session-eligibility"
+import { sessionIsWaitlistEligible } from "./waitlist-eligibility"
 
 const ENTITY_VARIANT = "variant"
 
@@ -15,14 +16,11 @@ type VariantWithEventItem = {
   } | null
 }
 
-/** Soonest upcoming bookable variant's Salesforce vaProduct__c id. */
-export async function resolveWaitlistVaProductId(
+async function loadProductWithVariants(
   scope: MedusaContainer,
   handle: string
-): Promise<{ productId: string; variantId: string; vaProductId: string }> {
+): Promise<{ id: string; variants?: VariantWithEventItem[] }> {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
-  const sync = scope.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
-
   const { data: products } = await query.graph({
     entity: "product",
     fields: ["id", "handle", "variants.id", "variants.purchasable", "variants.event_item.*"],
@@ -33,9 +31,54 @@ export async function resolveWaitlistVaProductId(
   if (!product) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, "Event not found")
   }
+  return product
+}
+
+async function vaProductIdForVariant(
+  sync: InstanceType<typeof SalesforceSyncModuleService>,
+  variantId: string
+): Promise<string> {
+  const variantState = await sync.getStateByMedusaId(ENTITY_VARIANT, variantId)
+  const vaProductId = variantState?.salesforce_id?.trim()
+  if (!vaProductId) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Event session has no Salesforce link — import product group first"
+    )
+  }
+  return vaProductId
+}
+
+/**
+ * Resolve Salesforce vaProduct__c for waitlist signup.
+ * When variantId is set, that sold-out session is used; otherwise the soonest upcoming bookable variant.
+ */
+export async function resolveWaitlistVaProductId(
+  scope: MedusaContainer,
+  handle: string,
+  variantId?: string | null
+): Promise<{ productId: string; variantId: string; vaProductId: string }> {
+  const sync = scope.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
+  const product = await loadProductWithVariants(scope, handle)
+  const variants = product.variants ?? []
+
+  if (variantId?.trim()) {
+    const variant = variants.find((v) => v.id === variantId)
+    if (!variant) {
+      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Session not found for this activity")
+    }
+    if (!sessionIsWaitlistEligible(variant)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Waitlist signup is only available for sold-out sessions"
+      )
+    }
+    const vaProductId = await vaProductIdForVariant(sync, variant.id)
+    return { productId: product.id, variantId: variant.id, vaProductId }
+  }
 
   const nowMs = Date.now()
-  const candidates = (product.variants ?? [])
+  const candidates = variants
     .filter((variant) => variant.purchasable !== false)
     .filter((variant) => !variant.event_item || isFutureSession(variant.event_item, nowMs))
     .sort((a, b) => {
@@ -56,14 +99,6 @@ export async function resolveWaitlistVaProductId(
     )
   }
 
-  const variantState = await sync.getStateByMedusaId(ENTITY_VARIANT, variant.id)
-  const vaProductId = variantState?.salesforce_id?.trim()
-  if (!vaProductId) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Event session has no Salesforce link — import product group first"
-    )
-  }
-
+  const vaProductId = await vaProductIdForVariant(sync, variant.id)
   return { productId: product.id, variantId: variant.id, vaProductId }
 }
