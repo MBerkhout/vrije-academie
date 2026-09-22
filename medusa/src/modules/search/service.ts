@@ -249,7 +249,7 @@ export default class SearchModuleService {
     if (!row) {
       // Bypass the VA Thuis listing cache: webhooks often reindex before the
       // snapshot includes the new bundle (or against a stale cluster worker).
-      row = await loadPublishedVathuisProductRow(scope, productId)
+      row = (await loadPublishedVathuisProductRow(scope, productId)) ?? undefined
     }
     if (!row) {
       await this.deleteDoc(`product-${productId}`)

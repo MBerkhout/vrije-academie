@@ -220,7 +220,7 @@ export async function writeImportedProductgroupMedusaIds(input: {
     },
     ...firstUniqueBySalesforceId(
       input.variants
-        .map((row) => {
+        .map((row): SalesforceIdPatch | null => {
           const salesforceId = childSalesforceIdFromVariantSyncKey(row.salesforceId) ?? row.salesforceId
           if (!childSalesforceIdFromVariantSyncKey(salesforceId)) return null
           return {
@@ -230,9 +230,9 @@ export async function writeImportedProductgroupMedusaIds(input: {
               [VARIANT_EXTERNAL_ID_FIELD]: row.medusaId,
               [PRODUCT_GROUP_ID_FIELD]: input.productId,
             },
-          } satisfies SalesforceIdPatch
+          }
         })
-        .filter((row): row is SalesforceIdPatch => !!row)
+        .filter((row): row is SalesforceIdPatch => row !== null)
     ),
   ]
   try {

@@ -42,11 +42,11 @@ export const ensureOrderCustomerSalesforceStep = createStep(
     if (!row?.salesforce_id || !row.salesforce_account_id) {
       // In-process run: nested workflowEngine.run from a parent Redis workflow
       // returns before the child writes Salesforce IDs (waitlist signup 400).
-      const { errors, thrownError } = await pushCustomerToSalesforceWorkflow(container).run({
+      const ret = await pushCustomerToSalesforceWorkflow(container).run({
         input: { customerId: input.customerId },
         throwOnError: false,
       })
-      const failure = firstWorkflowError(thrownError, errors)
+      const failure = firstWorkflowError(ret)
       if (failure) throw failure
       row = await sync.getStateByMedusaId("customer", input.customerId)
     }

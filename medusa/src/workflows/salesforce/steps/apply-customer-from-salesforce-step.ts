@@ -128,11 +128,11 @@ export const applyCustomerFromSalesforceStep = createStep(
     }
 
     if (!targetMedusaId && mapped.email) {
-      const [byEmail] = await customerService.listAndCountCustomers(
+      const [customers] = await customerService.listAndCountCustomers(
         { email: mapped.email.toLowerCase().trim() },
         { take: 1, select: ["id"] }
       )
-      targetMedusaId = byEmail?.id ?? null
+      targetMedusaId = customers[0]?.id ?? null
     }
 
     if (targetMedusaId) {

@@ -1,6 +1,7 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import type { ICustomerModuleService } from "@medusajs/framework/types"
 
+import { firstWorkflowError } from "../workflow-failure"
 import SalesforceSyncModuleService from "../../modules/salesforce-sync/service"
 import { pullCustomerFromSalesforceWorkflow } from "../../workflows/salesforce/pull-customer-salesforce"
 import {
@@ -59,22 +60,15 @@ export async function ensureMedusaCustomerFromSalesforce(
   }
 
   try {
-    const { result, errors, thrownError } = await pullCustomerFromSalesforceWorkflow(
-      container
-    ).run({
+    const ret = await pullCustomerFromSalesforceWorkflow(container).run({
       input: { salesforceId },
       throwOnError: false,
     })
+    const failure = firstWorkflowError(ret)
+    const medusaId = ret.result?.medusaId
 
-    const failed =
-      !!thrownError || (Array.isArray(errors) && errors.length > 0) || !result?.medusaId
-
-    if (failed) {
-      const message =
-        thrownError?.message ??
-        (errors?.[0]?.error instanceof Error
-          ? errors[0].error.message
-          : String(errors?.[0]?.error ?? "Workflow failed"))
+    if (failure || !medusaId) {
+      const message = failure?.message ?? "Workflow failed"
       logger.warn(
         `[customer-auth] Salesforce import failed for ${normalized} (${salesforceId}): ${message}`
       )
@@ -82,9 +76,9 @@ export async function ensureMedusaCustomerFromSalesforce(
     }
 
     logger.info(
-      `[customer-auth] imported Medusa customer ${result.medusaId} from Salesforce ${salesforceId} (${normalized})`
+      `[customer-auth] imported Medusa customer ${medusaId} from Salesforce ${salesforceId} (${normalized})`
     )
-    return result.medusaId
+    return medusaId
   } catch (err) {
     logger.warn(
       `[customer-auth] Salesforce import error for ${normalized}: ${

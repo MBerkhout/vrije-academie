@@ -1254,9 +1254,9 @@ export const medusaClient: CommerceClient = {
       offset,
       fields: '*items,+metadata',
     })
-    const orders = (rawOrders ?? [])
+    const orders: Order[] = (rawOrders ?? [])
       .map((row: unknown) => mapStoreOrder(row))
-      .filter((order) => isOrderVisibleInAccount(order))
+      .filter(isOrderVisibleInAccount)
     return { orders, count: typeof count === 'number' ? count : orders.length }
   },
 
