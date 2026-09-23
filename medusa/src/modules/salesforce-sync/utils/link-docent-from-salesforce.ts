@@ -303,22 +303,28 @@ export async function linkDocentFromSalesforce(
     )
 
     if (!alreadyLinked) {
-      for (const row of existingLinks ?? []) {
-        const existingDocentId = (row as { docent_id?: string }).docent_id
-        if (existingDocentId && existingDocentId !== docentId) {
-          await link.dismiss({
-            [Modules.PRODUCT]: { product_id: productId },
-            people: { docent_id: existingDocentId },
-          })
-        }
-      }
       try {
         await link.create({
           [Modules.PRODUCT]: { product_id: productId },
           people: { docent_id: docentId },
         })
-      } catch {
-        // already linked (concurrent import)
+      } catch (err) {
+        const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+        const message = err instanceof Error ? err.message : String(err)
+        logger.error(
+          `[link-docent] failed to link docent ${docentId} to product ${productId}: ${message}`
+        )
+        return null
+      }
+    }
+
+    for (const row of existingLinks ?? []) {
+      const existingDocentId = (row as { docent_id?: string }).docent_id
+      if (existingDocentId && existingDocentId !== docentId) {
+        await link.dismiss({
+          [Modules.PRODUCT]: { product_id: productId },
+          people: { docent_id: existingDocentId },
+        })
       }
     }
 

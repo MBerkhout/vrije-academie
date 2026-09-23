@@ -4,11 +4,11 @@ import { defineLink } from "@medusajs/framework/utils"
 import PeopleModule from "../modules/people"
 
 /**
- * Product Group (`Product`) ↔ `Docent` — one product has many docenten.
- * Pivot table allows many-to-many at the data level.
+ * Product Group (`Product`) ↔ `Docent` — many-to-many.
+ * A product group has one highlighted docent; that same docent is highlighted on many groups.
  */
 const productDocentenLink = defineLink(
-  ProductModule.linkable.product,
+  { linkable: ProductModule.linkable.product, isList: true },
   { linkable: PeopleModule.linkable.docent, isList: true }
 )
 

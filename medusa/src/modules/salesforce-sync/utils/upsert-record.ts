@@ -181,13 +181,18 @@ export async function findVoucherIdByCode(
   sync: InstanceType<typeof SalesforceSyncModuleService>,
   code: string
 ): Promise<string | null> {
-  const normalized = code.replace(/^GIFT-/i, "").trim()
+  const normalized = code.trim().toUpperCase()
   if (!normalized) return null
-  const escaped = normalized.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
-  const q = await sync.query<{ Id: string }>(
-    `SELECT Id FROM Voucher__c WHERE Code__c = '${escaped}' LIMIT 1`
-  )
-  return q.records[0]?.Id ?? null
+  const withoutGift = normalized.replace(/^GIFT-/i, "")
+  const candidates = [...new Set([normalized, withoutGift].filter(Boolean))]
+  for (const candidate of candidates) {
+    const escaped = candidate.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
+    const q = await sync.query<{ Id: string }>(
+      `SELECT Id FROM Voucher__c WHERE Code__c = '${escaped}' OR Name = '${escaped}' LIMIT 1`
+    )
+    if (q.records[0]?.Id) return q.records[0].Id
+  }
+  return null
 }
 
 export async function resolveGiftCardProduct2Id(

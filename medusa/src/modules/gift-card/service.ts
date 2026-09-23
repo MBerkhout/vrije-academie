@@ -1,6 +1,8 @@
 import { MedusaError, MedusaService } from "@medusajs/framework/utils"
 import { randomBytes } from "crypto"
 
+import { normalizeGiftCardCode } from "../../lib/gift-card-code"
+
 import { GiftCard } from "./models/gift-card"
 import { GiftCardTransaction } from "./models/gift-card-transaction"
 
@@ -25,11 +27,7 @@ class GiftCardModuleService extends MedusaService({
   GiftCardTransaction,
 }) {
   normalizeCode(raw: string): string {
-    const t = raw.trim().toUpperCase()
-    if (!t.startsWith("GIFT-")) {
-      return `GIFT-${t.replace(/^GIFT-?/i, "")}`
-    }
-    return t
+    return normalizeGiftCardCode(raw)
   }
 
   private async generateUniqueCode(): Promise<string> {

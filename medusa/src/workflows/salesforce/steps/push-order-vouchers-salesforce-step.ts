@@ -13,6 +13,7 @@ import {
 } from "../../../modules/salesforce-sync/utils/salesforce-config"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 import { resolvePricebookEntryId } from "../../../modules/salesforce-sync/utils/resolve-pricebook-entry"
+import { syncGiftCardCodeFromSalesforceVoucher } from "../../../lib/sync-gift-card-code-from-salesforce"
 import {
   findSalesforceIdByExternalId,
   findVoucherIdByCode,
@@ -89,7 +90,7 @@ export const pushOrderVouchersSalesforceStep = createStep(
       )
       orderItemIds[purchase.externalId] = itemId
 
-      if (purchase.giftCardId && purchase.giftCardCode) {
+      if (purchase.giftCardId) {
         let voucherId =
           (await sync.getStateByMedusaId("voucher", purchase.giftCardId))?.salesforce_id ??
           (await findSalesforceIdByExternalId(
@@ -111,7 +112,6 @@ export const pushOrderVouchersSalesforceStep = createStep(
             amountCents: purchase.amountCents,
             recipientName: purchase.recipientName,
             recipientEmail: purchase.recipientEmail,
-            code: purchase.giftCardCode,
           })
         )
         voucherIds[purchase.giftCardId] = voucherId
@@ -133,6 +133,12 @@ export const pushOrderVouchersSalesforceStep = createStep(
             last_status: "success",
           })
         }
+
+        await syncGiftCardCodeFromSalesforceVoucher(container, {
+          giftCardId: purchase.giftCardId,
+          voucherSalesforceId: voucherId,
+          medusaOrderId: input.prep.medusaId,
+        })
       }
     }
 
@@ -167,7 +173,7 @@ export const pushOrderVouchersSalesforceStep = createStep(
           product2Id: voucherProduct2Id,
           amountCents: redemption.amountCents,
           voucherId,
-          giftCardCode: redemption.giftCardCode.replace(/^GIFT-/i, ""),
+          giftCardCode: redemption.giftCardCode,
         })
       )
       orderItemIds[redemption.externalId] = itemId

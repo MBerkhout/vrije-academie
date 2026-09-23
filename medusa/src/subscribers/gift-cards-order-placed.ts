@@ -4,7 +4,6 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 
-import { emailContent } from "../lib/email-content"
 import { GIFT_CARD_REFERENCE } from "../lib/gift-card-cart"
 import { medusaMajorToCents } from "../lib/medusa-price-to-cents"
 import { GIFT_CARD_MODULE } from "../modules/gift-card"
@@ -12,7 +11,8 @@ import GiftCardModuleService from "../modules/gift-card/service"
 
 /**
  * On order.placed: issue gift cards for purchased lines with metadata.gift_card,
- * finalize balance deduction for applied gift-card credit lines, notify recipients.
+ * finalize balance deduction for applied gift-card credit lines.
+ * Recipient email with the Salesforce GTC code is sent after order push (Voucher__c sync).
  */
 export default async function giftCardsOnOrderPlaced({
   event: { data },
@@ -22,13 +22,6 @@ export default async function giftCardsOnOrderPlaced({
   const orderId = data.id
   const orderModule = container.resolve(Modules.ORDER)
   const gift = container.resolve(GIFT_CARD_MODULE) as InstanceType<typeof GiftCardModuleService>
-
-  let notification: any
-  try {
-    notification = container.resolve(Modules.NOTIFICATION)
-  } catch {
-    notification = null
-  }
 
   const order = await orderModule.retrieveOrder(orderId, {
     relations: ["items", "credit_lines"],
@@ -58,7 +51,7 @@ export default async function giftCardsOnOrderPlaced({
         : medusaMajorToCents(unit) * qty
 
     try {
-      const card = await gift.createForOrderLine({
+      await gift.createForOrderLine({
         orderId,
         lineItemId: line.id,
         amountCents,
@@ -71,48 +64,6 @@ export default async function giftCardsOnOrderPlaced({
           amount_cents: amountCents,
         },
       })
-
-      const euros = (amountCents / 100).toFixed(2)
-      const subject = `Je cadeaubon van €${euros} — code ${card.code}`
-      const text = [
-        `Hoi ${gc.recipient_name},`,
-        "",
-        `Je hebt een digitale cadeaubon ontvangen ter waarde van €${euros}.`,
-        `Code: ${card.code}`,
-        gc.sender_name ? `Van: ${gc.sender_name}` : "",
-        gc.message ? `Bericht: ${gc.message}` : "",
-        "",
-        "Voer deze code in bij het veld kortingscode of cadeaubon tijdens het afrekenen.",
-        "",
-        "Veel plezier!",
-      ]
-        .filter(Boolean)
-        .join("\n")
-
-      if (notification) {
-        await notification.createNotifications({
-          to: gc.recipient_email,
-          channel: "email",
-          template: "gift-card-purchased",
-          data: {
-            code: card.code,
-            amount_euros: euros,
-            /** Alias for notification templates that use `{name}` / `{{name}}` */
-            name: gc.recipient_name,
-            recipient_name: gc.recipient_name,
-            sender_name: gc.sender_name,
-            message: gc.message,
-            order_id: orderId,
-          },
-          content: emailContent({ subject, text }),
-          trigger_type: "gift-card.purchased",
-          resource_id: orderId,
-          resource_type: "order",
-          idempotency_key: `gift-card-${card.id}`,
-        })
-      } else {
-        logger.info(`[gift-card] (no notification module) ${subject}\n${text}`)
-      }
     } catch (err) {
       logger.error(`[gift-card] issue failed for line ${line.id}: ${(err as Error).message}`)
     }

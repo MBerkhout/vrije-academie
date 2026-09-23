@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
+import { resolveGiftCardByCode } from "../../../../lib/resolve-gift-card-by-code"
 import GiftCardModuleService from "../../../../modules/gift-card/service"
 import { GIFT_CARD_MODULE } from "../../../../modules/gift-card"
 
@@ -19,13 +20,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
 
   try {
     const normalized = gift.normalizeCode(raw)
-    const card = await gift.getByCode(normalized)
+    const card = await resolveGiftCardByCode(req.scope, raw)
     if (!card) {
       res.status(404).json({ message: "Gift card not found" })
       return
     }
     res.status(200).json({
-      code: normalized,
+      code: card.code,
       status: card.status,
       currency_code: card.currency_code,
       balance: card.balance,

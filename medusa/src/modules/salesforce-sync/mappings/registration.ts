@@ -107,7 +107,6 @@ export function voucherPurchaseToSalesforce(input: {
   amountCents: number
   recipientName: string
   recipientEmail: string
-  code: string
 }): Partial<SfVoucherShape> {
   return {
     ...(usesSalesforceMedusaCustomFields()
@@ -118,7 +117,6 @@ export function voucherPurchaseToSalesforce(input: {
     Original_Amount__c: centsToMajorEur(input.amountCents),
     Beneficiary_Name__c: input.recipientName,
     Beneficiary_Email__c: input.recipientEmail,
-    Code__c: input.code.replace(/^GIFT-/i, ""),
     Sync_with_Heroku__c: false,
   }
 }

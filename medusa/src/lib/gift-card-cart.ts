@@ -13,6 +13,7 @@ import {
 import GiftCardModuleService from "../modules/gift-card/service"
 import { GIFT_CARD_MODULE } from "../modules/gift-card"
 import { centsToMedusaMajor } from "./medusa-price-to-cents"
+import { resolveGiftCardByCode } from "./resolve-gift-card-by-code"
 import { refetchStoreCart, toNumber } from "./store-cart"
 
 export const GIFT_CARD_REFERENCE = "gift_card"
@@ -209,7 +210,7 @@ export async function applyGiftCardCode(
     )
   }
 
-  const card = await gift.getByCode(code)
+  const card = await resolveGiftCardByCode(container, code)
   if (!card) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, "Gift card code not found")
   }
