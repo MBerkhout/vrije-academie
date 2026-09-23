@@ -166,7 +166,7 @@ Use `@/components/ui/Badge` everywhere so colors and spacing stay consistent.
 | `record` | Record type (yellow, capitalized) |
 | `online` | “Nu ook online” style (green) |
 | `freeTrial` | Free trial row (yellow tint; supports icon + text as children) |
-| `popular` | Small highlight (e.g. “Meest gekozen” on payment method) |
+| `popular` | Small highlight on payment tiles (“Meest gekozen” on iDEAL, “Betaal in termijnen” on Klarna) |
 
 **Sizes**: `compact` (PLP chips), `sm` (PDP header row), `md` (booking panel), `micro` (tiny emphasis). Legacy variants default to `compact`.
 

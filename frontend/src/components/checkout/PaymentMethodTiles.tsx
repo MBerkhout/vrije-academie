@@ -7,8 +7,16 @@ import { Badge } from '@/components/ui/Badge'
 import type { PaymentProvider } from '@/lib/commerce/types'
 
 const POPULAR_ID = 'pp_mollie-ideal_mollie'
+const KLARNA_ID = 'pp_mollie-klarna_mollie'
 const APPLE_PAY_ID = 'pp_mollie-apple-pay_mollie'
 const SYSTEM_DEFAULT_ID = 'pp_system_default'
+/** Catch-all Mollie hosted page — redundant because every other tile already pays via Mollie. */
+const HOSTED_CHECKOUT_ID = 'pp_mollie-hosted-checkout_mollie'
+
+const TILE_BADGES: Record<string, string> = {
+  [POPULAR_ID]: 'Meest gekozen',
+  [KLARNA_ID]: 'Betaal in termijnen',
+}
 
 const PROVIDER_LABELS: Record<string, string> = {
   'pp_mollie-ideal_mollie': 'iDEAL',
@@ -54,6 +62,7 @@ export function PaymentMethodTiles({ providers, selected, onSelect, labelOverrid
   const visible = providers
     .filter((p) => {
       if (p.id === SYSTEM_DEFAULT_ID) return false
+      if (p.id === HOSTED_CHECKOUT_ID) return false
       if (p.id === APPLE_PAY_ID && !applePaySupported) return false
       return true
     })
@@ -81,7 +90,7 @@ export function PaymentMethodTiles({ providers, selected, onSelect, labelOverrid
           provider.id
         const iconUrl = PROVIDER_ICONS[provider.id]
         const isSelected = selected === provider.id
-        const isPopular = provider.id === POPULAR_ID
+        const badge = TILE_BADGES[provider.id]
 
         return (
           <button
@@ -124,9 +133,9 @@ export function PaymentMethodTiles({ providers, selected, onSelect, labelOverrid
             {/* Label */}
             <span className="flex-1 font-sans text-sm font-medium text-va-black">{label}</span>
 
-            {isPopular && (
+            {badge && (
               <Badge variant="popular" className="flex-shrink-0 font-sans">
-                Meest gekozen
+                {badge}
               </Badge>
             )}
           </button>

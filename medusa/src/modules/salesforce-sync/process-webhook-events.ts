@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { batchSyncProductsToSanity } from "../sanity-sync/batch-sync-products"
 import { batchSyncRelatedEntitiesToSanity } from "../sanity-sync/batch-sync-related-entities"
+import { courseProductParentGroupId } from "./mappings/course-product"
 import {
   SF_COURSE_PRODUCT_OBJECT,
   SF_PRODUCTGROUP_OBJECT,
@@ -68,9 +69,8 @@ async function resolveProductgroupSalesforceId(
   if (objectType === SF_PRODUCTGROUP_OBJECT) return salesforceId
   if (objectType !== SF_COURSE_PRODUCT_OBJECT) return null
   try {
-    const row = await sync.retrieve(SF_COURSE_PRODUCT_OBJECT, salesforceId, ["Productgroup__c"])
-    const parent = row.Productgroup__c
-    return typeof parent === "string" && parent.trim() ? parent.trim() : null
+    const row = await sync.retrieve(SF_COURSE_PRODUCT_OBJECT, salesforceId, ["ProductGroup__c"])
+    return courseProductParentGroupId(row)
   } catch {
     return null
   }

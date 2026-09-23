@@ -6,7 +6,9 @@ import { VATHUIS_UNLIMITED_AVAILABILITY } from "../../../lib/vathuis-availabilit
 export type SfCourseProductShape = {
   Id?: string
   Name?: string
+  /** Parent group lookup. REST JSON uses `ProductGroup__c`; older reads used `Productgroup__c`. */
   Productgroup__c?: string | null
+  ProductGroup__c?: string | null
   Price__c?: number | null
   Net_Price__c?: number | null
   VAT__c?: string | null
@@ -38,10 +40,25 @@ export type SfCourseProductShape = {
 
 export const SF_COURSE_PRODUCT_OBJECT = "vaProduct__c"
 
+/**
+ * Parent `vaProductgroup__c` id on a child row.
+ * Salesforce REST returns this lookup as `ProductGroup__c`. SOQL is case-insensitive, so a query
+ * for `Productgroup__c` still succeeds, but the JSON key does not match that spelling.
+ */
+export function courseProductParentGroupId(
+  record: { Productgroup__c?: string | null; ProductGroup__c?: string | null } | null | undefined
+): string | null {
+  if (!record) return null
+  const parent = record.ProductGroup__c ?? record.Productgroup__c
+  if (typeof parent !== "string") return null
+  const trimmed = parent.trim()
+  return trimmed.length ? trimmed : null
+}
+
 export const courseProductSalesforceFieldsForPull = [
   "Id",
   "Name",
-  "Productgroup__c",
+  "ProductGroup__c",
   "Price__c",
   "Net_Price__c",
   "VAT__c",

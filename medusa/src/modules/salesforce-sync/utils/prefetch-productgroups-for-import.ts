@@ -1,7 +1,8 @@
-import type { SfCourseProductShape } from "../mappings/course-product"
 import {
+  courseProductParentGroupId,
   courseProductSalesforceFieldsForPull,
   SF_COURSE_PRODUCT_OBJECT,
+  type SfCourseProductShape,
 } from "../mappings/course-product"
 import type { SfProductgroupShape } from "../mappings/productgroup"
 import {
@@ -46,7 +47,7 @@ async function queryChildrenByGroupIds(
     const rows = await queryAllSalesforce<SfCourseProductShape>(soql)
 
     for (const row of rows) {
-      const groupId = row.Productgroup__c?.trim()
+      const groupId = courseProductParentGroupId(row)
       if (!groupId) continue
       const list = childrenByGroupId.get(groupId)
       if (list) list.push(row)
@@ -85,16 +86,14 @@ export async function prefetchProductgroupsForImport(
     )
 
     const childFields = courseProductSalesforceFieldsForPull.join(",")
-    const modifiedChildRows = await queryAllSalesforce<{
-      Productgroup__c?: string
-    }>(
-      `SELECT Productgroup__c FROM ${SF_COURSE_PRODUCT_OBJECT} WHERE SystemModstamp >= ${sinceLiteral}`
+    const modifiedChildRows = await queryAllSalesforce<SfCourseProductShape>(
+      `SELECT ProductGroup__c FROM ${SF_COURSE_PRODUCT_OBJECT} WHERE SystemModstamp >= ${sinceLiteral}`
     )
 
     const parentIdsFromChildren = [
       ...new Set(
         modifiedChildRows
-          .map((r) => r.Productgroup__c?.trim())
+          .map((r) => courseProductParentGroupId(r))
           .filter((id): id is string => !!id)
       ),
     ]

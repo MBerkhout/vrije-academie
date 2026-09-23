@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tasks prefix="SI" next_id="95" generated="2026-09-22T19:56">
+<tasks prefix="SI" next_id="99" generated="2026-09-23T19:20">
   <task id="1" status="done">
     <title>Align course list prices and times in columns</title>
     <summary>Put times and prices in two fixed columns so they line up neatly across course rows.</summary>
@@ -6795,5 +6795,274 @@
     <verifications>
       <verification ts="2026-09-22T19:56" tool="staging scrape + local store API" result="pass" />
     </verifications>
+  </task>
+  <task id="95" status="done">
+    <title>Hide Mollie Checkout payment method</title>
+    <summary>Hide the redundant Mollie Hosted Checkout tile on the payment step, since every method already goes through Mollie.</summary>
+    <created>2026-09-22T20:05</created>
+    <started>2026-09-22T20:05</started>
+    <done>2026-09-22T20:08</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-95.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-2a89a5da</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>Checkout no longer lists Mollie Checkout as a payment method, since every option already pays through Mollie.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T20:05">received, backlog</event>
+      <event ts="2026-09-22T20:05">started</event>
+      <event ts="2026-09-22T20:05">started run lane run-2a89a5da</event>
+      <event ts="2026-09-22T20:06">progress plan: 5 steps</event>
+      <event ts="2026-09-22T20:05">in testing — running Vitest</event>
+      <event ts="2026-09-22T20:07">verification: Vitest passed</event>
+      <event ts="2026-09-22T20:08">completed</event>
+    </history>
+    <progress step="4" of="5" started="2026-09-22T20:06" label="Unit test">
+      <step n="1" label="Hide hosted checkout tile" done="2026-09-22T20:05" />
+      <step n="2" label="Skip auto-select" done="2026-09-22T20:05" />
+      <step n="3" label="Update docs" done="2026-09-22T20:05" />
+      <step n="4" label="Unit test" />
+      <step n="5" label="Browser check" />
+    </progress>
+    <verifications>
+      <verification ts="2026-09-22T20:07" tool="Vitest" result="pass" />
+    </verifications>
+  </task>
+  <task id="96" status="done">
+    <title>Klarna-badge Betaal in termijnen</title>
+    <summary>Toon bij Klarna in checkout dezelfde gele badge als bij iDEAL, met de tekst Betaal in termijnen.</summary>
+    <created>2026-09-22T20:05</created>
+    <started>2026-09-22T20:05</started>
+    <done>2026-09-22T20:10</done>
+    <human_estimate>20min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-96.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>feature</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-0c479fa4</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>Bij Klarna in checkout staat nu dezelfde gele badge als bij iDEAL, met de tekst Betaal in termijnen.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-22T20:05">received, backlog</event>
+      <event ts="2026-09-22T20:05">started</event>
+      <event ts="2026-09-22T20:05">started run lane run-0c479fa4</event>
+      <event ts="2026-09-22T20:06">progress plan: 4 steps</event>
+      <event ts="2026-09-22T20:07">auto-detected: running Vitest</event>
+      <event ts="2026-09-22T20:08">auto-detected: running npm test</event>
+      <event ts="2026-09-22T20:08">auto-detected: running Vitest</event>
+      <event ts="2026-09-22T20:10">auto-detected: running npm test</event>
+      <event ts="2026-09-22T20:11">verification: Vitest passed</event>
+      <event ts="2026-09-22T20:10">completed</event>
+    </history>
+    <progress step="4" of="4" started="2026-09-22T20:06" label="Browsercheck" elapsed="300" step_ts="2026-09-22T20:10">
+      <step n="1" label="Concept" done="2026-09-22T20:05" />
+      <step n="2" label="Badge in PaymentMethodTiles" done="2026-09-22T20:05" />
+      <step n="3" label="Test + docs" done="2026-09-22T20:10" />
+      <step n="4" label="Browsercheck" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/checkout/PaymentMethodTiles.tsx" ts="2026-09-22T20:07" />
+      <file path="frontend/src/components/checkout/CheckoutPaymentForm.tsx" ts="2026-09-22T20:07" />
+      <file path="frontend/docs/CHECKOUT.md" ts="2026-09-22T20:07" />
+      <file path="medusa/docs/PAYMENT-MOLLIE.md" ts="2026-09-22T20:07" />
+      <file path="frontend/src/components/checkout/PaymentMethodTiles.test.tsx" ts="2026-09-22T20:07" />
+      <file path="frontend/docs/DESIGN_SYSTEM.md" ts="2026-09-22T20:07" />
+      <file path="frontend/src/app/(main)/dev/components/page.tsx" ts="2026-09-22T20:07" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-22T20:11" tool="Vitest" result="pass" />
+    </verifications>
+  </task>
+  <task id="97" status="done">
+    <title>Webhook creates product group but not variants</title>
+    <summary>Investigate why the product webhook creates the product group for lezing-over-het-leven-van-een-webbouwer1 but does not create variants.</summary>
+    <created>2026-09-23T19:05</created>
+    <started>2026-09-23T19:05</started>
+    <done>2026-09-23T19:05</done>
+    <human_estimate>1h</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-97.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-cd711fee</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-23T19:05">received, backlog</event>
+      <event ts="2026-09-23T19:05">started</event>
+      <event ts="2026-09-23T19:05">started run lane run-cd711fee</event>
+      <event ts="2026-09-23T19:05">Both Salesforce sessions have Visible_On_Website__c false, so the group webhook stored only a hidden placeholder variant.</event>
+    </history>
+  </task>
+  <task id="98" status="done">
+    <title>Enabled session still missing after webhook</title>
+    <summary>A session on lezing-over-het-leven-van-een-webbouwer1 was marked visible in Salesforce but still does not appear on the PDP.</summary>
+    <created>2026-09-23T19:17</created>
+    <started>2026-09-23T19:17</started>
+    <done>2026-09-23T19:17</done>
+    <human_estimate>45min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-98.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-abe45ad1</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-23T19:17">received, backlog</event>
+      <event ts="2026-09-23T19:17">started</event>
+      <event ts="2026-09-23T19:17">started run lane run-abe45ad1</event>
+      <event ts="2026-09-23T19:17">in testing — running Vitest</event>
+      <event ts="2026-09-23T19:17">Child webhook skipped on ProductGroup__c casing. Re-imported the group; Alkmaar session is on the PDP. Lookup fix is local, not deployed.</event>
+    </history>
+    <files>
+      <file path="medusa/src/modules/salesforce-sync/mappings/course-product.ts" ts="2026-09-23T19:18" />
+      <file path="medusa/src/modules/salesforce-sync/process-webhook-events.ts" ts="2026-09-23T19:18" />
+      <file path="medusa/src/modules/salesforce-sync/utils/prefetch-productgroups-for-import.ts" ts="2026-09-23T19:18" />
+      <file path="medusa/docs/SALESFORCE_SYNC.md" ts="2026-09-23T19:18" />
+      <file path="medusa/src/modules/salesforce-sync/mappings/course-product.test.ts" ts="2026-09-23T19:19" />
+    </files>
   </task>
 </tasks>

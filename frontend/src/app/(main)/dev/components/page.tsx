@@ -167,6 +167,7 @@ export default function DevComponentsPage() {
             <Badge variant="record" size="sm">College</Badge>
             <Badge variant="online" size="sm">Nu ook online te volgen!</Badge>
             <Badge variant="popular">Meest gekozen</Badge>
+            <Badge variant="popular">Betaal in termijnen</Badge>
             <Badge variant="freeTrial" size="md">
               <span className="w-4 h-4 rounded-full bg-va-black/10" aria-hidden />
               Gratis proefles

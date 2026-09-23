@@ -53,7 +53,7 @@ The plugin registers one provider per payment method. All share the plugin's `id
 
 | Provider ID | Method |
 |---|---|
-| `pp_mollie-hosted-checkout_mollie` | Mollie Hosted Checkout (shows all available methods) |
+| `pp_mollie-hosted-checkout_mollie` | Mollie Hosted Checkout (shows all available methods). Enabled in Medusa but **hidden** on the storefront payment step. |
 | `pp_mollie-ideal_mollie` | iDEAL |
 | `pp_mollie-card_mollie` | Creditcard |
 | `pp_mollie-bancontact_mollie` | Bancontact |

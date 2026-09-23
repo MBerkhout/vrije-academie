@@ -20,6 +20,8 @@ import { parseGiftCardRedemptions } from '@/lib/commerce/gift-card'
 import { formatPriceEur } from '@/lib/locale-format'
 import type { GeneralSettings } from '@/lib/cms/types'
 
+const HIDDEN_PROVIDER_IDS = new Set(['pp_system_default', 'pp_mollie-hosted-checkout_mollie'])
+
 const PAYMENT_TYPE_LABELS: Record<string, string> = {
   'pp_mollie-ideal_mollie': 'iDEAL',
   'pp_mollie-card_mollie': 'Creditcard',
@@ -161,9 +163,9 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
       if (cancelled) return
       setProviders(ps)
       setSelectedMethod((prev) => {
-        if (prev && ps.some((p) => p.id === prev)) return prev
+        if (prev && ps.some((p) => p.id === prev && !HIDDEN_PROVIDER_IDS.has(p.id))) return prev
         const ideal = ps.find((p) => p.id === 'pp_mollie-ideal_mollie')
-        const first = ps.find((p) => p.id !== 'pp_system_default')
+        const first = ps.find((p) => !HIDDEN_PROVIDER_IDS.has(p.id))
         return ideal?.id ?? first?.id ?? null
       })
     })()

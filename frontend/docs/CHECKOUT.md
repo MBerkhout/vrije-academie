@@ -126,7 +126,7 @@ Mollie also POSTs webhooks to: `{MEDUSA_URL}/hooks/payment/pp_mollie-<method>_mo
 Listed via Medusa's built-in endpoint `GET /store/payment-providers?region_id=...`.  
 Enabled per region in **Medusa Admin → Settings → Regions → [Region] → Payment**.
 
-`PaymentMethodTiles` maps each provider ID to a human label and Mollie icon using a built-in lookup table (iDEAL, Creditcard, Bancontact, PayPal, Apple Pay, Cadeaukaart, Mollie Checkout, **Klarna**). Labels can be overridden per provider in Sanity `siteSettings.checkout` (planned).
+`PaymentMethodTiles` maps each provider ID to a human label and Mollie icon using a built-in lookup table (iDEAL, Creditcard, Bancontact, PayPal, Apple Pay, Cadeaukaart, **Klarna**). `pp_mollie-hosted-checkout_mollie` (Mollie Hosted Checkout) stays enabled in Medusa but is hidden on the storefront — every other tile already pays via Mollie. Apple Pay is shown only when the browser supports it. iDEAL gets a yellow `popular` badge **Meest gekozen**; Klarna gets the same badge style with **Betaal in termijnen**. Labels can be overridden per provider in Sanity `siteSettings.checkout` (planned).
 
 ## Sanity CMS fields
 

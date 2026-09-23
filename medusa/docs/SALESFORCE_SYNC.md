@@ -318,7 +318,7 @@ Logic: `utils/import-rebooked-order.ts`. Webhook: unlinked `Order` updates attem
 
 ## Product group import (`vaProductgroup__c`)
 
-Vrije Academie product groups are **`vaProductgroup__c`** (prefix `a05…`); child occurrences are **`vaProduct__c`** (`a04…`, lookup `Productgroup__c`). Standard **`Product2`** import remains available for legacy/simple products.
+Vrije Academie product groups are **`vaProductgroup__c`** (prefix `a05…`); child occurrences are **`vaProduct__c`** (`a04…`, lookup `ProductGroup__c`). Standard **`Product2`** import remains available for legacy/simple products.
 
 **Workflow:** `pull-productgroup-salesforce` — fetch group + children, apply Medusa product / event group / categories / variants / event items / media / sync state, then Sanity mirror.
 
@@ -351,7 +351,7 @@ curl -X POST /admin/salesforce/productgroups/import -d '{"salesforce_id":"a05Mz0
 | `Order` | `order` | Pull when linked; **omboeking import** when unlinked (see above) |
 | `Product2` | `product` / `variant` | Pull / import |
 | `vaProductgroup__c` | `productgroup` | Pull / auto-import if not yet in Medusa (+ linked-online parents) |
-| `vaProduct__c` | parent `productgroup` | Pull parent group (auto-import parent if missing) |
+| `vaProduct__c` | parent `productgroup` | Pull parent group (auto-import parent if missing). Parent lookup API name is `ProductGroup__c` |
 
 `create` and `update` for **product**, **productgroup**, **customer**, and **docent** run a pull even when Medusa has no linked row yet. Product groups then use the same auto-import guards as other webhook pulls (`manual: false`). Hidden or past groups are **skipped** (`not_visible_on_website` / `past_dates`) instead of `no_linked_medusa_row`. **Orders** without a Medusa link attempt **omboeking import** first; otherwise skipped.
 
@@ -479,7 +479,7 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Subtitle | `Productgroup_Subtitle__c` | metadata `salesforce_subtitle` |
 | Product card CTA bar | `CTA_Label__c`, `CTA_Color__c`, `CTA_Color_Hover__c` | metadata `salesforce_cta_*` → store `badge`, `cta_color`, `cta_color_hover`; Sanity `badge`, `ctaColor`, `ctaColorHover`; PLP card bar in `PlpEventCard` |
 | Catalog sort order | `Order__c` | metadata `salesforce_order` → default PLP / VA Thuis sort (`sort=order`, ascending; nulls last) |
-| Child products | `vaProduct__c` (lookup `Productgroup__c`) | `ProductVariant` + linked `EventItem` |
+| Child products | `vaProduct__c` (lookup `ProductGroup__c`) | `ProductVariant` + linked `EventItem` |
 | Occurrence start / end | `Start_date_time__c`, `End_date_time__c` | `EventItem.start_at` / `end_at` |
 | Occurrence price | `Price__c` | variant EUR price → Sanity `priceFrom` |
 | Occurrence city | `Product_City__c` | `EventItem.city` / `city_slug` + `catalog_city_id` |
