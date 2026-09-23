@@ -13,7 +13,7 @@ import {
   salesforceVoucherExpiresAt,
   salesforceVoucherInitialCents,
 } from "../modules/salesforce-sync/utils/fetch-salesforce-voucher"
-import { customerFacingCodeFromVoucher } from "../modules/salesforce-sync/utils/salesforce-voucher-code"
+import { resolveVoucherCustomerCode } from "../modules/salesforce-sync/utils/salesforce-voucher-code"
 import { refreshGiftCardBalanceFromSalesforce } from "./refresh-gift-card-from-salesforce"
 
 type GiftCardRow = Awaited<ReturnType<GiftCardModuleService["listGiftCards"]>>[number]
@@ -38,6 +38,7 @@ export async function exploreGiftCardFromSalesforce(
   const normalized = normalizeGiftCardCode(rawCode)
   const voucher = await fetchSalesforceVoucherByCode(sync, normalized)
   if (!voucher?.Id) {
+    logger.warn(`[gift-card] No Salesforce Voucher__c found for code ${normalized}`)
     return null
   }
 
@@ -47,10 +48,13 @@ export async function exploreGiftCardFromSalesforce(
   }
 
   const customerCode =
-    customerFacingCodeFromVoucher({
-      Code__c: voucher.Code__c,
-      Name: voucher.Name,
-    }) ?? normalized
+    resolveVoucherCustomerCode(
+      {
+        Code__c: voucher.Code__c,
+        Name: voucher.Name,
+      },
+      normalized
+    ) ?? normalized
 
   const balanceCents = salesforceVoucherBalanceCents(voucher)
   const initialCents = salesforceVoucherInitialCents(voucher)

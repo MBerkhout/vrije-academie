@@ -25,7 +25,13 @@ function escapeSoql(value: string): string {
 
 function codeCandidates(normalized: string): string[] {
   const withoutGift = normalized.replace(/^GIFT-/i, "")
-  return [...new Set([normalized, withoutGift].filter(Boolean))]
+  const withoutGtc = normalized.replace(/^GTC-/i, "")
+  return [...new Set([normalized, withoutGift, withoutGtc].filter(Boolean))]
+}
+
+function numericSuffix(normalized: string): string | null {
+  const match = normalized.match(/(\d{5,})$/)
+  return match?.[1] ?? null
 }
 
 function isInvalidFieldError(err: unknown): boolean {
@@ -49,6 +55,26 @@ async function queryVoucher(
       throw err
     }
   }
+
+  const suffix = numericSuffix(normalized)
+  if (suffix) {
+    const escapedSuffix = escapeSoql(suffix)
+    const likeSoql = `SELECT ${select} FROM ${SF_VOUCHER_OBJECT} WHERE Name LIKE '%${escapedSuffix}' OR Code__c LIKE '%${escapedSuffix}' ORDER BY CreatedDate DESC LIMIT 3`
+    try {
+      const q = await sync.query<SalesforceVoucherRecord>(likeSoql)
+      const upper = normalized.toUpperCase()
+      const exact = q.records.find((row) => {
+        const name = typeof row.Name === "string" ? row.Name.trim().toUpperCase() : ""
+        const code = typeof row.Code__c === "string" ? row.Code__c.trim().toUpperCase() : ""
+        return name === upper || code === upper || name.endsWith(suffix) || code.endsWith(suffix)
+      })
+      return exact ?? q.records[0] ?? null
+    } catch (err) {
+      if (isInvalidFieldError(err)) throw err
+      throw err
+    }
+  }
+
   return null
 }
 
@@ -78,15 +104,26 @@ export async function fetchSalesforceVoucherByCode(
 }
 
 /** Remaining balance in cents from Salesforce voucher fields (major EUR). */
+const DEFAULT_REMAINING_FIELDS = [
+  "Remaining_Amount__c",
+  "Remaining_Balance__c",
+  "Available_Amount__c",
+  "Balance__c",
+  "Restbedrag__c",
+  "Remaining_Value__c",
+]
+
 export function salesforceVoucherBalanceCents(voucher: SalesforceVoucherRecord): number {
-  const remainingField =
-    process.env.SALESFORCE_VOUCHER_REMAINING_FIELD?.trim() || "Remaining_Amount__c"
-  const remaining = voucher[remainingField as keyof SalesforceVoucherRecord]
-  if (typeof remaining === "number" && Number.isFinite(remaining)) {
-    return majorEurToCents(remaining)
-  }
-  if (typeof voucher.Remaining_Amount__c === "number" && Number.isFinite(voucher.Remaining_Amount__c)) {
-    return majorEurToCents(voucher.Remaining_Amount__c)
+  const configured = process.env.SALESFORCE_VOUCHER_REMAINING_FIELD?.trim()
+  const fieldNames = [
+    ...(configured ? [configured] : []),
+    ...DEFAULT_REMAINING_FIELDS,
+  ]
+  for (const field of fieldNames) {
+    const remaining = voucher[field as keyof SalesforceVoucherRecord]
+    if (typeof remaining === "number" && Number.isFinite(remaining)) {
+      return majorEurToCents(remaining)
+    }
   }
   if (typeof voucher.Original_Amount__c === "number" && Number.isFinite(voucher.Original_Amount__c)) {
     return majorEurToCents(voucher.Original_Amount__c)
@@ -131,5 +168,5 @@ export function salesforceVoucherExpiresAt(voucher: SalesforceVoucherRecord): st
 export function isSalesforceGiftcardVoucher(voucher: SalesforceVoucherRecord): boolean {
   const type = typeof voucher.Type__c === "string" ? voucher.Type__c.trim().toLowerCase() : ""
   if (!type) return true
-  return type === "giftcard" || type === "cadeaubon"
+  return !type.includes("discount")
 }

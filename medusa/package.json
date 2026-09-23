@@ -27,6 +27,7 @@
     "salesforce:inspect": "medusa exec ./src/scripts/inspect-salesforce-productgroup.ts --",
     "salesforce:inspect-order": "medusa exec ./src/scripts/inspect-salesforce-order.ts --",
     "salesforce:import-voucher": "medusa exec ./src/scripts/import-salesforce-voucher.ts --",
+    "salesforce:inspect-voucher": "medusa exec ./src/scripts/inspect-salesforce-voucher.ts --",
     "salesforce:import-rebooked-order": "medusa exec ./src/scripts/import-salesforce-rebooked-order.ts --",
     "salesforce:create-fields": "medusa exec ./src/scripts/create-salesforce-medusa-fields.ts --",
     "salesforce:backfill-ids": "medusa exec ./src/scripts/backfill-salesforce-medusa-ids.ts --",

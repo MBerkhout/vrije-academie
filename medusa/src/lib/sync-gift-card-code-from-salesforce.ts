@@ -5,7 +5,7 @@ import { sendGiftCardPurchasedNotification } from "./gift-card-purchased-notific
 import { GIFT_CARD_MODULE } from "../modules/gift-card"
 import GiftCardModuleService from "../modules/gift-card/service"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
-import { customerFacingCodeFromVoucher } from "../modules/salesforce-sync/utils/salesforce-voucher-code"
+import { resolveVoucherCustomerCode } from "../modules/salesforce-sync/utils/salesforce-voucher-code"
 import { SF_VOUCHER_OBJECT } from "../modules/salesforce-sync/utils/salesforce-config"
 
 const INTERNAL_GIFT_CODE = /^GIFT-[0-9A-F]{8}$/i
@@ -34,10 +34,15 @@ export async function syncGiftCardCodeFromSalesforceVoucher(
     "Name",
     "Code__c",
   ])
-  const customerCode = customerFacingCodeFromVoucher({
-    Code__c: voucher.Code__c as string | null | undefined,
-    Name: voucher.Name as string | null | undefined,
-  })
+  const cardsForHint = await gift.listGiftCards({ id: input.giftCardId })
+  const hintCode = cardsForHint[0]?.code ?? null
+  const customerCode = resolveVoucherCustomerCode(
+    {
+      Code__c: voucher.Code__c as string | null | undefined,
+      Name: voucher.Name as string | null | undefined,
+    },
+    hintCode ? gift.normalizeCode(hintCode) : null
+  )
 
   if (!customerCode) {
     logger.warn(

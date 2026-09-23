@@ -3142,6 +3142,7 @@
       <file path="medusa/src/lib/reconcile-gift-card-balance.ts" ts="2026-09-23T20:15" />
       <file path="medusa/src/lib/refresh-gift-card-from-salesforce.ts" ts="2026-09-23T20:15" />
       <file path="medusa/src/lib/reconcile-gift-card-balance.test.ts" ts="2026-09-23T20:15" />
+      <file path="medusa/src/scripts/inspect-salesforce-voucher.ts" ts="2026-09-23T20:25" />
     </files>
     <verifications>
       <verification ts="2026-09-21T16:47" tool="manual browser check" result="pass" />

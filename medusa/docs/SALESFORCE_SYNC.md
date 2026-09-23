@@ -238,6 +238,7 @@ Medusa does **not** log third-party HTTP automatically. This connector adds:
 | `npm run salesforce:inspect -- --url=<Productgroup_URL__c>` | `FIELDS(ALL)` dump of `vaProductgroup__c` + child `vaProduct__c` records; highlights docent/embed-related fields. Optional `--describe`, `--out=path.json`. Script: `src/scripts/inspect-salesforce-productgroup.ts`. |
 | `npm run salesforce:inspect-order -- --medusa-id=order_...` | Dump Salesforce `Order`, `OrderItem`, `Registration__c`, `Voucher__c` for a synced order. Also `--display-id=N` or `--order-nr=N`. Script: `src/scripts/inspect-salesforce-order.ts`. |
 | `npm run salesforce:import-voucher -- --code=GTC-...` | Import/refresh one `Voucher__c` into Medusa `gift_card` (same logic as checkout lazy explore). Script: `src/scripts/import-salesforce-voucher.ts`. |
+| `npm run salesforce:inspect-voucher -- --code=GTC-...` | Read-only: SOQL match, resolved customer code, balance cents. Script: `src/scripts/inspect-salesforce-voucher.ts`. |
 
 Use debug flags only in **local/staging**; noisy logs may include PII from Salesforce payloads.
 

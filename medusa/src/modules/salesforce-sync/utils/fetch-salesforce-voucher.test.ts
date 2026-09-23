@@ -42,7 +42,11 @@ describe("isSalesforceGiftcardVoucher", () => {
     expect(isSalesforceGiftcardVoucher({ Id: "a", Type__c: "Giftcard" })).toBe(true)
   })
 
-  it("rejects other types", () => {
+  it("rejects discount types", () => {
     expect(isSalesforceGiftcardVoucher({ Id: "a", Type__c: "Discount" })).toBe(false)
+  })
+
+  it("allows generic voucher type", () => {
+    expect(isSalesforceGiftcardVoucher({ Id: "a", Type__c: "Voucher" })).toBe(true)
   })
 })
