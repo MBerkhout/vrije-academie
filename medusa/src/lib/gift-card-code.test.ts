@@ -11,7 +11,11 @@ describe("normalizeGiftCardCode", () => {
     expect(normalizeGiftCardCode("GIFT-A1B2C3D4")).toBe("GIFT-A1B2C3D4")
   })
 
-  it("prefixes legacy suffix-only codes with GIFT-", () => {
+  it("prefixes legacy 8-char hex codes with GIFT-", () => {
     expect(normalizeGiftCardCode("a1b2c3d4")).toBe("GIFT-A1B2C3D4")
+  })
+
+  it("keeps Salesforce redeem codes unchanged", () => {
+    expect(normalizeGiftCardCode("lnl6nkd")).toBe("LNL6NKD")
   })
 })

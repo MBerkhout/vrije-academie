@@ -463,7 +463,7 @@ export interface CommerceClient {
   removePromoCodes(cartId: string, codes: string[]): Promise<Cart>
   /**
    * Apply a single kortingscode or balance-backed cadeaubon code.
-   * Tries GTC-* / GIFT-* as gift card first; otherwise promo first, then gift fallback.
+   * Tries gift card first for GTC-* / GIFT-* / short alphanumeric redeem codes (e.g. LNL6NKD); otherwise promo first, then gift fallback.
    */
   applyCode(
     cartId: string,

@@ -24,11 +24,11 @@ describe("customerFacingCodeFromVoucher", () => {
     ).toBe("GTC-202609-172150")
   })
 
-  it("returns null when neither field is GTC", () => {
+  it("returns null when Code__c and Name are empty", () => {
     expect(
       customerFacingCodeFromVoucher({
-        Code__c: "A1B2C3D4",
-        Name: "Voucher 123",
+        Code__c: null,
+        Name: null,
       })
     ).toBeNull()
   })
@@ -51,5 +51,23 @@ describe("resolveVoucherCustomerCode", () => {
         "GTC-202609-172150"
       )
     ).toBe("GTC-202609-172150")
+  })
+
+  it("prefers Code__c redeem code over GTC Name when not searching", () => {
+    expect(
+      resolveVoucherCustomerCode(
+        { Code__c: "LNL6NKD", Name: "GTC-202609-172150" },
+        null
+      )
+    ).toBe("LNL6NKD")
+  })
+
+  it("finds redeem code when customer searches LNL6NKD", () => {
+    expect(
+      resolveVoucherCustomerCode(
+        { Code__c: "LNL6NKD", Name: "GTC-202609-172150" },
+        "LNL6NKD"
+      )
+    ).toBe("LNL6NKD")
   })
 })

@@ -12,6 +12,7 @@ import {
 
 import GiftCardModuleService from "../modules/gift-card/service"
 import { GIFT_CARD_MODULE } from "../modules/gift-card"
+import { computeGiftCardApplication } from "./gift-card-apply-amount"
 import { centsToMedusaMajor } from "./medusa-price-to-cents"
 import { resolveGiftCardByCode } from "./resolve-gift-card-by-code"
 import { refetchStoreCart, toNumber } from "./store-cart"
@@ -218,12 +219,6 @@ export async function applyGiftCardCode(
   await gift.assertCardRedeemable(card as any, cart.currency_code)
 
   const reservedOthers = await gift.sumReservedAmount(card.id, cartId)
-  const available = Number(card.balance) - reservedOthers
-
-  if (available <= 0) {
-    throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "Gift card has no available balance")
-  }
-
   const totalDue = toNumber(cart.total)
   if (totalDue <= 0) {
     throw new MedusaError(
@@ -232,9 +227,14 @@ export async function applyGiftCardCode(
     )
   }
 
-  const applied = Math.min(available, totalDue)
-  if (applied <= 0) {
-    throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "Nothing to apply")
+  const { appliedMajor, appliedCents, remainingCents } = computeGiftCardApplication({
+    balanceCents: Number(card.balance),
+    reservedCents: reservedOthers,
+    cartTotalMajor: totalDue,
+  })
+
+  if (appliedCents <= 0) {
+    throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "Gift card has no available balance")
   }
 
   if (!opts?.skipDuplicateCheck) {
@@ -252,7 +252,7 @@ export async function applyGiftCardCode(
     input: [
       {
         cart_id: cartId,
-        amount: applied,
+        amount: appliedMajor,
         reference: GIFT_CARD_REFERENCE,
         reference_id: card.id,
         metadata: {
@@ -267,7 +267,7 @@ export async function applyGiftCardCode(
   await gift.reserveForCart({
     giftCardId: card.id,
     cartId,
-    amount: applied,
+    amount: appliedCents,
   })
 
   const meta = { ...(cart.metadata ?? {}) }
@@ -277,8 +277,11 @@ export async function applyGiftCardCode(
   await container.resolve(Modules.CART).updateCarts(cartId, { metadata: meta })
 
   cart = await refetchStoreCart(container, cartId)
-  const remaining = Number(card.balance) - applied
-  return { cart, applied_amount: applied, remaining_balance: remaining }
+  return {
+    cart,
+    applied_amount: appliedMajor,
+    remaining_balance: centsToMedusaMajor(remainingCents),
+  }
 }
 
 export async function removeGiftCardCode(

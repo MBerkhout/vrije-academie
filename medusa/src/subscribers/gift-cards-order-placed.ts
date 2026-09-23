@@ -83,8 +83,12 @@ export default async function giftCardsOnOrderPlaced({
       logger.warn(`[gift-card] credit line ${cl.id} missing gift_card metadata`)
       continue
     }
-    const amount = typeof cl.amount === "number" ? cl.amount : Number(cl.amount ?? 0)
-    if (amount <= 0) {
+    const amountMajor = typeof cl.amount === "number" ? cl.amount : Number(cl.amount ?? 0)
+    if (amountMajor <= 0) {
+      continue
+    }
+    const amountCents = medusaMajorToCents(amountMajor)
+    if (amountCents <= 0) {
       continue
     }
     try {
@@ -92,7 +96,7 @@ export default async function giftCardsOnOrderPlaced({
         giftCardId: m.gift_card_id,
         cartId: m.cart_id,
         orderId,
-        amount,
+        amount: amountCents,
       })
     } catch (err) {
       logger.error(

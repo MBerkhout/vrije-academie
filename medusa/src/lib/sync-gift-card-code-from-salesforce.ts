@@ -46,7 +46,7 @@ export async function syncGiftCardCodeFromSalesforceVoucher(
 
   if (!customerCode) {
     logger.warn(
-      `[gift-card] Voucher ${input.voucherSalesforceId} has no GTC code (Name/Code__c) — skipping code sync and email`
+      `[gift-card] Voucher ${input.voucherSalesforceId} has no redeem code (Code__c/Name) — skipping code sync and email`
     )
     return
   }

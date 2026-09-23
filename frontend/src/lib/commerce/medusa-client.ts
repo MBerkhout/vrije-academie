@@ -745,7 +745,10 @@ export const medusaClient: CommerceClient = {
   }> {
     const normalized = rawCode.trim().toUpperCase()
     const promosUpper = currentPromoCodes.map((c) => c.trim().toUpperCase()).filter(Boolean)
-    const tryGiftFirst = normalized.startsWith('GIFT-') || normalized.startsWith('GTC-')
+    const tryGiftFirst =
+      normalized.startsWith('GIFT-') ||
+      normalized.startsWith('GTC-') ||
+      /^[A-Z0-9]{6,12}$/.test(normalized)
 
     const tryGift = async () => {
       const res = await storeFetch('/store/cart/gift-cards', {

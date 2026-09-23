@@ -35,7 +35,7 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 
 ## Verzilvering (saldo)
 
-- Bij toepassen: `createCartCreditLinesWorkflow` met `reference: "gift_card"` en metadata (`gift_card_id`, `code`, `cart_id`).
+- Bij toepassen: `createCartCreditLinesWorkflow` met `reference: "gift_card"` en metadata (`gift_card_id`, `code`, `cart_id`). **`gift_card.balance` en transacties zijn centen**; cart/order credit lines zijn **major EUR** — zie [`gift-card-apply-amount.ts`](../src/lib/gift-card-apply-amount.ts).
 - **Salesforce explore**: staat de code niet in Medusa (`gift_card`), dan zoekt [`resolve-gift-card-by-code.ts`](../src/lib/resolve-gift-card-by-code.ts) `Voucher__c` op (`Code__c` / `Name`), importeert of ververst een rij, en koppelt `salesforce_sync_state` (`entity_type: voucher`). Gebruikt o.a. `Remaining_Amount__c` (override: `SALESFORCE_VOUCHER_REMAINING_FIELD`) en `Original_Amount__c`. Werkt voor legacy cadeaubonnen die alleen in Salesforce bestaan.
 - **Salesforce saldo-check**: bestaat de kaart al lokaal, dan haalt [`refresh-gift-card-from-salesforce.ts`](../src/lib/refresh-gift-card-from-salesforce.ts) vóór toepassen het resterende saldo uit Salesforce op. Medusa balance wordt **alleen verlaagd** als SF lager is (andere kanalen); nooit verhoogd (website-redempties die nog niet in SF staan). Uitzetten: `SALESFORCE_VOUCHER_SYNC_BALANCE=false`.
 - Reservering: rijen `gift_card_transaction` met `type: reserve` (saldo wordt pas bij order geboekt).
@@ -47,7 +47,7 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 - **`order.placed`**: line items met `metadata.gift_card` → `createForOrderLine` (tijdelijk intern `GIFT-` + hex; saldo en ontvanger-metadata). Geen e-mail in deze stap.
 - **`order.completed` → Salesforce push**: `Voucher__c` upsert (zonder `Code__c` te overschrijven). Daarna leest [`sync-gift-card-code-from-salesforce.ts`](../src/lib/sync-gift-card-code-from-salesforce.ts) `Code__c` / `Name` en zet de **Salesforce GTC-code** (`GTC-YYYYMM-…`) op `gift_card.code`. Pas dan e-mail via **notification** (`template: gift-card-purchased`, fallback: log). SMTP/SendGrid: [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md#email-optional).
 - Idempotent per orderregel: `source_line_item_id` + `purchased_by_order_id`. E-mail-idempotency: `gift-card-{id}`; bij correctie na oude `GIFT-` mail: `gift-card-{id}-sf-code`.
-- **Codes in checkout**: `GTC-…` en `GIFT-…` blijven ongewijzigd; legacy suffix-only wordt `GIFT-{suffix}` ([`gift-card-code.ts`](../src/lib/gift-card-code.ts)).
+- **Codes in checkout**: Salesforce **`Code__c`** (bijv. `LNL6NKD`) is de verzilvercode; **`Name`** is vaak `GTC-…` (beheer-id). `GTC-…` / `GIFT-…` / korte alfanumerieke codes blijven ongewijzigd; alleen legacy 8-teken hex krijgt `GIFT-` ([`gift-card-code.ts`](../src/lib/gift-card-code.ts)).
 - **Notification `data`**: o.a. `name` / `recipient_name`, `code`, `amount_euros`, `sender_name`, `message`, `order_id`.
 
 ## Frontend

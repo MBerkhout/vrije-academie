@@ -1,4 +1,5 @@
 const GTC_PREFIX = /^GTC-/
+const LEGACY_MEDUSA_HEX = /^[0-9A-F]{8}$/i
 
 /** Customer-facing cadeaubon code from Salesforce Voucher__c (Name / Code__c). */
 export function customerFacingCodeFromVoucher(record: {
@@ -9,8 +10,8 @@ export function customerFacingCodeFromVoucher(record: {
 }
 
 /**
- * Map Salesforce voucher fields to the code the customer typed.
- * Handles GTC Name, Code__c without prefix, and exact search matches.
+ * Map Salesforce voucher fields to the code the customer types at checkout.
+ * `Code__c` is usually the redeem code (e.g. LNL6NKD); `Name` is often GTC-… (admin id).
  */
 export function resolveVoucherCustomerCode(
   record: { Code__c?: string | null; Name?: string | null },
@@ -29,8 +30,15 @@ export function resolveVoucherCustomerCode(
     if (nameField && search.endsWith(nameField) && nameField.length >= 4) return search
   }
 
+  if (codeField && !LEGACY_MEDUSA_HEX.test(codeField)) {
+    return codeField
+  }
+
   if (GTC_PREFIX.test(codeField)) return codeField
   if (GTC_PREFIX.test(nameField)) return nameField
+
+  if (codeField) return codeField
+  if (nameField) return nameField
 
   return null
 }
