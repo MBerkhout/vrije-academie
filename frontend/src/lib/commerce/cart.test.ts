@@ -7,6 +7,7 @@ const addToCart = vi.fn()
 const updateCartItem = vi.fn()
 const getCustomer = vi.fn()
 const syncAccountCart = vi.fn()
+const syncGiftCardCredits = vi.fn()
 
 vi.mock('@/lib/commerce', () => ({
   commerceClient: {
@@ -16,6 +17,7 @@ vi.mock('@/lib/commerce', () => ({
     updateCartItem: (...args: unknown[]) => updateCartItem(...args),
     getCustomer: (...args: unknown[]) => getCustomer(...args),
     syncAccountCart: (...args: unknown[]) => syncAccountCart(...args),
+    syncGiftCardCredits: (...args: unknown[]) => syncGiftCardCredits(...args),
   },
 }))
 
@@ -54,6 +56,7 @@ describe('getActiveCart', () => {
     updateCartItem.mockReset()
     getCustomer.mockReset()
     syncAccountCart.mockReset()
+    syncGiftCardCredits.mockReset()
     vi.resetModules()
   })
 
@@ -76,6 +79,34 @@ describe('getActiveCart', () => {
   })
 })
 
+describe('syncAppliedGiftCardCredits', () => {
+  beforeEach(async () => {
+    syncGiftCardCredits.mockReset()
+    vi.resetModules()
+  })
+
+  it('shares one in-flight sync when header and cart refresh together', async () => {
+    let release: (cart: { id: string }) => void = () => {}
+    syncGiftCardCredits.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = resolve
+        })
+    )
+    const { syncAppliedGiftCardCredits } = await import('./cart')
+    const cart = {
+      id: 'cart_1',
+      metadata: { gift_card_redemptions: [{ code: 'UN7EZAH', gift_card_id: 'gc_1' }] },
+    }
+    const first = syncAppliedGiftCardCredits(cart as never)
+    const second = syncAppliedGiftCardCredits(cart as never)
+    expect(syncGiftCardCredits).toHaveBeenCalledTimes(1)
+    release({ id: 'cart_1', total: 0 })
+    await expect(first).resolves.toEqual({ id: 'cart_1', total: 0 })
+    await expect(second).resolves.toEqual({ id: 'cart_1', total: 0 })
+  })
+})
+
 describe('addVariantToCart', () => {
   beforeEach(async () => {
     document.cookie = `${CART_COOKIE}=; path=/; max-age=0`
@@ -85,6 +116,7 @@ describe('addVariantToCart', () => {
     updateCartItem.mockReset()
     getCustomer.mockReset()
     syncAccountCart.mockReset()
+    syncGiftCardCredits.mockReset()
     addToCart.mockResolvedValue({ id: 'cart_1', items: [] })
     updateCartItem.mockResolvedValue({ id: 'cart_1', items: [] })
     writeCartCookie('cart_1')
@@ -135,6 +167,7 @@ describe('ensureAccountCartSynced', () => {
     createCart.mockReset()
     getCustomer.mockReset()
     syncAccountCart.mockReset()
+    syncGiftCardCredits.mockReset()
     vi.resetModules()
   })
 

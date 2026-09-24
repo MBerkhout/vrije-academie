@@ -94,14 +94,21 @@ export function dispatchCartUpdated(): void {
   window.dispatchEvent(new Event('va:cart-updated'))
 }
 
+const giftCardSyncInflight = new Map<string, Promise<Cart>>()
+
 /** Re-apply saved cadeaubon codes against the current cart total (best-effort). */
 export async function syncAppliedGiftCardCredits(cart: Cart): Promise<Cart> {
   if (parseGiftCardRedemptions(cart.metadata).length === 0) return cart
-  try {
-    return await commerceClient.syncGiftCardCredits(cart.id)
-  } catch {
-    return cart
-  }
+  const inflight = giftCardSyncInflight.get(cart.id)
+  if (inflight) return inflight
+  const promise = commerceClient
+    .syncGiftCardCredits(cart.id)
+    .catch(() => cart)
+    .finally(() => {
+      if (giftCardSyncInflight.get(cart.id) === promise) giftCardSyncInflight.delete(cart.id)
+    })
+  giftCardSyncInflight.set(cart.id, promise)
+  return promise
 }
 
 export function isCartCompleted(cart: Cart | null | undefined): boolean {

@@ -24,6 +24,8 @@ const REFETCH_CART_FIELDS = [
   "items.title",
   "items.quantity",
   "items.unit_price",
+  // Salesforce Price__c is gross. Without this flag Medusa treats unit_price as net and adds VAT.
+  "items.is_tax_inclusive",
   "items.is_giftcard",
   "items.metadata",
   "items.variant_id",

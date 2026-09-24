@@ -24,6 +24,23 @@ export const DEFAULT_GIFT_CARD_HANDLE = "digitale-cadeaubon"
 const MIN_AMOUNT_CENTS = 500
 const MAX_AMOUNT_CENTS = 50_000
 
+/** One gift-card mutation per cart. Parallel page loads otherwise each re-apply the same code. */
+const cartGiftCardTail = new Map<string, Promise<void>>()
+
+function enqueueCartGiftCardOp<T>(cartId: string, fn: () => Promise<T>): Promise<T> {
+  const prev = cartGiftCardTail.get(cartId) ?? Promise.resolve()
+  const run = prev.then(fn, fn)
+  const settled = run.then(
+    () => undefined,
+    () => undefined
+  )
+  cartGiftCardTail.set(cartId, settled)
+  void settled.finally(() => {
+    if (cartGiftCardTail.get(cartId) === settled) cartGiftCardTail.delete(cartId)
+  })
+  return run
+}
+
 export function giftCardProductHandle(): string {
   return (
     process.env[GIFT_CARD_PRODUCT_HANDLE_ENV]?.trim() || DEFAULT_GIFT_CARD_HANDLE
@@ -138,6 +155,13 @@ export async function syncGiftCardCreditLines(
   container: MedusaContainer,
   cartId: string
 ): Promise<Record<string, any>> {
+  return enqueueCartGiftCardOp(cartId, () => syncGiftCardCreditLinesInner(container, cartId))
+}
+
+async function syncGiftCardCreditLinesInner(
+  container: MedusaContainer,
+  cartId: string
+): Promise<Record<string, any>> {
   let cart = await refetchStoreCart(container, cartId)
   const redemptions = parseGiftCardRedemptions(cart.metadata)
 
@@ -154,7 +178,7 @@ export async function syncGiftCardCreditLines(
   cart = await refetchStoreCart(container, cartId)
 
   for (const r of redemptions) {
-    const result = await applyGiftCardCode(container, cartId, r.code, {
+    const result = await applyGiftCardCodeInner(container, cartId, r.code, {
       skipDuplicateCheck: true,
     })
     cart = result.cart
@@ -194,6 +218,17 @@ export async function clearGiftCardCreditsFromCart(
 }
 
 export async function applyGiftCardCode(
+  container: MedusaContainer,
+  cartId: string,
+  rawCode: string,
+  opts?: { skipDuplicateCheck?: boolean }
+): Promise<Record<string, any>> {
+  return enqueueCartGiftCardOp(cartId, () =>
+    applyGiftCardCodeInner(container, cartId, rawCode, opts)
+  )
+}
+
+async function applyGiftCardCodeInner(
   container: MedusaContainer,
   cartId: string,
   rawCode: string,
