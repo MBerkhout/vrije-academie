@@ -5,6 +5,7 @@ import { clearCheckoutDraft } from '@/lib/commerce/checkout-draft'
 import { trackAddToCart } from '@/lib/analytics/events/ecommerce'
 import type { Cart, EventCard, EventVariant } from '@/lib/commerce/types'
 import { CART_COOKIE } from '@/lib/commerce/cart-cookie-name'
+import { parseGiftCardRedemptions } from '@/lib/commerce/gift-card'
 
 export type AddToCartTrackingContext = {
   event: EventCard
@@ -93,6 +94,16 @@ export function dispatchCartUpdated(): void {
   window.dispatchEvent(new Event('va:cart-updated'))
 }
 
+/** Re-apply saved cadeaubon codes against the current cart total (best-effort). */
+export async function syncAppliedGiftCardCredits(cart: Cart): Promise<Cart> {
+  if (parseGiftCardRedemptions(cart.metadata).length === 0) return cart
+  try {
+    return await commerceClient.syncGiftCardCredits(cart.id)
+  } catch {
+    return cart
+  }
+}
+
 export function isCartCompleted(cart: Cart | null | undefined): boolean {
   return Boolean(cart?.completed_at?.trim())
 }
@@ -123,7 +134,7 @@ export async function getActiveCart(): Promise<Cart | null> {
     clearCartId()
     return null
   }
-  return cart
+  return syncAppliedGiftCardCredits(cart)
 }
 
 export async function getOrCreateCartId(): Promise<string> {
@@ -165,7 +176,8 @@ export async function addVariantToCart(
     }
   }
 
-  await commerceClient.addToCart(cartId, variantId, quantity)
+  let updated = await commerceClient.addToCart(cartId, variantId, quantity)
+  updated = await syncAppliedGiftCardCredits(updated)
   dispatchCartUpdated()
   if (tracking) {
     trackAddToCart(tracking.event, tracking.variant, quantity)

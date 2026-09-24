@@ -39,7 +39,8 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 - **Salesforce explore**: staat de code niet in Medusa (`gift_card`), dan zoekt [`resolve-gift-card-by-code.ts`](../src/lib/resolve-gift-card-by-code.ts) `Voucher__c` op (`Code__c` / `Name`), importeert of ververst een rij, en koppelt `salesforce_sync_state` (`entity_type: voucher`). Gebruikt o.a. `Remaining_Amount__c` (override: `SALESFORCE_VOUCHER_REMAINING_FIELD`) en `Original_Amount__c`. Werkt voor legacy cadeaubonnen die alleen in Salesforce bestaan.
 - **Salesforce saldo-check**: bestaat de kaart al lokaal, dan haalt [`refresh-gift-card-from-salesforce.ts`](../src/lib/refresh-gift-card-from-salesforce.ts) vóór toepassen het resterende saldo uit Salesforce op. Medusa balance wordt **alleen verlaagd** als SF lager is (andere kanalen); nooit verhoogd (website-redempties die nog niet in SF staan). Uitzetten: `SALESFORCE_VOUCHER_SYNC_BALANCE=false`.
 - Reservering: rijen `gift_card_transaction` met `type: reserve` (saldo wordt pas bij order geboekt).
-- Bij **`order.placed`**: subscriber [`gift-cards-order-placed.ts`](../src/subscribers/gift-cards-order-placed.ts) roept `finalizeRedemption` aan (reserve weg, `balance` omlaag, `type: redemption`).
+- Bij **`order.placed`**: subscriber [`gift-cards-order-placed.ts`](../src/subscribers/gift-cards-order-placed.ts) roept `finalizeRedemption` aan (reserve weg, `balance` omlaag, `type: redemption`; bedrag = credit line major → centen).
+- **Salesforce verzilvering**: bij order push een `OrderItem` met negatieve `UnitPrice` (major EUR) gelijk aan het verzilverde bedrag ([`voucherRedemptionOrderItemFields`](../src/modules/salesforce-sync/mappings/order-item.ts)); `Voucher__c.Remaining_Amount__c` wordt door Salesforce (flows) bijgewerkt — vergelijk dat met Medusa `gift_card.balance` / transacties `type: redemption`.
 - Bij **`order.canceled`**: [`gift-cards-order-canceled.ts`](../src/subscribers/gift-cards-order-canceled.ts) zet verzilveringen terug en annuleert ongebruikte net-uitgegeven kaarten waar mogelijk.
 
 ## Aankoop (code uitgeven)
@@ -55,6 +56,7 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 - Kooppagina: **`/cadeaubon`** — CMS Page `pageCadeaubon` (`[slug]` + `GiftCardBlock`); zie `sanity/docs/CADEAUBON.md`.
 - Cart/checkout-thumbnail: statische storefront **`/branding/cadeaubon-thumb.jpg`** (`resolveLineItemThumbnail`).
 - Kortingsveld: `commerceClient.applyCode` — bij `GTC-` of `GIFT-` eerst cadeaubon, anders eerst promo.
+- **Credit line sync**: na wijziging van regels/promo’s roept de storefront `POST /store/cart/gift-cards/sync` aan (`syncAppliedGiftCardCredits`) zodat het cadeaubonbedrag opnieuw `min(saldo, cart.total)` is — anders blijft een oude credit (bijv. €39,72) staan terwijl het cart-totaal is gegroeid.
 
 ## Env
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { commerceClient } from '@/lib/commerce'
-import { dispatchCartUpdated, getActiveCart } from '@/lib/commerce/cart'
+import { dispatchCartUpdated, getActiveCart, syncAppliedGiftCardCredits } from '@/lib/commerce/cart'
 import {
   trackApplyCoupon,
   trackCartQuantityChange,
@@ -136,7 +136,8 @@ export function CartView({ settings }: CartViewProps) {
       if (!cart) return { ok: false as const, error: 'Geen winkelwagen' }
       const promoCodes = ((cart as any).promotions ?? []).map((p: any) => p.code).filter(Boolean)
       try {
-        const { cart: next } = await commerceClient.applyCode(cart.id, code, promoCodes)
+        let next = (await commerceClient.applyCode(cart.id, code, promoCodes)).cart
+        next = await syncAppliedGiftCardCredits(next)
         setCart(withSortedCartItems(next))
         dispatchCartUpdated()
         trackApplyCoupon(code, next.total)

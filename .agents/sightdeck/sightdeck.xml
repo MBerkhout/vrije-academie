@@ -3145,6 +3145,10 @@
       <file path="medusa/src/scripts/inspect-salesforce-voucher.ts" ts="2026-09-23T20:25" />
       <file path="medusa/src/lib/gift-card-apply-amount.test.ts" ts="2026-09-23T20:52" />
       <file path="medusa/src/lib/gift-card-apply-amount.ts" ts="2026-09-23T20:52" />
+      <file path="frontend/src/components/cart/CartView.tsx" ts="2026-09-24T18:12" />
+      <file path="frontend/src/lib/commerce/cart.ts" ts="2026-09-24T18:12" />
+      <file path="frontend/docs/CART.md" ts="2026-09-24T18:12" />
+      <file path="frontend/docs/CHECKOUT.md" ts="2026-09-24T18:12" />
     </files>
     <verifications>
       <verification ts="2026-09-21T16:47" tool="manual browser check" result="pass" />
