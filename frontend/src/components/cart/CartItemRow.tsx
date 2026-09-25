@@ -95,21 +95,21 @@ export function CartItemRow({
   return (
     <div
       className={clsx(
-        'grid grid-cols-[4rem_1fr] gap-x-3 gap-y-3 px-4 py-4 sm:gap-x-4 md:grid-cols-[5rem_1fr_auto]',
+        'grid grid-cols-[auto_1fr] gap-x-3 gap-y-3 px-4 py-4 sm:gap-x-4 md:grid-cols-[auto_1fr_auto]',
         updating && 'pointer-events-none opacity-60'
       )}
     >
-      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-va-lightgray-200 md:h-20 md:w-20">
+      <div className="relative aspect-[4/3] h-16 w-auto shrink-0 overflow-hidden rounded-lg bg-va-lightgray-200 md:h-20">
         {thumbnail ? (
           <Image
             src={thumbnail}
             alt={title}
-            width={80}
-            height={80}
-            className="h-full w-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(min-width: 768px) 107px, 85px"
           />
         ) : (
-          <div className="h-full w-full bg-va-lightgray-200" />
+          <div className="absolute inset-0 bg-va-lightgray-200" />
         )}
       </div>
 

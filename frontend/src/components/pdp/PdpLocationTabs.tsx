@@ -512,50 +512,65 @@ export function PdpLocationTabs({
               const instructor = sessionInstructorLabel(ei, profiles, event.featured_instructor)
 
               return (
-                <li key={variant.id} className="py-6 first:pt-6">
-                  <div className="flex items-start gap-3 text-sm">
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                      <p className="flex items-center gap-1.5 font-semibold text-va-black">
-                        <DeliveryTypeIcon variant={isOnline ? 'online' : 'offline'} />
-                        {city}
-                      </p>
-                      {venue ? <p className="text-va-gray leading-snug pl-5">{venue}</p> : null}
-                      {(showDate && ei?.start_at) || ei?.start_at ? (
-                        <div className="flex min-w-0 flex-col gap-0.5 text-va-black">
-                          {showDate && ei?.start_at ? (
-                            <>
-                              <span>{formatDateWeekdayLong(ei.start_at)}</span>
-                              <span className="text-va-gray">
-                                {formatTimeRange(ei.start_at, ei.end_at, { separator: ' tot ' })}
+                <li key={variant.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5 py-6 text-sm first:pt-6">
+                  <p className="flex min-w-0 items-center gap-1.5 font-semibold text-va-black">
+                    <DeliveryTypeIcon variant={isOnline ? 'online' : 'offline'} />
+                    {city}
+                  </p>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {price ? (
+                      <p className="font-medium text-va-black">{formatPriceEur(price)}</p>
+                    ) : null}
+                    <span className={availability.className}>{availability.label}</span>
+                    {renderSessionCta(variant, {
+                      className: sessionCtaMobileClassName,
+                      tone: ctaTone,
+                      isFreeTrial,
+                    })}
+                  </div>
+                  <div className="col-span-2 flex min-w-0 flex-col gap-1.5">
+                    {(showDate && ei?.start_at) || ei?.start_at || venue ? (
+                      <div className="flex min-w-0 flex-col gap-0.5 text-va-black">
+                        {showDate && ei?.start_at ? (
+                          <>
+                            <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                              <span className="shrink-0 whitespace-nowrap">
+                                {formatDateWeekdayLong(ei.start_at)}
                               </span>
-                            </>
-                          ) : (
+                              {venue ? (
+                                <span className="min-w-0 max-w-full text-va-gray leading-snug">
+                                  {venue}
+                                </span>
+                              ) : null}
+                            </p>
                             <span className="text-va-gray">
-                              {formatTimeRange(ei.start_at!, ei.end_at, { separator: ' tot ' })}
+                              {formatTimeRange(ei.start_at, ei.end_at, { separator: ' tot ' })}
                             </span>
-                          )}
-                        </div>
-                      ) : null}
-                      {instructor ? (
-                        <SessionInstructorName
-                          eventItem={ei}
-                          instructors={profiles}
-                          featured={event.featured_instructor}
-                          className="text-va-gray"
-                        />
-                      ) : null}
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      {price ? (
-                        <p className="font-medium text-va-black">{formatPriceEur(price)}</p>
-                      ) : null}
-                      <span className={availability.className}>{availability.label}</span>
-                      {renderSessionCta(variant, {
-                        className: sessionCtaMobileClassName,
-                        tone: ctaTone,
-                        isFreeTrial,
-                      })}
-                    </div>
+                          </>
+                        ) : ei?.start_at ? (
+                          <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                            <span className="shrink-0 whitespace-nowrap text-va-gray">
+                              {formatTimeRange(ei.start_at, ei.end_at, { separator: ' tot ' })}
+                            </span>
+                            {venue ? (
+                              <span className="min-w-0 max-w-full text-va-gray leading-snug">
+                                {venue}
+                              </span>
+                            ) : null}
+                          </p>
+                        ) : (
+                          <p className="text-va-gray leading-snug">{venue}</p>
+                        )}
+                      </div>
+                    ) : null}
+                    {instructor ? (
+                      <SessionInstructorName
+                        eventItem={ei}
+                        instructors={profiles}
+                        featured={event.featured_instructor}
+                        className="text-va-gray"
+                      />
+                    ) : null}
                   </div>
                 </li>
               )

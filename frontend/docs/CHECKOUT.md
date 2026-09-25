@@ -81,7 +81,7 @@ OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `cus
 2. Cadeaubon / tegoedbon input — `commerceClient.applyCode` (promo **of** interne `GIFT-` saldocode via `POST /store/cart/gift-cards`); verwijderen per code: **kortingscode** via `removePromoCodes`, **cadeaubon** via `removeGiftCardCode`. **Enter** in het codeveld roept dezelfde apply aan als **Code toepassen** (`preventDefault` — het veld staat in het betaal-`<form>` en mag anders submit naar Mollie triggeren). Na succesvolle apply/remove: **`dispatchCartUpdated()`** (`lib/commerce/cart.ts`) zodat o.a. **`CheckoutPaymentOrderOverview`** (luistert naar `va:cart-updated`) totalen opnieuw ophaalt.
 3. Payment method tiles (`PaymentMethodTiles`) — only when there is an amount due; one tile per enabled Mollie provider in the region
 4. Trust signals
-5. Primary CTA (`payLabel` from CMS) — directly above it: NL notice that clicking pay accepts the terms; `voorwaarden` links to `/algemene-voorwaarden`
+5. Primary CTA — `Betaal € {totaal}` when an amount is due; `Bestelling plaatsen` when the total is €0. Directly above it: NL notice that clicking pay accepts the terms; `voorwaarden` links to `/algemene-voorwaarden`
 
 **When total ≤ €0 (zero-total checkout):** Medusa’s cart completion skips payment when `credit_line_total >= 0` and `total <= 0`. The storefront hides payment tiles, does not require a method, and on submit calls `commerceClient.completeCart(cartId)` (`POST /store/carts/:id/complete`). On success it clears the `va_cart_id` cookie via `clearCartId()` and navigates to `/checkout/bevestiging?order={order.id}`. On `{ type: 'cart', error }` the user sees the error message in the existing toast.
 

@@ -1,3 +1,4 @@
+import pg from "pg"
 import type { MedusaContainer } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -15,6 +16,7 @@ import { GIFT_CARD_MODULE } from "../modules/gift-card"
 import { computeGiftCardApplication } from "./gift-card-apply-amount"
 import { centsToMedusaMajor } from "./medusa-price-to-cents"
 import { resolveGiftCardByCode } from "./resolve-gift-card-by-code"
+import { giftCardCartLockKey } from "./gift-card-cart-lock"
 import { refetchStoreCart, toNumber } from "./store-cart"
 
 export const GIFT_CARD_REFERENCE = "gift_card"
@@ -24,7 +26,7 @@ export const DEFAULT_GIFT_CARD_HANDLE = "digitale-cadeaubon"
 const MIN_AMOUNT_CENTS = 500
 const MAX_AMOUNT_CENTS = 50_000
 
-/** One gift-card mutation per cart. Parallel page loads otherwise each re-apply the same code. */
+/** One gift-card mutation per cart inside this process. */
 const cartGiftCardTail = new Map<string, Promise<void>>()
 
 function enqueueCartGiftCardOp<T>(cartId: string, fn: () => Promise<T>): Promise<T> {
@@ -39,6 +41,29 @@ function enqueueCartGiftCardOp<T>(cartId: string, fn: () => Promise<T>): Promise
     if (cartGiftCardTail.get(cartId) === settled) cartGiftCardTail.delete(cartId)
   })
   return run
+}
+
+/**
+ * Header, cart and checkout each re-apply the cadeaubon on load. Medusa runs as
+ * several workers, so an in-memory queue does not stop two of them booking the
+ * same code. The advisory lock is held on one DB session for the whole mutation.
+ */
+async function withCartGiftCardLock<T>(cartId: string, fn: () => Promise<T>): Promise<T> {
+  const url = process.env.DATABASE_URL?.trim()
+  if (!url) return enqueueCartGiftCardOp(cartId, fn)
+
+  return enqueueCartGiftCardOp(cartId, async () => {
+    const client = new pg.Client({ connectionString: url })
+    await client.connect()
+    const key = giftCardCartLockKey(cartId)
+    try {
+      await client.query("SELECT pg_advisory_lock($1::bigint)", [key])
+      return await fn()
+    } finally {
+      await client.query("SELECT pg_advisory_unlock($1::bigint)", [key]).catch(() => undefined)
+      await client.end()
+    }
+  })
 }
 
 export function giftCardProductHandle(): string {
@@ -155,7 +180,7 @@ export async function syncGiftCardCreditLines(
   container: MedusaContainer,
   cartId: string
 ): Promise<Record<string, any>> {
-  return enqueueCartGiftCardOp(cartId, () => syncGiftCardCreditLinesInner(container, cartId))
+  return withCartGiftCardLock(cartId, () => syncGiftCardCreditLinesInner(container, cartId))
 }
 
 async function syncGiftCardCreditLinesInner(
@@ -184,7 +209,45 @@ async function syncGiftCardCreditLinesInner(
     cart = result.cart
   }
 
-  return cart
+  return collapseDuplicateGiftCardCredits(container, cartId)
+}
+
+/** Drop stacked credits for the same code left by overlapping refreshes. Keeps the first line. */
+async function collapseDuplicateGiftCardCredits(
+  container: MedusaContainer,
+  cartId: string
+): Promise<Record<string, any>> {
+  const cart = await refetchStoreCart(container, cartId)
+  const lines: any[] = (cart.credit_lines ?? []).filter((l) => l.reference === GIFT_CARD_REFERENCE)
+  const seen = new Set<string>()
+  const extraIds: string[] = []
+  const extraCards = new Set<string>()
+  for (const line of lines) {
+    const code = String((line.metadata as { code?: string } | null)?.code ?? line.id)
+    if (seen.has(code)) {
+      if (line.id) extraIds.push(line.id)
+      const giftCardId = (line.metadata as { gift_card_id?: string } | null)?.gift_card_id
+      if (giftCardId) extraCards.add(giftCardId)
+    } else {
+      seen.add(code)
+    }
+  }
+  if (!extraIds.length) return cart
+
+  const we = container.resolve(Modules.WORKFLOW_ENGINE)
+  await we.run(deleteCartCreditLinesWorkflowId, { input: { id: extraIds } })
+  const gift = container.resolve(GIFT_CARD_MODULE) as InstanceType<typeof GiftCardModuleService>
+  for (const giftCardId of extraCards) {
+    const reserves = await gift.listGiftCardTransactions({
+      gift_card_id: giftCardId,
+      cart_id: cartId,
+      type: "reserve",
+    })
+    for (const row of reserves.slice(1)) {
+      await gift.deleteGiftCardTransactions(row.id)
+    }
+  }
+  return refetchStoreCart(container, cartId)
 }
 
 async function stripGiftCardCredits(container: MedusaContainer, cartId: string) {
@@ -223,7 +286,7 @@ export async function applyGiftCardCode(
   rawCode: string,
   opts?: { skipDuplicateCheck?: boolean }
 ): Promise<Record<string, any>> {
-  return enqueueCartGiftCardOp(cartId, () =>
+  return withCartGiftCardLock(cartId, () =>
     applyGiftCardCodeInner(container, cartId, rawCode, opts)
   )
 }

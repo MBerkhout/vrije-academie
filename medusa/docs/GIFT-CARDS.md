@@ -56,7 +56,7 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 - Kooppagina: **`/cadeaubon`** — CMS Page `pageCadeaubon` (`[slug]` + `GiftCardBlock`); zie `sanity/docs/CADEAUBON.md`.
 - Cart/checkout-thumbnail: statische storefront **`/branding/cadeaubon-thumb.jpg`** (`resolveLineItemThumbnail`).
 - Kortingsveld: `commerceClient.applyCode` — bij `GTC-` of `GIFT-` eerst cadeaubon, anders eerst promo.
-- **Credit line sync**: na wijziging van regels/promo’s roept de storefront `POST /store/cart/gift-cards/sync` aan (`syncAppliedGiftCardCredits`) zodat het cadeaubonbedrag opnieuw `min(saldo, cart.total)` is — anders blijft een oude credit (bijv. €39,72) staan terwijl het cart-totaal is gegroeid. Sync en apply lopen per cart achter elkaar (`enqueueCartGiftCardOp`); twee gelijktijdige refreshes mogen niet allebei dezelfde code opnieuw boeken.
+- **Credit line sync**: na wijziging van regels/promo’s roept de storefront `POST /store/cart/gift-cards/sync` aan (`syncAppliedGiftCardCredits`) zodat het cadeaubonbedrag opnieuw `min(saldo, cart.total)` is — anders blijft een oude credit (bijv. €39,72) staan terwijl het cart-totaal is gegroeid. Sync en apply nemen een Postgres advisory lock per cart (`withCartGiftCardLock`), omdat Medusa in meerdere workers draait. Een in-memory wachtrij stopt twee gelijktijdige refreshes niet; die boekten dezelfde code twee keer (Producten werd dan het dubbele bedrag). Bestaande dubbele credit lines worden aan het eind van de sync weer tot één regel teruggebracht.
 
 ## Env
 

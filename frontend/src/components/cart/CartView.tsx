@@ -204,7 +204,7 @@ export function CartView({ settings }: CartViewProps) {
         <div className="flex-1 min-w-0 space-y-6">
           {/* Column header row — desktop table layout only */}
           <div className="hidden gap-4 border-b border-va-lightgray-300 pb-2 md:flex">
-            <div className="w-16 md:w-20 shrink-0" aria-hidden />
+            <div className="aspect-[4/3] h-20 w-auto shrink-0" aria-hidden />
             <div className="flex-1 min-w-0">
               <span className="font-sans text-xs font-semibold text-va-darkgray">Product</span>
             </div>

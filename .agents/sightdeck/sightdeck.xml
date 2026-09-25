@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tasks prefix="SI" next_id="104" generated="2026-09-24T19:22">
+<tasks prefix="SI" next_id="108" generated="2026-09-24T19:40">
   <task id="1" status="done">
     <title>Align course list prices and times in columns</title>
     <summary>Put times and prices in two fixed columns so they line up neatly across course rows.</summary>
@@ -7398,5 +7398,272 @@
       <file path="frontend/docs/CART.md" ts="2026-09-24T19:21" />
       <file path="frontend/src/lib/commerce/cart.test.ts" ts="2026-09-24T19:21" />
     </files>
+  </task>
+  <task id="104" status="done">
+    <title>Match cart thumbnails to product tile images</title>
+    <summary>Cart line-item thumbnails should use the same width and height as product tile images so both formats match.</summary>
+    <created>2026-09-24T19:28</created>
+    <started>2026-09-24T19:28</started>
+    <done>2026-09-24T19:28</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-104.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-91bba461</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-24T19:28">received, backlog</event>
+      <event ts="2026-09-24T19:28">started</event>
+      <event ts="2026-09-24T19:28">started run lane run-91bba461</event>
+      <event ts="2026-09-24T19:28">progress plan: 3 steps</event>
+      <event ts="2026-09-24T19:28">in testing — running Vitest</event>
+      <event ts="2026-09-24T19:31">tool changed: kept manual 'Vitest', auto-detected 'npm test'</event>
+      <event ts="2026-09-24T19:28">back to in-progress</event>
+      <event ts="2026-09-24T19:28">in testing — running browser</event>
+      <event ts="2026-09-24T19:28">back to in-progress</event>
+      <event ts="2026-09-24T19:28">started</event>
+      <event ts="2026-09-24T19:28">verification: manual browser check passed</event>
+      <event ts="2026-09-24T19:28">completed</event>
+    </history>
+    <progress step="3" of="3" started="2026-09-24T19:28" label="Verify in the browser">
+      <step n="1" label="Find tile and cart image sizes" done="2026-09-24T19:28" />
+      <step n="2" label="Align cart thumbnail dimensions" done="2026-09-24T19:28" />
+      <step n="3" label="Verify in the browser" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/cart/CartItemRow.tsx" ts="2026-09-24T19:30" />
+      <file path="frontend/src/components/cart/CartView.tsx" ts="2026-09-24T19:30" />
+      <file path="frontend/docs/CART.md" ts="2026-09-24T19:30" />
+      <file path="frontend/src/app/(main)/dev/components/page.tsx" ts="2026-09-24T19:33" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-24T19:28" tool="manual browser check" result="pass" />
+    </verifications>
+  </task>
+  <task id="105" status="done">
+    <title>Mobile PDP session location on the date line</title>
+    <summary>On mobile PDP session cards, put the venue on the same line as the date without the extra indent. The city keeps the icon indent.</summary>
+    <created>2026-09-24T19:32</created>
+    <started>2026-09-24T19:32</started>
+    <done>2026-09-24T19:32</done>
+    <human_estimate>30min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-105.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-d0964348</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <is_design>true</is_design>
+    <history>
+      <event ts="2026-09-24T19:32">received, backlog</event>
+      <event ts="2026-09-24T19:32">concept written: tasks/SI-105.md</event>
+      <event ts="2026-09-24T19:32">Align mobile session venue with the date line.</event>
+      <event ts="2026-09-24T19:32">started run lane run-d0964348</event>
+      <event ts="2026-09-24T19:32">Mobile session venue sits on the date line without extra indent. Local PDP could not be reloaded: Medusa database is not running.</event>
+    </history>
+    <files>
+      <file path="frontend/src/app/(main)/dev/components/page.tsx" ts="2026-09-24T19:34" />
+      <file path="frontend/src/app/(main)/dev/cart-thumb/page.tsx" ts="2026-09-24T19:34" />
+      <file path="frontend/src/components/pdp/PdpLocationTabs.tsx" ts="2026-09-24T19:38" />
+      <file path="frontend/docs/components.md" ts="2026-09-24T19:38" />
+    </files>
+  </task>
+  <task id="106" status="done">
+    <title>Checkout button: Betaal € amount</title>
+    <summary>Payment CTA shows Betaal plus the amount, without a dash or Betalen. At €0 it says Bestelling plaatsen.</summary>
+    <created>2026-09-24T19:32</created>
+    <started>2026-09-24T19:32</started>
+    <done>2026-09-24T19:32</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-106.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-2952ae55</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-24T19:32">received, backlog</event>
+      <event ts="2026-09-24T19:32">started</event>
+      <event ts="2026-09-24T19:32">started run lane run-2952ae55</event>
+      <event ts="2026-09-24T19:36">auto-detected: running Vitest</event>
+      <event ts="2026-09-24T19:32">in testing — running Vitest</event>
+      <event ts="2026-09-24T19:32">completed</event>
+    </history>
+    <files>
+      <file path="frontend/src/components/checkout/CheckoutPaymentForm.tsx" ts="2026-09-24T19:34" />
+      <file path="frontend/docs/CHECKOUT.md" ts="2026-09-24T19:34" />
+      <file path="medusa/src/lib/gift-card-cart.ts" ts="2026-09-24T19:35" />
+      <file path="frontend/docs/CART.md" ts="2026-09-24T19:36" />
+      <file path="medusa/docs/GIFT-CARDS.md" ts="2026-09-24T19:36" />
+      <file path="medusa/src/lib/gift-card-cart-lock.test.ts" ts="2026-09-24T19:36" />
+      <file path="frontend/src/lib/commerce/checkout-pay-label.ts" ts="2026-09-24T19:36" />
+      <file path="frontend/src/lib/commerce/checkout-pay-label.test.ts" ts="2026-09-24T19:36" />
+      <file path="medusa/src/lib/gift-card-cart-lock.ts" ts="2026-09-24T19:36" />
+    </files>
+  </task>
+  <task id="107" status="done">
+    <title>Lock gift-card sync across Medusa workers</title>
+    <summary>A refresh can still book the cadeaubon twice because each Medusa worker has its own in-memory queue. Hold a Postgres advisory lock for the sync and drop any stacked credit lines.</summary>
+    <created>2026-09-24T19:34</created>
+    <started>2026-09-24T19:34</started>
+    <done>2026-09-24T19:34</done>
+    <human_estimate>30min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-107.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-bdccbf3e</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-24T19:34">received, backlog</event>
+      <event ts="2026-09-24T19:34">started</event>
+      <event ts="2026-09-24T19:34">started run lane run-bdccbf3e</event>
+      <event ts="2026-09-24T19:34">completed</event>
+    </history>
   </task>
 </tasks>

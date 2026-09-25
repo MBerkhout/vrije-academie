@@ -17,7 +17,7 @@ import { PaymentMethodTiles } from './PaymentMethodTiles'
 import { TrustSignals } from '@/components/cart/TrustSignals'
 import type { Cart, PaymentProvider } from '@/lib/commerce/types'
 import { parseGiftCardRedemptions } from '@/lib/commerce/gift-card'
-import { formatPriceEur } from '@/lib/locale-format'
+import { checkoutPayButtonLabel } from '@/lib/commerce/checkout-pay-label'
 import type { GeneralSettings } from '@/lib/cms/types'
 
 const HIDDEN_PROVIDER_IDS = new Set(['pp_system_default', 'pp_mollie-hosted-checkout_mollie'])
@@ -297,7 +297,6 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
     }
   }
 
-  const payLabel = settings.payment?.payLabel ?? 'Betalen'
   const trust = settings.trust
 
   if (loading) {
@@ -490,13 +489,10 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
         disabled={busy || (!isFreeCheckout && !selectedMethod)}
         className="w-full rounded-lg bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-4 hover:bg-va-yellow/90 transition-colors disabled:opacity-60"
       >
-        {busy
-          ? isFreeCheckout
-            ? 'Bestelling plaatsen…'
-            : 'Betaling starten…'
-          : cart
-          ? `${payLabel} — ${formatPriceEur(cart.total, 'standard')}`
-          : payLabel}
+        {checkoutPayButtonLabel({
+          busy,
+          total: cart ? (cart.total ?? 0) : null,
+        })}
       </button>
       <p className="font-sans text-xs text-va-darkgray text-center leading-relaxed !mt-4">
         {isFreeCheckout ? (
