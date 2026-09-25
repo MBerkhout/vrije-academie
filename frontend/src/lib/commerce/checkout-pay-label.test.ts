@@ -14,4 +14,8 @@ describe('checkoutPayButtonLabel', () => {
     expect(checkoutPayButtonLabel({ busy: false, total: 0 })).toBe('Bestelling plaatsen')
     expect(checkoutPayButtonLabel({ busy: true, total: 0 })).toBe('Bestelling plaatsen…')
   })
+
+  it('shows the redirect label while a paid checkout is leaving the page', () => {
+    expect(checkoutPayButtonLabel({ busy: true, total: 4950 })).toBe('Je wordt doorgestuurd…')
+  })
 })

@@ -87,6 +87,7 @@ Catalog prices from Salesforce are **tax-inclusive** (consumer gross). Medusa ex
 ## Layout
 
 - `lg+`: two-column grid — left `flex-1` (items + promo), right `w-80` sticky (order summary → trust/USPs → **Doorgaan met afrekenen** last)
+- `md+`: column header is label-height only. A width spacer (`5rem × 4/3`) keeps **Product** over the title column; it does not reserve the thumbnail’s height.
 - `< md`: single column; cart line items use a **stacked layout** (product info full width, then **Aantal** stepper + price on one row, **Verwijderen** below). Column headers are hidden. `ProceedCta` is **sticky at bottom** of viewport via `fixed bottom-0`
 
 ## Checkout shell (routes under `/checkout/*`)

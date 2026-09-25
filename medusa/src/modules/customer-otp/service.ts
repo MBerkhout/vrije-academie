@@ -4,7 +4,8 @@ import { createHash, randomInt, timingSafeEqual } from "crypto"
 import { sendOtpEmail, type OtpPurpose } from "./lib/send-otp-email"
 import { CustomerOtpChallenge } from "./models/customer-otp-challenge"
 
-const OTP_TTL_MS = 10 * 60 * 1000
+const OTP_LOGIN_TTL_MS = 60 * 60 * 1000
+const OTP_SET_PASSWORD_TTL_MS = 10 * 60 * 1000
 const MAX_REQUESTS_PER_WINDOW = 3
 const REQUEST_WINDOW_MS = 15 * 60 * 1000
 const MAX_VERIFY_ATTEMPTS = 5
@@ -26,6 +27,10 @@ function codesMatch(storedHash: string, code: string): boolean {
 
 function generateCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0")
+}
+
+function otpTtlMs(purpose: OtpPurpose): number {
+  return purpose === "login" ? OTP_LOGIN_TTL_MS : OTP_SET_PASSWORD_TTL_MS
 }
 
 class CustomerOtpModuleService extends MedusaService({
@@ -53,7 +58,7 @@ class CustomerOtpModuleService extends MedusaService({
     }
 
     const code = generateCode()
-    const expiresAt = new Date(Date.now() + OTP_TTL_MS)
+    const expiresAt = new Date(Date.now() + otpTtlMs(purpose))
 
     await this.createCustomerOtpChallenges({
       email: normalized,
@@ -72,7 +77,7 @@ class CustomerOtpModuleService extends MedusaService({
   ): Promise<{ code: string; expires_at: string }> {
     const normalized = normalizeEmail(email)
     const code = generateCode()
-    const expiresAt = new Date(Date.now() + OTP_TTL_MS)
+    const expiresAt = new Date(Date.now() + otpTtlMs(purpose))
 
     await this.createCustomerOtpChallenges({
       email: normalized,

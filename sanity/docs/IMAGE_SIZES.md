@@ -11,9 +11,10 @@ Guidance only — uploads are not blocked when dimensions differ.
 | `social` | 1200×630px | Open Graph / Twitter |
 | `loginPortrait` | 1200×1600px | Portrait login panel |
 | `heroSlide` | 1200×675px | 16:9 hero slider (~2/3 page width; CDN default) |
+| `bannerSlide` | 1920×400px | Full-width banner slider (~400px high) |
 | `heroTopPanel` | min. 400px wide | Free format, object-contain (~1/3 column) |
 | `blockImage16x9` | 1200×675px | Default SanityImage CDN crop |
-| `blockImageAspectRatio` | 1200×675 (16:9), 1200×900 (4:3), 1200×1200 (1:1) | Match aspect ratio field |
+| `blockImageAspectRatio` | 1200×675 (16:9), 1200×900 (4:3), 1200×1200 (1:1) | Match aspect ratio field. Free uses the source ratio. |
 | `editorialCard` | 640×360px | 16:9 card image |
 | `editorialBackground` | 1200×675px | Full-bleed section background (CDN default) |
 | `categoryTile` | 150×200px | Portrait tile (~75px wide @2×) |
@@ -34,7 +35,8 @@ Guidance only — uploads are not blocked when dimensions differ.
 | `generalSettings` | `account.loginImage` | `loginPortrait` | Login page left panel |
 | `person` | `photo` | `personPhoto` | `PersonsBlock.tsx` |
 | `category` | `image` | `categoryTile` | Category tiles / search |
-| `heroBlock` | `slides[].backgroundImage` | `heroSlide` | `HeroBlock.tsx` slider |
+| `heroBlock` | `slides[].backgroundImage` | `heroSlide` | `ImageSlideStage` in `HeroBlock.tsx` |
+| `bannerSliderBlock` | `slides[].backgroundImage` | `bannerSlide` | `ImageSlideStage` in `BannerSliderBlock.tsx` |
 | `heroBlock` | `topPanelImage` | `heroTopPanel` | `HeroBlock.tsx` top panel |
 | `afbeeldingBlock` | `image` | `blockImageAspectRatio` | `AfbeeldingBlock.tsx` |
 | `afbeeldingBlock` | `placeholderImage` | `blockImageAspectRatio` | YouTube poster |

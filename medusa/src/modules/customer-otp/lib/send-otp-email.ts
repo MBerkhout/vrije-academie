@@ -29,7 +29,7 @@ function purposeBody(purpose: OtpPurpose, code: string): string {
     "",
     `Je inlogcode is: ${code}`,
     "",
-    "Deze code is 10 minuten geldig.",
+    "Deze code is 1 uur geldig.",
     "",
     "Heb je dit niet aangevraagd? Negeer deze e-mail.",
   ].join("\n")

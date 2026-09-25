@@ -26,6 +26,25 @@ const INLINE_PAGE_BLOCK_LAYOUT = `"_id": coalesce(@._id, @._key),
 
 const PT_BLOCK = `{ _type, _key, children[] { _key, _type, text, marks }, markDefs[] { _key, _type, href, buttonType, label, url }, listItem, style }`
 
+/** Shared hero / banner slider slide projection (per slide). */
+const SLIDER_SLIDE_FIELDS = `"backgroundImage": backgroundImage { asset-> },
+          overlayOpacity,
+          title,
+          subtitle,
+          url,
+          contentAlignment`
+
+/** Banner slider and other blocks using the shared slide shape. */
+export const SLIDER_SLIDES_INLINE = `"slides": @.slides[] {
+          ${SLIDER_SLIDE_FIELDS}
+        }`
+
+const HERO_SLIDES_INLINE = `"slides": @.slides[] {
+          ${SLIDER_SLIDE_FIELDS},
+          showLogo,
+          titleSize
+        }`
+
 /** Person fields returned for cards / persons block (keep in sync with Person type). */
 const PERSON_PUBLIC_FIELDS = `_id, name, photo { asset-> }, role, bio, profileUrl, personType`
 
@@ -192,18 +211,14 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
       @._type == "heroBlock" => {
         ...@,
         ${INLINE_PAGE_BLOCK_LAYOUT},
-        "slides": @.slides[] {
-          "backgroundImage": backgroundImage { asset-> },
-          overlayOpacity,
-          showLogo,
-          title,
-          titleSize,
-          subtitle,
-          url,
-          contentAlignment
-        },
+        ${HERO_SLIDES_INLINE},
         "topPanelBody": @.topPanelBody[] ${PT_BLOCK},
         "topPanelImage": @.topPanelImage { asset->, alt }
+      },
+      @._type == "bannerSliderBlock" => {
+        ...@,
+        ${INLINE_PAGE_BLOCK_LAYOUT},
+        ${SLIDER_SLIDES_INLINE}
       },
       @._type == "formBlock" => {
         ...@,

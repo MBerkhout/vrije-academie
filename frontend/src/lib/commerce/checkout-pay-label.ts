@@ -7,7 +7,7 @@ export function checkoutPayButtonLabel(input: {
   total: number | null
 }): string {
   const isFree = input.total != null && input.total <= 0
-  if (input.busy) return isFree ? 'Bestelling plaatsen…' : 'Betaling starten…'
+  if (input.busy) return isFree ? 'Bestelling plaatsen…' : 'Je wordt doorgestuurd…'
   if (isFree) return 'Bestelling plaatsen'
   if (input.total == null) return 'Betaal'
   return `Betaal ${formatPriceEur(input.total, 'standard')}`

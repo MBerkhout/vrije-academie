@@ -3,6 +3,7 @@ import {
   dedupePagesByDocumentId,
   encodeFolderPath,
   decodeFolderPath,
+  filterPagesByQuery,
   getRootParentPath,
   groupPagesByFolder,
   type PageFolderEntry,
@@ -238,6 +239,42 @@ describe("groupPagesByFolder", () => {
         segment: "english-spoken-activitie",
         hasDescendants: false,
       }),
+    ])
+  })
+})
+
+describe("filterPagesByQuery", () => {
+  const catalog = pages([
+    ["over-ons", "Over ons"],
+    ["over-ons/team", "Team"],
+    ["contact", "Contact"],
+  ])
+
+  it("returns nothing for a blank query", () => {
+    expect(filterPagesByQuery(catalog, "  ")).toEqual([])
+  })
+
+  it("matches title or slug, including nested pages", () => {
+    expect(filterPagesByQuery(catalog, "team").map((page) => page.slug)).toEqual([
+      "over-ons/team",
+    ])
+    expect(filterPagesByQuery(catalog, "/over-ons").map((page) => page.slug)).toEqual([
+      "over-ons",
+      "over-ons/team",
+    ])
+  })
+
+  it("collapses draft and published before matching", () => {
+    const result = filterPagesByQuery(
+      [
+        { _id: "drafts.page-contact", title: "Contact draft", slug: "contact" },
+        { _id: "page-contact", title: "Contact", slug: "contact" },
+      ],
+      "contact",
+    )
+
+    expect(result).toEqual([
+      { _id: "page-contact", title: "Contact draft", slug: "contact" },
     ])
   })
 })

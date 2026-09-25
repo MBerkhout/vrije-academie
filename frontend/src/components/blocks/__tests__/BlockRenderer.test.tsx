@@ -11,6 +11,9 @@ vi.mock('../TabsBlock', () => ({ TabsBlock: () => <div data-testid="tabs-block">
 vi.mock('../FormBlock', () => ({ FormBlock: () => <div data-testid="form-block">Form</div> }))
 vi.mock('../DemandNearbyBlock', () => ({ DemandNearbyBlock: () => <div data-testid="demand-nearby-block">DemandNearby</div> }))
 vi.mock('../HeroBlock', () => ({ HeroBlock: () => <div data-testid="hero-block">Hero</div> }))
+vi.mock('../BannerSliderBlock', () => ({
+  BannerSliderBlock: () => <div data-testid="banner-slider-block">BannerSlider</div>,
+}))
 vi.mock('../ProductRowBlock', () => ({
   ProductRowBlock: () => <div data-testid="product-row-block">ProductRow</div>,
 }))
@@ -68,6 +71,11 @@ describe('BlockRenderer', () => {
   it('renders heroBlock', () => {
     render(<BlockRenderer block={{ ...baseBlock, _type: 'heroBlock' } as Block} />)
     expect(screen.getByTestId('hero-block')).toBeInTheDocument()
+  })
+
+  it('renders bannerSliderBlock', () => {
+    render(<BlockRenderer block={{ ...baseBlock, _type: 'bannerSliderBlock' } as Block} />)
+    expect(screen.getByTestId('banner-slider-block')).toBeInTheDocument()
   })
 
   it('renders productRowBlock (server)', () => {

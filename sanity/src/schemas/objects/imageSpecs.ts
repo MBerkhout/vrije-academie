@@ -15,6 +15,10 @@ export const IMAGE_SPECS = {
     size: "1200×675px",
     aspect: "16:9 (~2/3 pagina breedte)",
   },
+  bannerSlide: {
+    size: "1920×400px",
+    aspect: "volle breedte banner (~400px hoog)",
+  },
   heroTopPanel: {
     size: "minimaal 400px breed",
     aspect: "vrij formaat (object-contain, ~1/3 kolom)",

@@ -14,7 +14,7 @@ Single image or YouTube video with optional caption. Supports placeholder image 
 | Placeholder Image | Image | No | Poster shown before video loads (*YouTube only) |
 | Caption | String | No | Caption (visible for both media types) |
 | Width | String | No | Narrow / Normal / Wide (VA-style buttons) |
-| Aspect Ratio | String | No | 16:9, 4:3, 1:1, Free (VA-style buttons) |
+| Aspect Ratio | String | No | 16:9, 4:3, 1:1, or Free. Free shows the whole image at its own ratio (no crop). |
 | Layout | Object | No | Margin, padding, width, background color |
 
 ## When to Use

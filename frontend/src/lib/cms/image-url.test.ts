@@ -33,6 +33,14 @@ describe('sanityImageSrc', () => {
     expect(q.get('fit')).toBe('max')
   })
 
+  it('does not crop contain when layout width and height are set', () => {
+    const url = sanityImageSrc(portraitSource, { objectFit: 'contain', width: 183, height: 275 })
+    const q = params(url)
+    expect(q.get('h')).toBeNull()
+    expect(q.get('rect')).toBeNull()
+    expect(q.get('fit')).toBe('max')
+  })
+
   it('crops to an explicit width×height box when both are set', () => {
     const url = sanityImageSrc(portraitSource, { width: 75, height: 90, fill: true })
     const q = params(url)

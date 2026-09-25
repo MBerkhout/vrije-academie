@@ -7,6 +7,7 @@ describe("buildOtpEmailContent", () => {
     const content = buildOtpEmailContent("login", "123456")
     expect(content.subject).toContain("inlogcode")
     expect(content.text).toContain("123456")
+    expect(content.text).toContain("1 uur geldig")
     expect(content.html).toContain("123456")
   })
 
@@ -14,5 +15,6 @@ describe("buildOtpEmailContent", () => {
     const content = buildOtpEmailContent("set_password", "000111")
     expect(content.subject).toContain("wachtwoord")
     expect(content.text).toContain("000111")
+    expect(content.text).toContain("10 minuten geldig")
   })
 })

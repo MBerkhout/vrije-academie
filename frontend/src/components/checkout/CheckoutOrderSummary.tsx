@@ -115,8 +115,8 @@ function CheckoutHelpAndTrust({
 
 export function OrderSummaryThumbnail({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="w-14 h-14 shrink-0 rounded-lg bg-white overflow-hidden relative border border-va-lightgray-200">
-      <Image src={src} alt={alt} fill className="object-cover" sizes="56px" />
+    <div className="relative aspect-[4/3] h-16 w-auto shrink-0 overflow-hidden rounded-lg border border-va-lightgray-200 bg-white md:h-20">
+      <Image src={src} alt={alt} fill className="object-cover" sizes="(min-width: 768px) 107px, 85px" />
     </div>
   )
 }

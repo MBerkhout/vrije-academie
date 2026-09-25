@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tasks prefix="SI" next_id="108" generated="2026-09-24T19:40">
+<tasks prefix="SI" next_id="116" generated="2026-09-25T13:50">
   <task id="1" status="done">
     <title>Align course list prices and times in columns</title>
     <summary>Put times and prices in two fixed columns so they line up neatly across course rows.</summary>
@@ -3149,6 +3149,8 @@
       <file path="frontend/src/lib/commerce/cart.ts" ts="2026-09-24T18:12" />
       <file path="frontend/docs/CART.md" ts="2026-09-24T18:12" />
       <file path="frontend/docs/CHECKOUT.md" ts="2026-09-24T18:12" />
+      <file path="sanity/src/schemas/blocks/sliderFields.ts" ts="2026-09-25T13:37" />
+      <file path="frontend/src/components/blocks/ImageSlideStage.tsx" ts="2026-09-25T13:37" />
     </files>
     <verifications>
       <verification ts="2026-09-21T16:47" tool="manual browser check" result="pass" />
@@ -7665,5 +7667,589 @@
       <event ts="2026-09-24T19:34">started run lane run-bdccbf3e</event>
       <event ts="2026-09-24T19:34">completed</event>
     </history>
+  </task>
+  <task id="108" status="done">
+    <title>OTP login code valid for 1 hour</title>
+    <summary>One-time login OTP expires after 1 hour instead of 10 minutes. Password-setup codes stay at 10 minutes.</summary>
+    <created>2026-09-25T13:30</created>
+    <started>2026-09-25T13:30</started>
+    <done>2026-09-25T13:30</done>
+    <human_estimate>15min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-108.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-f75091de</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T13:30">received, backlog</event>
+      <event ts="2026-09-25T13:30">started</event>
+      <event ts="2026-09-25T13:30">started run lane run-f75091de</event>
+      <event ts="2026-09-25T13:30">progress plan: 3 steps</event>
+      <event ts="2026-09-25T13:30">started</event>
+      <event ts="2026-09-25T13:30">progress plan: 3 steps</event>
+      <event ts="2026-09-25T13:30">in testing — running Vitest</event>
+      <event ts="2026-09-25T13:30">progress plan: 3 steps</event>
+      <event ts="2026-09-25T13:30">completed</event>
+    </history>
+    <files>
+      <file path="medusa/src/modules/customer-otp/service.ts" ts="2026-09-25T13:30" />
+      <file path="medusa/src/modules/customer-otp/lib/send-otp-email.ts" ts="2026-09-25T13:31" />
+      <file path="medusa/docs/CUSTOMER_AUTH.md" ts="2026-09-25T13:31" />
+      <file path="medusa/src/modules/customer-otp/lib/send-otp-email.test.ts" ts="2026-09-25T13:31" />
+    </files>
+    <progress step="3" of="3" started="2026-09-25T13:30" label="Run Vitest">
+      <step n="1" label="Set login OTP expiry to 1 hour" done="2026-09-25T13:30" />
+      <step n="2" label="Update docs and tests" done="2026-09-25T13:30" />
+      <step n="3" label="Run Vitest" />
+    </progress>
+  </task>
+  <task id="109" status="done">
+    <title>Remove gray box around VA Thuis hero image</title>
+    <summary>The hero image on /va-thuis sits in a rounded dark-gray panel. Remove that panel so the image sits on the page background.</summary>
+    <created>2026-09-25T13:30</created>
+    <started>2026-09-25T13:30</started>
+    <done>2026-09-25T13:30</done>
+    <human_estimate>15m</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-109.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-1a689622</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <is_design>true</is_design>
+    <history>
+      <event ts="2026-09-25T13:30">received, backlog</event>
+      <event ts="2026-09-25T13:30">started</event>
+      <event ts="2026-09-25T13:30">started run lane run-1a689622</event>
+      <event ts="2026-09-25T13:30">progress plan: 3 steps</event>
+      <event ts="2026-09-25T13:30">in testing — running Vitest</event>
+      <event ts="2026-09-25T13:35">tool changed: kept manual 'Vitest', auto-detected 'npm test'</event>
+      <event ts="2026-09-25T13:30">completed</event>
+    </history>
+    <progress step="3" of="3" started="2026-09-25T13:30" label="Verify in the browser">
+      <step n="1" label="Confirm the gray panel" done="2026-09-25T13:30" />
+      <step n="2" label="Remove the panel styles" done="2026-09-25T13:30" />
+      <step n="3" label="Verify in the browser" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/vathuis/VaThuisHero.tsx" ts="2026-09-25T13:32" />
+      <file path="frontend/src/components/vathuis/key-out-flat-background.ts" ts="2026-09-25T13:35" />
+      <file path="frontend/src/components/vathuis/key-out-flat-background.test.ts" ts="2026-09-25T13:35" />
+      <file path="frontend/src/components/vathuis/VaThuisHeroImage.tsx" ts="2026-09-25T13:35" />
+      <file path="frontend/docs/VATHUIS.md" ts="2026-09-25T13:35" />
+    </files>
+  </task>
+  <task id="110" status="done">
+    <title>Checkout: bevestiging, betaaluitleg en doorsturen</title>
+    <summary>Bevestigingsregel boven de betaalknop met Wijzigen, uitleg onder de knop, en de knop op Je wordt doorgestuurd… houden tot de redirect klaar is.</summary>
+    <created>2026-09-25T13:33</created>
+    <started>2026-09-25T13:33</started>
+    <done>2026-09-25T13:33</done>
+    <human_estimate>30min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-110.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-f400c5d1</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet>Checkout tells you which address gets the order confirmation, with a link to change it, and keeps the pay button disabled while you are sent on to pay.</changelog_snippet>
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T13:33">received, backlog</event>
+      <event ts="2026-09-25T13:33">concept written: tasks/SI-110.md</event>
+      <event ts="2026-09-25T13:33">started</event>
+      <event ts="2026-09-25T13:33">started run lane run-f400c5d1</event>
+      <event ts="2026-09-25T13:33">progress plan: 4 steps</event>
+      <event ts="2026-09-25T13:37">auto-detected: running npm test</event>
+      <event ts="2026-09-25T13:33">in testing — running Vitest</event>
+      <event ts="2026-09-25T13:33">verification: Vitest passed</event>
+      <event ts="2026-09-25T13:33">completed</event>
+    </history>
+    <progress step="1" of="4" started="2026-09-25T13:33" label="Knoptekst en bevestigingsregel">
+      <step n="1" label="Knoptekst en bevestigingsregel" />
+      <step n="2" label="E-mail wijzigen" />
+      <step n="3" label="Documentatie" />
+      <step n="4" label="Vitest" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/blocks/HeroBlock.tsx" ts="2026-09-25T13:37" />
+      <file path="sanity/src/schemas/blocks/bannerSlider.ts" ts="2026-09-25T13:37" />
+      <file path="sanity/src/schemas/blocks/hero.ts" ts="2026-09-25T13:37" />
+      <file path="sanity/src/schemas/objects/imageSpecs.ts" ts="2026-09-25T13:37" />
+      <file path="sanity/src/schemas/index.ts" ts="2026-09-25T13:37" />
+      <file path="sanity/src/schemas/blocks/registry.ts" ts="2026-09-25T13:37" />
+      <file path="sanity/src/structure.ts" ts="2026-09-25T13:37" />
+      <file path="frontend/src/lib/commerce/checkout-pay-label.ts" ts="2026-09-25T13:37" />
+      <file path="frontend/src/lib/commerce/checkout-pay-label.test.ts" ts="2026-09-25T13:37" />
+      <file path="frontend/src/components/checkout/CheckoutPaymentForm.tsx" ts="2026-09-25T13:37" />
+      <file path="frontend/src/lib/cms/page-query.ts" ts="2026-09-25T13:37" />
+      <file path="frontend/src/lib/cms/types.ts" ts="2026-09-25T13:37" />
+      <file path="frontend/src/components/blocks/BannerSliderBlock.tsx" ts="2026-09-25T13:37" />
+      <file path="frontend/src/components/blocks/index.tsx" ts="2026-09-25T13:37" />
+      <file path="frontend/src/components/blocks/__tests__/BannerSliderBlock.test.tsx" ts="2026-09-25T13:37" />
+      <file path="frontend/src/components/blocks/__tests__/BlockRenderer.test.tsx" ts="2026-09-25T13:37" />
+      <file path="sanity/docs/blocks/banner-slider.md" ts="2026-09-25T13:38" />
+      <file path="frontend/src/components/checkout/CheckoutLoginForm.tsx" ts="2026-09-25T13:38" />
+      <file path="sanity/docs/BLOCKS.md" ts="2026-09-25T13:38" />
+      <file path="sanity/docs/IMAGE_SIZES.md" ts="2026-09-25T13:38" />
+      <file path="frontend/docs/components.md" ts="2026-09-25T13:38" />
+      <file path="frontend/src/components/checkout/login/CheckoutLoginEmailStep.tsx" ts="2026-09-25T13:38" />
+      <file path="frontend/docs/CHECKOUT.md" ts="2026-09-25T13:38" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-25T13:33" tool="Vitest" result="pass" />
+    </verifications>
+  </task>
+  <task id="111" status="done">
+    <title>Free aspect ratio still crops image</title>
+    <summary>On /saar-magazine-interview-cursist the image stays cropped after the aspect ratio is set to free. Find why the crop is still applied and fix it.</summary>
+    <created>2026-09-25T13:39</created>
+    <started>2026-09-25T13:39</started>
+    <done>2026-09-25T13:47</done>
+    <human_estimate>1h</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-111.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-9a31d781</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags>Website</tags>
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T13:39">received, backlog</event>
+      <event ts="2026-09-25T13:39">Investigating why free aspect ratio still crops the image on the Saar magazine page.</event>
+      <event ts="2026-09-25T13:39">started run lane run-9a31d781</event>
+      <event ts="2026-09-25T13:45">auto-detected: running Vitest</event>
+      <event ts="2026-09-25T13:47">Free aspect ratio shows the full image. Debug logging removed.</event>
+    </history>
+    <files>
+      <file path="frontend/src/components/blocks/AfbeeldingBlock.tsx" ts="2026-09-25T13:41" />
+      <file path="frontend/src/lib/cms/image-url.ts" ts="2026-09-25T13:42" />
+      <file path="frontend/src/components/cms/SanityImage.tsx" ts="2026-09-25T13:42" />
+      <file path="frontend/src/lib/cms/image-url.test.ts" ts="2026-09-25T13:45" />
+      <file path="sanity/docs/blocks/imageBlock.md" ts="2026-09-25T13:45" />
+      <file path="sanity/docs/IMAGE_SIZES.md" ts="2026-09-25T13:45" />
+    </files>
+  </task>
+  <task id="112" status="done">
+    <title>Match checkout thumbnails to product tiles</title>
+    <summary>Checkout step line-item thumbnails should use the same 4:3 frame as cart thumbnails and product tiles.</summary>
+    <created>2026-09-25T13:45</created>
+    <started>2026-09-25T13:45</started>
+    <done>2026-09-25T13:45</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-112.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>change</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-b22c76d2</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T13:45">received, backlog</event>
+      <event ts="2026-09-25T13:45">started</event>
+      <event ts="2026-09-25T13:45">started run lane run-b22c76d2</event>
+      <event ts="2026-09-25T13:45">progress plan: 3 steps</event>
+      <event ts="2026-09-25T13:45">in testing — running browser</event>
+      <event ts="2026-09-25T13:45">back to in-progress</event>
+      <event ts="2026-09-25T13:45">verification: manual browser check passed</event>
+      <event ts="2026-09-25T13:45">completed</event>
+    </history>
+    <progress step="3" of="3" started="2026-09-25T13:45" label="Verify in the browser">
+      <step n="1" label="Find checkout step thumbnails" done="2026-09-25T13:45" />
+      <step n="2" label="Apply the 4:3 frame" done="2026-09-25T13:45" />
+      <step n="3" label="Verify in the browser" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/checkout/CheckoutOrderSummary.tsx" ts="2026-09-25T13:46" />
+      <file path="frontend/docs/CHECKOUT.md" ts="2026-09-25T13:46" />
+      <file path="sanity/src/lib/page-folder-tree.ts" ts="2026-09-25T13:46" />
+      <file path="sanity/src/lib/__tests__/page-folder-tree.test.ts" ts="2026-09-25T13:46" />
+      <file path="frontend/src/app/(main)/dev/checkout-thumb/page.tsx" ts="2026-09-25T13:46" />
+      <file path="sanity/src/structure/PageTreePane.tsx" ts="2026-09-25T13:47" />
+      <file path="sanity/src/structure/page-tree.ts" ts="2026-09-25T13:47" />
+      <file path="sanity/src/structure.ts" ts="2026-09-25T13:47" />
+      <file path="frontend/src/components/blocks/AfbeeldingBlock.tsx" ts="2026-09-25T13:47" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-25T13:45" tool="manual browser check" result="pass" />
+    </verifications>
+  </task>
+  <task id="113" status="done">
+    <title>Menu publish and homepage cache</title>
+    <summary>Check why publishing the Vakgebieden footer menu did not refresh the homepage cache.</summary>
+    <created>2026-09-25T13:37</created>
+    <started>2026-09-25T13:37</started>
+    <done>2026-09-25T13:37</done>
+    <human_estimate>30min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-113.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>research</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-ccd56412</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T13:37">received, backlog</event>
+      <event ts="2026-09-25T13:37">started</event>
+      <event ts="2026-09-25T13:37">started run lane run-ccd56412</event>
+      <event ts="2026-09-25T13:37">progress plan: 3 steps</event>
+      <event ts="2026-09-25T13:37">v2 footer already shows the published label; www is the old site.</event>
+    </history>
+    <progress step="3" of="3" started="2026-09-25T13:37" label="Compare live homepages">
+      <step n="1" label="Identify the published menu" done="2026-09-25T13:37" />
+      <step n="2" label="Check where it is used" done="2026-09-25T13:37" />
+      <step n="3" label="Compare live homepages" />
+    </progress>
+  </task>
+  <task id="114" status="done">
+    <title>Search bar on Pages and VA pages</title>
+    <summary>Add a search field at the top of the Studio Pages and VA pages lists so editors can find a page by title or slug.</summary>
+    <created>2026-09-25T13:37</created>
+    <started>2026-09-25T13:37</started>
+    <done>2026-09-25T13:37</done>
+    <human_estimate>45min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-114.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>feature</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-252de405</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T13:37">received, backlog</event>
+      <event ts="2026-09-25T13:37">started</event>
+      <event ts="2026-09-25T13:37">started run lane run-252de405</event>
+      <event ts="2026-09-25T13:37">progress plan: 5 steps</event>
+      <event ts="2026-09-25T13:37">in testing — running Vitest</event>
+      <event ts="2026-09-25T13:37">completed</event>
+    </history>
+    <progress step="5" of="5" started="2026-09-25T13:37" label="Verify">
+      <step n="1" label="Search filter" done="2026-09-25T13:37" />
+      <step n="2" label="Page tree pane" done="2026-09-25T13:37" />
+      <step n="3" label="Wire structure" done="2026-09-25T13:37" />
+      <step n="4" label="Docs" done="2026-09-25T13:37" />
+      <step n="5" label="Verify" />
+    </progress>
+  </task>
+  <task id="115" status="done">
+    <title>Cart header row too tall</title>
+    <summary>The cart column header reserves an empty 4:3 image, which stretches the row. Align the header with the thumbnail column without that extra height, and match the cart image format.</summary>
+    <created>2026-09-25T13:44</created>
+    <started>2026-09-25T13:44</started>
+    <done>2026-09-25T13:44</done>
+    <human_estimate>30min</human_estimate>
+    <story_points>2</story_points>
+    <agents>Grok</agents>
+    <concept>tasks/SI-115.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-dd52e5a0</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T13:44">received, backlog</event>
+      <event ts="2026-09-25T13:44">started</event>
+      <event ts="2026-09-25T13:44">started run lane run-dd52e5a0</event>
+      <event ts="2026-09-25T13:48">auto-detected: running Vitest</event>
+      <event ts="2026-09-25T13:44">progress plan: 4 steps</event>
+      <event ts="2026-09-25T13:44">Header spacer is width-only; labels share one baseline.</event>
+    </history>
+    <files>
+      <file path="frontend/src/lib/cms/image-url.ts" ts="2026-09-25T13:48" />
+      <file path="frontend/src/components/cms/SanityImage.tsx" ts="2026-09-25T13:48" />
+      <file path="sanity/src/structure.ts" ts="2026-09-25T13:48" />
+      <file path="sanity/docs/README.md" ts="2026-09-25T13:48" />
+      <file path="sanity/src/structure/page-tree.ts" ts="2026-09-25T13:48" />
+      <file path="sanity/src/structure/PageTreePane.tsx" ts="2026-09-25T13:49" />
+      <file path="frontend/src/components/cart/CartView.tsx" ts="2026-09-25T13:49" />
+      <file path="frontend/docs/CART.md" ts="2026-09-25T13:49" />
+    </files>
+    <progress step="4" of="4" started="2026-09-25T13:44" label="Verify layout">
+      <step n="1" label="Confirm header spacer" done="2026-09-25T13:44" />
+      <step n="2" label="Drop spacer height" done="2026-09-25T13:44" />
+      <step n="3" label="Update cart docs" done="2026-09-25T13:44" />
+      <step n="4" label="Verify layout" />
+    </progress>
   </task>
 </tasks>

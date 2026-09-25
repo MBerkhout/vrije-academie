@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { commerceClient } from '@/lib/commerce'
@@ -61,6 +61,7 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
   const [city, setCity] = useState('')
 
   const [busy, setBusy] = useState(false)
+  const submittingRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -227,6 +228,7 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (submittingRef.current) return
     setError(null)
     const cartId = getCartId()
     if (!cartId || !cart) return
@@ -238,7 +240,9 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
       }
     }
 
+    submittingRef.current = true
     setBusy(true)
+    let leaving = false
     try {
       const userData =
         buildUserDataFromCustomer(customer) ??
@@ -265,6 +269,7 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
         const result = await commerceClient.completeCart(cartId)
         if (result.type === 'order') {
           clearCartId()
+          leaving = true
           router.replace(`/bedankt?order=${encodeURIComponent(result.order.id)}`)
           return
         }
@@ -289,11 +294,15 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
         throw new Error('Geen betaallink ontvangen van Mollie.')
       }
 
+      leaving = true
       window.location.href = checkoutUrl
     } catch (err: unknown) {
       showToast(checkoutPaymentErrorMessage(err))
     } finally {
-      setBusy(false)
+      if (!leaving) {
+        submittingRef.current = false
+        setBusy(false)
+      }
     }
   }
 
@@ -475,60 +484,43 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
       )}
 
       {/* Betalen CTA */}
-      <p className="font-sans text-xs text-va-darkgray text-left leading-relaxed mb-1">
-        *Als je op betalen klikt ga je akkoord met onze{' '}
-        <Link
-          href="/algemene-voorwaarden"
-          className="underline underline-offset-2 hover:text-va-black"
+      <div className="space-y-3">
+        <p className="font-sans text-xs text-va-darkgray text-left leading-relaxed">
+          *Als je op betalen klikt ga je akkoord met onze{' '}
+          <Link
+            href="/algemene-voorwaarden"
+            className="underline underline-offset-2 hover:text-va-black"
+          >
+            voorwaarden
+          </Link>
+        </p>
+        <p className="font-sans text-xs text-va-darkgray text-left leading-relaxed">
+          Je bestelbevestiging sturen we naar{' '}
+          <span className="break-all">{email || '—'}</span>.{' '}
+          <Link
+            href="/checkout/inloggen?wijzig-email=1"
+            className="underline underline-offset-2 hover:text-va-black"
+          >
+            Wijzigen
+          </Link>
+        </p>
+        <button
+          type="submit"
+          disabled={busy || (!isFreeCheckout && !selectedMethod)}
+          aria-busy={busy}
+          className="w-full rounded-lg bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-4 hover:bg-va-yellow/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          voorwaarden
-        </Link>
-      </p>
-      <button
-        type="submit"
-        disabled={busy || (!isFreeCheckout && !selectedMethod)}
-        className="w-full rounded-lg bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-4 hover:bg-va-yellow/90 transition-colors disabled:opacity-60"
-      >
-        {checkoutPayButtonLabel({
-          busy,
-          total: cart ? (cart.total ?? 0) : null,
-        })}
-      </button>
-      <p className="font-sans text-xs text-va-darkgray text-center leading-relaxed !mt-4">
-        {isFreeCheckout ? (
-          'Na het plaatsen van je bestelling ontvang je een e-mail met de gegevens van je inschrijving.'
-        ) : (
-          <>
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 14 14"
-              fill="none"
-              aria-hidden
-              className="inline-block align-[-0.125em] mr-1 text-va-darkgray"
-            >
-              <rect
-                x="1.5"
-                y="2.5"
-                width="11"
-                height="9"
-                rx="1"
-                stroke="currentColor"
-                strokeWidth="1.4"
-              />
-              <path
-                d="M1.5 4L7 8.25L12.5 4"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Na het voltooien van de betaling ontvang je op{' '}
-            <span className="italic">{email || '—'}</span> een bestelbevestiging
-          </>
+          {checkoutPayButtonLabel({
+            busy,
+            total: cart ? (cart.total ?? 0) : null,
+          })}
+        </button>
+        {!isFreeCheckout && (
+          <p className="font-sans text-xs text-va-darkgray text-left leading-relaxed">
+            🔒 Je betaalt veilig via deze link. Daarna kom je automatisch terug bij Vrije Academie.
+          </p>
         )}
-      </p>
+      </div>
 
       {/* Trust signals */}
       {trust && (

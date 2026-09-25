@@ -9,6 +9,7 @@ Blocks are reusable content components that can be arranged on pages. Each block
 ## Block Index
 
 - [Hero](#hero) - Hero banner with image, title, CTA
+- [Banner slider](#banner-slider) - Full-width 400px image slider (same slide controls as hero)
 - [Rich Text](#rich-text) - Portable Text content
 - [Image](#image) - Single image with caption
 - [FAQ / Accordion](#faq--accordion) - Expandable Q&A pairs
@@ -53,6 +54,22 @@ All blocks include these fields:
 - Top panel: title, body, optional right image, optional CTA
 
 **Documentation**: [blocks/hero.md](./blocks/hero.md)
+
+---
+
+## Banner slider
+
+**Purpose**: Full-width **400px** image slider with the same slide fields and navigation as the hero (title, subtitle, optional link, overlay, autoplay, yellow chevrons and dots). No top panel or newsletter.
+
+**Use when**:
+- A full-bleed promotional strip below or elsewhere on a page
+- You need hero-style slides without the two-column hero layout
+
+**Fields** (see [blocks/banner-slider.md](./blocks/banner-slider.md)):
+- Slides (1–5), autoplay
+- Layout defaults to **full** width
+
+**Documentation**: [blocks/banner-slider.md](./blocks/banner-slider.md)
 
 ---
 

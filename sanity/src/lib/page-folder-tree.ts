@@ -169,3 +169,22 @@ export function groupPagesByFolder(
 
   return { currentPage, children, missingSlug }
 }
+
+function pageSortLabel(page: PageFolderEntry): string {
+  return page.title || page.slug || ""
+}
+
+/** Match a page title or slug. Blank queries match nothing (the tree stays visible). */
+export function filterPagesByQuery(pages: PageFolderEntry[], query: string): PageFolderEntry[] {
+  const needle = query.trim().toLocaleLowerCase("nl")
+  if (!needle) return []
+
+  return dedupePagesByDocumentId(pages)
+    .filter((page) => {
+      const title = (page.title ?? "").toLocaleLowerCase("nl")
+      const slug = (page.slug ?? "").toLocaleLowerCase("nl")
+      const path = slug ? `/${slug}` : ""
+      return title.includes(needle) || slug.includes(needle) || path.includes(needle)
+    })
+    .sort((a, b) => pageSortLabel(a).localeCompare(pageSortLabel(b), "nl"))
+}

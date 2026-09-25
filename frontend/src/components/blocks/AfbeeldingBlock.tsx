@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { cleanBlockValue, type AfbeeldingBlock as AfbeeldingBlockType } from '@/lib/cms'
+import { sanityAssetDimensions } from '@/lib/cms/image-url'
 import { cn } from '@/lib/utils'
 
 const WIDTH_CLASS = {
@@ -101,6 +102,10 @@ export function AfbeeldingBlock({ block }: { block: AfbeeldingBlockType }) {
   const widthClass =
     WIDTH_CLASS[contentWidth as keyof typeof WIDTH_CLASS] ?? WIDTH_CLASS.normal
   const aspectClass = ASPECT_CLASS[aspectRatio]
+  const freeDims = aspectClass ? null : sanityAssetDimensions(block.image)
+  const freeWidth = freeDims ? Math.min(freeDims.width, 1200) : undefined
+  const freeHeight =
+    freeDims && freeWidth ? Math.round((freeWidth * freeDims.height) / freeDims.width) : undefined
 
   return (
     <BlockWrapper block={block}>
@@ -119,7 +124,10 @@ export function AfbeeldingBlock({ block }: { block: AfbeeldingBlockType }) {
               source={block.image}
               aspectRatio={aspectClass as 'aspect-video' | 'aspect-square' | 'aspect-[4/3]' | ''}
               fill={!!aspectClass}
-              className="w-full"
+              objectFit={aspectClass ? 'cover' : 'contain'}
+              width={freeWidth}
+              height={freeHeight}
+              className="h-auto w-full"
             />
           </div>
         ) : null}

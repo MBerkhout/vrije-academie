@@ -3,13 +3,8 @@ import { defineCtaUrlField } from "../objects/ctaUrl"
 import { defineImageField } from "../objects/imageField"
 import { createButtonSelectInput } from "../../components/ButtonSelectInput"
 import { createLayoutField, type BlockLayoutDefaults } from "../../lib/blockFields"
-import { portableText } from "../objects/portableText"
-import { OVERLAY_OPTIONS, TITLE_SIZE_OPTIONS, overlayField } from "../objects/mediaEnums"
-
-const SLIDE_CONTENT_ALIGNMENT = [
-  { title: "Left", value: "left" },
-  { title: "Center", value: "center" },
-] as const
+import { defineSliderFields } from "./sliderFields"
+import { TITLE_SIZE_OPTIONS } from "../objects/mediaEnums"
 
 const TOP_PANEL_TITLE_SIZE_OPTIONS = TITLE_SIZE_OPTIONS.filter((o) => o.value !== "h1")
 
@@ -24,85 +19,25 @@ export const heroBlock = defineType({
     { name: "style", title: "Style" },
   ],
   fields: [
-    defineField({
-      name: "slides",
-      title: "Slides",
-      type: "array",
+    ...defineSliderFields({
+      imageSpec: "heroSlide",
       group: "slider",
-      of: [
-        {
-          type: "object",
-          fields: [
-            defineImageField({
-              name: "backgroundImage",
-              title: "Background Image",
-              spec: "heroSlide",
-              validation: (Rule) => Rule.required().error("Achtergrondafbeelding is verplicht."),
-            }),
-            defineField({
-              ...overlayField({ name: "overlayOpacity" }),
-              initialValue: "medium",
-              components: { input: createButtonSelectInput([...OVERLAY_OPTIONS]) },
-            }),
-            defineField({
-              name: "showLogo",
-              title: "Show Logo",
-              type: "boolean",
-              initialValue: false,
-            }),
-            defineField({
-              name: "title",
-              title: "Title",
-              type: "string",
-              validation: (Rule) => Rule.required().error("Titel is verplicht."),
-            }),
-            defineField({
-              name: "titleSize",
-              title: "Title Size",
-              type: "string",
-              options: { list: [...TITLE_SIZE_OPTIONS] },
-              initialValue: "h1",
-              components: { input: createButtonSelectInput([...TITLE_SIZE_OPTIONS]) },
-            }),
-            defineField({
-              name: "subtitle",
-              title: "Subtitle",
-              type: "string",
-              description: "Optional short line below the title.",
-            }),
-            defineCtaUrlField({
-              name: "url",
-              title: "Link URL",
-              description: "If set, the whole slide is clickable and navigates to this address.",
-            }),
-            defineField({
-              name: "contentAlignment",
-              title: "Content Alignment",
-              type: "string",
-              options: { list: [...SLIDE_CONTENT_ALIGNMENT] },
-              initialValue: "left",
-              components: { input: createButtonSelectInput([...SLIDE_CONTENT_ALIGNMENT]) },
-            }),
-          ],
-        },
+      extraSlideFields: [
+        defineField({
+          name: "showLogo",
+          title: "Show Logo",
+          type: "boolean",
+          initialValue: false,
+        }),
+        defineField({
+          name: "titleSize",
+          title: "Title Size",
+          type: "string",
+          options: { list: [...TITLE_SIZE_OPTIONS] },
+          initialValue: "h1",
+          components: { input: createButtonSelectInput([...TITLE_SIZE_OPTIONS]) },
+        }),
       ],
-      validation: (Rule) => Rule.required().min(1).max(5),
-    }),
-    defineField({
-      name: "autoplay",
-      title: "Autoplay",
-      type: "boolean",
-      group: "slider",
-      initialValue: true,
-    }),
-    defineField({
-      name: "autoplayInterval",
-      title: "Autoplay Interval (seconds)",
-      type: "number",
-      group: "slider",
-      initialValue: 5,
-      validation: (Rule) => Rule.min(2).max(15).error("Voer een waarde in tussen 2 en 15 seconden."),
-      hidden: ({ parent }) => !parent?.autoplay,
     }),
     defineField({
       name: "topPanelTitle",

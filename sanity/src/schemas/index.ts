@@ -12,6 +12,7 @@ import { tabsBlock } from "./blocks/tabs"
 import { formBlock } from "./blocks/form"
 import { demandNearbyBlock } from "./blocks/demandNearby"
 import { heroBlock } from "./blocks/hero"
+import { bannerSliderBlock } from "./blocks/bannerSlider"
 import { productRowBlock } from "./blocks/productRow"
 import { categoriesBlock } from "./blocks/categories"
 import { uspBlock } from "./blocks/usp"
@@ -67,6 +68,7 @@ export const schemaTypes = [
   formBlock,
   demandNearbyBlock,
   heroBlock,
+  bannerSliderBlock,
   productRowBlock,
   categoriesBlock,
   uspBlock,

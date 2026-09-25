@@ -51,6 +51,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const editingDetails = searchParams.get('bewerken') === '1'
+  const changingEmail = searchParams.get('wijzig-email') === '1'
   const { customer, refresh, logout, loading: customerLoading } = useCustomer()
   const [state, setState] = useState<State>('email')
   const [email, setEmail] = useState('')
@@ -223,6 +224,17 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     let skipBootstrapEnd = false
     ;(async () => {
       try {
+        if (changingEmail) {
+          if (customer?.id) {
+            const fresh = await commerceClient.getCustomer()
+            if (!cancelled && fresh?.email) setEmail(fresh.email)
+          } else {
+            const cart = await ensureGuestCheckoutCartHydrated()
+            if (!cancelled && cart?.email) setEmail(cart.email)
+          }
+          return
+        }
+
         if (customer?.id) {
           const fresh = await commerceClient.getCustomer()
           if (cancelled || !fresh) return
@@ -292,7 +304,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     return () => {
       cancelled = true
     }
-  }, [customer?.id, customerLoading, state, router, prefillFromCustomer, prefillFromCart, editingDetails])
+  }, [customer?.id, customerLoading, state, router, prefillFromCustomer, prefillFromCart, editingDetails, changingEmail])
 
   async function handleLogout() {
     setBusy(true)
@@ -347,7 +359,22 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     setBusy(true)
     setState('loading')
     try {
-      const lookup = await commerceClient.customerLookup(email)
+      const trimmed = email.trim()
+      const sameAsAccount =
+        customer?.email != null && customer.email.toLowerCase() === trimmed.toLowerCase()
+      if (customer && sameAsAccount) {
+        if (isCustomerProfileComplete(customer)) {
+          router.push('/checkout/betaling')
+          return
+        }
+        prefillFromCustomer(customer)
+        setState('logged_in_details')
+        return
+      }
+      if (customer && !sameAsAccount) {
+        await logout()
+      }
+      const lookup = await commerceClient.customerLookup(trimmed)
       if (lookup.exists) {
         setHasPassword(lookup.hasPassword)
         setAuthMode(lookup.hasPassword ? 'password' : 'otp')
@@ -604,6 +631,8 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           error={error}
           busy={busy}
           onSubmit={handleEmailSubmit}
+          backHref={changingEmail ? '/checkout/betaling' : undefined}
+          backLabel={changingEmail ? 'Terug naar betaling' : undefined}
         />
       )}
 

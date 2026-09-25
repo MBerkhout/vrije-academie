@@ -9,6 +9,7 @@ import { productRowBlock, surfaces as productRowSurfaces } from "./productRow"
 import { giftCardBlock, surfaces as giftCardSurfaces } from "./giftCard"
 import { formBlock, surfaces as formSurfaces } from "./form"
 import { heroBlock, surfaces as heroSurfaces } from "./hero"
+import { bannerSliderBlock, surfaces as bannerSliderSurfaces } from "./bannerSlider"
 import { personsBlock, surfaces as personsSurfaces } from "./persons"
 import { plpBlock, surfaces as plpSurfaces } from "./plp"
 import { vathuisHeroBlock, surfaces as vathuisHeroSurfaces } from "./vathuisHero"
@@ -34,6 +35,7 @@ const BLOCK_MODULES: { schema: { name: string }; surfaces: readonly string[] }[]
   { schema: formBlock, surfaces: formSurfaces },
   { schema: demandNearbyBlock, surfaces: demandNearbySurfaces },
   { schema: heroBlock, surfaces: heroSurfaces },
+  { schema: bannerSliderBlock, surfaces: bannerSliderSurfaces },
   { schema: productRowBlock, surfaces: productRowSurfaces },
   { schema: categoriesBlock, surfaces: categoriesSurfaces },
   { schema: uspBlock, surfaces: uspSurfaces },

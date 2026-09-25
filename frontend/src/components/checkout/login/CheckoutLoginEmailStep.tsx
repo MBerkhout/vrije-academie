@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { GeneralSettings } from '@/lib/cms/types'
 import { ValidatedInput } from '@/components/auth/ValidatedInput'
 import type { FieldValidity } from '@/lib/auth/account-field-validation'
@@ -16,6 +17,8 @@ interface CheckoutLoginEmailStepProps {
   error: string | null
   busy: boolean
   onSubmit: (e: React.FormEvent) => void
+  backHref?: string
+  backLabel?: string
 }
 
 export function CheckoutLoginEmailStep({
@@ -28,6 +31,8 @@ export function CheckoutLoginEmailStep({
   error,
   busy,
   onSubmit,
+  backHref,
+  backLabel,
 }: CheckoutLoginEmailStepProps) {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
@@ -55,6 +60,14 @@ export function CheckoutLoginEmailStep({
       >
         {busy ? '…' : (settings.emailStep?.nextLabel ?? 'Volgende')}
       </button>
+      {backHref && (
+        <Link
+          href={backHref}
+          className="inline-block font-sans text-xs text-va-darkgray hover:text-va-black underline underline-offset-2 transition-colors"
+        >
+          {backLabel ?? 'Terug'}
+        </Link>
+      )}
     </form>
   )
 }

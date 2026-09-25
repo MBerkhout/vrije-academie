@@ -64,7 +64,7 @@ npx medusa exec ./src/scripts/verify-legacy-password.ts -- \
 | `POST /store/auth/otp/request` | Optional (required for `set_password`) | `{ email?, purpose?: "login" \| "set_password" }` |
 | `POST /store/auth/otp/verify` | No | `{ email, code, purpose?: "login" }` |
 
-- 6-digit code, 10 min TTL, max 3 requests / 15 min per email, max 5 verify attempts
+- 6-digit code. Login codes expire after 1 hour; password-setup codes (`set_password`) expire after 10 minutes. Max 3 requests / 15 min per email, max 5 verify attempts
 - Codes stored hashed in `customer_otp_challenge` (`customerOtp` module)
 - Email via SMTP (`SMTP_HOST`) or SendGrid (`SENDGRID_API_KEY`); otherwise logged to Medusa stdout as `[customer-otp] email → code` (dev). SMTP wins if both are set. Bodies include `text` and `html` (SendGrid only sends `html`).
 
@@ -108,7 +108,7 @@ When `SMTP_HOST` is set, `medusa-config.ts` registers the custom SMTP provider (
 On the customer detail page in Medusa Admin (`/app/customers/:id`), the **Account access** widget lets staff:
 
 - View whether the customer has a password (`hasPassword`)
-- **Generate verification code** — creates a new 6-digit login OTP, shown once in Admin (not emailed). Customer uses it on the storefront OTP login flow. Same 10 min TTL and verify-attempt limits as storefront OTP; admin generation bypasses the storefront 3/15 min request cap.
+- **Generate verification code** — creates a new 6-digit login OTP, shown once in Admin (not emailed). Customer uses it on the storefront OTP login flow. Same 1 hour TTL and verify-attempt limits as storefront login OTP; admin generation bypasses the storefront 3/15 min request cap.
 - **Reset password** — set a temporary password (default) or a custom password (min. 8 chars). Shown once in Admin. Clears any legacy Django hash.
 
 Admin API (authenticated admin session, same as other `/admin/*` routes):

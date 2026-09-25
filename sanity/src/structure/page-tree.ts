@@ -1,40 +1,20 @@
-import { DocumentIcon, FolderIcon, WarningOutlineIcon } from "@sanity/icons"
-import { map } from "rxjs/operators"
-import type { DocumentStore } from "sanity"
 import type { StructureBuilder } from "sanity/structure"
+import { encodeFolderPath, getRootParentPath } from "../lib/page-folder-tree"
 import {
-  encodeFolderPath,
-  getRootParentPath,
-  groupPagesByFolder,
-  type PageFolderEntry,
-} from "../lib/page-folder-tree"
+  folderPathFromChildId,
+  PagesIndexPane,
+  PageTreePane,
+  VA_PAGES_NAV_ID,
+  VA_THUIS_NAV_ID,
+  type PageTreePaneOptions,
+} from "./PageTreePane"
 
-const API_VERSION = "2024-06-01"
 export const PAGE_IN_FOLDER_TEMPLATE = "page-in-folder"
 
 export type PageTreeScope = {
   isVaThuis: boolean
   title: string
   listId: string
-}
-
-function buildPagesQuery(
-  isVaThuis: boolean,
-  parentPath: string,
-): { query: string; params: Record<string, string> } {
-  const vaFilter = isVaThuis ? "isVaThuis == true" : "isVaThuis != true"
-
-  if (parentPath === "") {
-    return {
-      query: `*[_type == "page" && ${vaFilter}]{ _id, title, "slug": slug.current }`,
-      params: {},
-    }
-  }
-
-  return {
-    query: `*[_type == "page" && ${vaFilter} && (slug.current == $parentPath || slug.current match $parentPath + "/*")]{ _id, title, "slug": slug.current }`,
-    params: { parentPath },
-  }
 }
 
 function buildSlugPrefix(parentPath: string): string {
@@ -46,137 +26,86 @@ function formatPagePath(slug: string): string {
   return `/${slug}`
 }
 
-function pageDocumentItem(S: StructureBuilder, page: PageFolderEntry) {
-  return S.documentListItem()
-    .id(page._id)
-    .schemaType("page")
-    .title(page.title || page.slug)
-    .icon(DocumentIcon)
-    .child(S.document().documentId(page._id).schemaType("page"))
+function pageDocument(S: StructureBuilder, documentId: string) {
+  return S.document().documentId(documentId).schemaType("page")
 }
 
-function folderListItem(
+function buildPageTreePane(
   S: StructureBuilder,
-  documentStore: DocumentStore,
-  scope: PageTreeScope,
-  child: { segment: string; path: string },
-) {
-  return S.listItem()
-    .id(`${scope.listId}-${encodeFolderPath(child.path)}`)
-    .title(child.segment)
-    .icon(FolderIcon)
-    .showIcon(true)
-    .child(() => buildPageFolderList(S, documentStore, scope, child.path))
-}
-
-function buildPageFolderList(
-  S: StructureBuilder,
-  documentStore: DocumentStore,
   scope: PageTreeScope,
   parentPath: string,
 ) {
-  const { query, params } = buildPagesQuery(scope.isVaThuis, parentPath)
   const slugPrefix = buildSlugPrefix(parentPath)
   const listTitle = parentPath ? formatPagePath(parentPath) : scope.title
+  const options: PageTreePaneOptions = {
+    isVaThuis: scope.isVaThuis,
+    parentPath,
+    listId: scope.listId,
+  }
 
-  return documentStore.listenQuery(query, params, { apiVersion: API_VERSION }).pipe(
-    map((pages: PageFolderEntry[]) => {
-      const grouped = groupPagesByFolder(pages, {
-        parentPath,
-        isVaThuis: scope.isVaThuis,
-      })
-
-      const items = []
-      const usedIds = new Set<string>()
-
-      if (grouped.currentPage) {
-        const thisPageId = `${grouped.currentPage._id}-this-page`
-        usedIds.add(thisPageId)
-        items.push(
-          S.listItem()
-            .id(thisPageId)
-            .title(`This page: ${formatPagePath(grouped.currentPage.slug || "/")}`)
-            .schemaType("page")
-            .icon(DocumentIcon)
-            .child(
-              S.document().documentId(grouped.currentPage._id).schemaType("page"),
-            ),
-        )
+  return S.component()
+    .id(`${scope.listId}-${encodeFolderPath(parentPath)}`)
+    .title(listTitle)
+    .component(PageTreePane)
+    .options(options)
+    .menuItems([
+      S.menuItem()
+        .title("New page")
+        .intent({
+          type: "create",
+          params: [
+            { type: "page", template: PAGE_IN_FOLDER_TEMPLATE },
+            { isVaThuis: scope.isVaThuis, slugPrefix },
+          ],
+        }),
+    ])
+    .canHandleIntent((intentName, params) => {
+      if (intentName === "create" && params.template === PAGE_IN_FOLDER_TEMPLATE) {
+        return true
       }
 
-      if (grouped.currentPage && grouped.children.length > 0) {
-        items.push(S.divider())
+      if (intentName === "edit" && params.type === "page") {
+        return true
       }
 
-      for (const child of grouped.children) {
-        if (child.hasDescendants) {
-          const folderId = `${scope.listId}-${encodeFolderPath(child.path)}`
-          if (usedIds.has(folderId)) continue
-          usedIds.add(folderId)
-          items.push(folderListItem(S, documentStore, scope, child))
-          continue
-        }
-
-        if (child.page) {
-          if (usedIds.has(child.page._id)) continue
-          usedIds.add(child.page._id)
-          items.push(pageDocumentItem(S, child.page))
-        }
+      return false
+    })
+    .child((childId) => {
+      const folderPath = folderPathFromChildId(childId)
+      if (folderPath !== null) {
+        return buildPageTreePane(S, scope, folderPath)
       }
 
-      if (grouped.missingSlug.length > 0) {
-        if (items.length > 0) {
-          items.push(S.divider())
-        }
-
-        for (const page of grouped.missingSlug) {
-          const missingId = `${page._id}-missing-slug`
-          if (usedIds.has(missingId)) continue
-          usedIds.add(missingId)
-          items.push(
-            S.listItem()
-              .id(missingId)
-              .title(page.title || "Untitled (no slug)")
-              .icon(WarningOutlineIcon)
-              .child(S.document().documentId(page._id).schemaType("page")),
-          )
-        }
-      }
-
-      return S.list()
-        .id(`${scope.listId}-${encodeFolderPath(parentPath)}`)
-        .title(listTitle)
-        .initialValueTemplates([
-          S.initialValueTemplateItem(PAGE_IN_FOLDER_TEMPLATE, {
-            isVaThuis: scope.isVaThuis,
-            slugPrefix,
-          }),
-        ])
-        .canHandleIntent((intentName, params) => {
-          if (intentName === "create" && params.template === PAGE_IN_FOLDER_TEMPLATE) {
-            return true
-          }
-
-          if (intentName === "edit" && params.type === "page") {
-            return true
-          }
-
-          return false
-        })
-        .items(items)
-    }),
-  )
+      return pageDocument(S, childId)
+    })
 }
 
-export function pageTreeListItem(
-  S: StructureBuilder,
-  documentStore: DocumentStore,
-  scope: PageTreeScope,
-) {
-  const rootParentPath = getRootParentPath(scope.isVaThuis)
+const VA_PAGES_SCOPE: PageTreeScope = {
+  isVaThuis: false,
+  title: "VA pages",
+  listId: "va-pages",
+}
 
-  return S.listItem()
-    .id(scope.listId)
-    .title(scope.title)
-    .child(() => buildPageFolderList(S, documentStore, scope, rootParentPath))
+const VA_THUIS_SCOPE: PageTreeScope = {
+  isVaThuis: true,
+  title: "VA Thuis pages",
+  listId: "va-thuis-pages",
+}
+
+export function pagesIndexPane(S: StructureBuilder) {
+  return S.component()
+    .id("pages-index")
+    .title("Pages")
+    .component(PagesIndexPane)
+    .child((childId) => {
+      if (childId === VA_PAGES_NAV_ID) {
+        return buildPageTreePane(S, VA_PAGES_SCOPE, getRootParentPath(false))
+      }
+
+      if (childId === VA_THUIS_NAV_ID) {
+        return buildPageTreePane(S, VA_THUIS_SCOPE, getRootParentPath(true))
+      }
+
+      return pageDocument(S, childId)
+    })
 }

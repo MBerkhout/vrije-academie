@@ -128,6 +128,13 @@ export interface DemandNearbyBlock extends Block {
   introText?: PortableTextBlock[]
 }
 
+export interface BannerSliderBlock extends Block {
+  _type: 'bannerSliderBlock'
+  slides?: HeroSlide[]
+  autoplay?: boolean
+  autoplayInterval?: number
+}
+
 export interface HeroBlock extends Block {
   _type: 'heroBlock'
   slides?: HeroSlide[]
