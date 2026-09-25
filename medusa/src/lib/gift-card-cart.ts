@@ -218,7 +218,8 @@ async function collapseDuplicateGiftCardCredits(
   cartId: string
 ): Promise<Record<string, any>> {
   const cart = await refetchStoreCart(container, cartId)
-  const lines: any[] = (cart.credit_lines ?? []).filter((l) => l.reference === GIFT_CARD_REFERENCE)
+  const creditLines: any[] = cart.credit_lines ?? []
+  const lines = creditLines.filter((l) => l.reference === GIFT_CARD_REFERENCE)
   const seen = new Set<string>()
   const extraIds: string[] = []
   const extraCards = new Set<string>()

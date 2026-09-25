@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tasks prefix="SI" next_id="116" generated="2026-09-25T13:50">
+<tasks prefix="SI" next_id="118" generated="2026-09-25T14:11">
   <task id="1" status="done">
     <title>Align course list prices and times in columns</title>
     <summary>Put times and prices in two fixed columns so they line up neatly across course rows.</summary>
@@ -8251,5 +8251,150 @@
       <step n="3" label="Update cart docs" done="2026-09-25T13:44" />
       <step n="4" label="Verify layout" />
     </progress>
+  </task>
+  <task id="116" status="done">
+    <title>Fix gift-card cart TypeScript build</title>
+    <summary>Medusa staging deploy fails because the credit-line filter callback in gift-card-cart.ts has an implicit any.</summary>
+    <created>2026-09-25T13:59</created>
+    <started>2026-09-25T13:59</started>
+    <done>2026-09-25T14:00</done>
+    <human_estimate>15min</human_estimate>
+    <story_points>1</story_points>
+    <agents>Claude</agents>
+    <concept>tasks/SI-116.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-5ed1c585</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T13:59">received, backlog</event>
+      <event ts="2026-09-25T13:59">started</event>
+      <event ts="2026-09-25T13:59">started run lane run-5ed1c585</event>
+      <event ts="2026-09-25T14:00">progress plan: 2 steps</event>
+      <event ts="2026-09-25T14:00">auto-detected: running tsc</event>
+      <event ts="2026-09-25T13:59">in testing — running tsc</event>
+      <event ts="2026-09-25T14:00">verification: tsc passed</event>
+      <event ts="2026-09-25T14:00">completed</event>
+    </history>
+    <progress step="2" of="2" started="2026-09-25T14:00" label="Verify TypeScript compiles">
+      <step n="1" label="Type the filter callback" done="2026-09-25T13:59" />
+      <step n="2" label="Verify TypeScript compiles" />
+    </progress>
+    <files>
+      <file path="medusa/src/lib/gift-card-cart.ts" ts="2026-09-25T14:00" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-25T14:00" tool="tsc" result="pass" />
+    </verifications>
+  </task>
+  <task id="117" status="done">
+    <title>Fix session card column layout</title>
+    <summary>On the dates and locations list, show the venue under the city and the date under the venue, with time, instructor, price, and the signup button in the right column.</summary>
+    <created>2026-09-25T14:02</created>
+    <started>2026-09-25T14:02</started>
+    <done>2026-09-25T14:02</done>
+    <human_estimate>20min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-117.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-74b5f754</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T14:02">received, backlog</event>
+      <event ts="2026-09-25T14:02">started</event>
+      <event ts="2026-09-25T14:02">started run lane run-74b5f754</event>
+      <event ts="2026-09-25T14:02">progress plan: 3 steps</event>
+      <event ts="2026-09-25T14:06">auto-detected: running Vitest</event>
+      <event ts="2026-09-25T14:02">in testing — running Vitest</event>
+      <event ts="2026-09-25T14:11">verification: manual browser check passed</event>
+      <event ts="2026-09-25T14:02">completed</event>
+    </history>
+    <progress step="3" of="3" started="2026-09-25T14:02" label="Verify in browser">
+      <step n="1" label="Restructure mobile session card" done="2026-09-25T14:02" />
+      <step n="2" label="Check desktop table" done="2026-09-25T14:02" />
+      <step n="3" label="Verify in browser" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/pdp/PdpLocationTabs.tsx" ts="2026-09-25T14:05" />
+      <file path="frontend/docs/components.md" ts="2026-09-25T14:05" />
+      <file path="frontend/docs/README.md" ts="2026-09-25T14:05" />
+      <file path="frontend/src/components/pdp/PdpLocationTabs.test.tsx" ts="2026-09-25T14:06" />
+      <file path="frontend/src/app/(main)/dev-session-card-preview/page.tsx" ts="2026-09-25T14:07" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-25T14:11" tool="manual browser check" result="pass" />
+    </verifications>
   </task>
 </tasks>
