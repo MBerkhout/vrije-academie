@@ -207,7 +207,7 @@ export function PdpLocationTabs({
   const productExternalUrl = externalRegistrationUrl?.trim() || null
   const sessionCtaSharedClassName =
     'inline-flex items-center justify-center min-w-[14rem] w-full box-border whitespace-nowrap text-sm font-bold px-4 py-2 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center'
-  const sessionCtaMobileRowClassName = `${sessionCtaSharedClassName.replace(' w-full', ' w-auto')} shrink-0 uppercase tracking-wide`
+  const sessionCtaMobileRowClassName = `${sessionCtaSharedClassName.replace('min-w-[14rem] w-full', 'min-w-[11rem] w-auto')} shrink-0 uppercase tracking-wide`
   const sessionCtaDesktopClassName = sessionCtaSharedClassName
 
   const sessionsHeading =
@@ -512,7 +512,7 @@ export function PdpLocationTabs({
               const instructor = sessionInstructorLabel(ei, profiles, event.featured_instructor)
 
               return (
-                <li key={variant.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 py-6 text-sm">
+                <li key={variant.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 py-6 text-sm">
                   <div className="flex min-w-0 items-start gap-1.5">
                     <DeliveryTypeIcon
                       variant={isOnline ? 'online' : 'offline'}
@@ -524,30 +524,28 @@ export function PdpLocationTabs({
                         <p className="leading-snug text-va-gray">{venue}</p>
                       ) : null}
                       {showDate && ei?.start_at ? (
-                        <p className="whitespace-nowrap text-va-black">{formatDateWeekdayLong(ei.start_at)}</p>
+                        <p className="text-va-black">{formatDateWeekdayLong(ei.start_at)}</p>
+                      ) : null}
+                      {ei?.start_at ? (
+                        <p className="text-va-gray">
+                          {formatTimeRange(ei.start_at, ei.end_at, { separator: ' tot ' })}
+                        </p>
+                      ) : null}
+                      {instructor ? (
+                        <SessionInstructorName
+                          eventItem={ei}
+                          instructors={profiles}
+                          featured={event.featured_instructor}
+                          className="text-va-gray"
+                        />
                       ) : null}
                     </div>
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                  <div className="flex shrink-0 flex-col items-end gap-2 text-right">
                     {price ? (
                       <p className="font-medium text-va-black">{formatPriceEur(price)}</p>
                     ) : null}
                     <span className={availability.className}>{availability.label}</span>
-                    {ei?.start_at ? (
-                      <p className="whitespace-nowrap text-va-gray">
-                        {formatTimeRange(ei.start_at, ei.end_at, { separator: ' tot ' })}
-                      </p>
-                    ) : null}
-                    {instructor ? (
-                      <SessionInstructorName
-                        eventItem={ei}
-                        instructors={profiles}
-                        featured={event.featured_instructor}
-                        className="text-right text-va-gray"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="col-span-2 flex justify-end">
                     {renderSessionCta(variant, {
                       className: sessionCtaMobileRowClassName,
                       tone: ctaTone,

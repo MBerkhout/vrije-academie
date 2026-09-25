@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tasks prefix="SI" next_id="118" generated="2026-09-25T14:11">
+<tasks prefix="SI" next_id="119" generated="2026-09-25T14:22">
   <task id="1" status="done">
     <title>Align course list prices and times in columns</title>
     <summary>Put times and prices in two fixed columns so they line up neatly across course rows.</summary>
@@ -3100,6 +3100,8 @@
       <event ts="2026-09-21T16:47">Session AND for city+daypart+period; card date follows matching session</event>
       <event ts="2026-09-23T20:04">auto-detected: running npm test</event>
       <event ts="2026-09-23T20:04">auto-detected: running Vitest</event>
+      <event ts="2026-09-25T14:38">auto-detected: running npm test</event>
+      <event ts="2026-09-25T14:38">auto-detected: running Vitest</event>
     </history>
     <progress step="4" of="4" started="2026-09-21T16:41" label="Verify listing API" elapsed="360" step_ts="2026-09-21T16:47">
       <step n="1" label="Reproduce city+time OR matching" done="2026-09-21T16:47" />
@@ -3151,6 +3153,11 @@
       <file path="frontend/docs/CHECKOUT.md" ts="2026-09-24T18:12" />
       <file path="sanity/src/schemas/blocks/sliderFields.ts" ts="2026-09-25T13:37" />
       <file path="frontend/src/components/blocks/ImageSlideStage.tsx" ts="2026-09-25T13:37" />
+      <file path="medusa/src/lib/agenda-listing-response.ts" ts="2026-09-25T14:37" />
+      <file path="medusa/src/api/store/agenda/route.ts" ts="2026-09-25T14:38" />
+      <file path="medusa/src/lib/store-listing-snapshot.ts" ts="2026-09-25T14:38" />
+      <file path="medusa/src/lib/agenda-listing-response.test.ts" ts="2026-09-25T14:38" />
+      <file path="medusa/docs/EVENTS.md" ts="2026-09-25T14:38" />
     </files>
     <verifications>
       <verification ts="2026-09-21T16:47" tool="manual browser check" result="pass" />
@@ -8395,6 +8402,81 @@
     </files>
     <verifications>
       <verification ts="2026-09-25T14:11" tool="manual browser check" result="pass" />
+    </verifications>
+  </task>
+  <task id="118" status="done">
+    <title>Move session time and teacher left</title>
+    <summary>On mobile session cards, put time and teacher under the date on the left. Keep price, availability, and the signup button in the right column.</summary>
+    <created>2026-09-25T14:18</created>
+    <started>2026-09-25T14:18</started>
+    <done>2026-09-25T14:18</done>
+    <human_estimate>15min</human_estimate>
+    <story_points />
+    <agents>Claude</agents>
+    <concept>tasks/SI-118.md</concept>
+    <parent />
+    <subtasks />
+    <external_id />
+    <external_url />
+    <backlog_rank />
+    <queue_seq />
+    <informational />
+    <kind>bug</kind>
+    <testing_tool />
+    <testing_tool_locked />
+    <lane_id>run-c05467c1</lane_id>
+    <lane_order />
+    <lane_source>cli</lane_source>
+    <answer_read />
+    <branch />
+    <branch_base_sha />
+    <worktree />
+    <question />
+    <question_about_tests />
+    <question_topic />
+    <question_blocking />
+    <tags />
+    <run_window_id />
+    <claude_model />
+    <planning_recommended />
+    <planning_active />
+    <auto_run />
+    <changelog_entry />
+    <end_customer_visible />
+    <start_date />
+    <end_date />
+    <deadline />
+    <version />
+    <session_id />
+    <changelog_snippet />
+    <changelog_snippet_stale />
+    <changelog_snippet_source />
+    <jira_sync_failed />
+    <jira_sync_error />
+    <history>
+      <event ts="2026-09-25T14:18">received, backlog</event>
+      <event ts="2026-09-25T14:18">started</event>
+      <event ts="2026-09-25T14:18">started run lane run-c05467c1</event>
+      <event ts="2026-09-25T14:18">progress plan: 3 steps</event>
+      <event ts="2026-09-25T14:20">auto-detected: running Vitest</event>
+      <event ts="2026-09-25T14:18">in testing — running Vitest</event>
+      <event ts="2026-09-25T14:22">verification: manual browser check passed</event>
+      <event ts="2026-09-25T14:18">completed</event>
+    </history>
+    <progress step="3" of="3" started="2026-09-25T14:18" label="Verify in browser">
+      <step n="1" label="Move time and teacher left" done="2026-09-25T14:18" />
+      <step n="2" label="Update tests and docs" done="2026-09-25T14:18" />
+      <step n="3" label="Verify in browser" />
+    </progress>
+    <files>
+      <file path="frontend/src/components/pdp/PdpLocationTabs.tsx" ts="2026-09-25T14:19" />
+      <file path="frontend/src/components/pdp/PdpLocationTabs.test.tsx" ts="2026-09-25T14:20" />
+      <file path="frontend/docs/components.md" ts="2026-09-25T14:20" />
+      <file path="frontend/docs/README.md" ts="2026-09-25T14:20" />
+      <file path="frontend/src/app/(main)/dev-session-card-preview/page.tsx" ts="2026-09-25T14:20" />
+    </files>
+    <verifications>
+      <verification ts="2026-09-25T14:22" tool="manual browser check" result="pass" />
     </verifications>
   </task>
 </tasks>

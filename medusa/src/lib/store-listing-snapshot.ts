@@ -56,7 +56,7 @@ import {
   REDIS_KEY_REGISTRATIONS,
   REDIS_KEY_VATHUIS,
 } from "./store-listing-redis"
-import { isFutureAgendaStartAt } from "./agenda-listing-response"
+import { isAgendaOccurrenceEligible, isFutureAgendaStartAt } from "./agenda-listing-response"
 import {
   sortListingBySalesforceOrder,
   tieBreakEventsByStartThenTitle,
@@ -554,6 +554,7 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
           day_part: dayPartFromStartAt(ei.start_at as string),
         } satisfies AgendaOccurrenceRow
       })
+      .filter(isAgendaOccurrenceEligible)
   })
 
   return { items: items as AgendaOccurrenceRow[], builtAt: Date.now() }

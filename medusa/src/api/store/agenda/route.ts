@@ -1,7 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { isAlmostFullAvailability } from "../../../lib/almost-full"
-import { slimAgendaItemForResponse } from "../../../lib/agenda-listing-response"
+import {
+  isAgendaOccurrenceEligible,
+  slimAgendaItemForResponse,
+} from "../../../lib/agenda-listing-response"
 import { isSalesforceExterneVerhuur } from "../../../lib/salesforce-visible-on-website"
 import { LISTING_CACHE_TTL_SEC } from "../../../lib/store-listing-redis"
 import {
@@ -49,7 +52,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   const snapshot = await getAgendaListingSnapshot(req.scope)
   const nowMs = Date.now()
   let items: AgendaOccurrenceRow[] = [...snapshot.items].filter(
-    (it) => !isSalesforceExterneVerhuur(it.product_title, it.variant_title, it.record_type)
+    (it) =>
+      isAgendaOccurrenceEligible(it) &&
+      !isSalesforceExterneVerhuur(it.product_title, it.variant_title, it.record_type)
   )
 
   if (recordTypes.length) {
