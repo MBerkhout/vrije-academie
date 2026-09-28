@@ -228,6 +228,10 @@ export interface AgendaItem {
   teachers?: { id: string; slug: string; name: string }[]
   tags?: { id: string; value: string }[]
   has_exclusief_tag?: boolean
+  /** Salesforce CTA label, same as the product card promo bar. */
+  badge?: string | null
+  cta_color?: string | null
+  cta_color_hover?: string | null
   variant_title?: string | null
   delivery_type: 'online' | 'offline' | 'pre_recorded' | string
   city?: string | null

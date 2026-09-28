@@ -116,36 +116,25 @@ async function upsertIncomingLockBySalesforceId(
   salesforceId: string
 ): Promise<void> {
   const until = new Date(Date.now() + INCOMING_LOCK_MS)
-  const bySf = await sync.getStateBySalesforceId(entityType, salesforceId)
-  if (bySf) {
+  const byMedusa = await sync.getStateByMedusaId(entityType, medusaId)
+  if (byMedusa) {
     await sync.updateSalesforceSyncStates({
-      id: bySf.id,
-      medusa_id: medusaId,
+      id: byMedusa.id,
       salesforce_id: salesforceId,
       incoming_lock_until: until,
       last_status: "retrying",
     })
     return
   }
-  let row = await sync.getStateByMedusaId(entityType, medusaId)
-  if (!row) {
-    await sync.createSalesforceSyncStates([
-      {
-        entity_type: entityType,
-        medusa_id: medusaId,
-        salesforce_id: salesforceId,
-        incoming_lock_until: until,
-        last_status: "retrying",
-      },
-    ])
-    return
-  }
-  await sync.updateSalesforceSyncStates({
-    id: row.id,
-    salesforce_id: salesforceId,
-    incoming_lock_until: until,
-    last_status: "retrying",
-  })
+  await sync.createSalesforceSyncStates([
+    {
+      entity_type: entityType,
+      medusa_id: medusaId,
+      salesforce_id: salesforceId,
+      incoming_lock_until: until,
+      last_status: "retrying",
+    },
+  ])
 }
 
 async function ensureProductSessionOptionValues(
@@ -406,6 +395,26 @@ async function upsertVariantSyncState(
   })
 }
 
+function variantLookupKeys(variantSyncKey: string): string[] {
+  const keys = [variantSyncKey]
+  if (variantSyncKey.startsWith("slave:")) {
+    const childId = variantSyncKey.split(":").pop()
+    if (childId) keys.push(childId)
+  }
+  return keys
+}
+
+function variantSkuCandidates(skuFallback?: string): string[] {
+  if (!skuFallback) return []
+  const skus = [skuFallback]
+  if (skuFallback.startsWith("sf-slave-")) {
+    skus.push(`sf-${skuFallback.slice("sf-slave-".length)}`)
+  } else if (skuFallback.startsWith("sf-") && !skuFallback.startsWith("sf-group-")) {
+    skus.push(`sf-slave-${skuFallback.slice("sf-".length)}`)
+  }
+  return skus
+}
+
 async function resolveVariantForChildOnProduct(
   container: MedusaContainer,
   sync: InstanceType<typeof SalesforceSyncModuleService>,
@@ -414,18 +423,40 @@ async function resolveVariantForChildOnProduct(
   importContext?: BulkImportContext,
   skuFallback?: string
 ): Promise<{ medusaId: string } | null> {
-  const cachedMedusaId = importContext?.getVariantMedusaId(variantSyncKey) ?? null
-  let medusaIdFromState =
-    cachedMedusaId ??
-    (await sync.getStateBySalesforceId(ENTITY_VARIANT, variantSyncKey))?.medusa_id ??
-    null
-
   const productModule = container.resolve(Modules.PRODUCT)
+  let medusaIdFromState: string | null = null
 
-  if (!medusaIdFromState && skuFallback) {
+  for (const key of variantLookupKeys(variantSyncKey)) {
+    const cachedId = importContext?.getVariantMedusaId(key) ?? null
+    const rows = cachedId
+      ? [{ medusa_id: cachedId }]
+      : await sync.listSalesforceSyncStates(
+          { entity_type: ENTITY_VARIANT, salesforce_id: key },
+          { take: 50 }
+        )
+    for (const row of rows) {
+      if (!row.medusa_id) continue
+      try {
+        const variant = await productModule.retrieveProductVariant(row.medusa_id, {
+          select: ["id", "product_id"],
+        })
+        if (variant.product_id === productId) {
+          medusaIdFromState = variant.id
+          break
+        }
+      } catch {
+        /* sync row points at a removed variant */
+      }
+    }
+    if (medusaIdFromState) break
+  }
+
+  const skuCandidates = new Set(variantSkuCandidates(skuFallback))
+
+  if (!medusaIdFromState && skuCandidates.size) {
     try {
       const product = await productModule.retrieveProduct(productId, { relations: ["variants"] })
-      const variant = product.variants?.find((v) => v.sku === skuFallback)
+      const variant = product.variants?.find((v) => v.sku && skuCandidates.has(v.sku))
       if (variant?.id) {
         medusaIdFromState = variant.id
         importContext?.setVariantMedusaId(variantSyncKey, variant.id)
@@ -466,7 +497,6 @@ async function syncChildVariantsBatch(
   const variantUpdates: Array<{
     id: string
     title: string
-    sku: string
     prices: { amount: number; currency_code: string }[]
     manage_inventory: boolean
     options: Record<string, string>
@@ -524,7 +554,6 @@ async function syncChildVariantsBatch(
       variantUpdates.push({
         id: existingMedusaId,
         title,
-        sku,
         prices: [{ amount: priceAmount, currency_code: "eur" }],
         manage_inventory: false,
         options: { [optionName]: optionLabel },
@@ -556,6 +585,24 @@ async function syncChildVariantsBatch(
   }
 
   if (variantsToCreate.length) {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
+      graph: (opts: {
+        entity: string
+        fields: string[]
+        filters?: Record<string, unknown>
+      }) => Promise<{ data?: { id?: string }[] }>
+    }
+    for (const spec of variantsToCreate) {
+      const { data: taken } = await query.graph({
+        entity: "product_variant",
+        fields: ["id"],
+        filters: { sku: spec.sku },
+      })
+      if (taken?.[0]?.id && spec.child.Id) {
+        spec.sku = `sf-alt-${spec.child.Id}`
+      }
+    }
+
     const { result } = await createProductVariantsWorkflow(container).run({
       input: {
         product_variants: variantsToCreate.map((v) => ({
@@ -946,6 +993,26 @@ export async function importProductgroupFromSalesforce(
     } catch {
       productId = null
       existingProduct = null
+    }
+  }
+
+  if (!productId && handle) {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY) as {
+      graph: (opts: {
+        entity: string
+        fields: string[]
+        filters?: Record<string, unknown>
+      }) => Promise<{ data?: Record<string, unknown>[] }>
+    }
+    const { data: byHandle } = await query.graph({
+      entity: "product",
+      fields: ["id", "title", "handle", "description", "thumbnail", "metadata", "type_id", "status"],
+      filters: { handle },
+    })
+    const found = byHandle?.[0]
+    if (typeof found?.id === "string") {
+      productId = found.id
+      existingProduct = found as NonNullable<typeof existingProduct>
     }
   }
 

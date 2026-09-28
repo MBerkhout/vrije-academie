@@ -221,20 +221,6 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
     const failed = outcomes.filter((o) => o === "failed").length
     skipped += outcomes.filter((o) => o === "skipped").length
 
-    if (sanitySyncProductIds.length) {
-      logger.info(`[${logTag}] Batch-syncing ${sanitySyncProductIds.length} product(s) to Sanity…`)
-      const sanityResult = await batchSyncProductsToSanity(sanitySyncProductIds, container, {
-        onChunkError: (chunkIds, err) => {
-          logger.error(
-            `[${logTag}] Sanity batch sync failed for ${chunkIds.length} product(s): ${err.message}`
-          )
-        },
-      })
-      logger.info(
-        `[${logTag}] Sanity products done. written=${sanityResult.written} skipped=${sanityResult.skipped} failed=${sanityResult.failed}`
-      )
-    }
-
     const relatedIds = {
       catalogCategoryIds: [...importContext.pendingCatalogCategoryIds],
       nativeCategoryIds: [...importContext.pendingNativeCategoryIds],
@@ -256,6 +242,20 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
       })
       logger.info(
         `[${logTag}] Sanity related done. catalog=${relatedResult.catalogCategories} native=${relatedResult.nativeCategories} docenten=${relatedResult.docenten} failed=${relatedResult.failed}`
+      )
+    }
+
+    if (sanitySyncProductIds.length) {
+      logger.info(`[${logTag}] Batch-syncing ${sanitySyncProductIds.length} product(s) to Sanity…`)
+      const sanityResult = await batchSyncProductsToSanity(sanitySyncProductIds, container, {
+        onChunkError: (chunkIds, err) => {
+          logger.error(
+            `[${logTag}] Sanity batch sync failed for ${chunkIds.length} product(s): ${err.message}`
+          )
+        },
+      })
+      logger.info(
+        `[${logTag}] Sanity products done. written=${sanityResult.written} skipped=${sanityResult.skipped} failed=${sanityResult.failed}`
       )
     }
 

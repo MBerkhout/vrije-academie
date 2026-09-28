@@ -10,6 +10,7 @@ import {
   markSalesforceDbOAuthCached,
   OAUTH_SETTINGS_ID,
   registerSalesforceOAuthLoader,
+  registerSalesforceRefreshTokenSaver,
 } from "./client/oauth-credentials"
 import { sfRequest } from "./client/rest"
 import { SalesforceOAuthSettings } from "./models/salesforce-oauth-settings"
@@ -34,6 +35,14 @@ class SalesforceSyncModuleService extends MedusaService({
         refresh_token: row?.refresh_token ?? null,
         instance_url: row?.instance_url ?? null,
       }
+    })
+    registerSalesforceRefreshTokenSaver(async (refreshToken) => {
+      const [row] = await this.listSalesforceOAuthSettings({}, { take: 1 })
+      if (!row || row.refresh_token === refreshToken) return
+      await this.updateSalesforceOAuthSettings({
+        id: row.id,
+        refresh_token: refreshToken,
+      })
     })
   }
 

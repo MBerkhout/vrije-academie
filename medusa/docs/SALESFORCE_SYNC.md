@@ -159,7 +159,7 @@ Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries
 1. Set `SALESFORCE_CLIENT_ID`, `SALESFORCE_CLIENT_SECRET`, and `MEDUSA_URL` in env; restart Medusa.
 2. Open **Admin → Salesforce sync**. Copy the **callback URL** shown on the page.
 3. In Salesforce Connected App → OAuth settings, add that callback URL. Enable scopes `api`, `refresh_token`, `offline_access`.
-4. Click **Connect to Salesforce**, log in, approve. Medusa uses **PKCE** (`code_challenge` / `code_verifier`) as required by modern Salesforce Connected Apps. The refresh token is stored in `salesforce_oauth_settings`.
+4. Click **Connect to Salesforce**, log in, approve. Medusa uses **PKCE** (`code_challenge` / `code_verifier`) as required by modern Salesforce Connected Apps. The refresh token is stored in `salesforce_oauth_settings`. **Refresh token rotation** may stay enabled (Salesforce often locks that checkbox on). Medusa takes a Redis lock so only one worker refreshes at a time, then stores the new refresh token. Set the refresh-token policy to **Refresh token is valid until revoked**.
 5. Optional: **Disconnect** clears the DB token (env `SALESFORCE_REFRESH_TOKEN` is unchanged).
 
 Callback route: `GET /hooks/salesforce/oauth/callback` — lives under `/hooks` (like payment webhooks) so it never hits admin auth. Secured by one-time `state` + PKCE. Set `SALESFORCE_OAUTH_RETURN_URL` to where Admin lives (e.g. `http://localhost:9000/app/salesforce-sync`).
@@ -369,7 +369,7 @@ Some offline product groups (e.g. studiedag) reference a separate **`vaProductgr
 - Direct children (`Productgroup__c` = parent) and linked children (`Productgroup__c` = `Linked_Online_Productgroup__c`) are **merged** onto the parent Medusa product (deduped by child SF `Id`).
 - Linked children use the **linked group’s** record type for `inferDeliveryType` (`Product_City__c` = `"Online"` → `delivery_type: online`, no `EventItem.city`).
 - Parent metadata: `salesforce_linked_online_productgroup_id`.
-- The linked online group is still imported as its **own** hidden product (`show_in_plp=false`, `salesforce_is_linked_online_slave=true` when referenced by a parent). Slave variants use SKU prefix `sf-slave-{childId}` and namespaced sync keys so they do not collide with merged parent variants (`sf-{childId}`).
+- The linked online group is still imported as its **own** hidden product (`show_in_plp=false`, `salesforce_is_linked_online_slave=true` when referenced by a parent). Slave variants use SKU prefix `sf-slave-{childId}` and namespaced sync keys so they do not collide with merged parent variants (`sf-{childId}`). A variant already on that product under the raw child id or `sf-{childId}` is updated in place and keeps its current SKU.
 - `Productgroup_URL__c` handles are normalized (e.g. `online---studiedag-…` → `online-studiedag-…`) to satisfy Medusa handle rules.
 - Webhooks on the linked group or its `vaProduct__c` rows also re-import parent groups that reference it.
 
@@ -416,10 +416,10 @@ Bulk CLI scripts (`import-future`, `import-linked-vathuis`, `import-all`) prefet
 | `--limit=N` | unlimited | Stop after N import attempts (after guard filtering). |
 | `--dry-run` | off | List candidates only. |
 
-During bulk import the CLI sets `SALESFORCE_SUPPRESS_PUSH=1` (no push-back to Salesforce) and `SALESFORCE_SUPPRESS_SANITY_SYNC=1` (defers all Sanity subscribers). After all groups are imported, **batched Sanity passes** run for products, then categories/docenten:
+During bulk import the CLI sets `SALESFORCE_SUPPRESS_PUSH=1` (no push-back to Salesforce) and `SALESFORCE_SUPPRESS_SANITY_SYNC=1` (defers all Sanity subscribers). After all groups are imported, **batched Sanity passes** run for categories/docenten first, then products (product documents reference docent documents):
 
-1. Products: chunked GROQ reads + `client.transaction()` writes (default 50/chunk), diff-before-write.
-2. Related entities: unique catalog categories, native categories, and docenten mirrored once each.
+1. Related entities: unique catalog categories, native categories, and docenten mirrored once each.
+2. Products: chunked GROQ reads + `client.transaction()` writes (default 50/chunk), diff-before-write.
 
 **Import caches** (one `BulkImportContext` per run): shipping profile, sales channel, product types, category lists, teacher SF profiles, linked-online parent map, variant sync states, docent link locks per product.
 
@@ -464,7 +464,7 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Handle / URL slug | `Productgroup_URL__c` | `Product.handle` |
 | Group price | `Productgroup_Price__c` | metadata `salesforce_group_price`; fallback variant price when no children |
 | Net price | `Net_Price__c` | — (not imported) |
-| VAT rate | `VAT_Rate__c` | metadata `salesforce_vat_rate` (not used for cart tax; EU country tax regions from `seed:region`) |
+| VAT rate | `VAT__c` on `vaProduct__c` | not used for cart tax (EU country tax regions from `seed:region`). Production `vaProductgroup__c` has no `VAT_Rate__c`. |
 | Onderwerp (categories) | `Productgroup_Subject__c` (`;`-separated) | native `category_ids` + catalog category links → Sanity `categories` |
 | Record type | `Productgroup_Record_Type_Developer_Name__c` | Medusa `product.type` keeps the Salesforce name (`Wandeling`, `Reis`, …). `EventGroup.record_type` is a coarse enum via `mapSalesforceRecordType()`: Collegereeks / Live_Collegereeks → `collegereeks`; Lezing / Live_College → `lezing`; Excursie / Excursies_Collegereeks → `excursie`; Studiedag / Online_Studiedag → `studiedag`; Lezingen_Thuis / Thuis_College → `vathuis`; anything else (Wandeling, Reis, Workshop, Rondleiding, …) → `lezing`. Re-map existing groups after alias changes: `npm run salesforce:backfill-record-types`, then `npm run search:reindex` if OpenSearch is in use. |
 | Linked online catalog | `Linked_Online_Productgroup__c` | merged child variants on parent; metadata `salesforce_linked_online_productgroup_id` |
@@ -480,7 +480,7 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Short / PDP description | `Productgroup_Description__c` | `Product.description` (plain text) |
 | Web body / trigger / description HTML | `Productgroup_Web_Body__c`, `Productgroup_Web_Trigger__c`, `Productgroup_Description__c` | metadata → Sanity `body` (quote, section titles, bullet footer) unless `pageBodyOwnedBySanity` |
 | Subtitle | `Productgroup_Subtitle__c` | metadata `salesforce_subtitle` |
-| Product card CTA bar | `CTA_Label__c`, `CTA_Color__c`, `CTA_Color_Hover__c` | metadata `salesforce_cta_*` → store `badge`, `cta_color`, `cta_color_hover`; Sanity `badge`, `ctaColor`, `ctaColorHover`; PLP card bar in `PlpEventCard` |
+| Product card CTA bar | `CTA_Label__c`, `CTA_Color__c`, `CTA_Color_Hover__c` | metadata `salesforce_cta_*` → store `badge`, `cta_color`, `cta_color_hover` on `GET /store/events` and `GET /store/agenda`; Sanity `badge`, `ctaColor`, `ctaColorHover`; PLP card bar in `PlpEventCard`; agenda chip under the location |
 | Catalog sort order | `Order__c` | metadata `salesforce_order` → default PLP / VA Thuis sort (`sort=order`, ascending; nulls last) |
 | Child products | `vaProduct__c` (lookup `ProductGroup__c`) | `ProductVariant` + linked `EventItem` |
 | Occurrence start / end | `Start_date_time__c`, `End_date_time__c` | `EventItem.start_at` / `end_at` |

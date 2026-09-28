@@ -2,11 +2,25 @@ const OAUTH_SETTINGS_ID = "default"
 
 type RefreshLoader = () => Promise<{ refresh_token: string | null; instance_url: string | null }>
 
+type RefreshTokenSaver = (refreshToken: string) => Promise<void>
+
 let refreshLoader: RefreshLoader | null = null
+let refreshTokenSaver: RefreshTokenSaver | null = null
 let dbCredentialsCached = false
 
 export function registerSalesforceOAuthLoader(loader: RefreshLoader): void {
   refreshLoader = loader
+}
+
+/** Persist a rotated refresh token from a token response. */
+export function registerSalesforceRefreshTokenSaver(saver: RefreshTokenSaver): void {
+  refreshTokenSaver = saver
+}
+
+export async function persistRotatedRefreshToken(refreshToken: string): Promise<void> {
+  const token = refreshToken.trim()
+  if (!token || !refreshTokenSaver) return
+  await refreshTokenSaver(token)
 }
 
 export function markSalesforceDbOAuthCached(present: boolean): void {

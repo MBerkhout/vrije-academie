@@ -75,7 +75,6 @@ export const productgroupSalesforceFieldsForPull = [
   "Image_2_Source__c",
   "Image_3_Source__c",
   "Image_4_Source__c",
-  "VAT_Rate__c",
   "Latest_Product_Start_Date__c",
   "Free_Product__c",
   "Audience_Player_Episodes__c",

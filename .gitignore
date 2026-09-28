@@ -23,6 +23,8 @@ medusa/medusa-config.d.ts.map
 # Logs & debug
 *.log
 .cursor/
+.claude/
+.agents/
 
 # OS & editors
 .DS_Store

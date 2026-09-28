@@ -2,7 +2,11 @@ import jwt from "jsonwebtoken"
 
 import { salesforceAuthMode, hasSalesforceJwtCredentials } from "./auth-mode"
 import { logSalesforceTokenRequest, logSalesforceTokenResponse } from "./http-debug"
-import { resolveRefreshTokenForAuth, resolveStoredOAuthCredentials } from "./oauth-credentials"
+import {
+  persistRotatedRefreshToken,
+  resolveRefreshTokenForAuth,
+} from "./oauth-credentials"
+import { withSalesforceRefreshLock } from "./refresh-lock"
 
 export type TokenCache = {
   access_token: string
@@ -11,6 +15,7 @@ export type TokenCache = {
 }
 
 let cache: TokenCache | null = null
+let refreshInFlight: Promise<TokenCache> | null = null
 
 function getEnv(name: string): string {
   const v = process.env[name]?.trim()
@@ -67,6 +72,11 @@ async function exchangeToken(body: URLSearchParams, grantLabel: string): Promise
   }
 
   logSalesforceTokenResponse(res.status, true)
+  const rotated =
+    typeof json.refresh_token === "string" ? json.refresh_token.trim() : ""
+  if (grantLabel === "refresh_token" && rotated) {
+    await persistRotatedRefreshToken(rotated)
+  }
   return cacheToken(json, Date.now())
 }
 
@@ -96,24 +106,41 @@ async function getTokenJwt(): Promise<TokenCache> {
  * Refresh token (Connected App consumer key + consumer secret).
  * Obtain `SALESFORCE_REFRESH_TOKEN` once via Authorization Code flow (see docs).
  */
-async function getTokenRefresh(): Promise<TokenCache> {
-  const refresh_token = await resolveRefreshTokenForAuth()
-  const stored = await resolveStoredOAuthCredentials()
-  const result = await exchangeToken(
+async function exchangeRefreshToken(refreshToken: string): Promise<TokenCache> {
+  return exchangeToken(
     new URLSearchParams({
       grant_type: "refresh_token",
       client_id: getEnv("SALESFORCE_CLIENT_ID"),
       client_secret: getEnv("SALESFORCE_CLIENT_SECRET"),
-      refresh_token,
+      refresh_token: refreshToken,
     }),
     "refresh_token"
   )
-  if (!process.env.SALESFORCE_INSTANCE_URL?.trim() && stored.instance_url) {
-    const url = stored.instance_url.replace(/\/$/, "")
-    cache = { ...result, instance_url: url }
-    return cache
+}
+
+async function getTokenRefresh(): Promise<TokenCache> {
+  const now = Date.now()
+  if (cache && cache.expires_at_ms > now + 60_000) return cache
+  if (!refreshInFlight) {
+    refreshInFlight = withSalesforceRefreshLock(async () => {
+      const cached = cache
+      if (cached && cached.expires_at_ms > Date.now() + 60_000) return cached
+      const refreshToken = await resolveRefreshTokenForAuth()
+      try {
+        return await exchangeRefreshToken(refreshToken)
+      } catch (err) {
+        const latest = await resolveRefreshTokenForAuth().catch(() => refreshToken)
+        const message = err instanceof Error ? err.message : String(err)
+        if (latest !== refreshToken && message.includes("expired access/refresh token")) {
+          return exchangeRefreshToken(latest)
+        }
+        throw err
+      }
+    }).finally(() => {
+      refreshInFlight = null
+    })
   }
-  return result
+  return refreshInFlight
 }
 
 /**

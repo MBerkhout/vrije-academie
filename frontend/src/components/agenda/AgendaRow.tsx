@@ -7,6 +7,7 @@ import {
   presentationForAvailabilityStatus,
   shouldShowOnlineDeliveryIcon,
 } from '@/lib/event-status-presentation'
+import { productCtaBarFromEvent, textColorForHexBackground } from '@/lib/product-cta-bar'
 import { formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
 import { WaitlistTrigger } from '@/components/waitlist/WaitlistTrigger'
@@ -47,6 +48,9 @@ export function AgendaRow({ item }: AgendaRowProps) {
   const href = plpProductPath(item.product_handle)
   const anchorId = listingAgendaAnchorId(item.id, item.variant_id)
   const status = presentationForAvailabilityStatus(item.status, { city: item.city })
+  const ctaBar = productCtaBarFromEvent(item)
+  const showCtaLabel =
+    ctaBar != null && ctaBar.label.trim().toLowerCase() !== status.label.trim().toLowerCase()
   const statusClassName = status.className
     .split(' ')
     .filter((c) => !c.startsWith('hover:'))
@@ -136,6 +140,17 @@ export function AgendaRow({ item }: AgendaRowProps) {
           <DeliveryTypeIcon isOnline={isOnline} />
           <span className="truncate">{locationLabel}</span>
         </div>
+        {showCtaLabel && ctaBar ? (
+          <span
+            className="mt-1 inline-block max-w-full px-2 py-0.5 font-sans text-[10px] font-bold uppercase leading-snug tracking-wide"
+            style={{
+              backgroundColor: ctaBar.color,
+              color: textColorForHexBackground(ctaBar.color),
+            }}
+          >
+            {ctaBar.label}
+          </span>
+        ) : null}
       </div>
 
       {/* Time + price — stacked below xl so the title keeps width; pair from xl */}

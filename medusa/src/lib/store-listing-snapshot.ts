@@ -83,6 +83,10 @@ export type AgendaOccurrenceRow = {
   docenten: unknown[]
   tags: unknown[]
   has_exclusief_tag: boolean
+  /** Salesforce `CTA_Label__c` (same promo bar as the product card). */
+  badge: string | null
+  cta_color: string | null
+  cta_color_hover: string | null
   variant_title: string | null
   delivery_type: string
   city: string | null
@@ -451,6 +455,7 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
       "title",
       "handle",
       "thumbnail",
+      "metadata",
       "tags.*",
       "variants.id",
       "variants.title",
@@ -502,6 +507,7 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
       .map((t) => (t?.value ?? "").toString())
       .filter(Boolean)
     const hasExclusiefTag = productTagValues.some((t) => t.toLowerCase().includes("exclusief"))
+    const ctaFields = ctaBarFieldsFromMetadata(p.metadata as Record<string, unknown> | undefined)
 
     return variants
       .filter((v) => v.event_item)
@@ -540,6 +546,9 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
           docenten,
           tags: (Array.isArray(p.tags) ? p.tags : []) as unknown[],
           has_exclusief_tag: hasExclusiefTag,
+          badge: ctaFields.badge,
+          cta_color: ctaFields.cta_color,
+          cta_color_hover: ctaFields.cta_color_hover,
           variant_title: (v.title as string) ?? null,
           delivery_type: ei.delivery_type as string,
           city: cityRef?.label ?? (ei.city as string) ?? null,
