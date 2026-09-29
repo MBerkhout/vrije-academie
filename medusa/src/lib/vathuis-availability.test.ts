@@ -4,7 +4,10 @@ import {
   isVathuisUnlimitedAvailability,
   VATHUIS_UNLIMITED_AVAILABILITY,
 } from "./vathuis-availability"
-import { courseProductAvailableQuantity } from "../modules/salesforce-sync/mappings/course-product"
+import {
+  courseProductAvailableQuantity,
+  courseProductSessionCapacity,
+} from "../modules/salesforce-sync/mappings/course-product"
 
 describe("isVathuisUnlimitedAvailability", () => {
   it("matches vathuis record types and bundle-only purchase mode", () => {
@@ -32,5 +35,14 @@ describe("courseProductAvailableQuantity", () => {
         "collegereeks"
       )
     ).toBe(0)
+  })
+
+  it("uses Availability_capacity__c occupancy for remaining seats", () => {
+    const sf = {
+      Maximum_capacity__c: 20,
+      Availability_capacity__c: "12/16 deelnemers",
+    }
+    expect(courseProductAvailableQuantity(sf, "collegereeks")).toBe(4)
+    expect(courseProductSessionCapacity(sf)).toBe(16)
   })
 })

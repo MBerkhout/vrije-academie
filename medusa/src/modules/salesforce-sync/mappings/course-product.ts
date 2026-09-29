@@ -109,10 +109,48 @@ export function inferDeliveryType(
   return "offline"
 }
 
-/** Unchanging max seats for a session (0 when unknown). */
-export function courseProductSessionCapacity(sf: SfCourseProductShape): number {
+/** Parsed `Availability_capacity__c` occupancy, e.g. `12/16 deelnemers`. */
+export type AvailabilityCapacityOccupancy = {
+  enrolled: number
+  capacity: number
+}
+
+/** Left = enrolled participants, right = session capacity (denominator for Bijna vol). */
+export function parseAvailabilityCapacityOccupancy(
+  availability: string | null | undefined
+): AvailabilityCapacityOccupancy | null {
+  const raw = (availability ?? "").trim()
+  if (!raw) return null
+  const match = raw.match(/(\d+)\s*\/\s*(\d+)/)
+  if (!match) return null
+  const enrolled = Number(match[1])
+  const capacity = Number(match[2])
+  if (
+    !Number.isFinite(enrolled) ||
+    !Number.isFinite(capacity) ||
+    enrolled < 0 ||
+    capacity <= 0
+  ) {
+    return null
+  }
+  return { enrolled, capacity }
+}
+
+function maximumCapacityFromSalesforce(sf: SfCourseProductShape): number {
   const max = sf.Maximum_capacity__c ?? sf.Capacity__c
   return typeof max === "number" && max > 0 ? max : 0
+}
+
+function availabilityIndicatesSoldOutWithoutOccupancy(availability: string): boolean {
+  const lower = availability.toLowerCase()
+  return lower.includes("full") || lower.includes("vol")
+}
+
+/** Max seats for Bijna vol; prefers occupancy denominator over `Maximum_capacity__c`. */
+export function courseProductSessionCapacity(sf: SfCourseProductShape): number {
+  const occupancy = parseAvailabilityCapacityOccupancy(sf.Availability_capacity__c)
+  if (occupancy) return occupancy.capacity
+  return maximumCapacityFromSalesforce(sf)
 }
 
 export function courseProductAvailableQuantity(
@@ -122,10 +160,17 @@ export function courseProductAvailableQuantity(
   if (isVathuisRecordType(groupRecordType) || sf.Audience_Player_Article_Id__c) {
     return VATHUIS_UNLIMITED_AVAILABILITY
   }
-  const max = courseProductSessionCapacity(sf)
+
+  const availabilityRaw = sf.Availability_capacity__c ?? ""
+  const occupancy = parseAvailabilityCapacityOccupancy(availabilityRaw)
+  if (occupancy) {
+    return Math.max(0, occupancy.capacity - occupancy.enrolled)
+  }
+
+  if (availabilityIndicatesSoldOutWithoutOccupancy(availabilityRaw)) return 0
+
+  const max = maximumCapacityFromSalesforce(sf)
   if (max > 0) return max
-  const availability = (sf.Availability_capacity__c ?? "").toLowerCase()
-  if (availability.includes("full") || availability.includes("vol")) return 0
   return 100
 }
 

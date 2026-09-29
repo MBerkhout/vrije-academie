@@ -487,7 +487,9 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Occurrence price | `Price__c` | variant EUR price → Sanity `priceFrom` |
 | Occurrence city | `Product_City__c` | `EventItem.city` / `city_slug` + `catalog_city_id` |
 | Occurrence location / venue | `Product_Location_Name__c`, `Account__c`, `Account__r.Name`, `Product_Location_Room__c`, `Product_Location_Room_Name__c` | `EventItem.location_name` + `catalog_location_id` |
-| Capacity / free trial | `Maximum_capacity__c` / `Capacity__c`, `Free_Product__c` | `EventItem.capacity` (max, unchanged on checkout), `available_quantity` (remaining on import/sync + decremented on order), `is_free_trial` |
+| Capacity / free trial | `Maximum_capacity__c` / `Capacity__c`, `Availability_capacity__c` (e.g. `12/16 deelnemers`), `Free_Product__c` | `EventItem.capacity`: occupancy denominator when `Availability_capacity__c` matches `N/M`, else max from SF (unchanged on checkout). `available_quantity`: `M − N` from that string, else max when set, else `Vol`/`full` → 0; decremented on website `order.completed` until the next import/sync overwrites from SF. `is_free_trial` |
+
+After deploying capacity-mapping changes, refresh existing rows on the Medusa server: `cd ~/app/medusa && npm run salesforce:import-future` (or Admin → import one product group). Listing/agenda Redis snapshots rebuild on import.
 | Latest start (group) | `Latest_Product_Start_Date__c` | future-only auto-import guard |
 | VAthuis episodes label | `Audience_Player_Episodes__c` | `metadata.vathuis.episode_count_label` |
 | VAthuis play time | `Audience_Player_Play_Time__c` | `metadata.vathuis.play_time` |

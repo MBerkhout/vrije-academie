@@ -23,7 +23,7 @@ Module path: `src/modules/events/`. Links: `src/links/` (`product-event-group`, 
 
 ## Availability
 
-- **Remaining seats**: `EventItem.available_quantity` (decremented on `order.completed`). **Max seats** for “Bijna vol”: `EventItem.capacity` (Salesforce import; unchanged on checkout). Storefront/agenda treat a session as almost full when remaining ≤ `ceil(capacity × 0.3)`; when `capacity` is 0, fall back to ≤ 3 remaining (`src/lib/almost-full.ts`).
+- **Remaining seats**: `EventItem.available_quantity` (from Salesforce `Availability_capacity__c` occupancy `N/M` when present, else `Maximum_capacity__c`; decremented on `order.completed`, then refreshed on import/sync). **Max seats** for “Bijna vol”: `EventItem.capacity` (denominator `M` from occupancy when present, else SF max; unchanged on checkout). Storefront/agenda treat a session as almost full when remaining ≤ `ceil(capacity × 0.3)`; when `capacity` is 0, fall back to ≤ 3 remaining (`src/lib/almost-full.ts`).
 - **VA Thuis** (`record_type: vathuis`, `purchase_mode: bundle_only`, `delivery_type: pre_recorded`): always available for purchase — Salesforce capacity is ignored on import, storefront APIs expose unlimited quantity, and `order.completed` does not decrement seats (`src/lib/vathuis-availability.ts`).
 - **Decrement**: subscriber on **`order.completed`** only (`decrement-available-quantity.ts`). Quantity subtracted per line item; floored at `0`. Skips VA Thuis variants.
 - **Order completion**: subscriber on **`order.placed`** (`auto-complete-order-placed.ts`) — event orders are digital; after Mollie capture the order stays `pending` until explicitly completed. Auto-complete triggers `order.completed` (Salesforce push, seat decrement).
