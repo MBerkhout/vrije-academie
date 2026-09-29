@@ -22,7 +22,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     return
   }
 
-  const { authorizeUrl } = createOAuthAuthorization()
+  const { authorizeUrl } = await createOAuthAuthorization()
 
   res.json({ authorizeUrl, callbackUrl: salesforceOAuthCallbackUrl() })
 }

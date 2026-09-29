@@ -295,13 +295,16 @@ class SalesforceSyncModuleService extends MedusaService({
     const row = await this.fetchOAuthSettingsRow()
     const mode = salesforceAuthMode()
     const envRefresh = !!process.env.SALESFORCE_REFRESH_TOKEN?.trim()
-    const dbConnected = !!row?.refresh_token
+    const dbConnected = !!row?.refresh_token?.trim()
+    const refreshTokenSource = dbConnected ? "database" : envRefresh ? "env" : null
     return {
       authMode: mode,
       jwtConfigured: hasSalesforceJwtCredentials(),
       canConnectOAuth: !hasSalesforceJwtCredentials() && !!(process.env.SALESFORCE_CLIENT_ID?.trim() && process.env.SALESFORCE_CLIENT_SECRET?.trim()),
       connected: mode === "jwt" || envRefresh || dbConnected,
-      refreshTokenSource: envRefresh ? "env" : dbConnected ? "database" : null,
+      refreshTokenSource,
+      /** Env token is ignored while a DB token exists (see resolveStoredOAuthCredentials). */
+      envRefreshTokenOverridden: envRefresh && dbConnected,
       instanceUrl:
         process.env.SALESFORCE_INSTANCE_URL?.trim() ||
         row?.instance_url ||

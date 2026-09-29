@@ -7,6 +7,7 @@ type OAuthStatus = {
   canConnectOAuth: boolean
   connected: boolean
   refreshTokenSource: "env" | "database" | null
+  envRefreshTokenOverridden?: boolean
   instanceUrl: string | null
   connectedAt: string | null
   clientIdPreview: string | null
@@ -154,6 +155,12 @@ export function SalesforceOAuthPanel() {
         {status.instanceUrl ? <span>Instance: {status.instanceUrl}</span> : null}
         {status.connectedAt ? (
           <span>Connected at: {new Date(status.connectedAt).toLocaleString()}</span>
+        ) : null}
+        {status.envRefreshTokenOverridden ? (
+          <span className="text-ui-fg-warning">
+            SALESFORCE_REFRESH_TOKEN is set in env but ignored — Medusa uses the token from Admin connect
+            (database). Remove the env var to avoid confusion.
+          </span>
         ) : null}
       </div>
 

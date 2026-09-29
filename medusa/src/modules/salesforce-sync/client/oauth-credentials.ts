@@ -17,10 +17,12 @@ export function registerSalesforceRefreshTokenSaver(saver: RefreshTokenSaver): v
   refreshTokenSaver = saver
 }
 
-export async function persistRotatedRefreshToken(refreshToken: string): Promise<void> {
+/** @returns false when rotation could not be stored (next refresh may fail). */
+export async function persistRotatedRefreshToken(refreshToken: string): Promise<boolean> {
   const token = refreshToken.trim()
-  if (!token || !refreshTokenSaver) return
+  if (!token || !refreshTokenSaver) return false
   await refreshTokenSaver(token)
+  return true
 }
 
 export function markSalesforceDbOAuthCached(present: boolean): void {
@@ -31,18 +33,32 @@ export function hasDbRefreshTokenCached(): boolean {
   return dbCredentialsCached
 }
 
+/**
+ * Refresh token for API calls. Database (Admin connect) wins over env so token rotation
+ * persisted in Postgres is actually used — env `SALESFORCE_REFRESH_TOKEN` is a fallback only.
+ */
 export async function resolveStoredOAuthCredentials(): Promise<{
   refresh_token: string | null
   instance_url: string | null
 }> {
   const envToken = process.env.SALESFORCE_REFRESH_TOKEN?.trim()
   const envInstance = process.env.SALESFORCE_INSTANCE_URL?.trim()
+
+  if (refreshLoader) {
+    const fromDb = await refreshLoader()
+    const dbToken = fromDb.refresh_token?.trim()
+    if (dbToken) {
+      return {
+        refresh_token: dbToken,
+        instance_url: fromDb.instance_url?.trim() || envInstance || null,
+      }
+    }
+  }
+
   if (envToken) {
     return { refresh_token: envToken, instance_url: envInstance || null }
   }
-  if (refreshLoader) {
-    return await refreshLoader()
-  }
+
   return { refresh_token: null, instance_url: null }
 }
 

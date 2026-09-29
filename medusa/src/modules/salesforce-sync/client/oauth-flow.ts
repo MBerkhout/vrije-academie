@@ -1,9 +1,10 @@
 import * as crypto from "node:crypto"
 
-type PendingState = { createdAt: number; codeVerifier: string }
-
-const TTL_MS = 15 * 60 * 1000
-const pending = new Map<string, PendingState>()
+import {
+  newOAuthStateId,
+  storeOAuthPendingState,
+  takeOAuthPendingState,
+} from "./oauth-pending-state"
 
 function generateCodeVerifier(): string {
   return crypto.randomBytes(32).toString("base64url")
@@ -13,30 +14,23 @@ function generateCodeChallenge(codeVerifier: string): string {
   return crypto.createHash("sha256").update(codeVerifier).digest("base64url")
 }
 
-function prune(): void {
-  const now = Date.now()
-  for (const [key, row] of pending) {
-    if (now - row.createdAt > TTL_MS) pending.delete(key)
-  }
-}
-
-/** Start OAuth: state + PKCE verifier stored server-side; returns authorize URL. */
-export function createOAuthAuthorization(): { state: string; authorizeUrl: string } {
-  prune()
-  const state = crypto.randomBytes(24).toString("hex")
+/** Start OAuth: state + PKCE verifier stored in Redis (or memory in dev); returns authorize URL. */
+export async function createOAuthAuthorization(): Promise<{
+  state: string
+  authorizeUrl: string
+}> {
+  const state = newOAuthStateId()
   const codeVerifier = generateCodeVerifier()
-  pending.set(state, { createdAt: Date.now(), codeVerifier })
+  await storeOAuthPendingState(state, codeVerifier)
   const authorizeUrl = buildSalesforceAuthorizeUrl(state, generateCodeChallenge(codeVerifier))
   return { state, authorizeUrl }
 }
 
 /** Validates state and returns PKCE verifier for token exchange (one-time use). */
-export function consumeOAuthState(state: string): { codeVerifier: string } | null {
-  prune()
-  const row = pending.get(state)
-  if (!row) return null
-  pending.delete(state)
-  return { codeVerifier: row.codeVerifier }
+export async function consumeOAuthState(
+  state: string
+): Promise<{ codeVerifier: string } | null> {
+  return takeOAuthPendingState(state)
 }
 
 /**

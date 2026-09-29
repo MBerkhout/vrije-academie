@@ -159,8 +159,18 @@ Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries
 1. Set `SALESFORCE_CLIENT_ID`, `SALESFORCE_CLIENT_SECRET`, and `MEDUSA_URL` in env; restart Medusa.
 2. Open **Admin → Salesforce sync**. Copy the **callback URL** shown on the page.
 3. In Salesforce Connected App → OAuth settings, add that callback URL. Enable scopes `api`, `refresh_token`, `offline_access`.
-4. Click **Connect to Salesforce**, log in, approve. Medusa uses **PKCE** (`code_challenge` / `code_verifier`) as required by modern Salesforce Connected Apps. The refresh token is stored in `salesforce_oauth_settings`. **Refresh token rotation** may stay enabled (Salesforce often locks that checkbox on). Medusa takes a Redis lock so only one worker refreshes at a time, then stores the new refresh token. Set the refresh-token policy to **Refresh token is valid until revoked**.
+4. Click **Connect to Salesforce**, log in, approve. Medusa uses **PKCE** (`code_challenge` / `code_verifier`) as required by modern Salesforce Connected Apps. The refresh token is stored in `salesforce_oauth_settings`. PKCE `state` is stored in **Redis** when `REDIS_URL` is set (required on staging/production cluster). **Refresh token rotation** may stay enabled (Salesforce often locks that checkbox on). Medusa takes a Redis lock so only one PM2 worker refreshes at a time, then stores the rotated refresh token in the database. Set the Connected App refresh-token policy to **Refresh token is valid until revoked**.
 5. Optional: **Disconnect** clears the DB token (env `SALESFORCE_REFRESH_TOKEN` is unchanged).
+
+**Token stability (staging/production)**
+
+| Issue | Mitigation |
+|-------|------------|
+| `expired access/refresh token` after reconnect | Remove stale `SALESFORCE_REFRESH_TOKEN` from server `.env` when using Admin connect — **database token takes precedence** over env; a leftover env value used to win and break after Salesforce rotation. |
+| OAuth connect fails with “OAuth state expired” on cluster | Ensure `REDIS_URL` is set; PKCE state is shared via Redis across workers. |
+| Rotation races between workers | Requires `REDIS_URL` + refresh lock (`salesforce:oauth:refresh-lock`). Set Redis eviction policy to **`noeviction`** (not `allkeys-lru`). |
+| Long-lived server jobs (`medusa exec`, imports) | Same DB token + rotation persistence as the API; reconnect once if the token was already invalid. |
+| Avoid refresh tokens entirely | Use **JWT bearer** (`SALESFORCE_CLIENT_ID`, `SALESFORCE_PRIVATE_KEY`, `SALESFORCE_USERNAME`, integration user) — recommended for unattended production sync. |
 
 Callback route: `GET /hooks/salesforce/oauth/callback` — lives under `/hooks` (like payment webhooks) so it never hits admin auth. Secured by one-time `state` + PKCE. Set `SALESFORCE_OAUTH_RETURN_URL` to where Admin lives (e.g. `http://localhost:9000/app/salesforce-sync`).
 

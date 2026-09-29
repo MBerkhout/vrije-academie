@@ -40,7 +40,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     return
   }
 
-  const consumed = consumeOAuthState(state)
+  const consumed = await consumeOAuthState(state)
   if (!consumed) {
     res.status(400).send(
       htmlPage(

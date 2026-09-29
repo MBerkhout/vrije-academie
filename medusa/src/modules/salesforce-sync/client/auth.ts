@@ -75,7 +75,12 @@ async function exchangeToken(body: URLSearchParams, grantLabel: string): Promise
   const rotated =
     typeof json.refresh_token === "string" ? json.refresh_token.trim() : ""
   if (grantLabel === "refresh_token" && rotated) {
-    await persistRotatedRefreshToken(rotated)
+    const persisted = await persistRotatedRefreshToken(rotated)
+    if (!persisted) {
+      console.warn(
+        "[salesforce] Received a rotated refresh token but could not persist it — reconnect in Admin or set SALESFORCE_REFRESH_TOKEN"
+      )
+    }
   }
   return cacheToken(json, Date.now())
 }
