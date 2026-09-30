@@ -446,6 +446,31 @@ export interface AvailabilityPresentation {
 }
 
 /**
+ * Which agenda status button to show.
+ * Wachtlijst wins when the session is sold out. Otherwise an exclusief tag or
+ * a promo label that contains "exclusief" uses the purple Exclusief button,
+ * ahead of Bijna vol and Inschrijven.
+ */
+export function agendaRowButtonStatus(item: {
+  status: EventAvailabilityStatus
+  available_quantity?: number | null
+  has_exclusief_tag?: boolean
+  badge?: string | null
+}): EventAvailabilityStatus {
+  const quantity = item.available_quantity
+  const soldOut =
+    item.status === 'sold_out' || (typeof quantity === 'number' && quantity <= 0)
+  if (soldOut) return 'sold_out'
+
+  const badge = item.badge?.trim().toLowerCase() ?? ''
+  if (item.status === 'exclusief' || item.has_exclusief_tag || badge.includes('exclusief')) {
+    return 'exclusief'
+  }
+
+  return item.status
+}
+
+/**
  * Label + classes for agenda-style row CTAs and similar controls.
  * Matches backend `status` on `GET /store/agenda` items.
  */

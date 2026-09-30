@@ -364,7 +364,7 @@ curl -X POST /admin/salesforce/productgroups/import -d '{"salesforce_id":"a05Mz0
 | `Order` | `order` | Pull when linked; **omboeking import** when unlinked (see above) |
 | `Product2` | `product` / `variant` | Pull / import |
 | `vaProductgroup__c` | `productgroup` | Pull / auto-import if not yet in Medusa (+ linked-online parents) |
-| `vaProduct__c` | parent `productgroup` | Pull parent group (auto-import parent if missing). Parent lookup API name is `ProductGroup__c` |
+| `vaProduct__c` | parent `productgroup` | Pull parent group (auto-import parent if missing). Parent id from local variant sync state, else Salesforce `ProductGroup__c` |
 
 `create` and `update` for **product**, **productgroup**, **customer**, and **docent** run a pull even when Medusa has no linked row yet. Product groups then use the same auto-import guards as other webhook pulls (`manual: false`). Hidden or past groups are **skipped** (`not_visible_on_website` / `past_dates`) instead of `no_linked_medusa_row`. **Orders** without a Medusa link attempt **omboeking import** first; otherwise skipped.
 
@@ -497,7 +497,7 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Occurrence price | `Price__c` | variant EUR price → Sanity `priceFrom` |
 | Occurrence city | `Product_City__c` | `EventItem.city` / `city_slug` + `catalog_city_id` |
 | Occurrence location / venue | `Product_Location_Name__c`, `Account__c`, `Account__r.Name`, `Product_Location_Room__c`, `Product_Location_Room_Name__c` | `EventItem.location_name` + `catalog_location_id` |
-| Capacity / free trial | `Maximum_capacity__c` / `Capacity__c`, `Availability_capacity__c` (e.g. `12/16 deelnemers`), `Free_Product__c` | `EventItem.capacity`: occupancy denominator when `Availability_capacity__c` matches `N/M`, else max from SF (unchanged on checkout). `available_quantity`: `M − N` from that string, else max when set, else `Vol`/`full` → 0; decremented on website `order.completed` until the next import/sync overwrites from SF. `is_free_trial` |
+| Capacity / free trial | `Maximum_capacity__c` / `Capacity__c`, `Availability_capacity__c` (e.g. `12/16 deelnemers`, `Available`, `Bijna vol`, `Vol`), `Number_Of_Participants__c` (e.g. `59 / 60 <img…>`), `Number_Of_Attendants__c`, `Free_Product__c` | Occupancy `N/M` (enrolled / capacity), in order: `Availability_capacity__c`, `Number_Of_Participants__c`, `Number_Of_Attendants__c` vs max. `EventItem.capacity` = `M`, else SF max (unchanged on checkout). `available_quantity`: `Availability_capacity__c` `N/M` → `M − N`; else `Vol`/`full` → 0; else other occupancy → `M − N`; else `Bijna vol` → 30% of max (fallback 3); else max. Decremented on website `order.completed` until the next import/sync overwrites from SF. `is_free_trial` |
 
 After deploying capacity-mapping changes, refresh existing rows on the Medusa server: `cd ~/app/medusa && npm run salesforce:import-future` (or Admin → import one product group). Listing/agenda Redis snapshots rebuild on import.
 | Latest start (group) | `Latest_Product_Start_Date__c` | future-only auto-import guard |

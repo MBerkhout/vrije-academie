@@ -1,4 +1,29 @@
+import { isAlmostFullAvailability } from "./almost-full"
 import type { AgendaOccurrenceRow } from "./store-listing-snapshot"
+
+export type AgendaItemStatus = "open" | "almost_full" | "sold_out" | "exclusief"
+
+/**
+ * Button state for one agenda row.
+ * Sold out (Wachtlijst) wins over an exclusief tag. Exclusief then wins over Bijna vol and Inschrijven.
+ */
+export function deriveAgendaItemStatus(it: {
+  available_quantity: number
+  capacity?: number
+  has_exclusief_tag: boolean
+}): AgendaItemStatus {
+  if (!it.available_quantity || it.available_quantity <= 0) return "sold_out"
+  if (it.has_exclusief_tag) return "exclusief"
+  if (
+    isAlmostFullAvailability({
+      available_quantity: it.available_quantity,
+      capacity: it.capacity,
+    })
+  ) {
+    return "almost_full"
+  }
+  return "open"
+}
 
 const AGENDA_TIME_ZONE = "Europe/Amsterdam"
 

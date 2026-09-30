@@ -4,7 +4,7 @@ import { stableStringify } from "./deep-equal"
 import { courseProductRecordTypeDeveloperName } from "./visible-on-website"
 
 /** Bump when Medusa-side mapping changes (forces re-import / invalidates skip-unchanged). */
-export const MEDUSA_FACET_SYNC_VERSION = 4
+export const MEDUSA_FACET_SYNC_VERSION = 5
 
 const GROUP_FINGERPRINT_KEYS = [
   "Name",
@@ -55,6 +55,8 @@ const CHILD_FINGERPRINT_KEYS = [
   "Capacity__c",
   "Maximum_capacity__c",
   "Availability_capacity__c",
+  "Number_Of_Participants__c",
+  "Number_Of_Attendants__c",
   "Free_Product__c",
   "Account_Teacher__c",
   "Main_Teacher_Name__c",

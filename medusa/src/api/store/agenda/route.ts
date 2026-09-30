@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
-import { isAlmostFullAvailability } from "../../../lib/almost-full"
 import {
+  deriveAgendaItemStatus,
   isAgendaOccurrenceEligible,
   slimAgendaItemForResponse,
 } from "../../../lib/agenda-listing-response"
@@ -120,7 +120,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   }
 
   const facets = buildFacets(items)
-  items = items.map((it) => ({ ...it, status: deriveStatus(it) }))
+  items = items.map((it) => ({ ...it, status: deriveAgendaItemStatus(it) }))
   const count = items.length
   items = sortItems(items, sort, productRank)
   items = items.slice(offset, offset + limit)
@@ -139,26 +139,6 @@ function sameLocalDay(iso: string, ymd: string): boolean {
   const m = String(d.getMonth() + 1).padStart(2, "0")
   const day = String(d.getDate()).padStart(2, "0")
   return `${y}-${m}-${day}` === ymd
-}
-
-type AgendaStatus = "open" | "almost_full" | "sold_out" | "exclusief"
-
-function deriveStatus(it: {
-  available_quantity: number
-  capacity?: number
-  has_exclusief_tag: boolean
-}): AgendaStatus {
-  if (it.has_exclusief_tag) return "exclusief"
-  if (!it.available_quantity || it.available_quantity <= 0) return "sold_out"
-  if (
-    isAlmostFullAvailability({
-      available_quantity: it.available_quantity,
-      capacity: it.capacity,
-    })
-  ) {
-    return "almost_full"
-  }
-  return "open"
 }
 
 function sortItems(

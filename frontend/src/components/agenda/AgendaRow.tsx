@@ -4,6 +4,7 @@ import { listingAgendaAnchorId } from '@/lib/listing-return-anchor'
 import { plpProductPath } from '@/lib/routes'
 import type { AgendaItem } from '@/lib/commerce/types'
 import {
+  agendaRowButtonStatus,
   presentationForAvailabilityStatus,
   shouldShowOnlineDeliveryIcon,
 } from '@/lib/event-status-presentation'
@@ -47,16 +48,22 @@ export function AgendaRow({ item }: AgendaRowProps) {
 
   const href = plpProductPath(item.product_handle)
   const anchorId = listingAgendaAnchorId(item.id, item.variant_id)
-  const status = presentationForAvailabilityStatus(item.status, { city: item.city })
+  const buttonStatus = agendaRowButtonStatus(item)
+  const status = presentationForAvailabilityStatus(buttonStatus, { city: item.city })
   const ctaBar = productCtaBarFromEvent(item)
+  const showExclusiefButton = buttonStatus === 'exclusief'
+  const badgeIsExclusief = (ctaBar?.label ?? '').toLowerCase().includes('exclusief')
+  const isSoldOut = buttonStatus === 'sold_out'
   const showCtaLabel =
-    ctaBar != null && ctaBar.label.trim().toLowerCase() !== status.label.trim().toLowerCase()
+    ctaBar != null &&
+    !showExclusiefButton &&
+    !(isSoldOut && badgeIsExclusief) &&
+    ctaBar.label.trim().toLowerCase() !== status.label.trim().toLowerCase()
   const statusClassName = status.className
     .split(' ')
     .filter((c) => !c.startsWith('hover:'))
     .join(' ')
   const priceLabel = item.price ? formatPriceEur(item.price) : null
-  const isSoldOut = item.status === 'sold_out'
 
   const statusButtonClassName = cn(
     'relative z-20 flex items-center justify-center px-4 py-3 text-xs font-bold uppercase tracking-wide',

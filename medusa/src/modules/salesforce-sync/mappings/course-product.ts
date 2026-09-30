@@ -1,5 +1,9 @@
 import type { DeliveryType } from "../../events/types"
 import { isVathuisRecordType } from "../clients/audience-player"
+import {
+  ALMOST_FULL_FALLBACK_REMAINING_THRESHOLD,
+  almostFullRemainingThreshold,
+} from "../../../lib/almost-full"
 import { VATHUIS_UNLIMITED_AVAILABILITY } from "../../../lib/vathuis-availability"
 
 /** Salesforce `vaProduct__c` (child occurrence under a product group). */
@@ -24,6 +28,9 @@ export type SfCourseProductShape = {
   Maximum_capacity__c?: number | null
   Capacity__c?: number | null
   Availability_capacity__c?: string | null
+  /** Formula text like `59 / 60 <img …>` (enrolled / max). */
+  Number_Of_Participants__c?: string | null
+  Number_Of_Attendants__c?: number | null
   Free_Product__c?: boolean | null
   Audience_Player_Article_Id__c?: number | null
   Audience_Player_Product_Id__c?: number | null
@@ -74,6 +81,8 @@ export const courseProductSalesforceFieldsForPull = [
   "Maximum_capacity__c",
   "Capacity__c",
   "Availability_capacity__c",
+  "Number_Of_Participants__c",
+  "Number_Of_Attendants__c",
   "Free_Product__c",
   "Audience_Player_Article_Id__c",
   "Audience_Player_Product_Id__c",
@@ -141,14 +150,43 @@ function maximumCapacityFromSalesforce(sf: SfCourseProductShape): number {
   return typeof max === "number" && max > 0 ? max : 0
 }
 
+/** Salesforce status text without `N/M` occupancy, e.g. `Bijna vol!`. */
+export function availabilityIndicatesAlmostFullWithoutOccupancy(
+  availability: string
+): boolean {
+  return /\bbijna\s*vol\b/i.test(availability)
+}
+
 function availabilityIndicatesSoldOutWithoutOccupancy(availability: string): boolean {
+  if (availabilityIndicatesAlmostFullWithoutOccupancy(availability)) return false
   const lower = availability.toLowerCase()
   return lower.includes("full") || lower.includes("vol")
 }
 
+/**
+ * Enrolled / capacity for a session: `Availability_capacity__c` `N/M` first, then
+ * `Number_Of_Participants__c` `N / M`, then `Number_Of_Attendants__c` against the SF max.
+ */
+export function courseProductOccupancy(
+  sf: SfCourseProductShape
+): AvailabilityCapacityOccupancy | null {
+  const fromAvailability = parseAvailabilityCapacityOccupancy(sf.Availability_capacity__c)
+  if (fromAvailability) return fromAvailability
+
+  const fromParticipants = parseAvailabilityCapacityOccupancy(sf.Number_Of_Participants__c)
+  if (fromParticipants) return fromParticipants
+
+  const attendants = sf.Number_Of_Attendants__c
+  const max = maximumCapacityFromSalesforce(sf)
+  if (typeof attendants === "number" && Number.isFinite(attendants) && attendants >= 0 && max > 0) {
+    return { enrolled: attendants, capacity: max }
+  }
+  return null
+}
+
 /** Max seats for Bijna vol; prefers occupancy denominator over `Maximum_capacity__c`. */
 export function courseProductSessionCapacity(sf: SfCourseProductShape): number {
-  const occupancy = parseAvailabilityCapacityOccupancy(sf.Availability_capacity__c)
+  const occupancy = courseProductOccupancy(sf)
   if (occupancy) return occupancy.capacity
   return maximumCapacityFromSalesforce(sf)
 }
@@ -162,12 +200,24 @@ export function courseProductAvailableQuantity(
   }
 
   const availabilityRaw = sf.Availability_capacity__c ?? ""
-  const occupancy = parseAvailabilityCapacityOccupancy(availabilityRaw)
+  const availabilityOccupancy = parseAvailabilityCapacityOccupancy(availabilityRaw)
+  if (availabilityOccupancy) {
+    return Math.max(0, availabilityOccupancy.capacity - availabilityOccupancy.enrolled)
+  }
+
+  if (availabilityIndicatesSoldOutWithoutOccupancy(availabilityRaw)) return 0
+
+  const occupancy = courseProductOccupancy(sf)
   if (occupancy) {
     return Math.max(0, occupancy.capacity - occupancy.enrolled)
   }
 
-  if (availabilityIndicatesSoldOutWithoutOccupancy(availabilityRaw)) return 0
+  if (availabilityIndicatesAlmostFullWithoutOccupancy(availabilityRaw)) {
+    const max = maximumCapacityFromSalesforce(sf)
+    return (
+      almostFullRemainingThreshold(max) ?? ALMOST_FULL_FALLBACK_REMAINING_THRESHOLD
+    )
+  }
 
   const max = maximumCapacityFromSalesforce(sf)
   if (max > 0) return max

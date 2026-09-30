@@ -61,13 +61,47 @@ function extractMedusaIdFromRun(ret: RunResult): string | null {
   return nested?.medusaId ?? null
 }
 
+async function resolveProductgroupSalesforceIdFromVariantState(
+  container: MedusaContainer,
+  salesforceId: string
+): Promise<string | null> {
+  const sync = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
+  const variantState = await sync.getStateBySalesforceId("variant", salesforceId)
+  if (!variantState?.medusa_id) return null
+
+  try {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const { data } = await query.graph({
+      entity: "product_variant",
+      fields: ["id", "product_id"],
+      filters: { id: variantState.medusa_id },
+    })
+    const productId = (data?.[0] as { product_id?: string | null } | undefined)?.product_id?.trim()
+    if (!productId) return null
+
+    const groupState =
+      (await sync.getStateByMedusaId("productgroup", productId)) ??
+      (await sync.getStateByMedusaId("product", productId))
+    const parentId = groupState?.salesforce_id?.trim()
+    return parentId || null
+  } catch {
+    return null
+  }
+}
+
 async function resolveProductgroupSalesforceId(
+  container: MedusaContainer,
   sync: InstanceType<typeof SalesforceSyncModuleService>,
   objectType: string,
   salesforceId: string
 ): Promise<string | null> {
   if (objectType === SF_PRODUCTGROUP_OBJECT) return salesforceId
   if (objectType !== SF_COURSE_PRODUCT_OBJECT) return null
+  const fromState = await resolveProductgroupSalesforceIdFromVariantState(
+    container,
+    salesforceId
+  )
+  if (fromState) return fromState
   try {
     const row = await sync.retrieve(SF_COURSE_PRODUCT_OBJECT, salesforceId, ["ProductGroup__c"])
     return courseProductParentGroupId(row)
@@ -190,6 +224,7 @@ async function processWebhookEventRow(
 
   if (entityType === "course_product") {
     const parentId = await resolveProductgroupSalesforceId(
+      container,
       sync,
       row.object_type,
       row.salesforce_id

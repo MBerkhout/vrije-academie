@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { EventCard } from '@/lib/commerce/types'
 import {
+  agendaRowButtonStatus,
   bookingPanelPrimaryCtaTone,
   eventIsFullySoldOut,
   isAlmostFullAvailability,
   minPositiveBookableQuantity,
   plpListingStockPresentation,
+  presentationForAvailabilityStatus,
   sessionCtaTone,
   classNameForSessionCtaTone,
   PDP_WAITLIST_CTA_CLASS,
@@ -157,5 +159,48 @@ describe('plpListingStockPresentation', () => {
     )
     expect(result.soldOut).toBe(true)
     expect(result.lowStock).toBeNull()
+  })
+})
+
+describe('agendaRowButtonStatus', () => {
+  it('uses the purple exclusief button when the promo label is exclusief', () => {
+    expect(
+      agendaRowButtonStatus({
+        status: 'open',
+        available_quantity: 8,
+        badge: 'Exclusief in Amsterdam',
+      }),
+    ).toBe('exclusief')
+    expect(presentationForAvailabilityStatus('exclusief', { city: 'Amsterdam' })).toMatchObject({
+      label: 'Exclusief in Amsterdam',
+      className: expect.stringContaining('bg-va-purple'),
+    })
+  })
+
+  it('lets wachtlijst replace exclusief when the session is sold out', () => {
+    expect(
+      agendaRowButtonStatus({
+        status: 'exclusief',
+        available_quantity: 0,
+        has_exclusief_tag: true,
+        badge: 'Exclusief in Amsterdam',
+      }),
+    ).toBe('sold_out')
+    expect(
+      agendaRowButtonStatus({
+        status: 'sold_out',
+        available_quantity: 0,
+        badge: 'Exclusief in Amsterdam',
+      }),
+    ).toBe('sold_out')
+  })
+
+  it('keeps bijna vol and inschrijven when there is no exclusief label', () => {
+    expect(agendaRowButtonStatus({ status: 'almost_full', available_quantity: 2 })).toBe(
+      'almost_full',
+    )
+    expect(agendaRowButtonStatus({ status: 'open', available_quantity: 12, badge: 'Nieuw' })).toBe(
+      'open',
+    )
   })
 })

@@ -78,6 +78,51 @@ describe("courseProductAvailableQuantity", () => {
     ).toBe(0)
   })
 
+  it("maps Bijna vol text to the almost-full remaining band, not sold out", () => {
+    expect(
+      courseProductAvailableQuantity(
+        { Availability_capacity__c: "Bijna vol!", Maximum_capacity__c: 60 },
+        "studiedag"
+      )
+    ).toBe(18)
+    expect(
+      courseProductAvailableQuantity(
+        { Availability_capacity__c: "Bijna vol", Maximum_capacity__c: 0 },
+        "studiedag"
+      )
+    ).toBe(3)
+  })
+
+  it("uses Number_Of_Participants__c when availability is only a status word", () => {
+    const sf = {
+      Availability_capacity__c: "Available",
+      Maximum_capacity__c: 60,
+      Number_Of_Participants__c: '59 / 60  <img src="/img/msg_icons/confirm16.png" alt=" " border="0"/>',
+      Number_Of_Attendants__c: 59,
+    }
+    expect(courseProductAvailableQuantity(sf, "studiedag")).toBe(1)
+    expect(courseProductSessionCapacity(sf)).toBe(60)
+  })
+
+  it("falls back to Number_Of_Attendants__c against the max", () => {
+    const sf = {
+      Availability_capacity__c: "Available",
+      Maximum_capacity__c: 60,
+      Number_Of_Attendants__c: 50,
+    }
+    expect(courseProductAvailableQuantity(sf, "studiedag")).toBe(10)
+    expect(courseProductSessionCapacity(sf)).toBe(60)
+  })
+
+  it("keeps explicit Vol as sold out even when attendants are below max", () => {
+    expect(
+      courseProductAvailableQuantity(
+        { Availability_capacity__c: "Vol", Maximum_capacity__c: 60, Number_Of_Attendants__c: 40 },
+        "studiedag"
+      )
+    ).toBe(0)
+  })
+
   it("falls back to maximum when availability is empty", () => {
     expect(
       courseProductAvailableQuantity({ Maximum_capacity__c: 20 }, "collegereeks")

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   agendaLocalDateYmd,
   agendaOccurrenceSameCalendarDay,
+  deriveAgendaItemStatus,
   isAgendaOccurrenceEligible,
   isFutureAgendaStartAt,
   slimAgendaItemForResponse,
@@ -158,5 +159,37 @@ describe("slimAgendaItemForResponse", () => {
       day_part: "ochtend",
       status: "open",
     })
+  })
+})
+
+describe("deriveAgendaItemStatus", () => {
+  it("returns exclusief when the tag is set and spots remain", () => {
+    expect(
+      deriveAgendaItemStatus({
+        available_quantity: 8,
+        capacity: 20,
+        has_exclusief_tag: true,
+      })
+    ).toBe("exclusief")
+  })
+
+  it("returns sold_out ahead of an exclusief tag", () => {
+    expect(
+      deriveAgendaItemStatus({
+        available_quantity: 0,
+        capacity: 20,
+        has_exclusief_tag: true,
+      })
+    ).toBe("sold_out")
+  })
+
+  it("returns almost_full only when the row is not exclusief", () => {
+    expect(
+      deriveAgendaItemStatus({
+        available_quantity: 2,
+        capacity: 20,
+        has_exclusief_tag: false,
+      })
+    ).toBe("almost_full")
   })
 })
