@@ -53,6 +53,7 @@ SALESFORCE_TEACHER_ACCOUNT_RECORD_TYPE_ID=012...
 # SALESFORCE_WEBHOOK_QUEUE_BATCH_SIZE=50
 # SALESFORCE_WEBHOOK_QUEUE_CONCURRENCY=5
 # SALESFORCE_WEBHOOK_MAX_ATTEMPTS=5
+# SALESFORCE_WEBHOOK_STALE_PROCESSING_MINUTES=15
 # OAuth (optional — dev proxy / tunnel)
 # SALESFORCE_OAUTH_CALLBACK_URL=https://your-tunnel.example.com/hooks/salesforce/oauth/callback
 # SALESFORCE_OAUTH_RETURN_URL=https://your-tunnel.example.com/app/salesforce-sync
@@ -103,6 +104,10 @@ Fields: `Medusa_Order_Id__c` on `Order` (plus display id / email / status / tota
 ```
 
 Each id is logged as one row in `salesforce_webhook_event`, then processed asynchronously (immediate fire-and-forget + scheduled sweep every minute). Sanity writes during queue processing are batched at the end of each batch.
+
+- **Stale rows**: rows stuck in `processing` longer than `SALESFORCE_WEBHOOK_STALE_PROCESSING_MINUTES` (default 15, e.g. worker killed by a PM2 reload) are reclaimed; each reclaim counts as an attempt (up to `SALESFORCE_WEBHOOK_MAX_ATTEMPTS`).
+- **One pull per group per batch**: sibling `vaProduct__c` webhooks that resolve to the same `ProductGroup__c` share one product group pull.
+- **Deleted sessions**: a `vaProduct__c` that Salesforce no longer returns (`NOT_FOUND`) and has no local variant is skipped as `course product no longer exists in Salesforce`.
 
 ## Loop protection
 
@@ -421,7 +426,7 @@ Bulk CLI scripts (`import-future`, `import-linked-vathuis`, `import-all`) prefet
 |------|---------|---------|
 | `--concurrency=N` | `1` | Import up to N product groups in parallel (Salesforce + Medusa only). Sanity mirroring runs once after the pool. With batched Sanity sync and import caches, **8–10** is usually safe — watch Salesforce 429s or DB load. |
 | `--skip-search` | off | Skip per-product OpenSearch reindex during import; reindex imported products once at the end. Or run `npm run search:reindex` afterward. |
-| `--skip-unchanged` | off | Skip product metadata when Salesforce fingerprint matches; **session location/docent facets are still refreshed** from child rows. |
+| `--skip-unchanged` | off | Skip product metadata when Salesforce fingerprint matches; **session location/docent facets are still refreshed** from child rows (and that product's event-detail cache is busted). Every non-dry run busts the listing cache and frontend PLP cache at the end. |
 | `--since=<ISO>` | off | Only fetch groups (and parents of modified children) with `SystemModstamp >= since`. Already-imported Salesforce ids missing from that window are still loaded so hidden products can be drafted. Example: `--since=2026-03-01T00:00:00.000Z`. |
 | `--limit=N` | unlimited | Stop after N import attempts (after guard filtering). |
 | `--dry-run` | off | List candidates only. |

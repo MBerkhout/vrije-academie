@@ -28,6 +28,7 @@ import {
   webhookQueueBatchSize,
   webhookQueueConcurrency,
   webhookQueueMaxAttempts,
+  webhookQueueStaleProcessingMinutes,
 } from "./utils/webhook-queue-config"
 import { importRebookedOrderIfApplicable } from "./utils/import-rebooked-order"
 import {
@@ -53,6 +54,16 @@ type ProcessEventResult =
   | { outcome: "done"; medusaId?: string | null; entityType?: string | null }
   | { outcome: "skipped"; error: string; entityType?: string | null; medusaId?: string | null }
   | { outcome: "failed"; error: string; entityType?: string | null }
+
+/** Per-batch pulls keyed by `entityType:salesforceId`; sibling session webhooks share one group pull. */
+type PullCache = Map<string, Promise<ProcessEventResult>>
+
+type ParentGroupResolution =
+  | { parentId: string }
+  | { parentId: null; error: string }
+
+const PARENT_GROUP_UNRESOLVED_ERROR = "Could not resolve parent product group for course product"
+const COURSE_PRODUCT_NOT_IN_SALESFORCE_ERROR = "course product no longer exists in Salesforce"
 
 function extractMedusaIdFromRun(ret: RunResult): string | null {
   const result = ret.result as { medusaId?: string } | undefined
@@ -94,19 +105,28 @@ async function resolveProductgroupSalesforceId(
   sync: InstanceType<typeof SalesforceSyncModuleService>,
   objectType: string,
   salesforceId: string
-): Promise<string | null> {
-  if (objectType === SF_PRODUCTGROUP_OBJECT) return salesforceId
-  if (objectType !== SF_COURSE_PRODUCT_OBJECT) return null
+): Promise<ParentGroupResolution> {
+  if (objectType === SF_PRODUCTGROUP_OBJECT) return { parentId: salesforceId }
+  if (objectType !== SF_COURSE_PRODUCT_OBJECT) {
+    return { parentId: null, error: PARENT_GROUP_UNRESOLVED_ERROR }
+  }
   const fromState = await resolveProductgroupSalesforceIdFromVariantState(
     container,
     salesforceId
   )
-  if (fromState) return fromState
+  if (fromState) return { parentId: fromState }
   try {
     const row = await sync.retrieve(SF_COURSE_PRODUCT_OBJECT, salesforceId, ["ProductGroup__c"])
-    return courseProductParentGroupId(row)
-  } catch {
-    return null
+    const parentId = courseProductParentGroupId(row)
+    return parentId ? { parentId } : { parentId: null, error: PARENT_GROUP_UNRESOLVED_ERROR }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return {
+      parentId: null,
+      error: /NOT_FOUND|ENTITY_IS_DELETED/.test(message)
+        ? COURSE_PRODUCT_NOT_IN_SALESFORCE_ERROR
+        : `${PARENT_GROUP_UNRESOLVED_ERROR}: ${message}`,
+    }
   }
 }
 
@@ -207,7 +227,8 @@ async function runPullForEntity(
 async function processWebhookEventRow(
   container: MedusaContainer,
   row: ClaimedWebhookEventRow,
-  collectors: SanityCollectors
+  collectors: SanityCollectors,
+  pullCache: PullCache
 ): Promise<ProcessEventResult> {
   const sync = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
   const method = row.method.trim().toLowerCase()
@@ -223,21 +244,21 @@ async function processWebhookEventRow(
   let { entityType, pullSalesforceId } = resolved
 
   if (entityType === "course_product") {
-    const parentId = await resolveProductgroupSalesforceId(
+    const parent = await resolveProductgroupSalesforceId(
       container,
       sync,
       row.object_type,
       row.salesforce_id
     )
-    if (!parentId) {
+    if (parent.parentId === null) {
       return {
         outcome: "skipped",
         entityType: "course_product",
-        error: "Could not resolve parent product group for course product",
+        error: parent.error,
       }
     }
     entityType = "productgroup"
-    pullSalesforceId = parentId
+    pullSalesforceId = parent.parentId
   }
 
   const unsupportedPullTypes = new Set(["order_item", "registration", "voucher", "variant"])
@@ -344,23 +365,28 @@ async function processWebhookEventRow(
     })
   }
 
-  const pullResult = await runPullForEntity(
-    container,
-    entityType,
-    pullSalesforceId,
-    linkedMedusaId,
-    collectors
-  )
-
-  if (pullResult.outcome === "done" && entityType === "productgroup") {
-    await enqueueLinkedOnlineParentProductgroupPulls(
-      container,
-      pullSalesforceId,
-      collectors
-    )
+  const pullKey = `${entityType}:${pullSalesforceId}`
+  let pull = pullCache.get(pullKey)
+  if (!pull) {
+    const pullEntityType = entityType
+    const pullId = pullSalesforceId
+    pull = (async () => {
+      const pullResult = await runPullForEntity(
+        container,
+        pullEntityType,
+        pullId,
+        linkedMedusaId,
+        collectors
+      )
+      if (pullResult.outcome === "done" && pullEntityType === "productgroup") {
+        await enqueueLinkedOnlineParentProductgroupPulls(container, pullId, collectors)
+      }
+      return pullResult
+    })()
+    pullCache.set(pullKey, pull)
   }
 
-  return pullResult
+  return pull
 }
 
 async function finalizeEventRow(
@@ -427,7 +453,11 @@ export async function processPendingSalesforceWebhookEvents(
   }
 
   clearAccountMetadataCache()
-  const claimed = await claimPendingWebhookEvents(batchSize, maxAttempts)
+  const claimed = await claimPendingWebhookEvents(
+    batchSize,
+    maxAttempts,
+    webhookQueueStaleProcessingMinutes()
+  )
   if (!claimed.length) {
     return { claimed: 0, done: 0, skipped: 0, failed: 0 }
   }
@@ -451,11 +481,13 @@ export async function processPendingSalesforceWebhookEvents(
     nativeCategoryIds: new Set(),
   }
 
+  const pullCache: PullCache = new Map()
+
   await withSanitySyncSuppressed(async () => {
     await runPool(claimed, concurrency, async (row) => {
       let result: ProcessEventResult
       try {
-        result = await processWebhookEventRow(container, row, collectors)
+        result = await processWebhookEventRow(container, row, collectors, pullCache)
       } catch (err) {
         result = {
           outcome: "failed",

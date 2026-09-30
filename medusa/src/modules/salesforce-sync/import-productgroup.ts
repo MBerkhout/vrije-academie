@@ -926,6 +926,7 @@ export async function importProductgroupFromSalesforce(
         isLinkedOnlineSlave,
         importContext
       )
+      await invalidateEventDetailForProductId(container, state.medusa_id)
       return {
         medusaId: state.medusa_id,
         created: false,

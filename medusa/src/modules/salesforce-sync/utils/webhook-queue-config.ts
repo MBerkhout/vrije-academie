@@ -15,6 +15,12 @@ export function webhookQueueMaxAttempts(): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 5
 }
 
+/** Rows left in `processing` longer than this (worker died, e.g. PM2 reload) are reclaimed. */
+export function webhookQueueStaleProcessingMinutes(): number {
+  const n = Number(process.env.SALESFORCE_WEBHOOK_STALE_PROCESSING_MINUTES)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 15
+}
+
 export function teacherAccountRecordTypeId(): string | null {
   return process.env.SALESFORCE_TEACHER_ACCOUNT_RECORD_TYPE_ID?.trim() || null
 }

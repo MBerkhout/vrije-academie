@@ -16,10 +16,14 @@ export type ClaimedWebhookEventRow = {
   updated_at: Date
 }
 
-/** Atomically claim pending (or retriable failed) webhook rows for processing. */
+/**
+ * Atomically claim pending, retriable failed, or stale `processing` webhook rows.
+ * Reclaiming a stale row counts as an attempt so a row that keeps killing the worker stops.
+ */
 export async function claimPendingWebhookEvents(
   batchSize: number,
-  maxAttempts: number
+  maxAttempts: number,
+  staleProcessingMinutes: number
 ): Promise<ClaimedWebhookEventRow[]> {
   const url = process.env.DATABASE_URL?.trim()
   if (!url) {
@@ -38,18 +42,26 @@ export async function claimPendingWebhookEvents(
           AND (
             status = 'pending'
             OR (status = 'failed' AND attempts < $2)
+            OR (
+              status = 'processing'
+              AND attempts < $2
+              AND updated_at < now() - make_interval(mins => $3::int)
+            )
           )
         ORDER BY created_at ASC
         LIMIT $1
         FOR UPDATE SKIP LOCKED
       )
       UPDATE salesforce_webhook_event e
-      SET status = 'processing', updated_at = now()
+      SET
+        attempts = e.attempts + CASE WHEN e.status = 'processing' THEN 1 ELSE 0 END,
+        status = 'processing',
+        updated_at = now()
       FROM cte
       WHERE e.id = cte.id
       RETURNING e.*;
       `,
-      [batchSize, maxAttempts]
+      [batchSize, maxAttempts, staleProcessingMinutes]
     )
     return rows
   } finally {

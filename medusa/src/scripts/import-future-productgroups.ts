@@ -16,6 +16,8 @@
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+import { invalidateStoreListingCache } from "../lib/store-listing-redis"
+import { revalidateStorefrontPlpCache } from "../lib/storefront-revalidate"
 import { importProductgroupFromSalesforce } from "../modules/salesforce-sync/import-productgroup"
 import type { SfProductgroupShape } from "../modules/salesforce-sync/mappings/productgroup"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
@@ -267,6 +269,11 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
           await search.reindexProductById(container, productId).catch(() => undefined)
         }
       }
+    }
+
+    if (!dryRun) {
+      await invalidateStoreListingCache()
+      await revalidateStorefrontPlpCache()
     }
 
     logger.info(
