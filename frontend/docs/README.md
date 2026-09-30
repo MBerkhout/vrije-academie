@@ -175,7 +175,7 @@ See [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) for complete design token reference a
 ### Key Design Tokens
 
 - **Colors**: VA palette with Tailwind shades `50–950` + `DEFAULT`; source `src/lib/va-colors.js` (see DESIGN_SYSTEM.md)
-- **Typography**: `next/font` — Source Sans 3 (`font-sans`) site-wide; `font-mono` uses Tailwind’s default system stack if needed
+- **Typography**: `@fontsource/source-sans-3` — Source Sans 3 (`font-sans`) site-wide via `src/styles/fonts.css`; `font-mono` uses Tailwind’s default system stack if needed
 - **Spacing**: Tailwind default scale with custom margins
 - **Components**: Modular, reusable components following VA design principles
 

@@ -40,7 +40,7 @@ Tokens live in **`src/lib/va-colors.js`** and are wired into Tailwind as `va-*`.
 
 ## Typography
 
-Fonts load via **`next/font/google`** in `src/app/layout.tsx` (self-hosted at build time). CSS variable `--font-sans` is set on `<html>`; `body` uses `font-sans` by default.
+Fonts load via **`@fontsource/source-sans-3`** in `src/styles/fonts.css` (imported from `globals.css`; bundled at build time, no runtime Google Fonts fetch). CSS variable `--font-sans` is on `:root`; `body` uses `font-sans` by default. Avoid `next/font/google` in `global-error.tsx` — a second font loader duplicates Turbopack modules and can break production builds.
 
 ### Font Families
 
