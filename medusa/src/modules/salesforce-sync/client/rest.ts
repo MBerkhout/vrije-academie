@@ -1,6 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 
-import { clearSalesforceTokenCache, getSalesforceAccessToken } from "./auth"
+import { getSalesforceAccessToken, invalidateSalesforceAccessToken } from "./auth"
 import { logSalesforceHttpRequest, logSalesforceHttpResponse } from "./http-debug"
 
 const RETRYABLE = new Set([429, 500, 502, 503, 504])
@@ -64,7 +64,7 @@ export async function sfRequest<T>(
     logSalesforceHttpResponse(method, path, res.status, res.headers, text)
 
     if (res.status === 401 && retryAuth) {
-      clearSalesforceTokenCache()
+      await invalidateSalesforceAccessToken(access_token)
       retryAuth = false
       attempt++
       continue

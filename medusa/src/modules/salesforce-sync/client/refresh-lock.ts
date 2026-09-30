@@ -1,36 +1,10 @@
 import { randomUUID } from "node:crypto"
 
-import { createClient } from "redis"
+import { getSalesforceRedis } from "./redis-client"
 
 const LOCK_KEY = "salesforce:oauth:refresh-lock"
 const LOCK_TTL_MS = 20_000
 const WAIT_MS = 20_000
-
-type RedisClient = ReturnType<typeof createClient>
-
-let redisClient: RedisClient | null = null
-let redisConnect: Promise<RedisClient | null> | null = null
-
-async function getRedis(): Promise<RedisClient | null> {
-  const url = process.env.REDIS_URL?.trim()
-  if (!url) return null
-  if (redisClient?.isOpen) return redisClient
-  if (!redisConnect) {
-    redisConnect = (async () => {
-      try {
-        const client = createClient({ url })
-        client.on("error", () => {})
-        await client.connect()
-        redisClient = client
-        return client
-      } catch {
-        redisConnect = null
-        return null
-      }
-    })()
-  }
-  return redisConnect
-}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -41,7 +15,7 @@ function sleep(ms: number): Promise<void> {
  * Rotation invalidates the previous refresh token, so parallel refreshes kill the connection.
  */
 export async function withSalesforceRefreshLock<T>(fn: () => Promise<T>): Promise<T> {
-  const redis = await getRedis()
+  const redis = await getSalesforceRedis()
   if (!redis) return fn()
 
   const owner = randomUUID()

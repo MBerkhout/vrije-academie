@@ -7,12 +7,15 @@ import {
   resolveRefreshTokenForAuth,
 } from "./oauth-credentials"
 import { withSalesforceRefreshLock } from "./refresh-lock"
+import {
+  deleteSharedAccessToken,
+  isTokenFresh,
+  readSharedAccessToken,
+  type TokenCache,
+  writeSharedAccessToken,
+} from "./token-store"
 
-export type TokenCache = {
-  access_token: string
-  instance_url: string
-  expires_at_ms: number
-}
+export type { TokenCache }
 
 let cache: TokenCache | null = null
 let refreshInFlight: Promise<TokenCache> | null = null
@@ -123,24 +126,39 @@ async function exchangeRefreshToken(refreshToken: string): Promise<TokenCache> {
   )
 }
 
+/** Adopt the access token another process already obtained, if still valid. */
+async function adoptSharedToken(): Promise<TokenCache | null> {
+  const shared = await readSharedAccessToken()
+  if (shared) cache = shared
+  return shared
+}
+
+/**
+ * Every refresh rotates the refresh token (Salesforce enforces rotation), so refresh as
+ * rarely as possible: reuse this process's token, then the one shared via Redis, and only
+ * then refresh under the cross-process lock.
+ */
 async function getTokenRefresh(): Promise<TokenCache> {
-  const now = Date.now()
-  if (cache && cache.expires_at_ms > now + 60_000) return cache
+  if (isTokenFresh(cache)) return cache
+  const shared = await adoptSharedToken()
+  if (shared) return shared
   if (!refreshInFlight) {
     refreshInFlight = withSalesforceRefreshLock(async () => {
-      const cached = cache
-      if (cached && cached.expires_at_ms > Date.now() + 60_000) return cached
+      if (isTokenFresh(cache)) return cache
+      const sharedInLock = await adoptSharedToken()
+      if (sharedInLock) return sharedInLock
       const refreshToken = await resolveRefreshTokenForAuth()
+      let token: TokenCache
       try {
-        return await exchangeRefreshToken(refreshToken)
+        token = await exchangeRefreshToken(refreshToken)
       } catch (err) {
         const latest = await resolveRefreshTokenForAuth().catch(() => refreshToken)
         const message = err instanceof Error ? err.message : String(err)
-        if (latest !== refreshToken && message.includes("expired access/refresh token")) {
-          return exchangeRefreshToken(latest)
-        }
-        throw err
+        if (latest === refreshToken || !message.includes("expired access/refresh token")) throw err
+        token = await exchangeRefreshToken(latest)
       }
+      await writeSharedAccessToken(token)
+      return token
     }).finally(() => {
       refreshInFlight = null
     })
@@ -152,10 +170,7 @@ async function getTokenRefresh(): Promise<TokenCache> {
  * Resolve access token (cached until ~1 min before expiry).
  */
 export async function getSalesforceAccessToken(): Promise<TokenCache> {
-  const now = Date.now()
-  if (cache && cache.expires_at_ms > now + 60_000) {
-    return cache
-  }
+  if (isTokenFresh(cache)) return cache
 
   const mode = salesforceAuthMode()
   if (mode === "jwt") return getTokenJwt()
@@ -173,6 +188,11 @@ export async function getSalesforceAccessToken(): Promise<TokenCache> {
   )
 }
 
-export function clearSalesforceTokenCache(): void {
-  cache = null
+/**
+ * Forget the access token in this process and in Redis. Pass the rejected token (on 401)
+ * to keep a newer shared token another process already refreshed.
+ */
+export async function invalidateSalesforceAccessToken(rejectedAccessToken?: string): Promise<void> {
+  if (!rejectedAccessToken || cache?.access_token === rejectedAccessToken) cache = null
+  await deleteSharedAccessToken(rejectedAccessToken)
 }

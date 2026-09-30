@@ -5,7 +5,7 @@ import {
   hasSalesforceRefreshEnvCredentials,
   salesforceAuthMode,
 } from "./client/auth-mode"
-import { clearSalesforceTokenCache } from "./client/auth"
+import { invalidateSalesforceAccessToken } from "./client/auth"
 import {
   markSalesforceDbOAuthCached,
   OAUTH_SETTINGS_ID,
@@ -67,7 +67,7 @@ class SalesforceSyncModuleService extends MedusaService({
 
   async saveOAuthConnection(input: { refresh_token: string; instance_url?: string | null }) {
     await this.bootstrapOAuthCache()
-    clearSalesforceTokenCache()
+    await invalidateSalesforceAccessToken()
     const now = new Date()
     const existing = await this.fetchOAuthSettingsRow()
     const payload = {
@@ -92,7 +92,7 @@ class SalesforceSyncModuleService extends MedusaService({
     if (existing) {
       await this.deleteSalesforceOAuthSettings(existing.id)
     }
-    clearSalesforceTokenCache()
+    await invalidateSalesforceAccessToken()
     markSalesforceDbOAuthCached(false)
   }
 
