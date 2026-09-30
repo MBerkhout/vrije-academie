@@ -2,9 +2,10 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { instructorBioText } from '@/components/pdp/instructor-bio'
+import type { EventInstructor } from '@/lib/commerce/types'
 import { defaultMessages, interpolate } from '@/lib/i18n/messages'
 import { cn } from '@/lib/utils'
-import type { EventInstructor } from '@/lib/commerce/types'
 
 interface PdpInstructorHoverCardProps {
   name: string
@@ -24,7 +25,7 @@ export function PdpInstructorHoverCard({
   className,
 }: PdpInstructorHoverCardProps) {
   const photoUrl = instructor?.photo_url?.trim() || null
-  const bio = instructor?.bio?.trim() || null
+  const bio = instructorBioText(instructor?.bio)
   const displayName = instructor?.name?.trim() || name
   const hasCard = Boolean(isRenderablePhoto(photoUrl) || bio)
 

@@ -36,6 +36,22 @@ describe("parseInlineHtmlToSpans", () => {
     })
   })
 
+  it("keeps strong and em marks when Salesforce adds inline attributes", () => {
+    expect(
+      parseInlineHtmlToSpans(
+        '<strong style="color: rgb(247, 11, 11);">NIEUW!</strong> Nu <em class="x">ook</em> online.'
+      )
+    ).toEqual({
+      spans: [
+        { text: "NIEUW!", marks: ["strong"] },
+        { text: " Nu ", marks: [] },
+        { text: "ook", marks: ["em"] },
+        { text: " online.", marks: [] },
+      ],
+      markDefs: [],
+    })
+  })
+
   it("strips span tags but keeps inner text", () => {
     expect(
       parseInlineHtmlToSpans(

@@ -64,7 +64,7 @@ npx medusa exec ./src/scripts/sync-one-product-sanity.ts -- prod_01...
 
 ## Salesforce HTML → PDP body
 
-`html-to-pdp-body.ts` converts Salesforce `Productgroup_Description__c` / web body HTML into Sanity `textBlock` portable text. Inline tags supported: `<strong>`, `<em>`, `<a href="…">` (Sanity link marks), `<span>` (stripped, text kept), `<br>`. Re-sync affected products after parser changes when `pageBodyOwnedBySanity` is false.
+`html-to-pdp-body.ts` converts Salesforce `Productgroup_Description__c` / web body HTML into Sanity `textBlock` portable text. Inline tags supported: `<strong>`, `<em>`, `<a href="…">` (Sanity link marks), `<span>` (stripped, text kept), `<br>`. Attributes on these tags are ignored, so Salesforce markup such as `<strong style="color: rgb(247, 11, 11);">` still yields a bold span. Re-sync affected products after parser changes when `pageBodyOwnedBySanity` is false.
 
 ## Environment variables (Medusa)
 

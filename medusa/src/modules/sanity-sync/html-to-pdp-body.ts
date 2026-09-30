@@ -84,22 +84,22 @@ export function parseInlineHtmlToSpans(html: string): ParsedInlineSpans {
   const markDefs: Array<{ _key: string; _type: "link"; href: string }> = []
   const marks: string[] = []
   const openLinkMarks: string[] = []
-  const tokenRe = /<(strong|em|\/strong|\/em)>|\u0000L:([^\u0000]+)\u0000|\u0000\/L\u0000|([^\u0000<]+)/gi
+  const tokenRe =
+    /<(\/?)(strong|em)\b[^>]*>|\u0000L:([^\u0000]+)\u0000|\u0000\/L\u0000|([^\u0000<]+)/gi
   let match: RegExpExecArray | null
 
   while ((match = tokenRe.exec(normalized)) !== null) {
-    const tag = match[1]?.toLowerCase()
-    if (tag === "strong") marks.push("strong")
-    else if (tag === "/strong") {
-      const idx = marks.lastIndexOf("strong")
-      if (idx >= 0) marks.splice(idx, 1)
-    } else if (tag === "em") marks.push("em")
-    else if (tag === "/em") {
-      const idx = marks.lastIndexOf("em")
-      if (idx >= 0) marks.splice(idx, 1)
-    } else if (match[2]) {
+    const tag = match[2]?.toLowerCase()
+    if (tag) {
+      if (match[1]) {
+        const idx = marks.lastIndexOf(tag)
+        if (idx >= 0) marks.splice(idx, 1)
+      } else {
+        marks.push(tag)
+      }
+    } else if (match[3]) {
       const markKey = key()
-      markDefs.push({ _key: markKey, _type: "link", href: decodeHtmlEntities(match[2]) })
+      markDefs.push({ _key: markKey, _type: "link", href: decodeHtmlEntities(match[3]) })
       marks.push(markKey)
       openLinkMarks.push(markKey)
     } else if (match[0] === LINK_CLOSE) {
@@ -108,8 +108,8 @@ export function parseInlineHtmlToSpans(html: string): ParsedInlineSpans {
         const idx = marks.lastIndexOf(markKey)
         if (idx >= 0) marks.splice(idx, 1)
       }
-    } else if (match[3]) {
-      const text = decodeHtmlEntities(match[3])
+    } else if (match[4]) {
+      const text = decodeHtmlEntities(match[4])
       if (text) spans.push({ text, marks: [...marks] })
     }
   }

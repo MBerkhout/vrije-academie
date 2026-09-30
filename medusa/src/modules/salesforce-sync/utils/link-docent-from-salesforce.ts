@@ -4,7 +4,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import productDocentenLink from "../../../links/product-docenten"
 import PeopleModuleService from "../../people/service"
 import type { SfCourseProductShape } from "../mappings/course-product"
-import type { SfProductgroupShape } from "../mappings/productgroup"
+import { stripHtmlToPlainText, type SfProductgroupShape } from "../mappings/productgroup"
 import SalesforceSyncModuleService from "../service"
 import { fetchTeacherAccountProfile } from "./fetch-teacher-account"
 import type { BulkImportContext } from "./import-context"
@@ -107,7 +107,7 @@ export function resolveTeacherFromProductgroup(
     child?.Main_Teacher_Name__c?.trim() ||
     fallbackTeacherNameFromGroup(group) ||
     null
-  const bio = group.Highlighted_Teacher_Teaser__c?.trim() || null
+  const bio = stripHtmlToPlainText(group.Highlighted_Teacher_Teaser__c) || null
   const photoUrl = extractImgSrcFromHtml(group.Highlighted_Teacher_Image__c)
 
   return { salesforceId, name, bio, photoUrl }

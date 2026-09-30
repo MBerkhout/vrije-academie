@@ -1,3 +1,4 @@
+import { decodeHtmlEntities } from "../../../lib/decode-html-entities"
 import { resolveExternalRegistrationUrl } from "../../../lib/external-registration-url"
 import type { RecordType } from "../../events/types"
 
@@ -199,13 +200,13 @@ export function sanitizeProductHandle(raw: string | null | undefined, fallback: 
 
 export function stripHtmlToPlainText(html: string | null | undefined): string {
   if (!html?.trim()) return ""
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>\s*<p[^>]*>/gi, "\n\n")
-    .replace(/<\/?p[^>]*>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
+  return decodeHtmlEntities(
+    html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>\s*<p[^>]*>/gi, "\n\n")
+      .replace(/<\/?p[^>]*>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+  )
     .replace(/\s+/g, " ")
     .trim()
 }

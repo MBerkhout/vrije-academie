@@ -1,6 +1,7 @@
+import { instructorBioText } from '@/components/pdp/instructor-bio'
+import type { EventInstructor } from '@/lib/commerce/types'
 import { defaultMessages } from '@/lib/i18n/messages'
 import { cn } from '@/lib/utils'
-import type { EventInstructor } from '@/lib/commerce/types'
 
 interface PdpFeaturedInstructorProps {
   instructor: EventInstructor
@@ -16,7 +17,7 @@ export function PdpFeaturedInstructor({ instructor, variant = 'light' }: PdpFeat
   const name = instructor.name?.trim()
   const role = instructor.role?.trim()
   const photoUrl = instructor.photo_url?.trim()
-  const bio = instructor.bio?.trim()
+  const bio = instructorBioText(instructor.bio)
 
   if (!name) return null
 

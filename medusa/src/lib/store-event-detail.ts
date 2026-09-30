@@ -1,6 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+import { decodeHtmlEntities } from "./decode-html-entities"
+
 import productDocentenLink from "../links/product-docenten"
 import productEventGroupLink from "../links/product-event-group"
 import PeopleModuleService from "../modules/people/service"
@@ -47,7 +49,7 @@ function toStoreInstructor(docent: Record<string, unknown>): StoreInstructor {
     name: String(docent.name),
     role: typeof docent.role === "string" ? docent.role : null,
     photo_url: typeof docent.photo_url === "string" ? docent.photo_url : null,
-    bio: typeof docent.bio === "string" ? docent.bio : null,
+    bio: typeof docent.bio === "string" ? decodeHtmlEntities(docent.bio) : null,
   }
 }
 
