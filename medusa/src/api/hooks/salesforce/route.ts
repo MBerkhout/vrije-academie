@@ -50,21 +50,24 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
     return
   }
 
+  const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
   const body = (req.body ?? {}) as WebhookBody
   const objectType = body.object_type?.trim()
   const method = body.method?.trim().toLowerCase()
   const ids = normalizeIds(body.ids)
+  const rejectedBody = () => JSON.stringify(req.body ?? null).slice(0, 500)
 
   if (!objectType || !method || !isWebhookMethod(method)) {
+    logger.warn(`[salesforce-sync] webhook rejected (object_type/method): ${rejectedBody()}`)
     res.status(400).json({ message: "object_type and method (create|update|delete) required" })
     return
   }
   if (!ids.length) {
+    logger.warn(`[salesforce-sync] webhook rejected (ids): ${rejectedBody()}`)
     res.status(400).json({ message: "ids must be a non-empty array of Salesforce ids" })
     return
   }
 
-  const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
   const sync = req.scope.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
   const receivedAt = new Date()
 

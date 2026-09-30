@@ -103,6 +103,8 @@ Fields: `Medusa_Order_Id__c` on `Order` (plus display id / email / status / tota
 }
 ```
 
+Invalid payloads (missing `object_type`, a method other than `create|update|delete`, or empty `ids`) get **400** and are logged as `webhook rejected` with the first 500 chars of the body.
+
 Each id is logged as one row in `salesforce_webhook_event`, then processed asynchronously (immediate fire-and-forget + scheduled sweep every minute). Sanity writes during queue processing are batched at the end of each batch.
 
 - **Stale rows**: rows stuck in `processing` longer than `SALESFORCE_WEBHOOK_STALE_PROCESSING_MINUTES` (default 15, e.g. worker killed by a PM2 reload) are reclaimed; each reclaim counts as an attempt (up to `SALESFORCE_WEBHOOK_MAX_ATTEMPTS`).
