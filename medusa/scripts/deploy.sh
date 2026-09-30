@@ -35,7 +35,14 @@ npx medusa db:migrate --execute-all-links
 # deploy instead of blindly reloading whatever process object already exists in PM2 —
 # `pm2 reload <name>` alone can leave a process stuck in a stale mode (e.g. fork instead
 # of cluster) if it was ever started outside this config.
-echo "==> startOrReload PM2 process from ecosystem.config.cjs: $PM2_APP_NAME"
+#
+# One-time migration to the server/worker split: an existing `medusa` cluster keeps its old
+# instance count on startOrReload, so recreate it when `medusa-worker` does not exist yet.
+if ! pm2 describe medusa-worker >/dev/null 2>&1 && pm2 describe "$PM2_APP_NAME" >/dev/null 2>&1; then
+  echo "==> First server/worker split: recreating $PM2_APP_NAME"
+  pm2 delete "$PM2_APP_NAME"
+fi
+echo "==> startOrReload PM2 processes from ecosystem.config.cjs: $PM2_APP_NAME + medusa-worker"
 pm2 startOrReload ecosystem.config.cjs --update-env
 pm2 save
 

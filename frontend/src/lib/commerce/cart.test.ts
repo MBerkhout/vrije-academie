@@ -43,7 +43,9 @@ describe('isCheckoutPath', () => {
     const { isCheckoutPath } = await import('./cart')
     expect(isCheckoutPath('/checkout/betaling')).toBe(true)
     expect(isCheckoutPath('/checkout/inloggen')).toBe(true)
+    expect(isCheckoutPath('/bedankt')).toBe(true)
     expect(isCheckoutPath('/winkelwagen')).toBe(false)
+    expect(isCheckoutPath('/bedankt-voor-je-inschrijving')).toBe(false)
   })
 })
 

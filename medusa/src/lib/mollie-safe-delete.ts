@@ -1,4 +1,9 @@
+import { MedusaError } from "@medusajs/framework/utils"
+
 import { extractMolliePaymentId, isMolliePaymentFailed } from "./mollie-payment-status"
+
+/** Money has moved: the session must survive so the webhook can complete the cart. */
+const MOLLIE_SETTLED = new Set(["paid", "authorized"])
 
 /** Mollie statuses that cannot be cancelled; Medusa may still drop the session. */
 const MOLLIE_UNCANCELLABLE = new Set([
@@ -67,6 +72,51 @@ export async function safeCancelMolliePayment(
   } catch (error) {
     logger?.warn?.(`Could not cancel Mollie payment ${id}: ${errorMessage(error)}`)
     return { data: { ...fallback, id: payment.id ?? id, status: payment.status } }
+  }
+}
+
+/**
+ * Throws when the Mollie payment behind a session is already paid/authorized.
+ * Medusa deletes sessions on any cart change; without this, a cart update that
+ * races the webhook silently drops a paid payment and no order is created.
+ * A failed GET does not block (fall back to the never-throw delete behaviour).
+ */
+export async function assertMolliePaymentNotSettled(
+  client: Pick<MollieSafeDeleteClient, "payments"> | undefined,
+  data: unknown
+): Promise<void> {
+  const id = extractMolliePaymentId(data)
+  if (!id || !client) return
+
+  let status: string
+  try {
+    status = ((await client.payments.get(id)).status ?? "").toLowerCase()
+  } catch {
+    return
+  }
+
+  if (MOLLIE_SETTLED.has(status)) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      `Mollie payment ${id} is ${status}; keeping the payment session so the order can be completed`
+    )
+  }
+}
+
+/**
+ * `deletePayment` wrapper: refuses to drop settled Mollie payments, otherwise
+ * never throws (see `wrapMollieDeleteNeverThrow`).
+ */
+export function wrapMollieDeleteKeepSettled<TInput extends { data?: unknown }, TOut>(
+  original: (this: { logger_?: MollieSafeDeleteLogger }, input: TInput) => Promise<TOut>
+): (
+  this: { logger_?: MollieSafeDeleteLogger; client_?: MollieSafeDeleteClient },
+  input: TInput
+) => Promise<TOut | { data: Record<string, unknown> }> {
+  const neverThrow = wrapMollieDeleteNeverThrow(original, "deletePayment")
+  return async function wrappedMollieDeleteKeepSettled(this, input) {
+    await assertMolliePaymentNotSettled(this.client_, input?.data)
+    return neverThrow.call(this, input)
   }
 }
 

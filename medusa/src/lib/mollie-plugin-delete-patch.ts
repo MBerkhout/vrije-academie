@@ -1,7 +1,7 @@
 import { createRequire } from "node:module"
 import path from "node:path"
 
-import { wrapMollieDeleteNeverThrow } from "./mollie-safe-delete"
+import { wrapMollieDeleteKeepSettled, wrapMollieDeleteNeverThrow } from "./mollie-safe-delete"
 
 const PATCHED = Symbol.for("va.mollieSafeDelete")
 
@@ -41,7 +41,7 @@ export function patchMolliePluginDeletePayment(): void {
     proto.cancelPayment = wrapMollieDeleteNeverThrow(proto.cancelPayment, "cancelPayment")
   }
   if (typeof proto.deletePayment === "function") {
-    proto.deletePayment = wrapMollieDeleteNeverThrow(proto.deletePayment, "deletePayment")
+    proto.deletePayment = wrapMollieDeleteKeepSettled(proto.deletePayment)
   }
   proto[PATCHED] = true
 }

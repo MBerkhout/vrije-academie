@@ -38,14 +38,37 @@ const mollieOpts = {
   medusaUrl: requireEnv("MEDUSA_URL"),
 }
 
+const redisUrl = process.env.REDIS_URL?.trim() || undefined
+
 export default defineConfig({
   modules: {
-    ...(process.env.REDIS_URL
+    // Redis must run with `maxmemory-policy noeviction` (BullMQ queues; see docs/DEPLOYMENT.md).
+    ...(redisUrl
       ? {
           workflows: {
             resolve: "@medusajs/medusa/workflow-engine-redis",
             options: {
-              redis: { url: process.env.REDIS_URL },
+              redis: { redisUrl },
+            },
+          },
+          event_bus: {
+            resolve: "@medusajs/medusa/event-bus-redis",
+            options: {
+              redisUrl,
+              workerOptions: { concurrency: 5 },
+            },
+          },
+          locking: {
+            resolve: "@medusajs/medusa/locking",
+            options: {
+              providers: [
+                {
+                  resolve: "@medusajs/medusa/locking-redis",
+                  id: "locking-redis",
+                  is_default: true,
+                  options: { redisUrl },
+                },
+              ],
             },
           },
         }
@@ -99,7 +122,9 @@ export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL || "postgresql://medusa:medusa@localhost:5432/medusa",
 
-    redisUrl: process.env.REDIS_URL,
+    redisUrl,
+    // "server" = HTTP only, "worker" = subscribers + scheduled jobs only (see ecosystem.config.cjs).
+    workerMode: (process.env.MEDUSA_WORKER_MODE as "shared" | "worker" | "server" | undefined) ?? "shared",
 
     jwtSecret: process.env.JWT_SECRET || "supersecret",
     cookieSecret: process.env.COOKIE_SECRET || "supersecret",
@@ -114,6 +139,7 @@ export default defineConfig({
       "http://localhost:7001,http://localhost:9000,http://localhost:3000,http://localhost:3001,http://localhost:3002",
   },
   admin: {
+    disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
     path: "/app",
     // Do not spread `...config` here — mergeConfig would merge duplicate `plugins`
     // arrays and register @vitejs/plugin-react twice (duplicate React Refresh / inWebWorker).

@@ -16,10 +16,14 @@ export type AddToCartTrackingContext = {
 let syncedCustomerId: string | null = null
 let accountCartSyncInFlight: Promise<string | null> | null = null
 
+/**
+ * Checkout flow incl. the post-payment `/bedankt` page: account cart sync must not
+ * run there, or it merges the just-paid cart away before the Mollie webhook completes it.
+ */
 export function isCheckoutPath(pathname?: string): boolean {
   const path =
     pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '')
-  return path.startsWith('/checkout')
+  return path.startsWith('/checkout') || path === '/bedankt' || path.startsWith('/bedankt/')
 }
 
 export function resetAccountCartSync(): void {

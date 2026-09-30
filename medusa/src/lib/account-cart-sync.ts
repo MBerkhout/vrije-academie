@@ -50,7 +50,42 @@ type CartRow = {
   metadata?: Record<string, unknown> | null
   promotions?: CartPromotionRow[] | null
   items?: CartLineRow[] | null
+  payment_collection?: {
+    payment_sessions?: { status?: string | null }[] | null
+  } | null
 }
+
+/** Session statuses of a payment that was started (e.g. Mollie redirect) and may still be paid. */
+const IN_PROGRESS_SESSION_STATUSES = new Set(["pending", "requires_more", "authorized"])
+
+/**
+ * A cart whose payment was started must not be merged or emptied: changing its
+ * lines deletes the payment session, so a Mollie webhook arriving afterwards
+ * cannot complete the cart and the paid order is lost.
+ */
+export function hasPaymentInProgress(cart: Pick<CartRow, "payment_collection">): boolean {
+  return (cart.payment_collection?.payment_sessions ?? []).some((session) =>
+    IN_PROGRESS_SESSION_STATUSES.has((session?.status ?? "").toLowerCase())
+  )
+}
+
+const CART_SYNC_FIELDS = [
+  "id",
+  "customer_id",
+  "created_at",
+  "completed_at",
+  "metadata",
+  "promotions.code",
+  "promotions.is_automatic",
+  "items.id",
+  "items.variant_id",
+  "items.quantity",
+  "items.unit_price",
+  "items.is_giftcard",
+  "items.metadata",
+  "items.variant.product.metadata",
+  "payment_collection.payment_sessions.status",
+]
 
 export function isGiftCardPurchaseLine(item: {
   is_giftcard?: boolean | null
@@ -152,22 +187,7 @@ async function loadCustomerCarts(
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "cart",
-    fields: [
-      "id",
-      "customer_id",
-      "created_at",
-      "completed_at",
-      "metadata",
-      "promotions.code",
-      "promotions.is_automatic",
-      "items.id",
-      "items.variant_id",
-      "items.quantity",
-      "items.unit_price",
-      "items.is_giftcard",
-      "items.metadata",
-      "items.variant.product.metadata",
-    ],
+    fields: CART_SYNC_FIELDS,
     filters: { customer_id: customerId },
   })
   return ((data ?? []) as CartRow[]).filter(isOpenCart)
@@ -180,22 +200,7 @@ async function loadCartById(
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "cart",
-    fields: [
-      "id",
-      "customer_id",
-      "created_at",
-      "completed_at",
-      "metadata",
-      "promotions.code",
-      "promotions.is_automatic",
-      "items.id",
-      "items.variant_id",
-      "items.quantity",
-      "items.unit_price",
-      "items.is_giftcard",
-      "items.metadata",
-      "items.variant.product.metadata",
-    ],
+    fields: CART_SYNC_FIELDS,
     filters: { id: cartId },
   })
   const cart = (data?.[0] as CartRow | undefined) ?? null
@@ -416,7 +421,8 @@ async function clearSourceCart(container: MedusaContainer, cartId: string): Prom
 
 /**
  * Merge all open carts for a logged-in customer into the oldest cart.
- * Optionally transfers a guest/local cart first.
+ * Optionally transfers a guest/local cart first. Carts with a payment in
+ * progress are never merged or emptied (see `hasPaymentInProgress`).
  */
 export async function syncAccountCarts(
   container: MedusaContainer,
@@ -432,13 +438,23 @@ export async function syncAccountCarts(
           "Cart belongs to another customer"
         )
       }
+      if (hasPaymentInProgress(local)) {
+        return refetchStoreCart(container, localCartId)
+      }
       if (!local.customer_id) {
         await transferCartToCustomer(container, localCartId, customerId)
       }
     }
   }
 
-  let carts = await loadCustomerCarts(container, customerId)
+  const openCarts = await loadCustomerCarts(container, customerId)
+  const carts = openCarts.filter((cart) => !hasPaymentInProgress(cart))
+  if (!carts.length && openCarts.length) {
+    const newest = [...openCarts].sort(
+      (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+    )[0]
+    return refetchStoreCart(container, newest.id)
+  }
   if (!carts.length) {
     const createdId = await createCustomerCart(container, customerId)
     await ensureCartTaxPreview(container, createdId)

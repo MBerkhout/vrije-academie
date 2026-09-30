@@ -134,7 +134,16 @@ Sanity Studio env for CI is provided via GitHub Secrets (see below), not on the 
 Medusa requires PostgreSQL and (recommended) Redis on the server or reachable from it:
 
 - `DATABASE_URL` — PostgreSQL connection string
-- `REDIS_URL` — Redis connection string (enables workflow engine)
+- `REDIS_URL` — Redis connection string (enables Redis workflow engine, event bus and locking). The Redis instance **must** use `maxmemory-policy noeviction`: the event bus and workflow engine keep BullMQ queues in Redis, and `allkeys-lru` silently evicts queued jobs (Medusa logs `IMPORTANT! Eviction policy is allkeys-lru. It should be "noeviction"` on every line). Staging uses the instance on port 6378 (`/etc/redis/redis-persistent.conf`, `CONFIG` is disabled so it needs a config edit + restart as root):
+
+  ```bash
+  sudo sed -i 's/^maxmemory-policy .*/maxmemory-policy noeviction/' /etc/redis/redis-persistent.conf
+  grep -q '^maxmemory-policy' /etc/redis/redis-persistent.conf || echo 'maxmemory-policy noeviction' | sudo tee -a /etc/redis/redis-persistent.conf
+  sudo systemctl restart redis-persistent
+  pm2 logs medusa --lines 20 --nostream   # the eviction warning should be gone
+  ```
+
+  Listing caches share this Redis; they all have TTLs, so with `noeviction` they expire instead of being evicted.
 - **OpenSearch** (unified site + PLP search) — self-hosted or managed node reachable from Medusa
 
 | Variable | Description |
@@ -257,6 +266,7 @@ DEPLOY_BRANCH=staging REPO_DIR=~/app bash ~/app/frontend/scripts/deploy.sh
 pm2 status
 pm2 logs frontend
 pm2 logs medusa
+pm2 logs medusa-worker   # subscribers, scheduled jobs, Salesforce/Sanity sync
 ```
 
 **`local changes would be overwritten by merge`** — Deploys reset the server checkout to `origin/staging` (`git checkout -f` + `git reset --hard`) before install/build, so tracked local edits cannot block the update. Gitignored files (`.env`) are left in place.
@@ -407,7 +417,16 @@ Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600
 
 `frontend/ecosystem.config.cjs` uses `instances: "max"` and `exec_mode: "cluster"` so all CPU cores serve requests in parallel. Memory limit is per-instance.
 
-Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set on the server (which switches the workflow engine to Redis so state is shared across all cluster instances).
+Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set on the server (which switches the workflow engine, event bus and locking to Redis so state is shared across all processes).
+
+`medusa/ecosystem.config.cjs` runs two PM2 apps ([Medusa worker mode](https://docs.medusajs.com/learn/production/worker-mode)):
+
+| App | Mode | Instances | Memory limit | Role |
+|---|---|---|---|---|
+| `medusa` | `MEDUSA_WORKER_MODE=server`, cluster, port 9000 | CPUs − 1 | 1 GB | HTTP API + admin |
+| `medusa-worker` | `MEDUSA_WORKER_MODE=worker`, fork, port 9001 (not proxied), admin disabled | 1 | 1.5 GB | Subscribers, scheduled jobs, event-bus queue |
+
+Events are queued in Redis and processed by the worker with concurrency 5, so a burst (e.g. a Salesforce bulk import emitting thousands of `product-variant.updated`) no longer fans out in-memory inside the API processes. Before the split, all three `shared` instances hit the 1 GB cap every few minutes during imports (~300 PM2 restarts each), and the in-memory local event bus lost pending events — including payment webhooks — on every restart. `scripts/deploy.sh` recreates `medusa` once when `medusa-worker` does not exist yet (instance count does not change on `startOrReload`).
 
 ### Sanity Live / Draft mode
 

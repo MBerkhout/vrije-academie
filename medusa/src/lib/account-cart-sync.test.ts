@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  hasPaymentInProgress,
   isGiftCardPurchaseLine,
   isOpenCart,
   pickCanonicalCartId,
@@ -100,5 +101,18 @@ describe("isOpenCart", () => {
     expect(isOpenCart({ completed_at: "2026-01-01T00:00:00.000Z" })).toBe(false)
     expect(isOpenCart({ completed_at: null })).toBe(true)
     expect(isOpenCart({ completed_at: "" })).toBe(true)
+  })
+})
+
+describe("hasPaymentInProgress", () => {
+  it("detects started payments", () => {
+    expect(hasPaymentInProgress({ payment_collection: { payment_sessions: [{ status: "pending" }] } })).toBe(true)
+    expect(hasPaymentInProgress({ payment_collection: { payment_sessions: [{ status: "authorized" }] } })).toBe(true)
+  })
+
+  it("ignores carts without an active session", () => {
+    expect(hasPaymentInProgress({ payment_collection: null })).toBe(false)
+    expect(hasPaymentInProgress({ payment_collection: { payment_sessions: [] } })).toBe(false)
+    expect(hasPaymentInProgress({ payment_collection: { payment_sessions: [{ status: "error" }] } })).toBe(false)
   })
 })

@@ -35,7 +35,10 @@ import createMollieClient, {
   PaymentStatus,
   type MollieClient,
 } from "@mollie/api-client"
-import { safeCancelMolliePayment } from "../../lib/mollie-safe-delete"
+import {
+  assertMolliePaymentNotSettled,
+  safeCancelMolliePayment,
+} from "../../lib/mollie-safe-delete"
 import { buildKlarnaOrderLine } from "./build-klarna-lines"
 import { MOLLIE_KLARNA_PROVIDER_ID, type MollieKlarnaProviderOptions } from "./types"
 
@@ -248,6 +251,7 @@ class MollieKlarnaProviderService extends AbstractPaymentProvider<MollieKlarnaPr
   }
 
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
+    await assertMolliePaymentNotSettled(this.client_, input.data)
     return safeCancelMolliePayment(this.client_, input.data, this.logger_)
   }
 

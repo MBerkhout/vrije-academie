@@ -146,11 +146,12 @@ export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContac
     let cancelled = false
     let attempts = 0
     let timer: ReturnType<typeof setTimeout> | undefined
+    // Pinned: the cart cookie can change while polling (e.g. another tab).
+    const cartId = getCartId()
 
     async function poll() {
       if (cancelled) return
 
-      const cartId = getCartId()
       if (!orderFromUrl && !sessionFromUrl && !cartId) {
         setError('Geen bestelling gevonden. Controleer je e-mail voor de bevestiging.')
         setPolling(false)

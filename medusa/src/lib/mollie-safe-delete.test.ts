@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
 
 import {
+  assertMolliePaymentNotSettled,
   safeCancelMolliePayment,
+  wrapMollieDeleteKeepSettled,
   wrapMollieDeleteNeverThrow,
 } from "./mollie-safe-delete"
 
@@ -81,5 +83,39 @@ describe("wrapMollieDeleteNeverThrow", () => {
     const result = await wrapped.call(ctx, { data: undefined })
     expect(result).toEqual({ data: {} })
     expect(ctx.logger_.warn).toHaveBeenCalled()
+  })
+})
+
+describe("assertMolliePaymentNotSettled", () => {
+  it("throws for paid and authorized payments", async () => {
+    for (const status of ["paid", "authorized"]) {
+      const c = client({ get: async () => ({ id: "tr_x", status }) })
+      await expect(assertMolliePaymentNotSettled(c, { id: "tr_x" })).rejects.toThrow(status)
+    }
+  })
+
+  it("allows open payments, missing ids and failed GETs", async () => {
+    const open = client({ get: async () => ({ id: "tr_x", status: "open" }) })
+    await expect(assertMolliePaymentNotSettled(open, { id: "tr_x" })).resolves.toBeUndefined()
+    await expect(assertMolliePaymentNotSettled(open, {})).resolves.toBeUndefined()
+    const broken = client({
+      get: async () => {
+        throw new Error("Not Found")
+      },
+    })
+    await expect(assertMolliePaymentNotSettled(broken, { id: "tr_x" })).resolves.toBeUndefined()
+  })
+})
+
+describe("wrapMollieDeleteKeepSettled", () => {
+  it("does not drop a paid payment", async () => {
+    const orig = vi.fn(async () => ({ data: {} }))
+    const wrapped = wrapMollieDeleteKeepSettled(orig)
+    const ctx = {
+      logger_: { warn: vi.fn() },
+      client_: client({ get: async () => ({ id: "tr_paid", status: "paid" }) }),
+    }
+    await expect(wrapped.call(ctx, { data: { id: "tr_paid" } })).rejects.toThrow("paid")
+    expect(orig).not.toHaveBeenCalled()
   })
 })

@@ -99,7 +99,7 @@ OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `cus
 
 **URL:** `/bedankt` (legacy `/checkout/bevestiging` redirects here).
 
-After Mollie payment, Mollie redirects to `{MOLLIE_REDIRECT_URL}` (e.g. `http://localhost:3000/bedankt`) **without** query params. The page reads `va_cart_id` from the cookie and polls `GET /store/checkout/confirmation?cart_id=…` until the webhook has created the order (`status: ready`). Zero-total checkout navigates directly with `?order=…`.
+After Mollie payment, Mollie redirects to `{MOLLIE_REDIRECT_URL}` (e.g. `http://localhost:3000/bedankt`) **without** query params. The page reads `va_cart_id` from the cookie once on mount (pinned for the whole polling loop) and polls `GET /store/checkout/confirmation?cart_id=…` until the webhook has created the order (`status: ready`). Zero-total checkout navigates directly with `?order=…`.
 
 Once the order is confirmed the URL is updated to `/bedankt?order={order.id}&token={view_token}` so the page can be bookmarked or revisited. The `view_token` is a 24-char HMAC-SHA256 (`THANK_YOU_SECRET` env → fallback `COOKIE_SECRET`). When visiting with both `?order=` and `?token=`, the backend validates the token before returning data.
 

@@ -29,7 +29,7 @@ Cart ID is stored in a **first-party cookie** named **`va_cart_id`** (constant `
 
 When a customer is logged in **outside checkout**, the storefront calls `POST /store/carts/sync` (`commerceClient.syncAccountCart`) via `ensureAccountCartSynced()` in `src/lib/commerce/cart.ts`. Medusa merges all open carts for that customer into the **oldest** cart (same variant quantities are combined; VA Thuis bundles stay qty 1; gift-card purchase lines stay separate). The cookie is then updated to that canonical cart id.
 
-**Checkout is excluded:** on `/checkout/*` the device keeps its current `va_cart_id` cart (login may still attach that cart to the customer, but no merge or cart swap). After leaving checkout, sync runs once on the next page.
+**Checkout is excluded:** on `/checkout/*` and `/bedankt` (`isCheckoutPath`) the device keeps its current `va_cart_id` cart (login may still attach that cart to the customer, but no merge or cart swap). After leaving checkout, sync runs once on the next page. `/bedankt` must be excluded because the Mollie webhook may still be completing the paid cart; merging it away deletes its payment session and no order is created. Medusa also never merges or empties a cart with a payment in progress (see `medusa/docs/README.md`).
 
 Guests keep a cookie-only cart until they log in outside checkout.
 
