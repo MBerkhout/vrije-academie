@@ -5,10 +5,10 @@ import { plpProductPath } from '@/lib/routes'
 import type { AgendaItem } from '@/lib/commerce/types'
 import {
   agendaRowButtonStatus,
-  presentationForAvailabilityStatus,
+  agendaRowStatusButtonPresentation,
+  AGENDA_ROW_STATUS_BUTTON_LAYOUT,
   shouldShowOnlineDeliveryIcon,
 } from '@/lib/event-status-presentation'
-import { productCtaBarFromEvent, textColorForHexBackground } from '@/lib/product-cta-bar'
 import { formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
 import { WaitlistTrigger } from '@/components/waitlist/WaitlistTrigger'
@@ -48,29 +48,15 @@ export function AgendaRow({ item }: AgendaRowProps) {
 
   const href = plpProductPath(item.product_handle)
   const anchorId = listingAgendaAnchorId(item.id, item.variant_id)
-  const buttonStatus = agendaRowButtonStatus(item)
-  const status = presentationForAvailabilityStatus(buttonStatus, { city: item.city })
-  const ctaBar = productCtaBarFromEvent(item)
-  const showExclusiefButton = buttonStatus === 'exclusief'
-  const badgeIsExclusief = (ctaBar?.label ?? '').toLowerCase().includes('exclusief')
-  const isSoldOut = buttonStatus === 'sold_out'
-  const showCtaLabel =
-    ctaBar != null &&
-    !showExclusiefButton &&
-    !(isSoldOut && badgeIsExclusief) &&
-    ctaBar.label.trim().toLowerCase() !== status.label.trim().toLowerCase()
-  const statusClassName = status.className
+  const isSoldOut = agendaRowButtonStatus(item) === 'sold_out'
+  const statusButton = agendaRowStatusButtonPresentation(item)
+  const statusClassName = statusButton.className
     .split(' ')
     .filter((c) => !c.startsWith('hover:'))
     .join(' ')
   const priceLabel = item.price ? formatPriceEur(item.price) : null
 
-  const statusButtonClassName = cn(
-    'relative z-20 flex items-center justify-center px-4 py-3 text-xs font-bold uppercase tracking-wide',
-    'sm:px-4 sm:py-0 sm:min-w-[7.5rem]',
-    'xl:px-5 xl:pl-10 xl:pr-8 xl:min-w-[140px]',
-    statusClassName,
-  )
+  const statusButtonClassName = cn(AGENDA_ROW_STATUS_BUTTON_LAYOUT, statusClassName)
 
   return (
     <article
@@ -147,17 +133,6 @@ export function AgendaRow({ item }: AgendaRowProps) {
           <DeliveryTypeIcon isOnline={isOnline} />
           <span className="truncate">{locationLabel}</span>
         </div>
-        {showCtaLabel && ctaBar ? (
-          <span
-            className="mt-1 inline-block max-w-full px-2 py-0.5 font-sans text-[10px] font-bold uppercase leading-snug tracking-wide"
-            style={{
-              backgroundColor: ctaBar.color,
-              color: textColorForHexBackground(ctaBar.color),
-            }}
-          >
-            {ctaBar.label}
-          </span>
-        ) : null}
       </div>
 
       {/* Time + price — stacked below xl so the title keeps width; pair from xl */}
@@ -180,11 +155,16 @@ export function AgendaRow({ item }: AgendaRowProps) {
           handle={item.product_handle}
           title={item.product_title}
           variantId={item.variant_id}
-          label={status.label}
+          label={statusButton.label}
           className={statusButtonClassName}
         />
       ) : (
-        <div className={statusButtonClassName}>{status.label}</div>
+        <div
+          className={cn(statusButtonClassName, 'pointer-events-none')}
+          style={statusButton.style}
+        >
+          {statusButton.label}
+        </div>
       )}
     </article>
   )

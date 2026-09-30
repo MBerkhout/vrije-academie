@@ -5,6 +5,7 @@ import {
   productTypeToSlug,
 } from '@/lib/plp-product-types'
 import { defaultMessages, interpolate } from '@/lib/i18n'
+import { productCtaBarFromEvent, textColorForHexBackground } from '@/lib/product-cta-bar'
 
 /**
  * Central place for **event / product availability and badge** presentation:
@@ -374,21 +375,29 @@ export interface SessionTableAvailabilityPresentation {
   className: string
 }
 
-/** Availability cell on the PDP session table (`PdpLocationTabs`). */
+/**
+ * Availability cell on the PDP session table (`PdpLocationTabs`).
+ * Orange “Nog N plaatsen” at or below `lowStockThreshold` or whenever the session is Bijna vol,
+ * so the cell never reads “Beschikbaar” next to a Bijna vol CTA.
+ */
 export function sessionTableAvailabilityPresentation(
   availableQuantity: number,
   lowStockThreshold: number,
+  capacity?: number | null,
 ): SessionTableAvailabilityPresentation {
   const t = defaultMessages.pdp
 
-  if (availableQuantity === 0) {
+  if (availableQuantity <= 0) {
     return {
       label: t.bookingSoldOutLabel ?? 'Wachtlijst',
       className: 'text-xs font-medium text-va-gray bg-va-lightgray px-2 py-0.5 rounded-none',
     }
   }
 
-  if (availableQuantity <= lowStockThreshold) {
+  if (
+    availableQuantity <= lowStockThreshold ||
+    isAlmostFullAvailability({ available_quantity: availableQuantity, capacity })
+  ) {
     return {
       label:
         availableQuantity === 1
@@ -468,6 +477,51 @@ export function agendaRowButtonStatus(item: {
   }
 
   return item.status
+}
+
+export type AgendaRowStatusButtonPresentation = {
+  label: string
+  className: string
+  style?: { backgroundColor: string; color: string }
+}
+
+/** Shared layout for agenda row status controls (Inschrijven, promos, Wachtlijst). */
+export const AGENDA_ROW_STATUS_BUTTON_LAYOUT =
+  'relative z-20 flex items-center justify-center px-3 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wide text-center leading-tight whitespace-normal sm:min-h-[4.625rem] w-full sm:w-[9.25rem] sm:max-w-[9.25rem] xl:w-[10rem] xl:max-w-[10rem] shrink-0'
+
+/**
+ * Label + colors for the agenda row status button.
+ * Wachtlijst when sold out; otherwise Salesforce `badge` / CTA colors when set; else inventory status.
+ */
+export function agendaRowStatusButtonPresentation(item: {
+  status: EventAvailabilityStatus
+  available_quantity?: number | null
+  has_exclusief_tag?: boolean
+  badge?: string | null
+  cta_color?: string | null
+  cta_color_hover?: string | null
+  city?: string | null
+}): AgendaRowStatusButtonPresentation {
+  if (agendaRowButtonStatus(item) === 'sold_out') {
+    const soldOut = presentationForAvailabilityStatus('sold_out')
+    return { label: soldOut.label, className: soldOut.className }
+  }
+
+  const ctaBar = productCtaBarFromEvent(item)
+  if (ctaBar) {
+    return {
+      label: ctaBar.label,
+      className: '',
+      style: {
+        backgroundColor: ctaBar.color,
+        color: textColorForHexBackground(ctaBar.color),
+      },
+    }
+  }
+
+  const status = agendaRowButtonStatus(item)
+  const presentation = presentationForAvailabilityStatus(status, { city: item.city })
+  return { label: presentation.label, className: presentation.className }
 }
 
 /**

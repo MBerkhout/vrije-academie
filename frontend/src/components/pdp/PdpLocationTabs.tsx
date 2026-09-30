@@ -504,7 +504,7 @@ export function PdpLocationTabs({
               const isOnline = isOnlineVariant(variant)
               const qty = ei?.available_quantity ?? 0
               const isFreeTrial = ei?.is_free_trial ?? false
-              const availability = sessionTableAvailabilityPresentation(qty, threshold)
+              const availability = sessionTableAvailabilityPresentation(qty, threshold, ei?.capacity)
               const ctaTone = sessionCtaTone(qty, ei?.capacity)
               const price = minVariantPriceCents(variant)
               const city = sessionCityLabel(ei, isOnline)
@@ -579,7 +579,7 @@ export function PdpLocationTabs({
                   const isOnline = isOnlineVariant(variant)
                   const qty = ei?.available_quantity ?? 0
                   const isFreeTrial = ei?.is_free_trial ?? false
-                  const availability = sessionTableAvailabilityPresentation(qty, threshold)
+                  const availability = sessionTableAvailabilityPresentation(qty, threshold, ei?.capacity)
                   const ctaTone = sessionCtaTone(qty, ei?.capacity)
                   const price = minVariantPriceCents(variant)
 

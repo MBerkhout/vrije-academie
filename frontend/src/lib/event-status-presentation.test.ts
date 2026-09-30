@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { EventCard } from '@/lib/commerce/types'
 import {
   agendaRowButtonStatus,
+  agendaRowStatusButtonPresentation,
   bookingPanelPrimaryCtaTone,
   eventIsFullySoldOut,
   isAlmostFullAvailability,
@@ -82,6 +83,16 @@ describe('sessionTableAvailabilityPresentation', () => {
   it('shows Wachtlijst when a session has zero spots', () => {
     expect(sessionTableAvailabilityPresentation(0, 5).label).toBe('Wachtlijst')
   })
+
+  it('shows the orange count when the session is Bijna vol, even above the low-stock threshold', () => {
+    const almostFull = sessionTableAvailabilityPresentation(13, 5, 50)
+    expect(almostFull.label).not.toBe('Beschikbaar')
+    expect(almostFull.className).toContain('text-va-orange')
+  })
+
+  it('stays green above the Bijna vol band', () => {
+    expect(sessionTableAvailabilityPresentation(20, 5, 50).className).toContain('text-green-700')
+  })
 })
 
 describe('isAlmostFullAvailability', () => {
@@ -159,6 +170,36 @@ describe('plpListingStockPresentation', () => {
     )
     expect(result.soldOut).toBe(true)
     expect(result.lowStock).toBeNull()
+  })
+})
+
+describe('agendaRowStatusButtonPresentation', () => {
+  it('shows Salesforce promo text in the button instead of Inschrijven', () => {
+    expect(
+      agendaRowStatusButtonPresentation({
+        status: 'open',
+        available_quantity: 12,
+        badge: 'Alleen online',
+        cta_color: '#5c2d91',
+      }),
+    ).toMatchObject({
+      label: 'Alleen online',
+      style: { backgroundColor: '#5c2d91', color: '#ffffff' },
+    })
+  })
+
+  it('shows Wachtlijst when sold out even with a promo badge', () => {
+    expect(
+      agendaRowStatusButtonPresentation({
+        status: 'sold_out',
+        available_quantity: 0,
+        badge: 'Exclusief in Amsterdam',
+        cta_color: '#9137f7',
+      }),
+    ).toMatchObject({
+      label: 'Wachtlijst',
+      className: expect.stringContaining('bg-va-gray'),
+    })
   })
 })
 
