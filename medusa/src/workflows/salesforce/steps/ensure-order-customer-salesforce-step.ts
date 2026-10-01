@@ -53,7 +53,7 @@ export const ensureOrderCustomerSalesforceStep = createStep(
 
     if (!row?.salesforce_id || !row.salesforce_account_id) {
       throw new Error(
-        `Customer ${input.customerId} has no Salesforce Person Account link after push`
+        `Customer push for ${input.customerId} did not complete (failed or still retrying). See push-customer-salesforce errors in the worker log.`
       )
     }
 

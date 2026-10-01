@@ -26,6 +26,26 @@ export type PreparePushCustomerOutput = {
   payloadFingerprint: string
 }
 
+type CustomerSyncRow = {
+  salesforce_id?: string | null
+  salesforce_account_id?: string | null
+  mapping_version?: string | null
+}
+
+/** Skip push only when Medusa already stores both SF ids and the payload fingerprint matches. */
+export function isUnchangedLinkedCustomer(
+  row: CustomerSyncRow | null | undefined,
+  payloadFingerprint: string,
+  isCreate?: boolean
+): boolean {
+  return (
+    !!row?.salesforce_id &&
+    !!row.salesforce_account_id &&
+    row.mapping_version === payloadFingerprint &&
+    !isCreate
+  )
+}
+
 function pickDefaultAddress(
   addresses: Array<{
     is_default_shipping?: boolean | null
@@ -131,7 +151,7 @@ export const preparePushCustomerStep = createStep(
       }
     }
 
-    if (mode === "update" && row?.mapping_version === payloadFingerprint && !input.isCreate) {
+    if (mode === "update" && isUnchangedLinkedCustomer(row, payloadFingerprint, input.isCreate)) {
       const out: PreparePushCustomerOutput = {
         skipped: true,
         skipReason: "unchanged",

@@ -72,8 +72,6 @@ export type SfPersonAccountPushShape = {
   /** Custom: "Shipping Address equals Billing Address" on Person Account. */
   Same_account_address__c?: boolean
   PersonBirthdate?: string
-  Salutation?: string
-  Salutation__c?: string
   Initials__c?: string
   Newsletter__c?: boolean
   Magazine__c?: boolean
@@ -111,8 +109,6 @@ export type SfContactPushShape = {
   MailingPostalCode?: string
   MailingCountry?: string
   Birthdate?: string
-  Salutation?: string
-  Salutation__c?: string
   Initials__c?: string
   Active__c?: boolean
   Newsletter__c?: boolean
@@ -364,9 +360,6 @@ export function personAccountFieldsFromMedusa(
   recordTypeId?: string
 ): SfPersonAccountPushShape {
   const meta = c.metadata ?? {}
-  const salutation =
-    (meta[CUSTOMER_METADATA_KEYS.salutation] as string | undefined)?.trim() ||
-    undefined
   const initials = (meta[CUSTOMER_METADATA_KEYS.initials] as string | undefined)?.trim()
 
   const fields: SfPersonAccountPushShape = {
@@ -379,10 +372,6 @@ export function personAccountFieldsFromMedusa(
   if (c.phone?.trim()) {
     fields.PersonMobilePhone = c.phone.trim()
     fields.Phone = c.phone.trim()
-  }
-  if (salutation) {
-    fields.Salutation = salutation
-    fields.Salutation__c = salutation
   }
   if (initials) fields.Initials__c = initials
 
@@ -398,9 +387,6 @@ export function personAccountFieldsFromMedusa(
 
 export function contactFieldsFromMedusa(c: MedusaCustomerShape): SfContactPushShape {
   const meta = c.metadata ?? {}
-  const salutation =
-    (meta[CUSTOMER_METADATA_KEYS.salutation] as string | undefined)?.trim() ||
-    undefined
   const initials = (meta[CUSTOMER_METADATA_KEYS.initials] as string | undefined)?.trim()
 
   const fields: SfContactPushShape = {
@@ -412,10 +398,6 @@ export function contactFieldsFromMedusa(c: MedusaCustomerShape): SfContactPushSh
   if (c.phone?.trim()) {
     fields.MobilePhone = c.phone.trim()
     fields.Phone = c.phone.trim()
-  }
-  if (salutation) {
-    fields.Salutation = salutation
-    fields.Salutation__c = salutation
   }
   if (initials) fields.Initials__c = initials
 
@@ -443,7 +425,6 @@ export function customerPushPayloadFingerprint(c: MedusaCustomerShape): string {
     email: c.email ?? null,
     phone: c.phone ?? null,
     address: c.address ?? null,
-    salutation: c.metadata?.[CUSTOMER_METADATA_KEYS.salutation] ?? null,
     initials: c.metadata?.[CUSTOMER_METADATA_KEYS.initials] ?? null,
     birthdate: c.metadata?.[CUSTOMER_METADATA_KEYS.birthdate] ?? null,
     newsletter: c.metadata?.[CUSTOMER_METADATA_KEYS.newsletter] ?? null,

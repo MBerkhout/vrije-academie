@@ -277,13 +277,21 @@ Salesforce **Person Accounts** (`Contact` + `Account`, `IsPersonAccount = true`)
 | SF → Medusa | OTP/password login, **login OTP request** (lazy import when Medusa customer missing), `POST /store/customer/me/sync-from-salesforce`, webhook, bulk import, admin pull | Pull Contact fields + default shipping address + marketing metadata |
 | Medusa → SF | `customer.created` / `customer.updated`, `POST /store/customer/me/push-to-salesforce` (after registration/address save) | **Create:** `POST Account` (`PersonMailing*`, `PersonBirthdate`, …) + `PATCH Contact` (`Mailing*`, `Birthdate`). **Update:** split `PATCH Account` (profile / address) + `PATCH Contact`. Birthdate stored in Medusa as `metadata.sf_birthdate` (ISO `YYYY-MM-DD`). |
 
-**Field map** (`mappings/customer.ts`): name, email, phone, mailing address (Account `PersonMailing*` + `Billing*` + `Shipping*`, Contact `Mailing*`), `Same_account_address__c` (= true when website uses one address for billing/shipping), salutation/initials/birthdate/IBAN (metadata), newsletter/magazine/editorial/opt-in flags (metadata). **Push:** `Newsletter__c` is written when `metadata.sf_newsletter === true` (e.g. waitlist signup). Country codes map NL/BE/DE ↔ Salesforce labels via `utils/country-code.ts`.
+**Field map** (`mappings/customer.ts`): name, email, phone, mailing address (Account `PersonMailing*` + `Billing*` + `Shipping*`, Contact `Mailing*`), `Same_account_address__c` (= true when website uses one address for billing/shipping), initials/birthdate/IBAN (metadata), newsletter/magazine/editorial/opt-in flags (metadata). **Salutation** (`Salutation` / `Salutation__c`) is **pulled only** into `metadata.sf_salutation`; Medusa never pushes it (avoids field-security errors on `Salutation__c`). **Push:** `Newsletter__c` is written when `metadata.sf_newsletter === true` (e.g. waitlist signup). Country codes map NL/BE/DE ↔ Salesforce labels via `utils/country-code.ts`.
 
 **Bulk import:** `npm run salesforce:import-customers` — SOQL `Contact WHERE IsPersonAccount = true AND Active__c = true AND Email != null`. Flags: `--dry-run`, `--limit=N`, `--all` (omit Active filter). Creates Medusa customers **without passwords** (OTP login). **Do not run full import until reviewed.**
 
 **Login-time import (lazy):** `GET /store/customer/lookup` treats Salesforce Person Accounts as known (`exists: true`, no Medusa row yet). First `POST /store/auth/otp/request` for that email runs `pullCustomerFromSalesforceWorkflow` synchronously, then emails the OTP. Uses the same Contact-by-email matcher as post-login pull (`findContactIdByEmail`, no `Active__c` filter). Helper: `src/lib/customer-auth/ensure-salesforce-customer.ts`. Apply step links an existing Medusa customer by email instead of creating a duplicate.
 
-**Registration push** requires `SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID` (customer Person Account record type, not Teacher). Staging sandbox Participant: `0121t000000QIr0AAG`. If this env var is missing, customer create fails (`SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID must be set…`) and the order push then fails with `has no Salesforce Person Account link after push` — the order stays in Medusa only. Set the var, reload Medusa, then `npm run salesforce:push -- --type=order --action=push --display-id=N`.
+**Registration push** requires `SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID` (customer Person Account record type, not Teacher). Staging sandbox Participant: `0121t000000QIr0AAG`. If this env var is missing, customer create fails (`SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID must be set…`) and the order push then fails with `Customer push for … did not complete` — the order stays in Medusa only. Set the var, reload Medusa, then `npm run salesforce:push -- --type=order --action=push --display-id=N`.
+
+**Order push troubleshooting**
+
+| Symptom | Likely cause |
+|---------|----------------|
+| `Customer push for … did not complete (failed or still retrying)` | Nested `push-customer-salesforce` failed or is retrying (60s interval). Check `pm2 logs medusa-worker` for `push-customer-salesforce` — e.g. `[INVALID_FIELD_FOR_INSERT_UPDATE]` on a field the connected user cannot write. |
+| Customer sync row has fingerprint but no `salesforce_id` | Person Account was found by email but an old “unchanged” skip prevented saving ids; fixed by only skipping when both ids are already stored. Re-push the order or customer. |
+| Order stuck in **Draft** in Salesforce | `activate-order-salesforce` failed — grant the connected user **Activate Orders** (`Orders activeren`), then admin **Push** on the order. |
 
 ## Orders (Medusa → Salesforce)
 
