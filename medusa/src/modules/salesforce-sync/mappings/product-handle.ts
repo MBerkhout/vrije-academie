@@ -1,10 +1,12 @@
+import { stripInvisibleChars } from "../../../lib/strip-invisible-chars"
+
 /** URL-safe handle from Salesforce Product2 when StockKeepingUnit is empty. */
 export function productHandleFromSalesforce(
   name: string | null | undefined,
   salesforceId: string,
   stockKeepingUnit?: string | null
 ): string {
-  const sku = stockKeepingUnit?.trim()
+  const sku = stockKeepingUnit ? stripInvisibleChars(stockKeepingUnit) : ""
   if (sku) {
     return sku
       .toLowerCase()

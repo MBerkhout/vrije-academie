@@ -20,6 +20,7 @@
     "migrate:seo-to-custom": "node ./scripts/migrate-seo-to-custom.mjs",
     "migrate:vathuis-landing-to-blocks": "node ./scripts/migrate-vathuis-landing-to-blocks.mjs",
     "migrate:blocks-inline": "node ./scripts/migrate-blocks-inline.mjs",
+    "fix:invisible-chars": "node ./scripts/fix-invisible-chars.mjs",
     "test": "vitest",
     "test:run": "vitest run"
   },

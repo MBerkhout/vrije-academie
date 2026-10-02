@@ -396,7 +396,8 @@ Some offline product groups (e.g. studiedag) reference a separate **`vaProductgr
 - Linked children use the **linked group’s** record type for `inferDeliveryType` (`Product_City__c` = `"Online"` → `delivery_type: online`, no `EventItem.city`).
 - Parent metadata: `salesforce_linked_online_productgroup_id`.
 - The linked online group is still imported as its **own** hidden product (`show_in_plp=false`, `salesforce_is_linked_online_slave=true` when referenced by a parent). Slave variants use SKU prefix `sf-slave-{childId}` and namespaced sync keys so they do not collide with merged parent variants (`sf-{childId}`). A variant already on that product under the raw child id or `sf-{childId}` is updated in place and keeps its current SKU.
-- `Productgroup_URL__c` handles are normalized (e.g. `online---studiedag-…` → `online-studiedag-…`) to satisfy Medusa handle rules.
+- Sanity mirror: slaves sync `isLinkedOnlineSlave` and `canonicalParentHandle` (first published parent by handle, from `salesforce_linked_online_parent_ids`). Storefront excludes slaves from `sitemap.xml` and sets PDP canonical to the parent. After deploy or schema change, run `npx medusa exec ./src/scripts/sync-sanity.ts -- --entity=products` to backfill existing products.
+- `Productgroup_URL__c` handles are normalized (e.g. `online---studiedag-…` → `online-studiedag-…`) to satisfy Medusa handle rules. Invisible characters (zero-width space/joiners, BOM, bidi marks) are stripped via `src/lib/strip-invisible-chars.ts`; this also applies to the Product2 `StockKeepingUnit` handle. To find and clean existing handles: `npm run fix:invisible-handles` (dry run) and `npm run fix:invisible-handles -- --fix`.
 - Webhooks on the linked group or its `vaProduct__c` rows also re-import parent groups that reference it.
 
 ### VAthuis (`Lezingen_Thuis`, `Thuis_College`)

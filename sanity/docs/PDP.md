@@ -8,7 +8,7 @@ Open any **Product** document in Sanity Studio. The "Editorial content" tab cont
 
 | Field | Description |
 |---|---|
-| **Page body** | Drag-and-drop content blocks (text, image/video, columns, accordion, tabs, whitespace). Restricted to PDP-surface blocks via the block registry. |
+| **Page body** | Drag-and-drop content blocks (text, image/video, columns, accordion, tabs, whitespace). Restricted to PDP-surface blocks via the block registry. On Salesforce sync, **Productgroup Subtitle** becomes a text block **Subtitle** (styled intro under the PDP title); a matching first paragraph in the description HTML is omitted so it is not duplicated. |
 | **Online badge** | Toggle + custom text shown in the booking panel (e.g. "Nu ook online te volgen!"). |
 | **Custom urgency message** | Short text (max 80 chars) shown in the promo banner above the page header. |
 | **Related products** | Up to 4 editor-curated product picks shown below the auto-generated Similar courses section. |
@@ -19,7 +19,7 @@ All other fields are mirrors from Medusa and are read-only, including **SEO titl
 
 | Setting | Default | Effect |
 |---|---|---|
-| `lowStockThreshold` | 5 | Show "Nog maar N plaatsen" when `available_quantity ≤ N`. |
+| `lowStockThreshold` | 5 | Session table and PLP availability copy when `available_quantity ≤ N`. Not shown in the booking panel sidebar. |
 | `deadlineWarningDays` | 7 | Show deadline warning when `registration_deadline_at` is within N days. |
 
 ## UI labels (`generalSettings › PDP › Labels`)

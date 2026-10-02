@@ -1,5 +1,6 @@
 import { descriptionToPdpBody } from "./description-to-pdp-body"
 import { deepEqual } from "../salesforce-sync/utils/deep-equal"
+import { stripInvisibleChars } from "../../lib/strip-invisible-chars"
 
 export type MirrorProductInput = {
   id: string
@@ -24,6 +25,8 @@ export type MirrorProductInput = {
   seo_description?: string | null
   external_registration_url?: string | null
   imported_body_blocks?: Record<string, unknown>[]
+  is_linked_online_slave?: boolean
+  canonical_parent_handle?: string | null
 }
 
 export type ExistingProductEditorial = {
@@ -52,7 +55,7 @@ export function buildProductMirrorDoc(
 
   const mirrorFields = {
     medusaId: product.id,
-    handle: product.handle,
+    handle: stripInvisibleChars(product.handle),
     title: product.title,
     recordType: product.record_type ?? null,
     thumbnailUrl: product.thumbnail ?? null,
@@ -80,6 +83,8 @@ export function buildProductMirrorDoc(
     seoTitle: product.seo_title ?? null,
     seoDescription: product.seo_description ?? null,
     externalRegistrationUrl: product.external_registration_url ?? null,
+    isLinkedOnlineSlave: product.is_linked_online_slave ?? false,
+    canonicalParentHandle: product.canonical_parent_handle ?? null,
   }
 
   const owned = existing?.pageBodyOwnedBySanity === true
@@ -128,6 +133,8 @@ export function productMirrorDocChanged(
     "seoTitle",
     "seoDescription",
     "externalRegistrationUrl",
+    "isLinkedOnlineSlave",
+    "canonicalParentHandle",
     "pageBodyOwnedBySanity",
     "onlineBadge",
     "customUrgencyMessage",
@@ -166,6 +173,8 @@ export const SANITY_PRODUCT_BATCH_FETCH_FIELDS = `
   seoTitle,
   seoDescription,
   externalRegistrationUrl,
+  isLinkedOnlineSlave,
+  canonicalParentHandle,
   pageBodyOwnedBySanity,
   onlineBadge,
   customUrgencyMessage,

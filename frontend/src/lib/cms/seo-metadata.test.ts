@@ -98,6 +98,19 @@ describe('seo-metadata', () => {
     expect(meta.description).toBe('SF desc')
   })
 
+  it('buildProductPdpMetadata applies robots override for slaves without a parent', () => {
+    const meta = buildProductPdpMetadata(
+      { seoTitle: 'Slave title' },
+      { title: 'Slave event' },
+      'Vrije Academie',
+      '/ons-aanbod/slave-handle',
+      { robots: NOINDEX_ROBOTS },
+    )
+
+    expect(meta.robots).toEqual(NOINDEX_ROBOTS)
+    expect(meta.alternates?.canonical).toMatch(/\/ons-aanbod\/slave-handle$/)
+  })
+
   it('noIndexMetadata applies utility robots directive', () => {
     expect(noIndexMetadata('Login')).toEqual({
       title: 'Login',

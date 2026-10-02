@@ -87,7 +87,7 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | Sanity field | Source | Editable in Studio? |
 |---|---|---|
 | `medusaId` | `Product.id` | No |
-| `handle` | `Product.handle` | No |
+| `handle` | `Product.handle` (invisible characters stripped) | No |
 | `title` | `Product.title` | No |
 | `recordType` | `EventGroup.record_type` | No |
 | `thumbnailUrl` | `Product.thumbnail` | No |
@@ -105,7 +105,7 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | `seoDescription` | `Product.metadata.salesforce_seo_description` (SF import) | No |
 | `externalRegistrationUrl` | `Product.metadata.salesforce_external_registration_url` (SF group `External_Registration_URL__c`), else first variant `External_Registration_URL_Product__c` | No |
 | `badge` | computed | No |
-| `body` | Seeded from `Product.description` (plain text, one `textBlock` per paragraph). SF product groups seed from metadata in order: `salesforce_web_trigger` (quote) → `salesforce_description_html` (intro + `<strong>` section titles as `textBlock.title`) → `salesforce_web_body` (bullets + bold subheadings). Imported blocks use `width: wide`. Skipped when `pageBodyOwnedBySanity` is true. | **Yes** |
+| `body` | Seeded from `Product.description` (plain text, one `textBlock` per paragraph). SF product groups seed from metadata in order: `salesforce_web_trigger` (quote) → `salesforce_description_html` (`Productgroup_Subtitle__c` as the first description `textBlock.subtitle`, with a matching opening `<p>` removed from the HTML when duplicated) + `<strong>` section titles as `textBlock.title` → `salesforce_web_body` (bullets + bold subheadings). Imported blocks use `width: wide`. Skipped when `pageBodyOwnedBySanity` is true. | **Yes** |
 | `pageBodyOwnedBySanity` | — | **Yes** — when off, each sync rebuilds `body` from the Medusa description; when on, sync leaves `body` unchanged |
 | `onlineBadge` | `{ enabled, text }` | **Yes** |
 | `customUrgencyMessage` | text max 80 chars | **Yes** |

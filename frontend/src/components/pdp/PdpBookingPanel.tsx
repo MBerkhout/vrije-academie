@@ -14,7 +14,6 @@ import {
   eventHasUnlimitedAvailability,
   eventIsFullySoldOut,
   eventPricePrefixLabel,
-  minPositiveBookableQuantity,
 } from '@/lib/event-status-presentation'
 import { formatPriceEur } from '@/lib/locale-format'
 import { cn } from '@/lib/utils'
@@ -35,18 +34,12 @@ interface PdpBookingPanelProps {
 
 function computeSignal(event: EventCard, settings: GeneralSettings | null): string | null {
   const pdp = settings?.pdp
-  const threshold = pdp?.lowStockThreshold ?? 5
   const deadlineDays = pdp?.deadlineWarningDays ?? 7
   const templates = pdp?.signalTemplates
 
   if (eventHasUnlimitedAvailability(event)) return null
 
   if (eventIsFullySoldOut(event)) return templates?.soldOut ?? 'Wachtlijst'
-
-  const qty = minPositiveBookableQuantity(event) ?? event.min_available_quantity
-  if (qty !== null && qty !== undefined && qty <= threshold) {
-    return (templates?.lowStock ?? 'Nog maar {n} plaatsen beschikbaar').replace('{n}', String(qty))
-  }
 
   // Check if any session deadline is within deadlineWarningDays
   const variants = event.variants ?? []

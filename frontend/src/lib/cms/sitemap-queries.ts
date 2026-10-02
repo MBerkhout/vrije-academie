@@ -34,6 +34,7 @@ interface SitemapProductRow {
   handle: string
   recordType?: string | null
   noIndex?: boolean
+  isLinkedOnlineSlave?: boolean
   _updatedAt?: string
 }
 
@@ -60,6 +61,13 @@ const SITEMAP_PRODUCTS_QUERY = `*[_type == "product" && defined(handle) && handl
   handle,
   recordType,
   "noIndex": seo.noIndex,
+  isLinkedOnlineSlave,
+  _updatedAt
+}`
+
+const LINKED_ONLINE_SLAVE_PDP_QUERY = `*[_type == "product" && isLinkedOnlineSlave == true && defined(handle) && handle != ""] {
+  handle,
+  recordType,
   _updatedAt
 }`
 
@@ -132,6 +140,7 @@ export async function fetchSitemapEntries(
   }
 
   for (const row of products ?? []) {
+    if (row.isLinkedOnlineSlave) continue
     if ((!includeNoIndex && row.noIndex) || !row.handle) continue
     const path = productDetailPath(row.handle, {
       recordType: row.recordType,
@@ -151,4 +160,18 @@ export async function fetchSitemapEntries(
   }
 
   return entries
+}
+
+/** Slave PDP paths for cache revalidation only (never included in public sitemap.xml). */
+export async function fetchLinkedOnlineSlavePdpEntries(): Promise<SitemapEntry[]> {
+  const rows = await staticClient.fetch<SitemapProductRow[]>(LINKED_ONLINE_SLAVE_PDP_QUERY)
+  return (rows ?? [])
+    .filter((row) => row.handle)
+    .map((row) => ({
+      path: productDetailPath(row.handle, {
+        recordType: row.recordType,
+        purchaseMode: row.recordType === 'vathuis' ? 'bundle_only' : undefined,
+      }),
+      lastModified: toDate(row._updatedAt),
+    }))
 }

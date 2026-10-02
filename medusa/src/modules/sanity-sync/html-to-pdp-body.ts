@@ -20,14 +20,19 @@ function stripTags(s: string): string {
   return decodeHtmlEntities(s.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim()
 }
 
+function normalizeComparableText(s: string): string {
+  return stripTags(s).replace(/\s+/g, " ").trim().toLowerCase()
+}
+
 function textBlock(
   content: Record<string, unknown>[],
-  options?: { title?: string | null }
+  options?: { title?: string | null; subtitle?: string | null }
 ): Record<string, unknown> {
   return {
     _type: "textBlock",
     _key: key(),
     ...(options?.title ? { title: options.title } : {}),
+    ...(options?.subtitle ? { subtitle: options.subtitle } : {}),
     content,
     titleSize: options?.title ? "h2" : undefined,
     titleAlignment: "left",
@@ -177,23 +182,57 @@ export function quoteHtmlToPdpBody(html: string | null | undefined): Record<stri
 }
 
 /**
- * Productgroup description: intro paragraphs plus `<strong>` headings mapped to `textBlock.title`.
+ * Productgroup description: optional `Productgroup_Subtitle__c` → leading `textBlock.subtitle` (deduped
+ * from the first `<p>` when it matches), then paragraphs plus `<strong>` headings mapped to `textBlock.title`.
  */
-export function descriptionHtmlToPdpBody(html: string | null | undefined): Record<string, unknown>[] {
-  if (!html?.trim()) return []
-
-  const trimmed = html.trim()
-  if (!/<[a-z][\s\S]*>/i.test(trimmed)) {
-    return [textBlock([portableTextBlock(trimmed)])]
+export function descriptionHtmlToPdpBody(
+  html: string | null | undefined,
+  options?: { subtitle?: string | null }
+): Record<string, unknown>[] {
+  if (!html?.trim()) {
+    const subtitleOnly = options?.subtitle?.trim()
+    return subtitleOnly ? [textBlock([], { subtitle: subtitleOnly })] : []
   }
 
-  const paragraphs = extractParagraphInners(trimmed)
+  const trimmed = html.trim()
+  const subtitle = options?.subtitle?.trim() || null
+
+  if (!/<[a-z][\s\S]*>/i.test(trimmed)) {
+    const plain = stripTags(trimmed)
+    if (!plain) {
+      return subtitle ? [textBlock([], { subtitle })] : []
+    }
+    if (subtitle && normalizeComparableText(plain) === normalizeComparableText(subtitle)) {
+      return [textBlock([], { subtitle })]
+    }
+    if (subtitle) {
+      return [textBlock([portableTextBlock(plain)], { subtitle })]
+    }
+    return [textBlock([portableTextBlock(plain)])]
+  }
+
+  let paragraphs = extractParagraphInners(trimmed)
   if (!paragraphs.length) {
     const text = stripTags(trimmed)
-    return text ? [textBlock([portableTextBlock(text)])] : []
+    if (!text) return subtitle ? [textBlock([], { subtitle })] : []
+    if (subtitle && normalizeComparableText(text) === normalizeComparableText(subtitle)) {
+      return [textBlock([], { subtitle })]
+    }
+    return subtitle ? [textBlock([portableTextBlock(text)], { subtitle })] : [textBlock([portableTextBlock(text)])]
+  }
+
+  if (subtitle && paragraphs.length) {
+    const firstPlain = stripTags(paragraphs[0]!)
+    if (normalizeComparableText(firstPlain) === normalizeComparableText(subtitle)) {
+      paragraphs = paragraphs.slice(1)
+    }
   }
 
   const blocks: Record<string, unknown>[] = []
+  if (subtitle) {
+    blocks.push(textBlock([], { subtitle }))
+  }
+
   for (let i = 0; i < paragraphs.length; ) {
     const heading = isStrongOnlyParagraph(paragraphs[i]!)
     if (heading && i + 1 < paragraphs.length && !isStrongOnlyParagraph(paragraphs[i + 1]!)) {
@@ -264,12 +303,15 @@ export function buildSalesforceImportedBody(
     null
   const webBody =
     (typeof metadata.salesforce_web_body === "string" && metadata.salesforce_web_body) || null
+  const subtitle =
+    (typeof metadata.salesforce_subtitle === "string" && metadata.salesforce_subtitle.trim()) ||
+    null
 
-  if (!trigger && !descriptionHtml && !webBody) return []
+  if (!trigger && !descriptionHtml && !webBody && !subtitle) return []
 
   return [
     ...quoteHtmlToPdpBody(trigger),
-    ...descriptionHtmlToPdpBody(descriptionHtml),
+    ...descriptionHtmlToPdpBody(descriptionHtml, { subtitle }),
     ...webBodyHtmlToPdpBody(webBody),
   ]
 }

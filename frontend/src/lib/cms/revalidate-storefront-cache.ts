@@ -1,6 +1,9 @@
 import { revalidatePath } from 'next/cache'
 
-import { fetchSitemapEntries } from '@/lib/cms/sitemap-queries'
+import {
+  fetchLinkedOnlineSlavePdpEntries,
+  fetchSitemapEntries,
+} from '@/lib/cms/sitemap-queries'
 import { plpCategoryHref, VATHUIS_BASE_PATH } from '@/lib/routes'
 
 /** Private chrome routes omitted from sitemap.xml but still cached with header/footer. */
@@ -40,8 +43,12 @@ export function mergeStorefrontPaths(
 }
 
 export async function collectStorefrontRevalidatePaths(): Promise<string[]> {
-  const entries = await fetchSitemapEntries({ includeNoIndex: true })
-  return mergeStorefrontPaths(entries.map((entry) => entry.path))
+  const [entries, slaveEntries] = await Promise.all([
+    fetchSitemapEntries({ includeNoIndex: true }),
+    fetchLinkedOnlineSlavePdpEntries(),
+  ])
+  const paths = [...entries, ...slaveEntries].map((entry) => entry.path)
+  return mergeStorefrontPaths(paths)
 }
 
 export async function revalidatePathsInBatches(

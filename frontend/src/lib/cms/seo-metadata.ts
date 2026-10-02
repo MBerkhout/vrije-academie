@@ -107,7 +107,8 @@ export function buildProductPdpMetadata(
     thumbnail?: string | null
   },
   titleSuffix: string,
-  path?: string
+  path?: string,
+  options?: { robots?: Metadata['robots'] }
 ): Metadata {
   const mirrorTitle = source?.seoTitle?.trim()
   const mirrorDescription = source?.seoDescription?.trim()
@@ -118,10 +119,15 @@ export function buildProductPdpMetadata(
     mirrorDescription ?? event.description?.slice(0, 160) ?? undefined
   const fallbackImage = event.image_urls?.[0] ?? event.thumbnail ?? undefined
 
-  return buildSeoMetadata(source?.seo, {
+  const meta = buildSeoMetadata(source?.seo, {
     fallbackTitle,
     fallbackDescription,
     fallbackImage,
     path,
   })
+
+  if (options?.robots) {
+    return { ...meta, robots: options.robots }
+  }
+  return meta
 }

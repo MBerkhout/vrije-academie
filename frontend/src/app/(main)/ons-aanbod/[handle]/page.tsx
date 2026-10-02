@@ -7,7 +7,11 @@ import {
   categoryDisplayTitle,
   getProductSeoByHandle,
 } from '@/lib/cms/sanity-refs'
-import { buildProductPdpMetadata, buildSeoMetadata } from '@/lib/cms/seo-metadata'
+import {
+  buildProductPdpMetadata,
+  buildSeoMetadata,
+  NOINDEX_ROBOTS,
+} from '@/lib/cms/seo-metadata'
 import { plpCategoryHref, plpProductPath, plpProductTypeHref, vathuisProductPath } from '@/lib/routes'
 import { PlpListingPage } from '@/components/plp/PlpListingPage'
 import { parseFilterState, serializeFilterState } from '../_state/url'
@@ -58,7 +62,22 @@ export async function generateMetadata({ params }: HandlePageProps): Promise<Met
   ])
   if (!event) return {}
 
-  return buildProductPdpMetadata(productSeo, event, 'Vrije Academie', plpProductPath(handle))
+  const selfPath = plpProductPath(handle)
+  let canonicalPath = selfPath
+  let robotsOverride: typeof NOINDEX_ROBOTS | undefined
+  if (productSeo?.isLinkedOnlineSlave) {
+    const parentHandle = productSeo.canonicalParentHandle?.trim()
+    if (parentHandle) canonicalPath = plpProductPath(parentHandle)
+    else robotsOverride = NOINDEX_ROBOTS
+  }
+
+  return buildProductPdpMetadata(
+    productSeo,
+    event,
+    'Vrije Academie',
+    canonicalPath,
+    robotsOverride ? { robots: robotsOverride } : undefined,
+  )
 }
 
 export default async function HandlePage({ params, searchParams }: HandlePageProps) {

@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest"
 
-import { mapSalesforceRecordType } from "./productgroup"
+import { mapSalesforceRecordType, sanitizeProductHandle } from "./productgroup"
+import { productHandleFromSalesforce } from "./product-handle"
+
+describe("product handles", () => {
+  const zw = "\u200B\u200C\u200D\uFEFF"
+
+  it("sanitizeProductHandle drops invisible characters", () => {
+    expect(sanitizeProductHandle(`colleges-architectuur-in-40-gebouwen${zw}`, "x")).toBe(
+      "colleges-architectuur-in-40-gebouwen"
+    )
+  })
+
+  it("productHandleFromSalesforce strips invisible characters from the SKU", () => {
+    expect(productHandleFromSalesforce("Name", "a0Xabc123456", `my-sku${zw}`)).toBe("my-sku")
+  })
+})
 
 describe("mapSalesforceRecordType", () => {
   it("maps known Salesforce developer names onto EventGroup record types", () => {

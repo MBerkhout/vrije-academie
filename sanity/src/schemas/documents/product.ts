@@ -242,8 +242,26 @@ export const product = defineType({
       name: "ctaColorHover",
       title: "CTA color hover",
       type: "string",
+      readOnly: true,
+      group: "mirror",
+    }),
+    defineField({
+      name: "isLinkedOnlineSlave",
+      title: "Linked online slave",
+      type: "boolean",
       group: "mirror",
       readOnly: true,
+      description:
+        "True when this catalog is a Salesforce linked-online slave (hidden from listings). Set by Medusa sync.",
+    }),
+    defineField({
+      name: "canonicalParentHandle",
+      title: "Canonical parent handle",
+      type: "string",
+      group: "mirror",
+      readOnly: true,
+      description:
+        "Parent hybrid product handle for SEO canonical when isLinkedOnlineSlave is true. Set by Medusa sync.",
     }),
   ],
   preview: {

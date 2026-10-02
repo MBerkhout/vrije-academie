@@ -44,14 +44,19 @@ describe('revalidate-storefront-cache', () => {
       { path: '/private-page' },
       { path: '/ons-aanbod/foo' },
     ])
+    vi.spyOn(sitemapQueries, 'fetchLinkedOnlineSlavePdpEntries').mockResolvedValue([
+      { path: '/ons-aanbod/online-slave' },
+    ])
 
     const { collectStorefrontRevalidatePaths } = await import('./revalidate-storefront-cache')
     const paths = await collectStorefrontRevalidatePaths()
 
     expect(sitemapQueries.fetchSitemapEntries).toHaveBeenCalledWith({ includeNoIndex: true })
+    expect(sitemapQueries.fetchLinkedOnlineSlavePdpEntries).toHaveBeenCalled()
     expect(paths).toContain('/')
     expect(paths).toContain('/private-page')
     expect(paths).toContain('/ons-aanbod/foo')
+    expect(paths).toContain('/ons-aanbod/online-slave')
     expect(paths).toContain('/winkelwagen')
     expect(paths).toContain('/mijn-account/aankopen')
   })

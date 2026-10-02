@@ -65,6 +65,22 @@ describe("parseInlineHtmlToSpans", () => {
 })
 
 describe("descriptionHtmlToPdpBody", () => {
+  it("maps Productgroup subtitle to textBlock.subtitle and drops a duplicate opening paragraph", () => {
+    const html =
+      "<p>Beleef de kunst van Matisse van dichtbij.</p><p><strong>Topstukken</strong></p><p>Body copy.</p>"
+
+    const blocks = descriptionHtmlToPdpBody(html, {
+      subtitle: "Beleef de kunst van Matisse van dichtbij.",
+    })
+
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]).toMatchObject({
+      subtitle: "Beleef de kunst van Matisse van dichtbij.",
+      content: [],
+    })
+    expect(blocks[1]).toMatchObject({ title: "Topstukken", titleSize: "h2" })
+  })
+
   it("maps strong-only paragraphs to textBlock titles", () => {
     const html =
       "<p>Intro paragraph.</p><p><strong>Section one</strong></p><p>Body one.</p><p><strong>Section two</strong></p><p>Body two.</p>"
@@ -117,6 +133,15 @@ describe("webBodyHtmlToPdpBody", () => {
 })
 
 describe("buildSalesforceImportedBody", () => {
+  it("includes subtitle-only body when Salesforce subtitle is set without description HTML", () => {
+    const blocks = buildSalesforceImportedBody({
+      salesforce_subtitle: "Korte intro.",
+    })
+
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0]).toMatchObject({ subtitle: "Korte intro.", content: [] })
+  })
+
   it("orders trigger, description, and web body", () => {
     const blocks = buildSalesforceImportedBody({
       salesforce_web_trigger: "Quote title",

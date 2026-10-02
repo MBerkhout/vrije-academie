@@ -35,6 +35,7 @@ All under `frontend/src/components/vathuis/`:
 - `VaThuisEventCard` — dark card with play overlay + episode meta
 - `VaThuisListingPage` / `VaThuisLiveListing` — catalog shell
 - `VaThuisPdpPageContent` — dark PDP (episodes table, booking panel). Shows only the **VAthuis – on demand** badge (no category badges). Title meta (episode count, play time) is stacked under the heading. Episode duration sits under the lesson title (no separate Duur column). Featured docent stays in the right-hand booking panel: photo left, name + title right, bio underneath (Salesforce `Web_Body__c`).
+- `VaThuisTrailer` — inline trailer on the PDP, rendered **directly after the subtitle** (first `textBlock` with a `subtitle`; at the top of the body when there is none). The trailer is the first `preview_available` episode (`findVathuisTrailer` in `vathuis-trailer.ts`); poster = product thumbnail, play button loads the Audience Player SDK in place via `GET …/preview-playback` (prefetched on mount). Hidden when no episode has a preview.
 - `VaThuisCmsPage` — renders CMS `page.blocks` via `BlockRenderer` (`tone="onDark"`)
 - `VaThuisHero` — landing hero. The image sits on the page background; a flat dark-gray plate in the asset is removed in the browser.
 

@@ -17,6 +17,8 @@ import { PdpEpisodesTable } from '@/components/pdp/PdpEpisodesTable'
 import { VaThuisSimilarCourses } from '@/components/vathuis/VaThuisSimilarCourses'
 import { PdpAnalytics } from '@/components/analytics/PdpAnalytics'
 import { Badge } from '@/components/ui/Badge'
+import { VaThuisTrailer } from '@/components/vathuis/VaThuisTrailer'
+import { findVathuisTrailer, splitPdpBodyAfterSubtitle } from '@/components/vathuis/vathuis-trailer'
 
 export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
   const [event, settings, similar] = await Promise.all([
@@ -52,6 +54,10 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
 
   const bannerText = extras?.customUrgencyMessage ?? null
   const vathuisEpisodes = event.vathuis?.episodes ?? []
+  const trailer = findVathuisTrailer(event.vathuis?.chapters, vathuisEpisodes)
+  const { before: bodyBeforeTrailer, after: bodyAfterTrailer } = trailer
+    ? splitPdpBodyAfterSubtitle(extras?.body)
+    : { before: extras?.body, after: undefined }
 
   return (
     <PdpAnalytics event={event} pageType="vathuis">
@@ -95,7 +101,16 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
                 ) : null}
               </div>
               <div className="mt-6 text-white [&_.pdp-body_.text-va-darkgray]:text-white/90 [&_.pdp-body_.text-va-black]:text-white [&_.pdp-body_a]:text-va-yellow">
-                <PdpBody blocks={extras?.body} tone="onDark" />
+                <PdpBody blocks={bodyBeforeTrailer} tone="onDark" />
+                {trailer ? (
+                  <VaThuisTrailer
+                    productHandle={handle}
+                    productTitle={event.title}
+                    episodeKey={trailer.episodeKey}
+                    posterUrl={event.thumbnail ?? event.image_urls?.[0]}
+                  />
+                ) : null}
+                <PdpBody blocks={bodyAfterTrailer} tone="onDark" />
               </div>
             </div>
 

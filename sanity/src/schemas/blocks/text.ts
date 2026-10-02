@@ -81,8 +81,8 @@ export const textBlock = defineType({
       rows: 2,
       group: "content",
       fieldset: "heading",
-      description: "Optional line under the heading (e.g. page intro).",
-      hidden: ({ parent }) => !parent?.title,
+      description:
+        "Optional intro line under the heading, or standalone subtitle on PDP pages (synced from Salesforce Productgroup Subtitle).",
     }),
     defineField({
       name: "showTitleDivider",

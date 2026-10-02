@@ -11,6 +11,12 @@ import { ctaBarFieldsFromMetadata } from "../../lib/product-cta-bar"
 import CatalogModuleService from "../catalog/service"
 import type { MirrorProductInput } from "./build-product-doc"
 import { buildSalesforceImportedBody } from "./html-to-pdp-body"
+import {
+  buildParentHandleBySfGroupId,
+  linkedOnlineParentSalesforceIds,
+  slaveMirrorSeoFields,
+} from "./resolve-slave-canonical-parent"
+import { isLinkedOnlineSlaveProduct } from "../../lib/store-listing-eligibility"
 
 export async function loadProductMirrorInputs(
   productIds: string[],
@@ -100,6 +106,17 @@ export async function loadProductMirrorInputs(
     if (productId) recordTypeByProduct.set(productId, recordType)
   }
 
+  const parentSfIdsForSlaves: string[] = []
+  for (const product of (products ?? []) as Record<string, unknown>[]) {
+    const metadata = (product.metadata ?? {}) as Record<string, unknown>
+    if (!isLinkedOnlineSlaveProduct(metadata)) continue
+    parentSfIdsForSlaves.push(...linkedOnlineParentSalesforceIds(metadata))
+  }
+  const parentHandleBySfGroupId = await buildParentHandleBySfGroupId(
+    parentSfIdsForSlaves,
+    container
+  )
+
   for (const product of (products ?? []) as Record<string, unknown>[]) {
     const productId = product.id as string
     if (!productId) continue
@@ -143,6 +160,7 @@ export async function loadProductMirrorInputs(
       product.description as string | null | undefined
     )
     const ctaFields = ctaBarFieldsFromMetadata(metadata)
+    const slaveSeo = slaveMirrorSeoFields(metadata, parentHandleBySfGroupId)
 
     result.set(productId, {
       id: productId,
@@ -171,6 +189,8 @@ export async function loadProductMirrorInputs(
       seo_description: seoDescription,
       external_registration_url: externalRegistrationUrl,
       imported_body_blocks: importedBodyBlocks,
+      is_linked_online_slave: slaveSeo.is_linked_online_slave,
+      canonical_parent_handle: slaveSeo.canonical_parent_handle,
     })
   }
 

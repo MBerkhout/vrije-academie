@@ -7,9 +7,17 @@ export const PLP_PATH_SEGMENT = 'ons-aanbod' as const
 /** Product listing (PLP) base path, e.g. `/ons-aanbod`. */
 export const PLP_BASE_PATH = `/${PLP_PATH_SEGMENT}` as const
 
+/** Invisible characters (zero-width, BOM, bidi marks) that must never appear in a URL path. */
+const INVISIBLE_CHARS = /[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g
+
+/** Defensive clean-up of CMS/commerce handles before they are used in a path. */
+export function cleanHandle(handle: string): string {
+  return handle.replace(INVISIBLE_CHARS, '').trim()
+}
+
 /** PDP URL path for a product handle (leading slash, no origin). */
 export function plpProductPath(handle: string): string {
-  return `${PLP_BASE_PATH}/${handle}`
+  return `${PLP_BASE_PATH}/${cleanHandle(handle)}`
 }
 
 /** Category PLP landing page, e.g. `/ons-aanbod/kunst`. */
@@ -48,7 +56,7 @@ export const VATHUIS_CATALOG_PATH = `${VATHUIS_BASE_PATH}/ons-aanbod` as const
 
 /** VA Thuis PDP URL path for a product handle. */
 export function vathuisProductPath(handle: string): string {
-  return `${VATHUIS_BASE_PATH}/${encodeURIComponent(handle)}`
+  return `${VATHUIS_BASE_PATH}/${encodeURIComponent(cleanHandle(handle))}`
 }
 
 /** VA Thuis catalog with docent filter. */

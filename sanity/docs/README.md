@@ -14,7 +14,7 @@ Discrete string (and some number) fields with a **fixed set of options** use the
 
 ### CTA and navigation URLs
 
-Fields titled **CTA URL** (and related link fields) use `defineCtaUrlField` from `src/schemas/objects/ctaUrl.ts` (`type: string`), not Sanity’s `url` type. Editors can enter site paths (`/ons-aanbod`, `/ons-aanbod?record_type=collegereeks`) or absolute `http(s)://` / `mailto:` URLs. YouTube, social, and form-endpoint fields stay on `type: url`.
+Fields titled **CTA URL** (and related link fields) use `defineCtaUrlField` from `src/schemas/objects/ctaUrl.ts` (`type: string`), not Sanity’s `url` type. Editors can enter site paths (`/ons-aanbod`, `/ons-aanbod?record_type=collegereeks`) or absolute `http(s)://` / `mailto:` URLs. YouTube, social, and form-endpoint fields stay on `type: url`. Values containing invisible characters (zero-width space/joiners, BOM — typically from copy/paste) are rejected. To find existing ones: `npm run fix:invisible-chars` (dry run) / `npm run fix:invisible-chars -- --fix` (cleans URL-like fields only).
 
 ### Image sizes
 
@@ -70,6 +70,7 @@ Pages, categories, and products use a lightweight **`seo`** object type defined 
 | `page` | `seo` | CMS pages, homepage, PLP wrapper, VA Thuis landing |
 | `category` | `seo` (SEO tab) | Preserved on Medusa sync |
 | `product` | `seo` (Editorial group) | Optional PDP override; mirror `seoTitle` / `seoDescription` from Salesforce remain read-only |
+| `product` | `isLinkedOnlineSlave`, `canonicalParentHandle` (Mirror group) | Medusa sync: linked-online slave flag and parent handle for storefront canonical/sitemap rules |
 | `city` | `seo` | Optional SEO for `/ons-aanbod/plaats/{slug}`; `noIndex` excludes from sitemap |
 
 **Structured data enrichment** (General settings → **Organization**): optional `legalName`, `logo`, `telephone`, `email`, `sameAs` for Schema.org `Organization` JSON-LD (footer contact/social used as fallbacks).

@@ -1,4 +1,5 @@
 import type { FieldMap } from "./types"
+import { stripInvisibleChars } from "../../../lib/strip-invisible-chars"
 import { usesSalesforceMedusaCustomFields } from "../utils/salesforce-medusa-fields"
 
 export type SfProduct2Shape = {
@@ -35,6 +36,6 @@ export const productMapping: FieldMap<MedusaProductShape, SfProduct2Shape> = {
   fromSalesforce: (sf) => ({
     title: sf.Name ?? undefined,
     description: sf.Description ?? undefined,
-    handle: sf.StockKeepingUnit ?? undefined,
+    handle: sf.StockKeepingUnit ? stripInvisibleChars(sf.StockKeepingUnit) || undefined : undefined,
   }),
 }

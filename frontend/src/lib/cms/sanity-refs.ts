@@ -314,10 +314,15 @@ export const getSanityProductExtras = cache(
 const PRODUCT_SEO_BY_HANDLE_QUERY = `*[_type == "product" && handle == $handle][0] {
   ${SEO_FIELD},
   seoTitle,
-  seoDescription
+  seoDescription,
+  isLinkedOnlineSlave,
+  canonicalParentHandle
 }`
 
-export interface ProductSeoByHandle extends ProductSeoSource {}
+export interface ProductSeoByHandle extends ProductSeoSource {
+  isLinkedOnlineSlave?: boolean | null
+  canonicalParentHandle?: string | null
+}
 
 export const getProductSeoByHandle = cache(
   async (handle: string): Promise<ProductSeoByHandle | null> =>

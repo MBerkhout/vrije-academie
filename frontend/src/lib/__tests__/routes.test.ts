@@ -22,6 +22,10 @@ describe('plpProductPath', () => {
   it('uses same segment as category (disambiguated at runtime)', () => {
     expect(plpProductPath('my-course')).toBe(`${PLP_BASE_PATH}/my-course`)
   })
+
+  it('strips invisible characters from the handle', () => {
+    expect(plpProductPath('my-course\u200B\u200C\u200D\uFEFF')).toBe(`${PLP_BASE_PATH}/my-course`)
+  })
 })
 
 describe('plpProductTypeHref', () => {

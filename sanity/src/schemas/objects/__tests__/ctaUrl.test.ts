@@ -19,6 +19,12 @@ describe("isValidCtaUrl", () => {
     expect(isValidCtaUrl("")).toBe(false)
     expect(isValidCtaUrl("javascript:alert(1)")).toBe(false)
   })
+
+  it("rejects zero-width and BOM characters", () => {
+    expect(isValidCtaUrl("/ons-aanbod/x\u200B\u200C\u200D")).toBe(false)
+    expect(isValidCtaUrl("/ons-aanbod/x\uFEFF")).toBe(false)
+    expect(typeof ctaUrlFormatMessage("/ons-aanbod/x\u200B")).toBe("string")
+  })
 })
 
 describe("ctaUrlFormatMessage", () => {
