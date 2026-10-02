@@ -20,7 +20,7 @@ function stripTags(s: string): string {
   return decodeHtmlEntities(s.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim()
 }
 
-/** Compare Salesforce subtitle vs opening `<p>`; ignore trailing sentence punctuation. */
+/** Compare two Salesforce text fields; ignores case, markup, and trailing sentence punctuation. */
 function normalizeComparableText(s: string): string {
   return stripTags(s)
     .replace(/\s+/g, " ")
@@ -28,10 +28,6 @@ function normalizeComparableText(s: string): string {
     .replace(/[.!?…]+$/u, "")
     .trim()
     .toLowerCase()
-}
-
-function openingParagraphMatchesSubtitle(paragraphInner: string, subtitle: string): boolean {
-  return normalizeComparableText(paragraphInner) === normalizeComparableText(subtitle)
 }
 
 function textBlock(
@@ -185,94 +181,72 @@ function isStrongOnlyParagraph(inner: string): string | null {
 }
 
 /**
- * When Salesforce Subtitle is empty, many product descriptions still use an intro `<p>`
- * followed by a `<p><strong>Section</strong></p>` block — treat that intro as the subtitle.
+ * Quote / web trigger (`Productgroup_Web_Trigger__c`) — the catch line under the PDP title
+ * (e.g. “Beleef de kunst van Matisse van dichtbij.”).
+ *
+ * Default: a heading-less `textBlock` with `subtitle`, which the storefront renders as a large
+ * lead line. VA Thuis passes `asLead: false` (plain text block) because its PDP takes the
+ * subtitle from `Productgroup_Subtitle__c` instead (see `extractPdpSubtitle` in the storefront).
  */
-function inferLeadSubtitleFromParagraphs(paragraphs: string[]): {
-  subtitle: string | null
-  paragraphs: string[]
-} {
-  if (paragraphs.length < 2) return { subtitle: null, paragraphs }
-  const first = paragraphs[0]!
-  const second = paragraphs[1]!
-  if (isStrongOnlyParagraph(first)) return { subtitle: null, paragraphs }
-  const sectionHeading = isStrongOnlyParagraph(second)
-  if (!sectionHeading) return { subtitle: null, paragraphs }
-  const subtitle = stripTags(first)
-  return subtitle ? { subtitle, paragraphs: paragraphs.slice(1) } : { subtitle: null, paragraphs }
-}
-
-/** Quote / web trigger — one plain textBlock. */
-export function quoteHtmlToPdpBody(html: string | null | undefined): Record<string, unknown>[] {
+export function quoteHtmlToPdpBody(
+  html: string | null | undefined,
+  options?: { asLead?: boolean }
+): Record<string, unknown>[] {
   const text = stripTags(html ?? "")
   if (!text) return []
-  return [textBlock([portableTextBlock(text)])]
+  if (options?.asLead === false) return [textBlock([portableTextBlock(text)])]
+  return [textBlock([], { subtitle: text })]
 }
 
 /**
- * Productgroup description: optional `Productgroup_Subtitle__c` → leading `textBlock.subtitle` (deduped
- * from the first `<p>` when it matches), then paragraphs plus `<strong>` headings mapped to `textBlock.title`.
+ * Productgroup description: paragraphs plus `<strong>` headings mapped to `textBlock.title`.
+ *
+ * `Productgroup_Subtitle__c` is mapped one of two ways:
+ * - `sectionTitle` (regular PDPs, e.g. “Het stadhuis van Amsterdam”): heading of the first
+ *   description paragraph, same as a `<strong>` section heading. When the description already
+ *   opens with its own heading, the section title is kept as a separate heading-only block.
+ * - `leadSubtitle` (VA Thuis): a leading subtitle-only block that the storefront lifts under the
+ *   H1; an opening `<p>` repeating it is dropped.
  */
 export function descriptionHtmlToPdpBody(
   html: string | null | undefined,
-  options?: { subtitle?: string | null }
+  options?: { sectionTitle?: string | null; leadSubtitle?: string | null }
 ): Record<string, unknown>[] {
-  if (!html?.trim()) {
-    const subtitleOnly = options?.subtitle?.trim()
-    return subtitleOnly ? [textBlock([], { subtitle: subtitleOnly })] : []
-  }
+  const sectionTitle = options?.sectionTitle?.trim() || null
+  const leadSubtitle = options?.leadSubtitle?.trim() || null
+  const lead = leadSubtitle ? [textBlock([], { subtitle: leadSubtitle })] : []
+
+  if (!html?.trim()) return lead
 
   const trimmed = html.trim()
-  let subtitle = options?.subtitle?.trim() || null
+
+  const withSectionTitle = (blocks: Record<string, unknown>[]): Record<string, unknown>[] => {
+    if (!sectionTitle || !blocks.length) return blocks
+    const [first, ...rest] = blocks
+    if (first && !first.title) {
+      return [{ ...first, title: sectionTitle, titleSize: "h2" }, ...rest]
+    }
+    return [textBlock([], { title: sectionTitle }), ...blocks]
+  }
+
+  const repeatsLeadSubtitle = (text: string): boolean =>
+    Boolean(leadSubtitle) && normalizeComparableText(text) === normalizeComparableText(leadSubtitle!)
 
   if (!/<[a-z][\s\S]*>/i.test(trimmed)) {
-    const plain = stripTags(trimmed)
-    if (!plain) {
-      return subtitle ? [textBlock([], { subtitle })] : []
-    }
-    if (subtitle && normalizeComparableText(plain) === normalizeComparableText(subtitle)) {
-      return [textBlock([], { subtitle })]
-    }
-    if (subtitle) {
-      return [textBlock([portableTextBlock(plain)], { subtitle })]
-    }
-    return [textBlock([portableTextBlock(plain)])]
+    if (repeatsLeadSubtitle(trimmed)) return lead
+    return [...lead, ...withSectionTitle([textBlock([portableTextBlock(trimmed)])])]
   }
 
   let paragraphs = extractParagraphInners(trimmed)
-  let subtitleInferred = false
-  if (!subtitle && paragraphs.length) {
-    const inferred = inferLeadSubtitleFromParagraphs(paragraphs)
-    if (inferred.subtitle) {
-      subtitle = inferred.subtitle
-      paragraphs = inferred.paragraphs
-      subtitleInferred = true
-    }
-  }
-
   if (!paragraphs.length) {
     const text = stripTags(trimmed)
-    if (!text) return subtitle ? [textBlock([], { subtitle })] : []
-    if (subtitle && normalizeComparableText(text) === normalizeComparableText(subtitle)) {
-      return [textBlock([], { subtitle })]
-    }
-    return subtitle ? [textBlock([portableTextBlock(text)], { subtitle })] : [textBlock([portableTextBlock(text)])]
+    if (!text || repeatsLeadSubtitle(text)) return lead
+    return [...lead, ...withSectionTitle([textBlock([portableTextBlock(text)])])]
   }
 
-  if (
-    !subtitleInferred &&
-    subtitle &&
-    paragraphs.length &&
-    openingParagraphMatchesSubtitle(paragraphs[0]!, subtitle)
-  ) {
-    paragraphs = paragraphs.slice(1)
-  }
+  if (repeatsLeadSubtitle(paragraphs[0]!)) paragraphs = paragraphs.slice(1)
 
   const blocks: Record<string, unknown>[] = []
-  if (subtitle) {
-    blocks.push(textBlock([], { subtitle }))
-  }
-
   for (let i = 0; i < paragraphs.length; ) {
     const heading = isStrongOnlyParagraph(paragraphs[i]!)
     if (heading && i + 1 < paragraphs.length && !isStrongOnlyParagraph(paragraphs[i + 1]!)) {
@@ -287,7 +261,7 @@ export function descriptionHtmlToPdpBody(
     i += 1
   }
 
-  return blocks
+  return [...lead, ...withSectionTitle(blocks)]
 }
 
 /**
@@ -328,6 +302,16 @@ export function webBodyHtmlToPdpBody(html: string | null | undefined): Record<st
   return [textBlock(content)]
 }
 
+/** VA Thuis bundle products carry `metadata.vathuis.purchase_mode = "bundle_only"`. */
+function isVathuisBundle(metadata: Record<string, unknown>): boolean {
+  const vathuis = metadata.vathuis
+  return (
+    typeof vathuis === "object" &&
+    vathuis !== null &&
+    (vathuis as Record<string, unknown>).purchase_mode === "bundle_only"
+  )
+}
+
 /** Build ordered PDP body blocks from Salesforce product metadata. */
 export function buildSalesforceImportedBody(
   metadata: Record<string, unknown>,
@@ -347,11 +331,29 @@ export function buildSalesforceImportedBody(
     (typeof metadata.salesforce_subtitle === "string" && metadata.salesforce_subtitle.trim()) ||
     null
 
-  if (!trigger && !descriptionHtml && !webBody && !subtitle) return []
+  if (!trigger && !descriptionHtml && !webBody && !(isVathuisBundle(metadata) && subtitle)) {
+    return []
+  }
+
+  // VA Thuis shows the Subtitle under the H1 (storefront `extractPdpSubtitle`); keep that shape.
+  if (isVathuisBundle(metadata)) {
+    return [
+      ...quoteHtmlToPdpBody(trigger, { asLead: false }),
+      ...descriptionHtmlToPdpBody(descriptionHtml, { leadSubtitle: subtitle }),
+      ...webBodyHtmlToPdpBody(webBody),
+    ]
+  }
+
+  // Regular PDP: the trigger is the lead line; the Subtitle heads the first description paragraph.
+  // Some groups repeat the trigger in the Subtitle field; show that line once.
+  const sectionTitle =
+    subtitle && trigger && normalizeComparableText(subtitle) === normalizeComparableText(trigger)
+      ? null
+      : subtitle
 
   return [
     ...quoteHtmlToPdpBody(trigger),
-    ...descriptionHtmlToPdpBody(descriptionHtml, { subtitle }),
+    ...descriptionHtmlToPdpBody(descriptionHtml, { sectionTitle }),
     ...webBodyHtmlToPdpBody(webBody),
   ]
 }

@@ -64,7 +64,7 @@ npx medusa exec ./src/scripts/sync-one-product-sanity.ts -- prod_01...
 
 ## Salesforce HTML → PDP body
 
-`html-to-pdp-body.ts` converts Salesforce `Productgroup_Description__c` / web body HTML into Sanity `textBlock` portable text. Inline tags supported: `<strong>`, `<em>`, `<a href="…">` (Sanity link marks), `<span>` (stripped, text kept), `<br>`. Attributes on these tags are ignored, so Salesforce markup such as `<strong style="color: rgb(247, 11, 11);">` still yields a bold span. Re-sync affected products after parser changes when `pageBodyOwnedBySanity` is false. When deduplicating the opening paragraph against `Productgroup_Subtitle__c`, trailing `.` / `!` / `?` is ignored so a subtitle without a period still matches the first `<p>`.
+`html-to-pdp-body.ts` converts Salesforce `Productgroup_Description__c` / web body HTML into Sanity `textBlock` portable text. Inline tags supported: `<strong>`, `<em>`, `<a href="…">` (Sanity link marks), `<span>` (stripped, text kept), `<br>`. Attributes on these tags are ignored, so Salesforce markup such as `<strong style="color: rgb(247, 11, 11);">` still yields a bold span. Re-sync affected products after parser changes when `pageBodyOwnedBySanity` is false. Text fields are compared ignoring case, markup, and trailing `.` / `!` / `?`.
 
 ## Environment variables (Medusa)
 
@@ -105,7 +105,7 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | `seoDescription` | `Product.metadata.salesforce_seo_description` (SF import) | No |
 | `externalRegistrationUrl` | `Product.metadata.salesforce_external_registration_url` (SF group `External_Registration_URL__c`), else first variant `External_Registration_URL_Product__c` | No |
 | `badge` | computed | No |
-| `body` | Seeded from `Product.description` (plain text, one `textBlock` per paragraph). SF product groups seed from metadata in order: `salesforce_web_trigger` (quote) → `salesforce_description_html` (`Productgroup_Subtitle__c` as the first description `textBlock.subtitle`, with a matching opening `<p>` removed from the HTML when duplicated; if Subtitle is empty, the first `<p>` before a `<strong>` section heading is inferred as subtitle) + `<strong>` section titles as `textBlock.title` → `salesforce_web_body` (bullets + bold subheadings). Imported blocks use `width: wide`. Skipped when `pageBodyOwnedBySanity` is true. | **Yes** |
+| `body` | Seeded from `Product.description` (plain text, one `textBlock` per paragraph). SF product groups seed from metadata in order: `salesforce_web_trigger` → `salesforce_description_html` (`<strong>` section titles as `textBlock.title`) → `salesforce_web_body` (bullets + bold subheadings). **Regular PDPs:** the trigger becomes a heading-less `textBlock` with `subtitle` (large lead line under the title), and `Productgroup_Subtitle__c` becomes the H2 of the first description paragraph; a Subtitle that repeats the trigger is skipped, and a Subtitle without a description is not imported. **VA Thuis** (`metadata.vathuis.purchase_mode = bundle_only`): the Subtitle stays a subtitle-only `textBlock` (the storefront lifts it under the H1) and the trigger stays a plain block. Imported blocks use `width: wide`. Skipped when `pageBodyOwnedBySanity` is true. | **Yes** |
 | `pageBodyOwnedBySanity` | — | **Yes** — when off, each sync rebuilds `body` from the Medusa description; when on, sync leaves `body` unchanged |
 | `onlineBadge` | `{ enabled, text }` | **Yes** |
 | `customUrgencyMessage` | text max 80 chars | **Yes** |

@@ -65,55 +65,34 @@ describe("parseInlineHtmlToSpans", () => {
 })
 
 describe("descriptionHtmlToPdpBody", () => {
-  it("maps Productgroup subtitle to textBlock.subtitle and drops a duplicate opening paragraph", () => {
+  it("uses the section title as the heading of the first description paragraph", () => {
     const html =
-      "<p>Beleef de kunst van Matisse van dichtbij.</p><p><strong>Topstukken</strong></p><p>Body copy.</p>"
+      "<p>Ben je weleens binnen geweest?</p>" +
+      "<p><strong>Sporen uit de 17e eeuw</strong></p><p>Vooral sporen uit de 17e eeuw.</p>"
 
-    const blocks = descriptionHtmlToPdpBody(html, {
-      subtitle: "Beleef de kunst van Matisse van dichtbij.",
-    })
+    const blocks = descriptionHtmlToPdpBody(html, { sectionTitle: "Het stadhuis van Amsterdam" })
 
     expect(blocks).toHaveLength(2)
-    expect(blocks[0]).toMatchObject({
-      subtitle: "Beleef de kunst van Matisse van dichtbij.",
-      content: [],
-    })
-    expect(blocks[1]).toMatchObject({ title: "Topstukken", titleSize: "h2" })
-  })
-
-  it("infers subtitle from intro paragraph before a strong section heading", () => {
-    const html =
-      "<p>Kom mee en ontdek het mooiste stadhuis van de Gouden Eeuw!</p>" +
-      "<p><strong>Het stadhuis van Amsterdam</strong></p>" +
-      "<p>Ben je weleens binnen geweest?</p>"
-
-    const blocks = descriptionHtmlToPdpBody(html)
-
-    expect(blocks).toHaveLength(2)
-    expect(blocks[0]).toMatchObject({
-      subtitle: "Kom mee en ontdek het mooiste stadhuis van de Gouden Eeuw!",
-      content: [],
-    })
-    expect(blocks[1]).toMatchObject({ title: "Het stadhuis van Amsterdam", titleSize: "h2" })
-  })
-
-  it("drops opening paragraph when subtitle differs only by trailing period", () => {
-    const html =
-      "<p>2500 jaar westerse kunstgeschiedenis in vogelvlucht.</p><p>Waar begin je als je meer wil weten over kunst?</p>"
-
-    const blocks = descriptionHtmlToPdpBody(html, {
-      subtitle: "2500 jaar westerse kunstgeschiedenis in vogelvlucht",
-    })
-
-    expect(blocks).toHaveLength(2)
-    expect(blocks[0]).toMatchObject({
-      subtitle: "2500 jaar westerse kunstgeschiedenis in vogelvlucht",
-      content: [],
-    })
-    const firstContentBlock = blocks[1]?.content as Array<{ children?: Array<{ text?: string }> }>
-    expect(firstContentBlock?.[0]?.children?.[0]?.text).toBe(
-      "Waar begin je als je meer wil weten over kunst?"
+    expect(blocks[0]).toMatchObject({ title: "Het stadhuis van Amsterdam", titleSize: "h2" })
+    expect((blocks[0]?.content as Array<{ children: Array<{ text: string }> }>)[0]?.children[0]?.text).toBe(
+      "Ben je weleens binnen geweest?"
     )
+    expect(blocks[0]).not.toHaveProperty("subtitle")
+    expect(blocks[1]).toMatchObject({ title: "Sporen uit de 17e eeuw", titleSize: "h2" })
+  })
+
+  it("keeps the section title as its own heading when the description opens with a heading", () => {
+    const html = "<p><strong>Eigen kop</strong></p><p>Tekst.</p>"
+
+    const blocks = descriptionHtmlToPdpBody(html, { sectionTitle: "Subtitel uit Salesforce" })
+
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]).toMatchObject({ title: "Subtitel uit Salesforce", content: [] })
+    expect(blocks[1]).toMatchObject({ title: "Eigen kop" })
+  })
+
+  it("does not create a block for a section title without a description", () => {
+    expect(descriptionHtmlToPdpBody(null, { sectionTitle: "Alleen een kop" })).toEqual([])
   })
 
   it("maps strong-only paragraphs to textBlock titles", () => {
@@ -168,15 +147,6 @@ describe("webBodyHtmlToPdpBody", () => {
 })
 
 describe("buildSalesforceImportedBody", () => {
-  it("includes subtitle-only body when Salesforce subtitle is set without description HTML", () => {
-    const blocks = buildSalesforceImportedBody({
-      salesforce_subtitle: "Korte intro.",
-    })
-
-    expect(blocks).toHaveLength(1)
-    expect(blocks[0]).toMatchObject({ subtitle: "Korte intro.", content: [] })
-  })
-
   it("orders trigger, description, and web body", () => {
     const blocks = buildSalesforceImportedBody({
       salesforce_web_trigger: "Quote title",
@@ -185,10 +155,77 @@ describe("buildSalesforceImportedBody", () => {
     })
 
     expect(blocks).toHaveLength(3)
-    expect((blocks[0]?.content as Array<{ children: Array<{ text: string }> }>)?.[0]?.children?.[0]?.text).toBe(
-      "Quote title"
-    )
+    expect(blocks[0]).toMatchObject({ subtitle: "Quote title", content: [] })
     expect(blocks[1]).not.toHaveProperty("title")
     expect((blocks[2]?.content as Array<{ listItem?: string }>)?.[0]?.listItem).toBe("bullet")
+  })
+
+  // Rondleiding Paleis op de Dam: trigger = catch line, Subtitle = heading of the first paragraph.
+  it("maps trigger to a lead subtitle and Subtitle to the first section heading", () => {
+    const blocks = buildSalesforceImportedBody({
+      salesforce_web_trigger: "Kom mee en ontdek het mooiste stadhuis van de Gouden Eeuw!",
+      salesforce_subtitle: "Het stadhuis van Amsterdam",
+      salesforce_description_html:
+        "<p>Ben je weleens binnen geweest in dat imposante gebouw op de Dam?</p>" +
+        "<p><strong>Sporen uit de 17e eeuw</strong></p><p>Vooral sporen uit de 17e eeuw.</p>",
+    })
+
+    expect(blocks).toHaveLength(3)
+    expect(blocks[0]).toMatchObject({
+      subtitle: "Kom mee en ontdek het mooiste stadhuis van de Gouden Eeuw!",
+      content: [],
+    })
+    expect(blocks[0]).not.toHaveProperty("title")
+    expect(blocks[1]).toMatchObject({ title: "Het stadhuis van Amsterdam", titleSize: "h2" })
+    expect(blocks[2]).toMatchObject({ title: "Sporen uit de 17e eeuw", titleSize: "h2" })
+  })
+
+  // Colleges Introductie kunstgeschiedenis: Subtitle repeats the trigger (minus the period).
+  it("shows a Subtitle that repeats the trigger only once", () => {
+    const blocks = buildSalesforceImportedBody({
+      salesforce_web_trigger: "2500 jaar westerse kunstgeschiedenis in vogelvlucht.",
+      salesforce_subtitle: "2500 jaar westerse kunstgeschiedenis in vogelvlucht",
+      salesforce_description_html: "<p>Waar begin je als je meer wil weten over kunst?</p>",
+    })
+
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]).toMatchObject({
+      subtitle: "2500 jaar westerse kunstgeschiedenis in vogelvlucht.",
+    })
+    expect(blocks[1]).not.toHaveProperty("title")
+  })
+
+  it("does not turn a lone Subtitle into body content", () => {
+    expect(buildSalesforceImportedBody({ salesforce_subtitle: "Korte intro." })).toEqual([])
+  })
+
+  // VA Thuis PDP lifts the first textBlock.subtitle under the H1 (`extractPdpSubtitle`).
+  it("keeps the Subtitle as a subtitle block for VA Thuis and the trigger as plain text", () => {
+    const blocks = buildSalesforceImportedBody({
+      vathuis: { purchase_mode: "bundle_only" },
+      salesforce_web_trigger: "Quote title",
+      salesforce_subtitle: "Een serie over kunst",
+      salesforce_description_html: "<p>Een serie over kunst.</p><p>Echte inhoud.</p>",
+    })
+
+    expect(blocks).toHaveLength(3)
+    expect(blocks[0]).not.toHaveProperty("subtitle")
+    expect((blocks[0]?.content as Array<{ children: Array<{ text: string }> }>)[0]?.children[0]?.text).toBe(
+      "Quote title"
+    )
+    expect(blocks[1]).toMatchObject({ subtitle: "Een serie over kunst", content: [] })
+    expect(blocks[2]).not.toHaveProperty("title")
+    expect((blocks[2]?.content as Array<{ children: Array<{ text: string }> }>)[0]?.children[0]?.text).toBe(
+      "Echte inhoud."
+    )
+  })
+
+  it("keeps a VA Thuis Subtitle even without a description", () => {
+    const blocks = buildSalesforceImportedBody({
+      vathuis: { purchase_mode: "bundle_only" },
+      salesforce_subtitle: "Alleen een subtitel",
+    })
+
+    expect(blocks).toEqual([expect.objectContaining({ subtitle: "Alleen een subtitel", content: [] })])
   })
 })
