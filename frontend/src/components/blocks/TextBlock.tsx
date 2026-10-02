@@ -60,9 +60,10 @@ export function TextBlock({ block, tone = 'default' }: { block: TextBlockType; t
         {subtitle && (
           <p
             className={cn(
-              getTitleSizeClass('h3'),
+              title ? getTitleSizeClass('h3') : 'text-xl md:text-2xl leading-snug',
               'font-semibold mb-4',
-              !showDivider && 'mt-2',
+              !title && !showDivider && 'mt-0',
+              title && !showDivider && 'mt-2',
               isDark ? 'text-white' : 'text-va-black',
               alignmentClass,
             )}

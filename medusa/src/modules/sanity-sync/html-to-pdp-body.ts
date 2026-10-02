@@ -184,6 +184,24 @@ function isStrongOnlyParagraph(inner: string): string | null {
   return match ? stripTags(match[1]) : null
 }
 
+/**
+ * When Salesforce Subtitle is empty, many product descriptions still use an intro `<p>`
+ * followed by a `<p><strong>Section</strong></p>` block — treat that intro as the subtitle.
+ */
+function inferLeadSubtitleFromParagraphs(paragraphs: string[]): {
+  subtitle: string | null
+  paragraphs: string[]
+} {
+  if (paragraphs.length < 2) return { subtitle: null, paragraphs }
+  const first = paragraphs[0]!
+  const second = paragraphs[1]!
+  if (isStrongOnlyParagraph(first)) return { subtitle: null, paragraphs }
+  const sectionHeading = isStrongOnlyParagraph(second)
+  if (!sectionHeading) return { subtitle: null, paragraphs }
+  const subtitle = stripTags(first)
+  return subtitle ? { subtitle, paragraphs: paragraphs.slice(1) } : { subtitle: null, paragraphs }
+}
+
 /** Quote / web trigger — one plain textBlock. */
 export function quoteHtmlToPdpBody(html: string | null | undefined): Record<string, unknown>[] {
   const text = stripTags(html ?? "")
@@ -205,7 +223,7 @@ export function descriptionHtmlToPdpBody(
   }
 
   const trimmed = html.trim()
-  const subtitle = options?.subtitle?.trim() || null
+  let subtitle = options?.subtitle?.trim() || null
 
   if (!/<[a-z][\s\S]*>/i.test(trimmed)) {
     const plain = stripTags(trimmed)
@@ -222,6 +240,16 @@ export function descriptionHtmlToPdpBody(
   }
 
   let paragraphs = extractParagraphInners(trimmed)
+  let subtitleInferred = false
+  if (!subtitle && paragraphs.length) {
+    const inferred = inferLeadSubtitleFromParagraphs(paragraphs)
+    if (inferred.subtitle) {
+      subtitle = inferred.subtitle
+      paragraphs = inferred.paragraphs
+      subtitleInferred = true
+    }
+  }
+
   if (!paragraphs.length) {
     const text = stripTags(trimmed)
     if (!text) return subtitle ? [textBlock([], { subtitle })] : []
@@ -231,7 +259,12 @@ export function descriptionHtmlToPdpBody(
     return subtitle ? [textBlock([portableTextBlock(text)], { subtitle })] : [textBlock([portableTextBlock(text)])]
   }
 
-  if (subtitle && paragraphs.length && openingParagraphMatchesSubtitle(paragraphs[0]!, subtitle)) {
+  if (
+    !subtitleInferred &&
+    subtitle &&
+    paragraphs.length &&
+    openingParagraphMatchesSubtitle(paragraphs[0]!, subtitle)
+  ) {
     paragraphs = paragraphs.slice(1)
   }
 

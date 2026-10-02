@@ -106,7 +106,7 @@ import { cn } from '@/lib/utils'
 
 ## Content Blocks
 
-**Text block**: Optional **heading** (size H1–H4, alignment) plus optional **subtitle**. **Line between title and subtitle** draws a **4px** **`va-yellow`** bar as wide as the heading — useful for page headers such as `/magazine-aanvragen`. Body copy stays in Portable Text below.
+**Text block**: Optional **heading** (size H1–H4, alignment) plus optional **subtitle**. A **subtitle without a heading** (typical PDP intro from Salesforce sync) uses **`text-xl` / `text-2xl`** semibold copy under the page title. **Line between title and subtitle** draws a **4px** **`va-yellow`** bar as wide as the heading — useful for page headers such as `/magazine-aanvragen`. Body copy stays in Portable Text below.
 
 Block components in `@/components/blocks` map to Sanity block types. The main page (`/`) and `[slug]` pages fetch blocks from CMS and render via `BlockRenderer`. Active block types: Text, Afbeelding, Accordion (FAQ), Form, Tabs, Whitespace, Hero, Banner slider, Productkaarten, Categories, USP, Review, Demand nearby, Persons, Columns, EventList, Editorials (cards). Tabs use the same blocks as the page (minus Hero, Tabs) per tab for consistency. **Tabs** block: **Mode** is **Tabs** (panels) or **In-page navigation**. In-page: **Page or URL** / **Section ID** (Sanity docs). **Content beside navigation** is available in the studio when the in-page menu is **Left**. **Tab labels** (top / left) applies to both modes. All blocks use shared `BlockWrapper` with layout controls (margin, padding, width, background). Deprecated blocks (`Inspiration highlight`, `3 columns highlight`) map to Columns presets—see Sanity docs.
 

@@ -81,6 +81,22 @@ describe("descriptionHtmlToPdpBody", () => {
     expect(blocks[1]).toMatchObject({ title: "Topstukken", titleSize: "h2" })
   })
 
+  it("infers subtitle from intro paragraph before a strong section heading", () => {
+    const html =
+      "<p>Kom mee en ontdek het mooiste stadhuis van de Gouden Eeuw!</p>" +
+      "<p><strong>Het stadhuis van Amsterdam</strong></p>" +
+      "<p>Ben je weleens binnen geweest?</p>"
+
+    const blocks = descriptionHtmlToPdpBody(html)
+
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]).toMatchObject({
+      subtitle: "Kom mee en ontdek het mooiste stadhuis van de Gouden Eeuw!",
+      content: [],
+    })
+    expect(blocks[1]).toMatchObject({ title: "Het stadhuis van Amsterdam", titleSize: "h2" })
+  })
+
   it("drops opening paragraph when subtitle differs only by trailing period", () => {
     const html =
       "<p>2500 jaar westerse kunstgeschiedenis in vogelvlucht.</p><p>Waar begin je als je meer wil weten over kunst?</p>"
