@@ -20,8 +20,18 @@ function stripTags(s: string): string {
   return decodeHtmlEntities(s.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim()
 }
 
+/** Compare Salesforce subtitle vs opening `<p>`; ignore trailing sentence punctuation. */
 function normalizeComparableText(s: string): string {
-  return stripTags(s).replace(/\s+/g, " ").trim().toLowerCase()
+  return stripTags(s)
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.!?…]+$/u, "")
+    .trim()
+    .toLowerCase()
+}
+
+function openingParagraphMatchesSubtitle(paragraphInner: string, subtitle: string): boolean {
+  return normalizeComparableText(paragraphInner) === normalizeComparableText(subtitle)
 }
 
 function textBlock(
@@ -221,11 +231,8 @@ export function descriptionHtmlToPdpBody(
     return subtitle ? [textBlock([portableTextBlock(text)], { subtitle })] : [textBlock([portableTextBlock(text)])]
   }
 
-  if (subtitle && paragraphs.length) {
-    const firstPlain = stripTags(paragraphs[0]!)
-    if (normalizeComparableText(firstPlain) === normalizeComparableText(subtitle)) {
-      paragraphs = paragraphs.slice(1)
-    }
+  if (subtitle && paragraphs.length && openingParagraphMatchesSubtitle(paragraphs[0]!, subtitle)) {
+    paragraphs = paragraphs.slice(1)
   }
 
   const blocks: Record<string, unknown>[] = []

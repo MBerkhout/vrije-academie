@@ -81,6 +81,25 @@ describe("descriptionHtmlToPdpBody", () => {
     expect(blocks[1]).toMatchObject({ title: "Topstukken", titleSize: "h2" })
   })
 
+  it("drops opening paragraph when subtitle differs only by trailing period", () => {
+    const html =
+      "<p>2500 jaar westerse kunstgeschiedenis in vogelvlucht.</p><p>Waar begin je als je meer wil weten over kunst?</p>"
+
+    const blocks = descriptionHtmlToPdpBody(html, {
+      subtitle: "2500 jaar westerse kunstgeschiedenis in vogelvlucht",
+    })
+
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]).toMatchObject({
+      subtitle: "2500 jaar westerse kunstgeschiedenis in vogelvlucht",
+      content: [],
+    })
+    const firstContentBlock = blocks[1]?.content as Array<{ children?: Array<{ text?: string }> }>
+    expect(firstContentBlock?.[0]?.children?.[0]?.text).toBe(
+      "Waar begin je als je meer wil weten over kunst?"
+    )
+  })
+
   it("maps strong-only paragraphs to textBlock titles", () => {
     const html =
       "<p>Intro paragraph.</p><p><strong>Section one</strong></p><p>Body one.</p><p><strong>Section two</strong></p><p>Body two.</p>"
