@@ -22,12 +22,13 @@ export function findVathuisTrailer(
 }
 
 /**
- * Splits the PDP body so the trailer can sit right after the subtitle (first `textBlock` with a
- * `subtitle`, e.g. the Salesforce Productgroup Subtitle). Without a subtitle block, everything is `after`.
+ * Pulls the subtitle (first `textBlock` with a `subtitle`, e.g. the Salesforce Productgroup Subtitle)
+ * out of the PDP body so it can render under the H1. A block that also has a title or content stays
+ * in the body without its subtitle; a subtitle-only block is dropped.
  */
-export function splitPdpBodyAfterSubtitle(blocks: unknown[] | undefined): {
-  before: unknown[]
-  after: unknown[]
+export function extractPdpSubtitle(blocks: unknown[] | undefined): {
+  subtitle: string | null
+  body: unknown[]
 } {
   const list = blocks ?? []
   const index = list.findIndex((block) => {
@@ -36,6 +37,12 @@ export function splitPdpBodyAfterSubtitle(blocks: unknown[] | undefined): {
       b?._type === 'textBlock' && typeof b.subtitle === 'string' && b.subtitle.trim().length > 0
     )
   })
-  if (index < 0) return { before: [], after: list }
-  return { before: list.slice(0, index + 1), after: list.slice(index + 1) }
+  if (index < 0) return { subtitle: null, body: list }
+
+  const found = list[index] as { subtitle: string; title?: unknown; content?: unknown[] }
+  const hasOtherContent = Boolean(found.title) || (found.content?.length ?? 0) > 0
+  const rest = hasOtherContent
+    ? list.map((block, i) => (i === index ? { ...found, subtitle: undefined } : block))
+    : list.filter((_, i) => i !== index)
+  return { subtitle: found.subtitle.trim(), body: rest }
 }

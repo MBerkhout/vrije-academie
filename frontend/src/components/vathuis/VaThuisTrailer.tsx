@@ -62,7 +62,7 @@ export function VaThuisTrailer({
   }
 
   return (
-    <div className="my-6 relative aspect-video w-full overflow-hidden bg-black">
+    <div className="mb-6 relative aspect-video w-full overflow-hidden bg-black">
       {playback && playSignal > 0 ? (
         <AudiencePlayerEmbed
           key={`${playback.articleId}-${playback.assetId}`}

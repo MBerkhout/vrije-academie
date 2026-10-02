@@ -18,7 +18,7 @@ import { VaThuisSimilarCourses } from '@/components/vathuis/VaThuisSimilarCourse
 import { PdpAnalytics } from '@/components/analytics/PdpAnalytics'
 import { Badge } from '@/components/ui/Badge'
 import { VaThuisTrailer } from '@/components/vathuis/VaThuisTrailer'
-import { findVathuisTrailer, splitPdpBodyAfterSubtitle } from '@/components/vathuis/vathuis-trailer'
+import { extractPdpSubtitle, findVathuisTrailer } from '@/components/vathuis/vathuis-trailer'
 
 export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
   const [event, settings, similar] = await Promise.all([
@@ -55,9 +55,7 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
   const bannerText = extras?.customUrgencyMessage ?? null
   const vathuisEpisodes = event.vathuis?.episodes ?? []
   const trailer = findVathuisTrailer(event.vathuis?.chapters, vathuisEpisodes)
-  const { before: bodyBeforeTrailer, after: bodyAfterTrailer } = trailer
-    ? splitPdpBodyAfterSubtitle(extras?.body)
-    : { before: extras?.body, after: undefined }
+  const { subtitle, body: bodyBlocks } = extractPdpSubtitle(extras?.body)
 
   return (
     <PdpAnalytics event={event} pageType="vathuis">
@@ -91,17 +89,13 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
                 <h1 className="font-sans text-2xl md:text-3xl font-bold text-white">
                   {event.title}
                 </h1>
-                {event.vathuis?.episode_count_label || event.vathuis?.play_time ? (
-                  <div className="flex flex-col gap-0.5 text-sm text-va-gray-300">
-                    {event.vathuis?.episode_count_label ? (
-                      <p>{event.vathuis.episode_count_label}</p>
-                    ) : null}
-                    {event.vathuis?.play_time ? <p>{event.vathuis.play_time}</p> : null}
-                  </div>
+                {subtitle ? (
+                  <p className="font-sans text-2xl md:text-3xl font-medium text-white/90">
+                    {subtitle}
+                  </p>
                 ) : null}
               </div>
               <div className="mt-6 text-white [&_.pdp-body_.text-va-darkgray]:text-white/90 [&_.pdp-body_.text-va-black]:text-white [&_.pdp-body_a]:text-va-yellow">
-                <PdpBody blocks={bodyBeforeTrailer} tone="onDark" />
                 {trailer ? (
                   <VaThuisTrailer
                     productHandle={handle}
@@ -110,7 +104,7 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
                     posterUrl={event.thumbnail ?? event.image_urls?.[0]}
                   />
                 ) : null}
-                <PdpBody blocks={bodyAfterTrailer} tone="onDark" />
+                <PdpBody blocks={bodyBlocks} tone="onDark" />
               </div>
             </div>
 

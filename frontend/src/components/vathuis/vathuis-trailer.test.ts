@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { VathuisChapter, VathuisEpisode } from '@/lib/commerce/types'
-import { findVathuisTrailer, splitPdpBodyAfterSubtitle } from './vathuis-trailer'
+import { extractPdpSubtitle, findVathuisTrailer } from './vathuis-trailer'
 
 function episode(number: number, preview = false, chapter_number?: number): VathuisEpisode {
   return { number, title: `Aflevering ${number}`, preview_available: preview, chapter_number }
@@ -26,20 +26,27 @@ describe('findVathuisTrailer', () => {
   })
 })
 
-describe('splitPdpBodyAfterSubtitle', () => {
-  const subtitle = { _type: 'textBlock', subtitle: 'Kunst in de eenentwintigste eeuw' }
-  const text = { _type: 'textBlock', content: [] }
+describe('extractPdpSubtitle', () => {
+  const subtitle = { _type: 'textBlock', subtitle: ' Kunst in de eenentwintigste eeuw ' }
+  const text = { _type: 'textBlock', content: [{ _type: 'block' }] }
 
-  it('splits right after the subtitle block', () => {
-    expect(splitPdpBodyAfterSubtitle([subtitle, text])).toEqual({ before: [subtitle], after: [text] })
+  it('removes a subtitle-only block and returns the trimmed subtitle', () => {
+    expect(extractPdpSubtitle([subtitle, text])).toEqual({
+      subtitle: 'Kunst in de eenentwintigste eeuw',
+      body: [text],
+    })
   })
 
-  it('puts everything after when there is no subtitle', () => {
-    expect(splitPdpBodyAfterSubtitle([text])).toEqual({ before: [], after: [text] })
-    expect(splitPdpBodyAfterSubtitle(undefined)).toEqual({ before: [], after: [] })
+  it('keeps a block that has a title or content, without its subtitle', () => {
+    const titled = { _type: 'textBlock', title: 'Intro', subtitle: 'Sub' }
+    const result = extractPdpSubtitle([titled])
+    expect(result.subtitle).toBe('Sub')
+    expect(result.body).toEqual([{ _type: 'textBlock', title: 'Intro', subtitle: undefined }])
   })
 
-  it('ignores blank subtitles', () => {
-    expect(splitPdpBodyAfterSubtitle([{ _type: 'textBlock', subtitle: '  ' }]).before).toEqual([])
+  it('returns the body untouched without a subtitle', () => {
+    expect(extractPdpSubtitle([text])).toEqual({ subtitle: null, body: [text] })
+    expect(extractPdpSubtitle(undefined)).toEqual({ subtitle: null, body: [] })
+    expect(extractPdpSubtitle([{ _type: 'textBlock', subtitle: '  ' }]).subtitle).toBeNull()
   })
 })
