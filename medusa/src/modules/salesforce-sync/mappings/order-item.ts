@@ -15,7 +15,6 @@ export type SfOrderItemShape = {
   /** Writable name shown on Orderproducten (`Product_Name__c` is a formula). */
   ProductName__c?: string
   Discount_Code__c?: string
-  Giftcard_Type__c?: string
   Giftcard_Beneficiary_Name__c?: string
   Giftcard_Beneficiary_Email__c?: string
   Voucher__c?: string
@@ -104,7 +103,6 @@ export function giftCardPurchaseOrderItemFields(
     PricebookEntryId: input.pricebookEntryId,
     Quantity: 1,
     UnitPrice: centsToMajorEur(input.amountCents),
-    Giftcard_Type__c: "Giftcard",
     Giftcard_Beneficiary_Name__c: input.recipientName,
     Giftcard_Beneficiary_Email__c: input.recipientEmail,
     ProductName__c: "Cadeaubon",
