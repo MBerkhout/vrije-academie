@@ -178,8 +178,6 @@ export function PdpEpisodesTable({
       setPlaylistIndex(index)
       setSelectedChapterNumber(item.chapterNumber)
       setPreviewEpisode(item.episode)
-      setPlayback(null)
-      setPlaySignal(0)
 
       const key = episodeKey(item.chapterNumber, item.episode.number)
       setLoadingEpisodeKey(key)
@@ -193,6 +191,9 @@ export function PdpEpisodesTable({
             setPlayback(resolvedPlayback)
             setPlaySignal((current) => current + 1)
           })
+        } else {
+          setPlayback(null)
+          setPlaySignal(0)
         }
       } finally {
         setLoadingEpisodeKey(null)

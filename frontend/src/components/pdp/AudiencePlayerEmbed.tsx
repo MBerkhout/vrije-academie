@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { VathuisPlaybackConfig } from '@/lib/commerce/types'
 import {
   mountAndPlayAudiencePlayer,
@@ -23,7 +23,7 @@ export function AudiencePlayerEmbed({
   playSignal,
   className,
 }: AudiencePlayerEmbedProps) {
-  const containerId = useId().replace(/:/g, '')
+  const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<AudiencePlayerInstance | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,14 +34,14 @@ export function AudiencePlayerEmbed({
   useLayoutEffect(() => {
     if (!playSignal) return
 
+    const container = containerRef.current
+    if (!container) return
+
     let cancelled = false
     setError(null)
 
     async function startPlayback() {
       try {
-        const container = document.getElementById(containerId)
-        if (!container) return
-
         const player = await mountAndPlayAudiencePlayer(
           container,
           playback,
@@ -61,8 +61,10 @@ export function AudiencePlayerEmbed({
       cancelled = true
       playerRef.current?.destroy()
       playerRef.current = null
+      // Video.js injects DOM outside React; clear it so unmount does not throw removeChild.
+      container.replaceChildren()
     }
-  }, [containerId, playback, playSignal])
+  }, [playback, playSignal])
 
   if (error) {
     return (
@@ -76,7 +78,7 @@ export function AudiencePlayerEmbed({
 
   return (
     <div
-      id={containerId}
+      ref={containerRef}
       className={`video-wrapper h-full w-full overflow-hidden [&_.video-js]:!h-full [&_.video-js]:!max-w-full [&_.video-js]:!w-full ${className ?? ''}`}
       data-vjs-player
     />

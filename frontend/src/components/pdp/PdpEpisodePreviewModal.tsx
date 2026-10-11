@@ -122,21 +122,29 @@ export function PdpEpisodePreviewModal({
         </div>
 
         <div className="relative aspect-video overflow-hidden bg-black">
-          {loadingNavigation ? (
-            <div className="flex h-full items-center justify-center text-white/70 text-sm px-6 text-center">
-              {t.episodeLoading ?? 'Aflevering laden…'}
-            </div>
-          ) : playback ? (
+          {playback ? (
             <AudiencePlayerEmbed
               key={`${playback.articleId}-${playback.assetId}-${playSignal}`}
               playback={playback}
               playSignal={playSignal}
             />
+          ) : loadingNavigation ? (
+            <div className="flex h-full items-center justify-center text-white/70 text-sm px-6 text-center">
+              {t.episodeLoading ?? 'Aflevering laden…'}
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center text-white/70 text-sm px-6 text-center">
               {t.episodePreviewUnavailable ?? 'Deze preview is momenteel niet beschikbaar.'}
             </div>
           )}
+          {loadingNavigation && playback ? (
+            <div
+              className="absolute inset-0 flex items-center justify-center bg-black/60 text-white/90 text-sm px-6 text-center"
+              aria-busy="true"
+            >
+              {t.episodeLoading ?? 'Aflevering laden…'}
+            </div>
+          ) : null}
         </div>
 
         {showNavigation ? (
