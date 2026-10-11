@@ -408,7 +408,7 @@ Salesforce record types **`Lezingen_Thuis`** and **`Thuis_College`** map to on-d
 - **`EventItem.delivery_type`** → `pre_recorded` (no session date/city)
 - **`EventItem.available_quantity`** — always unlimited on import; VA Thuis colleges cannot sell out (see `src/lib/vathuis-availability.ts`)
 - **`metadata.vathuis`** — chapters + episodes fetched from Audience Player (`Audience_Player_Article_Id__c` on the child product), plus `purchase_mode: bundle_only`
-- **`metadata.vathuis.chapters[]`** — each Audience Player season → `{ number, title, episodes[] }` (e.g. “1. Inleiding”, “2. Engeland”)
+- **`metadata.vathuis.chapters[]`** — each Audience Player season → `{ number, title, episodes[] }` (e.g. “1. Inleiding”, “2. Engeland”). If the series article has no nested `children` in GraphQL (mis-linked season in AP admin), import falls back to `ArticleList(ancestor_id, types: [episode])` and groups episodes by `parent_id`.
 - **Episode preview** — first episode of chapter 1 gets `preview_available: true`. Playback config (SDK + token) is fetched at runtime via `GET /store/events/:handle/episodes/:episodeKey/preview-playback`.
 - Optional env: `AUDIENCE_PLAYER_PROJECT_ID` (default `14`), `AUDIENCE_PLAYER_API_URL`, `AUDIENCE_PLAYER_CLIENT_ID`, `AUDIENCE_PLAYER_CLIENT_SECRET`, `AUDIENCE_PLAYER_PREVIEW_EMAIL`
 

@@ -20,6 +20,7 @@ export type VathuisChapter = {
 type AudienceArticleNode = {
   id: number
   name?: string | null
+  parent_id?: number | null
   metas?: { key: string; value?: string | null }[] | null
   assets?: { id: number; duration?: number | null }[] | null
   children?: AudienceArticleNode[] | null
@@ -50,6 +51,32 @@ const ARTICLE_WITH_CHAPTERS_QUERY = `
     }
   }
 `
+
+const ARTICLE_SEASON_TITLE_QUERY = `
+  query Article($articleId: Int!) {
+    Article(id: $articleId) {
+      id
+      name
+      metas { key value }
+    }
+  }
+`
+
+const ARTICLE_LIST_EPISODES_QUERY = `
+  query ArticleListEpisodes($ancestorId: Int!, $limit: Int!, $offset: Int!) {
+    ArticleList(ancestor_id: $ancestorId, types: [episode], limit: $limit, offset: $offset) {
+      items {
+        id
+        name
+        parent_id
+        metas { key value }
+        assets { id duration }
+      }
+    }
+  }
+`
+
+const ANCESTOR_EPISODE_PAGE_SIZE = 100
 
 import {
   buildPublicPreviewEmbedUrl,
@@ -126,6 +153,52 @@ function mapEpisode(
   }
 }
 
+function compareEpisodeOrder(a: AudienceArticleNode, b: AudienceArticleNode): number {
+  const nameA = (a.name ?? "").trim()
+  const nameB = (b.name ?? "").trim()
+  if (nameA && nameB && nameA !== nameB) {
+    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: "base" })
+  }
+  return a.id - b.id
+}
+
+/** Group descendant episodes (from ArticleList ancestor_id) into storefront chapters. */
+export function resolveChaptersFromDescendantEpisodes(
+  episodes: AudienceArticleNode[],
+  embedOptions: AudiencePlayerEmbedOptions,
+  seasonTitlesById?: ReadonlyMap<number, string>
+): VathuisChapter[] {
+  if (episodes.length === 0) return []
+
+  const byParent = new Map<number, AudienceArticleNode[]>()
+  for (const episode of episodes) {
+    if (typeof episode.id !== "number") continue
+    const parentId = typeof episode.parent_id === "number" ? episode.parent_id : 0
+    const bucket = byParent.get(parentId) ?? []
+    bucket.push(episode)
+    byParent.set(parentId, bucket)
+  }
+
+  const parentIds = [...byParent.keys()].sort((a, b) => a - b)
+
+  return parentIds
+    .map((parentId, chapterIndex) => {
+      const chapterNumber = chapterIndex + 1
+      const nodes = [...(byParent.get(parentId) ?? [])].sort(compareEpisodeOrder)
+      const mappedEpisodes = nodes.map((node, episodeIndex) =>
+        mapEpisode(node, episodeIndex, chapterNumber, embedOptions)
+      )
+      const seasonTitle = parentId > 0 ? seasonTitlesById?.get(parentId) : undefined
+
+      return {
+        number: chapterNumber,
+        title: seasonTitle?.trim() || `Hoofdstuk ${chapterNumber}`,
+        episodes: mappedEpisodes,
+      }
+    })
+    .filter((chapter) => chapter.episodes.length > 0)
+}
+
 function resolveChapters(
   root: AudienceArticleNode | null | undefined,
   embedOptions: AudiencePlayerEmbedOptions
@@ -169,6 +242,120 @@ export function isVathuisRecordType(developerName: string | null | undefined): b
   return normalized === "lezingen_thuis" || normalized === "thuis_college"
 }
 
+type AudienceGraphqlOptions = {
+  projectId: number
+  apiBaseUrl: string
+}
+
+async function audiencePlayerGraphql<T>(
+  options: AudienceGraphqlOptions,
+  query: string,
+  variables?: Record<string, unknown>
+): Promise<T> {
+  const url = `${options.apiBaseUrl}/graphql/${options.projectId}/user`
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Audience Player API HTTP ${response.status}`)
+  }
+
+  const json = (await response.json()) as {
+    data?: T
+    errors?: { message?: string }[]
+  }
+
+  if (json.errors?.length) {
+    const message = json.errors[0]?.message ?? "Audience Player GraphQL error"
+    if (/not found/i.test(message)) {
+      return {} as T
+    }
+    throw new Error(message)
+  }
+
+  return json.data ?? ({} as T)
+}
+
+async function fetchSeasonTitles(
+  graphql: AudienceGraphqlOptions,
+  seasonIds: number[]
+): Promise<Map<number, string>> {
+  const titles = new Map<number, string>()
+  await Promise.all(
+    seasonIds.map(async (seasonId) => {
+      if (seasonId <= 0) return
+      try {
+        const data = await audiencePlayerGraphql<{ Article?: AudienceArticleNode | null }>(
+          graphql,
+          ARTICLE_SEASON_TITLE_QUERY,
+          { articleId: seasonId }
+        )
+        const season = data.Article
+        if (!season) return
+        const title =
+          metaValue(season.metas, "title") ?? season.name?.trim() ?? `Hoofdstuk ${seasonId}`
+        titles.set(seasonId, title)
+      } catch {
+        // Season may be hidden from Article(id) while episodes remain listable.
+      }
+    })
+  )
+  return titles
+}
+
+async function fetchDescendantEpisodes(
+  graphql: AudienceGraphqlOptions,
+  ancestorId: number
+): Promise<AudienceArticleNode[]> {
+  const episodes: AudienceArticleNode[] = []
+  let offset = 0
+
+  while (true) {
+    const data = await audiencePlayerGraphql<{
+      ArticleList?: { items?: AudienceArticleNode[] | null } | null
+    }>(graphql, ARTICLE_LIST_EPISODES_QUERY, {
+      ancestorId,
+      limit: ANCESTOR_EPISODE_PAGE_SIZE,
+      offset,
+    })
+
+    const page = (data.ArticleList?.items ?? []).filter(
+      (item) => typeof item?.id === "number"
+    ) as AudienceArticleNode[]
+    episodes.push(...page)
+
+    if (page.length < ANCESTOR_EPISODE_PAGE_SIZE) break
+    offset += ANCESTOR_EPISODE_PAGE_SIZE
+  }
+
+  return episodes
+}
+
+async function fetchVathuisChaptersViaAncestorFallback(
+  seriesArticleId: number,
+  graphql: AudienceGraphqlOptions,
+  embedOptions: AudiencePlayerEmbedOptions
+): Promise<VathuisChapter[]> {
+  const episodes = await fetchDescendantEpisodes(graphql, seriesArticleId)
+  if (episodes.length === 0) return []
+
+  const seasonIds = [
+    ...new Set(
+      episodes
+        .map((episode) => episode.parent_id)
+        .filter((id): id is number => typeof id === "number" && id > 0)
+    ),
+  ]
+  const seasonTitles = await fetchSeasonTitles(graphql, seasonIds)
+  return resolveChaptersFromDescendantEpisodes(episodes, embedOptions, seasonTitles)
+}
+
 export async function fetchVathuisChaptersFromAudiencePlayer(
   articleId: number,
   options?: { projectId?: number; apiBaseUrl?: string; embed?: AudiencePlayerEmbedOptions }
@@ -181,39 +368,23 @@ export async function fetchVathuisChaptersFromAudiencePlayer(
   if (!Number.isFinite(articleId) || articleId <= 0) return []
   if (!Number.isFinite(projectId) || projectId <= 0) return []
 
-  const url = `${apiBaseUrl}/graphql/${projectId}/user`
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      query: ARTICLE_WITH_CHAPTERS_QUERY,
-      variables: { articleId },
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Audience Player API HTTP ${response.status}`)
-  }
-
-  const json = (await response.json()) as {
-    data?: { Article?: AudienceArticleNode | null }
-    errors?: { message?: string }[]
-  }
-
-  if (json.errors?.length) {
-    throw new Error(json.errors[0]?.message ?? "Audience Player GraphQL error")
-  }
-
+  const graphql: AudienceGraphqlOptions = { projectId, apiBaseUrl }
   const embedOptions: AudiencePlayerEmbedOptions = {
     projectId,
     previewUrl: options?.embed?.previewUrl ?? null,
     iframeUrl: options?.embed?.iframeUrl ?? null,
   }
 
-  return resolveChapters(json.data?.Article, embedOptions)
+  const data = await audiencePlayerGraphql<{ Article?: AudienceArticleNode | null }>(
+    graphql,
+    ARTICLE_WITH_CHAPTERS_QUERY,
+    { articleId }
+  )
+
+  const chapters = resolveChapters(data.Article, embedOptions)
+  if (chapters.length > 0) return chapters
+
+  return fetchVathuisChaptersViaAncestorFallback(articleId, graphql, embedOptions)
 }
 
 export async function fetchVathuisEpisodesFromAudiencePlayer(
@@ -230,39 +401,20 @@ export async function fetchVathuisEpisodesFromAudiencePlayer(
     options?.apiBaseUrl ?? process.env.AUDIENCE_PLAYER_API_URL ?? "https://api.audienceplayer.com"
   ).replace(/\/$/, "")
 
-  const url = `${apiBaseUrl}/graphql/${projectId}/user`
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      query: ARTICLE_WITH_CHAPTERS_QUERY,
-      variables: { articleId },
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Audience Player API HTTP ${response.status}`)
-  }
-
-  const json = (await response.json()) as {
-    data?: { Article?: AudienceArticleNode | null }
-    errors?: { message?: string }[]
-  }
-
-  if (json.errors?.length) {
-    throw new Error(json.errors[0]?.message ?? "Audience Player GraphQL error")
-  }
-
+  const graphql: AudienceGraphqlOptions = { projectId, apiBaseUrl }
   const embedOptions: AudiencePlayerEmbedOptions = {
     projectId,
     previewUrl: options?.embed?.previewUrl ?? null,
     iframeUrl: options?.embed?.iframeUrl ?? null,
   }
 
-  return resolveEpisodeNodes(json.data?.Article).map((node, index) =>
+  const data = await audiencePlayerGraphql<{ Article?: AudienceArticleNode | null }>(
+    graphql,
+    ARTICLE_WITH_CHAPTERS_QUERY,
+    { articleId }
+  )
+
+  return resolveEpisodeNodes(data.Article).map((node, index) =>
     mapEpisode(node, index, 1, embedOptions)
   )
 }

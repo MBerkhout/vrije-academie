@@ -95,6 +95,9 @@ export async function buildVathuisMetadata(input: {
     try {
       chapters = await fetchVathuisChaptersFromAudiencePlayer(articleId, { projectId, embed })
       episodes = chapters.flatMap((chapter) => chapter.episodes)
+      if (episodes.length === 0) {
+        episodes = await fetchVathuisEpisodesFromAudiencePlayer(articleId, { projectId, embed })
+      }
     } catch (err) {
       console.warn(
         `[salesforce-sync] Failed to fetch VAthuis chapters for article ${articleId}:`,
