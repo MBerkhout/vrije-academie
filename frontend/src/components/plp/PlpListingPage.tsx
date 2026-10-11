@@ -19,6 +19,20 @@ import { buildBreadcrumbListJsonLd, buildCollectionPageJsonLd, buildItemListJson
 import { eventIsFullySoldOut } from '@/lib/event-status-presentation'
 import { productTypePluralsFromCms } from '@/lib/plp-product-types'
 import { PLP_BASE_PATH, productDetailPath } from '@/lib/routes'
+import { appendFileSync } from 'fs'
+
+function agentDebugLog(payload: Record<string, unknown>) {
+  // #region agent log
+  try {
+    appendFileSync(
+      '/Users/mickberkhout/Development/Vrije Academie/site/.cursor/debug-1cde71.log',
+      `${JSON.stringify({ sessionId: '1cde71', timestamp: Date.now(), ...payload })}\n`
+    )
+  } catch {
+    /* ignore */
+  }
+  // #endregion
+}
 
 export type PlpBreadcrumbCrumb = { label: string; href: string }
 
@@ -46,7 +60,17 @@ export async function PlpListingPage({
   const useHardPlpCache =
     basePath === PLP_BASE_PATH && !hasActiveFilters(filterState) && isHardCachedPlpSort(sort)
 
-  const eventsPromise = useHardPlpCache
+  const pageStart = Date.now()
+  const cmsStart = Date.now()
+  const cmsBundle = Promise.all([
+    getPlpPage(),
+    cmsClient.getGeneralSettings(),
+    getCategoriesForFilter(),
+    getTeachersForFilter(),
+  ]).then((r) => ({ r, cmsMs: Date.now() - cmsStart }))
+
+  const eventsStart = Date.now()
+  const eventsSource = useHardPlpCache
     ? getHardCachedPlpListing(sort).catch(() => null)
     : commerceClient
         .getEventsPaginated({
@@ -56,14 +80,28 @@ export async function PlpListingPage({
           offset: 0,
         })
         .catch(() => null)
+  const eventsBundle = eventsSource.then((r) => ({ r, eventsMs: Date.now() - eventsStart }))
 
-  const [plpData, settings, categories, teachers, eventsResult] = await Promise.all([
-    getPlpPage(),
-    cmsClient.getGeneralSettings(),
-    getCategoriesForFilter(),
-    getTeachersForFilter(),
-    eventsPromise,
+  const [{ r: cmsResults, cmsMs }, { r: eventsResult, eventsMs }] = await Promise.all([
+    cmsBundle,
+    eventsBundle,
   ])
+  const [plpData, settings, categories, teachers] = cmsResults
+
+  agentDebugLog({
+    location: 'PlpListingPage.tsx',
+    message: 'server listing render',
+    hypothesisId: 'C',
+    data: {
+      basePath,
+      cmsMs,
+      eventsMs,
+      totalMs: Date.now() - pageStart,
+      useHardPlpCache,
+      hasFilters: hasActiveFilters(filterState),
+      eventCount: eventsResult?.events?.length ?? 0,
+    },
+  })
 
   const events = eventsResult?.events ?? []
   const count = eventsResult?.count ?? 0

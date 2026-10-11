@@ -7,6 +7,20 @@ import { PlpListingPage } from '@/components/plp/PlpListingPage'
 import { PLP_BASE_PATH } from '@/lib/routes'
 import { parseFilterState, serializeFilterState } from './_state/url'
 import { singleCategoryRedirectTarget, singleProductTypeRedirectTarget } from './_state/redirects'
+import { appendFileSync } from 'fs'
+
+function agentDebugLog(payload: Record<string, unknown>) {
+  // #region agent log
+  try {
+    appendFileSync(
+      '/Users/mickberkhout/Development/Vrije Academie/site/.cursor/debug-1cde71.log',
+      `${JSON.stringify({ sessionId: '1cde71', timestamp: Date.now(), ...payload })}\n`
+    )
+  } catch {
+    /* ignore */
+  }
+  // #endregion
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -18,10 +32,17 @@ export async function generateMetadata({ searchParams }: PlpPageProps): Promise<
   const params = await searchParams
   const filterState = parseFilterState(params)
 
+  const metaStart = Date.now()
   const [plpData, settings] = await Promise.all([
     getPlpPage(),
     cmsClient.getGeneralSettings(),
   ])
+  agentDebugLog({
+    location: 'ons-aanbod/page.tsx:generateMetadata',
+    message: 'metadata fetch',
+    hypothesisId: 'E',
+    data: { ms: Date.now() - metaStart, hasFilters: Boolean(filterState.categories?.length) },
+  })
 
   const siteName = 'Vrije Academie'
   const baseTitle = settings?.plp?.pageTitle ?? 'Ons aanbod'

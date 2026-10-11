@@ -592,14 +592,41 @@ export const medusaClient: CommerceClient = {
     for (const v of filters?.cities ?? []) params.append('city[]', v)
     for (const v of filters?.dayParts ?? []) params.append('day_part[]', v)
 
+    const medusaStart = Date.now()
     const response = await fetch(`${BACKEND_URL}/store/events?${params.toString()}`, {
       headers: storeHeaders(),
       cache: 'no-store',
     })
+    const medusaFetchMs = Date.now() - medusaStart
     if (!response.ok) {
       throw new Error(`Failed to fetch events: ${response.status}`)
     }
     const data = await response.json()
+    // #region agent log
+    fetch('http://127.0.0.1:7766/ingest/daa88646-6778-4a68-b046-b8741af3d131', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1cde71' },
+      body: JSON.stringify({
+        sessionId: '1cde71',
+        location: 'medusa-client.ts:getEventsPaginated',
+        message: 'medusa store/events',
+        hypothesisId: 'B',
+        data: {
+          medusaFetchMs,
+          count: data.count ?? 0,
+          eventsLen: (data.events ?? []).length,
+          hasFilters: Boolean(
+            filters?.q ||
+              filters?.categories?.length ||
+              filters?.teachers?.length ||
+              filters?.productTypes?.length ||
+              filters?.cities?.length
+          ),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
     // PLP cards never read `variants` (only the pre-computed price_from / earliest_start_at /
     // min_available_quantity summary fields) — dropping it here avoids shipping every raw
     // session's full variant/prices/properties data (huge for recurring courses) to the browser.
@@ -634,14 +661,35 @@ export const medusaClient: CommerceClient = {
     for (const v of filters?.cities ?? []) params.append('city[]', v)
     for (const v of filters?.dayParts ?? []) params.append('day_part[]', v)
 
+    const medusaAgendaStart = Date.now()
     const response = await fetch(`${BACKEND_URL}/store/agenda?${params.toString()}`, {
       headers: storeHeaders(),
       cache: 'no-store',
     })
+    const medusaAgendaFetchMs = Date.now() - medusaAgendaStart
     if (!response.ok) {
       throw new Error(`Failed to fetch agenda: ${response.status}`)
     }
     const data = await response.json()
+    // #region agent log
+    fetch('http://127.0.0.1:7766/ingest/daa88646-6778-4a68-b046-b8741af3d131', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1cde71' },
+      body: JSON.stringify({
+        sessionId: '1cde71',
+        location: 'medusa-client.ts:getAgendaPaginated',
+        message: 'medusa store/agenda',
+        hypothesisId: 'B',
+        data: {
+          medusaFetchMs: medusaAgendaFetchMs,
+          count: data.count ?? 0,
+          itemsLen: (data.items ?? []).length,
+          hasFilters: Boolean(filters?.date || filters?.categories?.length || filters?.q),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
     const items = (data.items ?? []).map((row: Record<string, unknown>) =>
       normalizeDocentenRow(row)
     ) as unknown as AgendaItem[]

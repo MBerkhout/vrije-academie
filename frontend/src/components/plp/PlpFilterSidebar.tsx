@@ -601,6 +601,32 @@ export function PlpFilterSidebar({
         (filterState.periodStart || filterState.periodEnd ? 1 : 0)) + extraActiveCount
 
   function applyFilter(newState: PlpFilterState, meta?: { filterName: string; filterValue: string }) {
+    // #region agent log
+    try {
+      sessionStorage.setItem('debugFilterClickTs_1cde71', String(Date.now()))
+      fetch('http://127.0.0.1:7766/ingest/daa88646-6778-4a68-b046-b8741af3d131', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1cde71' },
+        body: JSON.stringify({
+          sessionId: '1cde71',
+          location: 'PlpFilterSidebar.tsx:applyFilter',
+          message: 'filter click',
+          hypothesisId: 'A',
+          data: {
+            basePath,
+            filterName: meta?.filterName,
+            activeFilterKeys: Object.keys(newState).filter((k) => {
+              const v = newState[k as keyof PlpFilterState]
+              return Array.isArray(v) ? v.length > 0 : Boolean(v)
+            }),
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+    } catch {
+      /* ignore */
+    }
+    // #endregion
     if (meta) {
       trackFilterChange({
         scope: 'aanbod_overzicht',

@@ -17,6 +17,10 @@ git fetch origin "$BRANCH"
 # Gitignored files (e.g. .env) are left untouched.
 git checkout -f "$BRANCH"
 git reset --hard "origin/$BRANCH"
+# `medusa build` typechecks every file under src/. reset --hard does not remove
+# untracked files, so a leftover script on the server (bad import, never committed)
+# fails the deploy. Ignored files stay.
+git clean -fd -- medusa/src
 
 cd "$APP_DIR"
 npm ci
