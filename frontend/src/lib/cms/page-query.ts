@@ -267,7 +267,8 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
       },
       @._type == "vathuisTeachersBlock" => {
         ...@,
-        ${INLINE_PAGE_BLOCK_LAYOUT}
+        ${INLINE_PAGE_BLOCK_LAYOUT},
+        "docenten": docenten[]-> { _id, slug, name, role, photoUrl }
       },
       @._type == "vathuisPromoTilesBlock" => {
         ...@,

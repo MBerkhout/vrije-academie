@@ -47,6 +47,76 @@ export function sanityProductDocId(medusaProductId: string): string {
   return `medusa-product-${medusaProductId}`
 }
 
+export function sanityProductDraftDocId(medusaProductId: string): string {
+  return `drafts.${sanityProductDocId(medusaProductId)}`
+}
+
+const DRAFT_ID_PREFIX = "drafts."
+
+/** Published Sanity id from a published or draft document _id. */
+export function publishedSanityProductDocId(sanityDocId: string): string {
+  return sanityDocId.startsWith(DRAFT_ID_PREFIX)
+    ? sanityDocId.slice(DRAFT_ID_PREFIX.length)
+    : sanityDocId
+}
+
+/**
+ * Merge editorial fields from published + draft Studio documents.
+ * Draft wins for body and other editorial fields when a draft exists.
+ * `pageBodyOwnedBySanity` is true when either document has it enabled.
+ */
+export function mergeProductEditorialFromPublishedAndDraft(
+  published: ExistingProductEditorial | null | undefined,
+  draft: ExistingProductEditorial | null | undefined
+): ExistingProductEditorial | null {
+  if (!published && !draft) return null
+
+  const pageBodyOwnedBySanity =
+    published?.pageBodyOwnedBySanity === true ||
+    draft?.pageBodyOwnedBySanity === true
+
+  const hasDraft = draft != null
+
+  return {
+    pageBodyOwnedBySanity,
+    body: hasDraft ? draft.body : published?.body,
+    onlineBadge: hasDraft ? (draft.onlineBadge ?? published?.onlineBadge) : published?.onlineBadge,
+    customUrgencyMessage: hasDraft
+      ? (draft.customUrgencyMessage ?? published?.customUrgencyMessage)
+      : published?.customUrgencyMessage,
+    relatedProducts: hasDraft
+      ? (draft.relatedProducts ?? published?.relatedProducts)
+      : published?.relatedProducts,
+  }
+}
+
+export function splitPublishedAndDraftProductRows(
+  rows: ExistingSanityProductDoc[]
+): Map<string, { published: ExistingSanityProductDoc | null; draft: ExistingSanityProductDoc | null }> {
+  const byPublishedId = new Map<
+    string,
+    { published: ExistingSanityProductDoc | null; draft: ExistingSanityProductDoc | null }
+  >()
+
+  for (const row of rows) {
+    const rawId = row._id
+    if (typeof rawId !== "string" || !rawId) continue
+    const publishedId = publishedSanityProductDocId(rawId)
+    let entry = byPublishedId.get(publishedId)
+    if (!entry) {
+      entry = { published: null, draft: null }
+      byPublishedId.set(publishedId, entry)
+    }
+    if (rawId.startsWith(DRAFT_ID_PREFIX)) {
+      entry.draft = row
+    } else {
+      entry.published = row
+    }
+  }
+
+  return byPublishedId
+}
+
 export function buildProductMirrorDoc(
   product: MirrorProductInput,
   existing?: ExistingProductEditorial | null

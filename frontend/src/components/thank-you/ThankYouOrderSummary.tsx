@@ -63,7 +63,7 @@ export function ThankYouOrderItems({
         const extras = itemToExtras(item)
         const blocks = buildCartLineItemDetailBlocks(cartItem as any, extras, {
           onlineCityFallback: true,
-          quantityLabel: buildLineItemQuantityLabel(cartItem as any),
+          quantityLabel: buildLineItemQuantityLabel(cartItem as any, extras),
         })
         const thumbnail = resolveLineItemThumbnail(cartItem, extras)
         const productHref = linkToProduct ? productHrefForItem(item) : null

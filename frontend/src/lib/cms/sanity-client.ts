@@ -266,6 +266,8 @@ export const sanityClient: CMSClient = {
         emptyStateSubtext,
         loadMoreLabel,
         productTypePlurals {
+          lezing,
+          collegereeks,
           reis,
           studiedag,
           wandeling,

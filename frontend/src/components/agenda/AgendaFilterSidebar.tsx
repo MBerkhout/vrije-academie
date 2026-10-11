@@ -9,6 +9,7 @@ import type { PlpFilterState } from '@/app/(main)/ons-aanbod/_state/url'
 import type { CategoryOption, TeacherOption } from '@/lib/cms/sanity-refs'
 import type { EventFacets } from '@/lib/commerce/types'
 import type { ProductTypePluralMap } from '@/lib/plp-product-types'
+import { LISTING_FILTER_NAV_OPTIONS } from '@/lib/filter-url-helpers'
 
 interface AgendaFilterSidebarProps {
   filterState: AgendaFilterState
@@ -40,7 +41,7 @@ export function AgendaFilterSidebar({
     const next: AgendaFilterState = { ...filterState, date }
     const params = serializeFilterState(next)
     params.delete('page')
-    router.push(`/agenda?${params.toString()}`)
+    router.push(`/agenda?${params.toString()}`, LISTING_FILTER_NAV_OPTIONS)
   }
 
   const dateSelected = Boolean(filterState.date)

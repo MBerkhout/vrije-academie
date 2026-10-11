@@ -8,6 +8,8 @@ interface VaThuisTeacherGridProps {
   title: string
   intro?: string | null
   teachers: TeacherOption[]
+  /** Max cards shown; default 12 (legacy “all docents” listing). */
+  limit?: number
 }
 
 /** Guards against stale synced data containing relative/session-only URLs (e.g. Salesforce paths) that next/image can't fetch. */
@@ -15,10 +17,10 @@ function isRenderableImageUrl(url: string | null | undefined): url is string {
   return !!url && /^https?:\/\//i.test(url)
 }
 
-export function VaThuisTeacherGrid({ title, intro, teachers }: VaThuisTeacherGridProps) {
+export function VaThuisTeacherGrid({ title, intro, teachers, limit = 12 }: VaThuisTeacherGridProps) {
   if (!teachers.length) return null
 
-  const featured = teachers.slice(0, 12)
+  const featured = teachers.slice(0, limit)
 
   return (
     <section className={`${CONTAINER_CLASS} py-12`}>

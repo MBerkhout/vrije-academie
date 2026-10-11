@@ -9,6 +9,7 @@ import {
 import {
   isAgendaBasePath,
   resolveClearAllHref,
+  LISTING_FILTER_NAV_OPTIONS,
   resolveFilterRemove,
   resolveFilterSerialize,
 } from '@/lib/filter-url-helpers'
@@ -98,11 +99,11 @@ export function PlpActiveChips({
 
   function navigateFilterState(newState: PlpFilterState) {
     if (usesPlpCanonicalFilterHref(basePath)) {
-      router.push(resolvePlpFilterHref(newState))
+      router.push(resolvePlpFilterHref(newState), LISTING_FILTER_NAV_OPTIONS)
       return
     }
     const params = serialize(newState)
-    router.push(`${basePath}?${params.toString()}`)
+    router.push(`${basePath}?${params.toString()}`, LISTING_FILTER_NAV_OPTIONS)
   }
 
   function removeChip(chip: ChipDef) {
@@ -114,7 +115,7 @@ export function PlpActiveChips({
   }
 
   function clearAll() {
-    router.push(resolveClearAllHref(basePath))
+    router.push(resolveClearAllHref(basePath), LISTING_FILTER_NAV_OPTIONS)
   }
 
   return (

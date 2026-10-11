@@ -215,6 +215,13 @@ export interface VathuisTeachersBlock extends Block {
   _type: 'vathuisTeachersBlock'
   title?: string
   intro?: string
+  docenten?: {
+    _id: string
+    slug: string
+    name: string
+    role?: string | null
+    photoUrl?: string | null
+  }[]
 }
 
 export interface VathuisPromoTilesBlock extends Block {
@@ -493,6 +500,8 @@ export interface GeneralSettings {
     loadMoreLabel?: string
     /** Listing labels for Soort activiteit. PDP badges stay singular. */
     productTypePlurals?: {
+      lezing?: string
+      collegereeks?: string
       reis?: string
       studiedag?: string
       wandeling?: string

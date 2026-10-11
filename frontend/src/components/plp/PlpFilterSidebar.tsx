@@ -10,6 +10,7 @@ import {
 import {
   isAgendaBasePath,
   resolveClearAllHref,
+  LISTING_FILTER_NAV_OPTIONS,
   resolveFilterSerialize,
 } from '@/lib/filter-url-helpers'
 import type { CategoryOption, TeacherOption } from '@/lib/cms/sanity-refs'
@@ -310,7 +311,11 @@ function SearchableMultiSelectChecklist({
           <div
             className={cn(
               'relative',
-              needsScroll && 'max-h-[17.5rem] overflow-y-auto pr-0.5',
+              needsScroll &&
+                cn(
+                  'max-h-[17.5rem] overflow-y-auto pr-2.5',
+                  variant === 'dark' ? 'scrollbar-va-dark' : 'scrollbar-va',
+                ),
               needsCollapse && !showFullList && 'max-h-[9.25rem] overflow-hidden',
             )}
           >
@@ -605,12 +610,12 @@ export function PlpFilterSidebar({
       })
     }
     if (usesPlpCanonicalFilterHref(basePath)) {
-      router.push(resolvePlpFilterHref(newState))
+      router.push(resolvePlpFilterHref(newState), LISTING_FILTER_NAV_OPTIONS)
       return
     }
     const params = serialize(newState)
     params.delete('page')
-    router.push(`${basePath}?${params.toString()}`)
+    router.push(`${basePath}?${params.toString()}`, LISTING_FILTER_NAV_OPTIONS)
   }
 
   function toggleArray(key: keyof PlpFilterState, value: string) {
@@ -634,7 +639,7 @@ export function PlpFilterSidebar({
   }
 
   function clearAll() {
-    router.push(resolveClearAllHref(basePath))
+    router.push(resolveClearAllHref(basePath), LISTING_FILTER_NAV_OPTIONS)
   }
 
   // Build facet count lookups

@@ -143,7 +143,7 @@ export function OrderSummaryLineItems({
         const title = itemExtras?.product_title ?? item.title
         const blocks = buildCartLineItemDetailBlocks(item, itemExtras, {
           onlineCityFallback: true,
-          quantityLabel: buildLineItemQuantityLabel(item),
+          quantityLabel: buildLineItemQuantityLabel(item, itemExtras),
           ...detailOptions,
         })
         const lineTotal = item.total ?? item.unit_price * item.quantity

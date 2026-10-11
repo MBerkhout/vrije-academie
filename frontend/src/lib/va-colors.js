@@ -77,7 +77,7 @@ export const vaColors = {
     800: '#525252',
     900: '#454545',
     950: '#3A3A3A',
-    DEFAULT: '#888888',
+    DEFAULT: '#6B6B6B',
   },
   lightgray: {
     50: '#FCFCFC',
@@ -162,6 +162,8 @@ export const vaColors = {
     900: '#523000',
     950: '#331E00',
     DEFAULT: '#F08300',
+    /** Hover text on white. 5.23:1 against #FFFFFF. */
+    hover: '#B84A00',
   },
   brown: {
     50: '#FAF3ED',

@@ -1,5 +1,7 @@
 /** Salesforce-backed product types with dedicated PLP badges, filters, and landing pages. */
 export const PLP_PRODUCT_TYPES = [
+  { slug: 'lezing', label: 'Lezing', badgeClass: 'bg-va-gold text-va-black' },
+  { slug: 'collegereeks', label: 'Collegereeks', badgeClass: 'bg-va-darkgray text-white' },
   { slug: 'reis', label: 'Reis', badgeClass: 'bg-va-purple text-white' },
   { slug: 'studiedag', label: 'Studiedag', badgeClass: 'bg-va-yellow text-va-black' },
   { slug: 'wandeling', label: 'Wandeling', badgeClass: 'bg-va-orange text-white' },
@@ -14,6 +16,8 @@ export type ProductTypePluralMap = Partial<Record<PlpProductTypeSlug, string>>
 
 /** Used when General Settings has no plural for a type. */
 export const DEFAULT_PLP_PRODUCT_TYPE_PLURALS: ProductTypePluralMap = {
+  lezing: 'Lezing',
+  collegereeks: 'Colleges',
   reis: 'Reizen',
   rondleiding: 'Rondleidingen',
 }

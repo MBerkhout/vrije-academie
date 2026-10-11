@@ -14,4 +14,12 @@ describe('agenda filter URL', () => {
     })
     expect(params.getAll('delivery_type')).toEqual(['offline'])
   })
+
+  it('round-trips product_type (Soort activiteit)', () => {
+    const state = parseFilterState(
+      new URLSearchParams('product_type=lezing&product_type=collegereeks'),
+    )
+    expect(state.productTypes).toEqual(['lezing', 'collegereeks'])
+    expect(serializeFilterState(state).getAll('product_type')).toEqual(['lezing', 'collegereeks'])
+  })
 })

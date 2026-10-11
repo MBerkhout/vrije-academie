@@ -7,7 +7,9 @@ import {
 } from './plp-product-types'
 
 describe('productTypeListLabelFromSlug', () => {
-  it('uses Reizen for reis when CMS has no plural', () => {
+  it('uses listing defaults for lezing, collegereeks, and reis', () => {
+    expect(productTypeListLabelFromSlug('lezing')).toBe('Lezing')
+    expect(productTypeListLabelFromSlug('collegereeks')).toBe('Colleges')
     expect(productTypeListLabelFromSlug('reis')).toBe('Reizen')
     expect(productTypeListLabelFromSlug('Reis')).toBe('Reizen')
   })

@@ -251,7 +251,7 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   {title ? (
-                    <p className="px-2.5 py-2 font-sans text-xs font-semibold leading-snug line-clamp-3 text-va-black group-hover:text-va-orange md:px-3 md:py-2.5 md:text-sm md:line-clamp-none">
+                    <p className="px-2.5 py-2 font-sans text-xs font-semibold leading-snug line-clamp-3 text-va-black group-hover:text-va-orange-hover md:px-3 md:py-2.5 md:text-sm md:line-clamp-none">
                       {title}
                     </p>
                   ) : null}
@@ -301,7 +301,7 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
           className={cn(
             'inline-block font-sans text-sm font-bold uppercase tracking-wide text-va-black',
             'underline decoration-va-black decoration-1 underline-offset-[5px]',
-            'hover:text-va-orange hover:decoration-va-yellow',
+            'hover:text-va-orange-hover hover:decoration-va-yellow',
             'outline-none focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2',
           )}
         >

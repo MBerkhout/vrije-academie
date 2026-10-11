@@ -18,14 +18,21 @@ describe('pdpActivityTypeBadge', () => {
     })
   })
 
-  it('keeps EventGroup record type when product type has no landing', () => {
+  it('links Lezing and Collegereeks to product-type landings', () => {
     expect(pdpActivityTypeBadge({ productType: 'Lezing', recordType: 'lezing' })).toEqual({
-      label: 'lezing',
-      href: `${PLP_BASE_PATH}?record_type=lezing`,
+      label: 'Lezing',
+      href: `${PLP_BASE_PATH}/lezing`,
     })
     expect(pdpActivityTypeBadge({ productType: 'Collegereeks', recordType: 'collegereeks' })).toEqual({
-      label: 'collegereeks',
-      href: `${PLP_BASE_PATH}?record_type=collegereeks`,
+      label: 'Collegereeks',
+      href: `${PLP_BASE_PATH}/collegereeks`,
+    })
+  })
+
+  it('keeps EventGroup record type when product type has no landing', () => {
+    expect(pdpActivityTypeBadge({ productType: 'Excursie', recordType: 'excursie' })).toEqual({
+      label: 'excursie',
+      href: `${PLP_BASE_PATH}?record_type=excursie`,
     })
   })
 

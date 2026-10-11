@@ -168,6 +168,18 @@ export const generalSettings = defineType({
             "Listing labels for Soort activiteit (filter, chips, /ons-aanbod/{type}). The PDP badge keeps the singular Salesforce name (e.g. Reis).",
           fields: [
             defineField({
+              name: "lezing",
+              title: "Lezing",
+              type: "string",
+              initialValue: "Lezing",
+            }),
+            defineField({
+              name: "collegereeks",
+              title: "Collegereeks",
+              type: "string",
+              initialValue: "Colleges",
+            }),
+            defineField({
               name: "reis",
               title: "Reis",
               type: "string",

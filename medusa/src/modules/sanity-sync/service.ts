@@ -1,6 +1,9 @@
 import {
   buildProductMirrorDoc,
+  mergeProductEditorialFromPublishedAndDraft,
   sanityProductDocId,
+  sanityProductDraftDocId,
+  type ExistingProductEditorial,
   type MirrorProductInput,
 } from "./build-product-doc"
 import {
@@ -37,22 +40,32 @@ export async function deleteDoc(id: string): Promise<void> {
   await sanityDelete(id)
 }
 
-type ExistingProductEditorial = {
-  body?: unknown[]
-  pageBodyOwnedBySanity?: boolean
-  onlineBadge?: unknown
-  customUrgencyMessage?: string | null
-  relatedProducts?: unknown[]
-}
+const PRODUCT_EDITORIAL_FETCH = `
+  body,
+  pageBodyOwnedBySanity,
+  onlineBadge,
+  customUrgencyMessage,
+  relatedProducts,
+  _id
+`
 
 export async function mirrorProduct(product: MirrorProductInput): Promise<void> {
   const id = sanityProductDocId(product.id)
+  const draftId = sanityProductDraftDocId(product.id)
 
-  const existing = await sanityFetch<ExistingProductEditorial | null>(
-    `*[_id == $id][0]{ body, pageBodyOwnedBySanity, onlineBadge, customUrgencyMessage, relatedProducts }`,
-    { id }
+  const rows = await sanityFetch<(ExistingProductEditorial & { _id?: string })[]>(
+    `*[_id == $id || _id == $draftId]{${PRODUCT_EDITORIAL_FETCH}}`,
+    { id, draftId }
   )
 
+  let published: ExistingProductEditorial | null = null
+  let draft: ExistingProductEditorial | null = null
+  for (const row of rows ?? []) {
+    if (row._id === draftId) draft = row
+    else if (row._id === id) published = row
+  }
+
+  const existing = mergeProductEditorialFromPublishedAndDraft(published, draft)
   const doc = buildProductMirrorDoc(product, existing)
   await upsertDoc(doc)
 }

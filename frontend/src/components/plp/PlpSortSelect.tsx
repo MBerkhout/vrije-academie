@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { PLP_BASE_PATH } from '@/lib/routes'
 import { trackSortChange } from '@/lib/analytics/events/ecommerce'
 import { plpListIdFromPath } from '@/lib/analytics/page-types'
+import { LISTING_FILTER_NAV_OPTIONS } from '@/lib/filter-url-helpers'
 
 const DEFAULT_SORT_OPTIONS = [
   { value: 'order', label: 'Aanbevolen' },
@@ -39,7 +40,7 @@ export function PlpSortSelect({
     params.set('sort', sortValue)
     params.delete('page')
     trackSortChange(plpListIdFromPath(pathname), sortValue)
-    router.push(`${basePath}?${params.toString()}`)
+    router.push(`${basePath}?${params.toString()}`, LISTING_FILTER_NAV_OPTIONS)
   }
 
   const sortFromUrl = searchParams.get('sort')

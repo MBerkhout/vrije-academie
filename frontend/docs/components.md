@@ -21,7 +21,7 @@ Body text inherits Source Sans 3 from `body`. Tailwind preflight resets heading 
 | va-black    | #1A1A1A  | `text-va-black`              | Headings, logo text            |
 | va-footer   | #1E1E1E  | `bg-va-footer`               | Footer background              |
 | va-darkgray | #3D3D3D  | `text-va-darkgray`          | Body text                      |
-| va-gray     | #888888  | `text-va-gray`               | Muted/secondary text           |
+| va-gray     | #6B6B6B  | `text-va-gray`               | Muted/secondary text           |
 | va-lightgray| #F2F2F2  | `bg-va-lightgray`           | Page background, borders       |
 | va-white    | #FFFFFF  | `bg-va-white`               | Card/container backgrounds     |
 

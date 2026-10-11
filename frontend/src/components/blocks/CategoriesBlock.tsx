@@ -92,13 +92,13 @@ export function CategoriesBlock({ block }: { block: CategoriesBlockType }) {
                     image && 'border-r-[3px] border-va-yellow',
                   )}
                 >
-                  <span className="min-w-0 font-sans text-sm font-semibold leading-snug text-va-black transition-colors group-hover:text-va-orange sm:text-base">
+                  <span className="min-w-0 font-sans text-sm font-semibold leading-snug text-va-black transition-colors group-hover:text-va-orange-hover sm:text-base">
                     {label}
                   </span>
-                  <span className="inline-flex items-center gap-0.5 font-sans text-[10px] font-bold uppercase tracking-wide text-va-darkgray transition-colors group-hover:text-va-black">
+                  <span className="inline-flex items-center gap-0.5 font-sans text-sm font-bold uppercase tracking-wide text-va-darkgray transition-colors group-hover:text-va-black">
                     Bekijk
                     <svg
-                      className="h-3 w-3 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+                      className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -136,7 +136,7 @@ export function CategoriesBlock({ block }: { block: CategoriesBlockType }) {
                 'h-auto rounded-none px-0 py-0',
                 'font-sans text-sm font-bold uppercase tracking-wide',
                 'bg-transparent text-va-black underline decoration-va-black decoration-1 underline-offset-[5px]',
-                'hover:bg-transparent hover:text-va-orange hover:underline hover:decoration-va-yellow',
+                'hover:bg-transparent hover:text-va-orange-hover hover:underline hover:decoration-va-yellow',
                 'active:bg-transparent',
                 'focus-visible:ring-2 focus-visible:ring-va-yellow focus-visible:ring-offset-2',
               )}

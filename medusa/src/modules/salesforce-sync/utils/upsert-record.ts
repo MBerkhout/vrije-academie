@@ -5,6 +5,7 @@ import {
   SF_ORDER_OBJECT,
   SF_REGISTRATION_OBJECT,
 } from "./salesforce-config"
+import { filterFieldsForConnectedOrg } from "./salesforce-describe-fields"
 import {
   stripMedusaCustomFields,
   usesSalesforceMedusaCustomFields,
@@ -23,11 +24,12 @@ export async function upsertSalesforceRecord(
   fields: Record<string, unknown>
 ): Promise<string> {
   const cleanFields = stripMedusaCustomFields(fields)
+  const writable = await filterFieldsForConnectedOrg(sobject, cleanFields, "create")
   if (!usesSalesforceMedusaCustomFields()) {
-    const { id } = await sync.createRecord(sobject, cleanFields)
+    const { id } = await sync.createRecord(sobject, writable)
     return id
   }
-  const { id } = await sync.upsertByExternalId(sobject, externalIdField, externalId, cleanFields)
+  const { id } = await sync.upsertByExternalId(sobject, externalIdField, externalId, writable)
   return id
 }
 
@@ -67,11 +69,13 @@ export async function upsertSalesforceRecordById(
             Object.entries(cleanFields).filter(([key]) => !ORDER_ITEM_INSERT_ONLY_FIELDS.has(key))
           )
         : cleanFields
-    await sync.updateRecord(sobject, salesforceId, patchFields)
+    const writable = await filterFieldsForConnectedOrg(sobject, patchFields, "update")
+    await sync.updateRecord(sobject, salesforceId, writable)
     return salesforceId
   }
   if (!usesSalesforceMedusaCustomFields()) {
-    const { id } = await sync.createRecord(sobject, cleanFields)
+    const writable = await filterFieldsForConnectedOrg(sobject, cleanFields, "create")
+    const { id } = await sync.createRecord(sobject, writable)
     return id
   }
   try {
@@ -82,7 +86,8 @@ export async function upsertSalesforceRecordById(
       const withoutExternalId = Object.fromEntries(
         Object.entries(cleanFields).filter(([key]) => key !== externalIdField && !key.startsWith("Medusa_"))
       )
-      const { id } = await sync.createRecord(sobject, withoutExternalId)
+      const writable = await filterFieldsForConnectedOrg(sobject, withoutExternalId, "create")
+      const { id } = await sync.createRecord(sobject, writable)
       return id
     }
     throw err

@@ -14,10 +14,12 @@ import { dirname } from "node:path"
 
 import {
   ORDER_EXTERNAL_ID_FIELD,
+  SF_ORDER_ITEM_OBJECT,
   SF_ORDER_OBJECT,
   usesSalesforceMedusaCustomFields,
 } from "../modules/salesforce-sync/utils/salesforce-config"
 import { resolveOrderIdByDisplayId } from "../modules/salesforce-sync/utils/resolve-order-id-by-display-id"
+import { soqlFieldList } from "../modules/salesforce-sync/utils/salesforce-describe-fields"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { salesforceAuthMode } from "../modules/salesforce-sync/utils/is-configured"
 
@@ -115,9 +117,21 @@ export default async function inspectSalesforceOrder({ container }: ExecArgs) {
     ...(usesSalesforceMedusaCustomFields() ? [ORDER_EXTERNAL_ID_FIELD] : []),
   ])
 
-  const orderItemFields = usesSalesforceMedusaCustomFields()
-    ? "Id, OrderItemNumber, ProductName__c, Product_Name__c, UnitPrice, TotalPrice, Quantity, vaProduct__c, Registration__c, Discount_Code__c, Voucher__c, Medusa_Order_Item_Id__c"
-    : "Id, OrderItemNumber, ProductName__c, Product_Name__c, UnitPrice, TotalPrice, Quantity, vaProduct__c, Registration__c, Discount_Code__c, Voucher__c"
+  const orderItemCandidates = [
+    "Id",
+    "OrderItemNumber",
+    "ProductName__c",
+    "Product_Name__c",
+    "UnitPrice",
+    "TotalPrice",
+    "Quantity",
+    "vaProduct__c",
+    "Registration__c",
+    "Discount_Code__c",
+    "Voucher__c",
+    ...(usesSalesforceMedusaCustomFields() ? ["Medusa_Order_Item_Id__c"] : []),
+  ]
+  const orderItemFields = await soqlFieldList(SF_ORDER_ITEM_OBJECT, orderItemCandidates)
 
   const items = await sync.query<Record<string, unknown>>(
     `SELECT ${orderItemFields} FROM OrderItem WHERE OrderId = '${escapeSoql(salesforceId)}'`

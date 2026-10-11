@@ -27,7 +27,7 @@ const EDITORIAL_CARD_CTA_CLASS = cn(
   'font-sans text-sm font-bold uppercase tracking-wide',
   'bg-transparent text-va-black underline decoration-va-black decoration-1 underline-offset-[5px]',
   'transition-colors active:text-va-black',
-  'group-hover:bg-transparent group-hover:text-va-orange group-hover:underline group-hover:decoration-va-yellow',
+  'group-hover:bg-transparent group-hover:text-va-orange-hover group-hover:underline group-hover:decoration-va-yellow',
   'active:bg-transparent lg:w-auto'
 )
 

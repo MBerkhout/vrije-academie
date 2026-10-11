@@ -1,6 +1,10 @@
 import type { CartItem } from '@/lib/commerce/types'
 import type { GiftCardPurchaseLineMeta } from '@/lib/commerce/gift-card'
-import { getGiftCardPurchaseMetaFromLineItem, isGiftCardPurchaseLineItem } from '@/lib/commerce/gift-card'
+import {
+  DEFAULT_GIFT_CARD_HANDLE,
+  getGiftCardPurchaseMetaFromLineItem,
+  isGiftCardPurchaseLineItem,
+} from '@/lib/commerce/gift-card'
 import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
 import {
   formatDateShortOrNull,
@@ -26,19 +30,29 @@ export type BuildLineItemDetailsOptions = {
    * Cart row does not use this fallback.
    */
   onlineCityFallback?: boolean
-  /** Shown after instructors / before gift (e.g. “2 tickets”, “1 cadeaubon”). Omit in cart rows. */
+  /** Shown after instructors / before gift (e.g. “2 tickets”). Omit for cadeaubon lines and in cart rows. */
   quantityLabel?: string
   groupBookingNotice?: string
   /** Show notice when quantity is strictly greater than this (default 12). */
   groupBookingQuantityThreshold?: number
 }
 
-/** Checkout summaries: “1 ticket”, “2 tickets”, “1 cadeaubon”, etc. */
-export function buildLineItemQuantityLabel(item: Pick<CartItem, 'quantity'> & Parameters<typeof isGiftCardPurchaseLineItem>[0]): string {
+function isGiftCardPurchaseLine(
+  item: Parameters<typeof isGiftCardPurchaseLineItem>[0],
+  extras?: Pick<CartItemExtras, 'product_handle'> | null
+): boolean {
+  return (
+    isGiftCardPurchaseLineItem(item) || extras?.product_handle === DEFAULT_GIFT_CARD_HANDLE
+  )
+}
+
+/** Checkout summaries: “1 ticket”, “2 tickets”, etc. Empty for cadeaubon purchase lines. */
+export function buildLineItemQuantityLabel(
+  item: Pick<CartItem, 'quantity'> & Parameters<typeof isGiftCardPurchaseLineItem>[0],
+  extras?: Pick<CartItemExtras, 'product_handle'> | null
+): string {
+  if (isGiftCardPurchaseLine(item, extras)) return ''
   const qty = item.quantity
-  if (isGiftCardPurchaseLineItem(item)) {
-    return qty === 1 ? '1 cadeaubon' : `${qty} cadeaubonnen`
-  }
   return `${qty} ${qty === 1 ? 'ticket' : 'tickets'}`
 }
 

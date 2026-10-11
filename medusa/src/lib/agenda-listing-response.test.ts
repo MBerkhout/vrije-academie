@@ -111,6 +111,7 @@ describe("slimAgendaItemForResponse", () => {
       product_title: "Lezing test",
       thumbnail: null,
       record_type: "Lezing",
+      product_type: "Lezing",
       categories: [{ slug: "kunst", label: "Kunst" }],
       docenten: [{ slug: "docent-a", name: "Docent A" }],
       tags: [{ id: "tag_1", value: "Exclusief" }],

@@ -116,6 +116,8 @@ export interface VathuisPlaybackConfig {
   assetId: number
   token: string
   durationSeconds?: number | null
+  /** Video still from Audience Player (preferred over Salesforce thumbnail for trailers). */
+  posterUrl?: string | null
 }
 
 export interface VathuisEpisode {

@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 
+import { fetchAudiencePlayerAssetPosterUrl } from "./article-screenshot-url"
 import { resolveAudiencePlayerConfig, type AudiencePlayerConfig } from "./config"
 import type { AudiencePlayerPlaybackConfig } from "./types"
 
@@ -205,11 +206,25 @@ export async function resolvePreviewAudiencePlayerPlayback(input: {
     )
   }
 
-  return resolveAudiencePlayerPlayback({
-    email: config.previewEmail,
-    articleId: input.articleId,
-    assetId: input.assetId,
-    projectId: input.projectId,
-    autoRegister: true,
-  })
+  const projectId = input.projectId ?? config.projectId
+
+  const [playback, posterUrl] = await Promise.all([
+    resolveAudiencePlayerPlayback({
+      email: config.previewEmail,
+      articleId: input.articleId,
+      assetId: input.assetId,
+      projectId,
+      autoRegister: true,
+    }),
+    fetchAudiencePlayerAssetPosterUrl({
+      articleId: input.articleId,
+      assetId: input.assetId,
+      projectId,
+    }),
+  ])
+
+  return {
+    ...playback,
+    posterUrl: posterUrl ?? null,
+  }
 }

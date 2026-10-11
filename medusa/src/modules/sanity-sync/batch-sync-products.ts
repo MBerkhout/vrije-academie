@@ -2,9 +2,12 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 
 import {
   buildProductMirrorDoc,
+  mergeProductEditorialFromPublishedAndDraft,
   productMirrorDocChanged,
   SANITY_PRODUCT_BATCH_FETCH_FIELDS,
   sanityProductDocId,
+  sanityProductDraftDocId,
+  splitPublishedAndDraftProductRows,
   type ExistingSanityProductDoc,
 } from "./build-product-doc"
 import { loadProductMirrorInputs } from "./load-product-mirror-input"
@@ -64,14 +67,13 @@ export async function batchSyncProductsToSanity(
     try {
       const mirrorInputs = await loadProductMirrorInputs(chunkIds, container)
       const sanityIds = chunkIds.map(sanityProductDocId)
+      const draftIds = chunkIds.map(sanityProductDraftDocId)
 
       const existingRows = await sanityFetch<ExistingSanityProductDoc[]>(
-        `*[_id in $ids]{${SANITY_PRODUCT_BATCH_FETCH_FIELDS}}`,
-        { ids: sanityIds }
+        `*[_id in $ids || _id in $draftIds]{${SANITY_PRODUCT_BATCH_FETCH_FIELDS}}`,
+        { ids: sanityIds, draftIds }
       )
-      const existingById = new Map(
-        (existingRows ?? []).map((row) => [row._id as string, row])
-      )
+      const splitByPublishedId = splitPublishedAndDraftProductRows(existingRows ?? [])
 
       const docsToWrite: Record<string, unknown>[] = []
 
@@ -83,10 +85,15 @@ export async function batchSyncProductsToSanity(
         }
 
         const sanityId = sanityProductDocId(productId)
-        const existing = existingById.get(sanityId) ?? null
-        const target = buildProductMirrorDoc(input, existing)
+        const pair = splitByPublishedId.get(sanityId) ?? { published: null, draft: null }
+        const published = pair.published
+        const mergedEditorial = mergeProductEditorialFromPublishedAndDraft(
+          published,
+          pair.draft
+        )
+        const target = buildProductMirrorDoc(input, mergedEditorial)
 
-        if (productMirrorDocChanged(target, existing)) {
+        if (productMirrorDocChanged(target, published)) {
           docsToWrite.push(target)
         } else {
           result.skipped += 1

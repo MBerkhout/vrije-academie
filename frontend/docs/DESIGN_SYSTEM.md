@@ -19,7 +19,7 @@ Tokens live in **`src/lib/va-colors.js`** and are wired into Tailwind as `va-*`.
 | `va-black` | `#1A1A1A` | Primary text, strong UI |
 | `va-footer` | `#1E1E1E` | Footer background |
 | `va-darkgray` | `#3D3D3D` | Secondary text |
-| `va-gray` | `#888888` | Muted text, metadata |
+| `va-gray` | `#6B6B6B` | Muted text, metadata |
 | `va-lightgray` | `#F2F2F2` | Section fills, borders |
 | `va-white` | `#FFFFFF` | Cards, panels |
 
@@ -30,7 +30,7 @@ Tokens live in **`src/lib/va-colors.js`** and are wired into Tailwind as `va-*`.
 | `va-yellow` | `#fde600` | Primary CTAs, active nav |
 | `va-gold` | `#B89400` | Links, decorative emphasis (same hue family as yellow) |
 | `va-purple` | `#6B4FA0` | Badges, labels |
-| `va-orange` | `#F08300` | Errors, warnings |
+| `va-orange` | `#F08300` | Errors, warnings. Hover text on white uses `text-va-orange-hover` (`#B84A00`) |
 | `va-brown` | `#C0773A` | Warm accents, overlays |
 
 ### Usage rules
@@ -74,14 +74,16 @@ Fonts load via **`@fontsource/source-sans-3`** in `src/styles/fonts.css` (import
 
 #### Body Text
 ```tsx
-<p className="font-sans text-sm text-va-darkgray leading-relaxed">
+<p className="font-sans text-base text-va-darkgray leading-relaxed">
   Body text content
 </p>
 ```
 
+Running text inherits **16px** (`text-base`) from `body`.
+
 #### Form fields
 
-Body and most inputs use `text-sm` (14px). On touch / viewports below `lg`, `globals.css` forces `input`, `textarea`, and `select` to **16px** so iOS Safari does not zoom on focus. Do not set `maximum-scale=1` on the viewport to work around this.
+Most inputs use `text-sm` (14px). On touch / viewports below `lg`, `globals.css` forces `input`, `textarea`, and `select` to **16px** so iOS Safari does not zoom on focus. Do not set `maximum-scale=1` on the viewport to work around this.
 
 #### Muted Label / Metadata
 ```tsx

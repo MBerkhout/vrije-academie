@@ -61,10 +61,10 @@ export function VaThuisCategoryGrid({
                 <span className="min-w-0 font-sans text-sm font-semibold leading-snug text-white transition-colors group-hover:text-va-yellow sm:text-base">
                   {label}
                 </span>
-                <span className="inline-flex items-center gap-0.5 font-sans text-[10px] font-bold uppercase tracking-wide text-va-gray-400 transition-colors group-hover:text-white">
+                <span className="inline-flex items-center gap-0.5 font-sans text-sm font-bold uppercase tracking-wide text-va-gray-400 transition-colors group-hover:text-white">
                   Bekijk
                   <svg
-                    className="h-3 w-3 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+                    className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"

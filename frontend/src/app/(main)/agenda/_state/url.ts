@@ -36,6 +36,7 @@ export function parseFilterState(
     categories: getAll('category'),
     teachers: getAll('docent'),
     recordTypes: getAll('record_type'),
+    productTypes: getAll('product_type'),
     deliveryTypes: excludeVathuisDeliveryTypes(getAll('delivery_type')),
     cities: getAll('city'),
     dayParts: getAll('day_part'),
@@ -53,6 +54,7 @@ export function serializeFilterState(state: AgendaFilterState): URLSearchParams 
   for (const v of state.categories ?? []) p.append('category', v)
   for (const v of state.teachers ?? []) p.append('docent', v)
   for (const v of state.recordTypes ?? []) p.append('record_type', v)
+  for (const v of state.productTypes ?? []) p.append('product_type', v)
   for (const v of excludeVathuisDeliveryTypes(state.deliveryTypes)) p.append('delivery_type', v)
   for (const v of state.cities ?? []) p.append('city', v)
   for (const v of state.dayParts ?? []) p.append('day_part', v)
@@ -68,6 +70,7 @@ export function hasActiveFilters(state: AgendaFilterState): boolean {
     state.categories?.length ||
     state.teachers?.length ||
     state.recordTypes?.length ||
+    state.productTypes?.length ||
     state.deliveryTypes?.length ||
     state.cities?.length ||
     state.dayParts?.length ||

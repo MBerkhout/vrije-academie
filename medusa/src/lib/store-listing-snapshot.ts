@@ -79,6 +79,8 @@ export type AgendaOccurrenceRow = {
   product_title: string
   thumbnail: string | null
   record_type: string | null
+  /** Medusa `product.type.value` (Salesforce record type name, e.g. Lezing, Wandeling). */
+  product_type: string | null
   categories: unknown[]
   docenten: unknown[]
   tags: unknown[]
@@ -455,6 +457,7 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
       "title",
       "handle",
       "thumbnail",
+      "type.value",
       "metadata",
       "tags.*",
       "variants.id",
@@ -542,6 +545,7 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
           product_title: p.title as string,
           thumbnail: (p.thumbnail as string) ?? null,
           record_type: eventGroupByProduct[p.id as string]?.record_type ?? null,
+          product_type: (p.type as { value?: string } | null | undefined)?.value ?? null,
           categories,
           docenten,
           tags: (Array.isArray(p.tags) ? p.tags : []) as unknown[],

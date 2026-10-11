@@ -15,6 +15,7 @@ import { sortCityFacetsByCount } from "../../../lib/city-refs"
 import { monthKeyFromStartAt, sessionStartInPeriod } from "../../../lib/listing-future-filters"
 import SearchModuleService from "../../../modules/search/service"
 import { agendaItemMatchesQuery } from "../../../modules/search/in-memory-search"
+import { productTypeMatchesFilter, productTypeToSlug } from "../../../lib/plp-product-types"
 
 function parseArrayParam(val: string | string[] | undefined): string[] {
   if (!val) return []
@@ -36,6 +37,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   const q = req.query
   const searchQ = typeof q.q === "string" ? q.q.trim() : ""
   const recordTypes = parseArrayParam(q.record_type as string | string[])
+  const productTypes = parseArrayParam(q.product_type as string | string[])
   const deliveryTypes = parseArrayParam(q.delivery_type as string | string[])
   const categorySlugs = parseArrayParam(q.category as string | string[])
   const docentSlugs = parseArrayParam(q.docent as string | string[])
@@ -59,6 +61,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
 
   if (recordTypes.length) {
     items = items.filter((it) => it.record_type && recordTypes.includes(it.record_type))
+  }
+
+  if (productTypes.length) {
+    items = items.filter((it) => productTypeMatchesFilter(it.product_type, productTypes))
   }
 
   if (categorySlugs.length) {
@@ -188,6 +194,7 @@ function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
   const categoriesMap: Record<string, { slug: string; label: string; count: number }> = {}
   const docentenMap: Record<string, { slug: string; name: string; count: number }> = {}
   const recordType: Record<string, number> = {}
+  const productTypeCounts: Record<string, { slug: string; label: string; count: number }> = {}
 
   for (const it of items) {
     delivery[it.delivery_type] = (delivery[it.delivery_type] ?? 0) + 1
@@ -201,6 +208,17 @@ function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
     const month = monthKeyFromStartAt(it.start_at)
     if (month) months[month] = (months[month] ?? 0) + 1
     if (it.record_type) recordType[it.record_type] = (recordType[it.record_type] ?? 0) + 1
+    const ptSlug = productTypeToSlug(it.product_type)
+    if (ptSlug) {
+      if (!productTypeCounts[ptSlug]) {
+        productTypeCounts[ptSlug] = {
+          slug: ptSlug,
+          label: ptSlug.charAt(0).toUpperCase() + ptSlug.slice(1),
+          count: 0,
+        }
+      }
+      productTypeCounts[ptSlug].count++
+    }
     for (const c of it.categories as { slug?: string; label?: string }[]) {
       const slug = c.slug
       if (!slug) continue
@@ -221,6 +239,7 @@ function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
 
   return {
     record_type: Object.entries(recordType).map(([slug, count]) => ({ slug, count })),
+    product_type: Object.values(productTypeCounts),
     categories: Object.values(categoriesMap),
     docenten: Object.values(docentenMap),
     cities: sortCityFacetsByCount(Object.values(cities)),

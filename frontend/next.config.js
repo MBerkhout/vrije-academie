@@ -13,6 +13,8 @@ const nextConfig = {
       // Salesforce-synced product thumbnails (Primary_1_Url__c, Image_*_Url__c)
       { protocol: 'https', hostname: 's3-eu-central-1.amazonaws.com' },
       { protocol: 'https', hostname: 'vrije-academie.s3.eu-central-1.amazonaws.com' },
+      // Audience Player video stills (`Asset.screenshots`)
+      { protocol: 'https', hostname: '**.cloudfront.net' },
     ],
   },
   async headers() {

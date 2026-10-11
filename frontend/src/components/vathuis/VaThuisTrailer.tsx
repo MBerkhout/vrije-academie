@@ -41,6 +41,8 @@ export function VaThuisTrailer({
     }
   }, [productHandle, episodeKey])
 
+  const previewPosterUrl = playback?.posterUrl?.trim() || posterUrl?.trim() || null
+
   async function handlePlay() {
     setUnavailable(false)
     let config = playback
@@ -71,9 +73,9 @@ export function VaThuisTrailer({
         />
       ) : (
         <>
-          {posterUrl ? (
+          {previewPosterUrl ? (
             <Image
-              src={posterUrl}
+              src={previewPosterUrl}
               alt=""
               fill
               sizes="(max-width: 1024px) 100vw, 66vw"

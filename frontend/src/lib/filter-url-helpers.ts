@@ -17,6 +17,9 @@ import { PLP_BASE_PATH, VATHUIS_CATALOG_PATH } from '@/lib/routes'
 
 export const AGENDA_BASE_PATH = '/agenda'
 
+/** Next.js scrolls to top on client navigation by default; keep position when toggling filters. */
+export const LISTING_FILTER_NAV_OPTIONS = { scroll: false } as const
+
 export function isAgendaBasePath(basePath: string): boolean {
   return basePath === AGENDA_BASE_PATH
 }
