@@ -1,5 +1,10 @@
+import { createRequire } from 'module'
+
 /** Staging host — keep in sync with `NOINDEX_HOST` in `src/lib/cms/seo-metadata.ts`. */
 const NOINDEX_HOST = 'v2.vrijeacademie.nl'
+
+const require = createRequire(import.meta.url)
+const redisUrl = process.env.REDIS_URL?.trim()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -26,6 +31,12 @@ const nextConfig = {
       },
     ]
   },
+  ...(redisUrl
+    ? {
+        cacheHandler: require.resolve('./cache-incremental.cjs'),
+        cacheMaxMemorySize: 0,
+      }
+    : {}),
 }
 
 export default nextConfig

@@ -82,6 +82,8 @@ Create `.env` on the server (never commit these):
 | `~/app/frontend/.env` | [`frontend/.env.example`](../frontend/.env.example) |
 | `~/app/medusa/.env` | [`medusa/docs/README.md`](../medusa/docs/README.md) + [`medusa/.env.template`](../medusa/.env.template) |
 
+**Frontend shared cache (staging/production):** add `REDIS_URL` to `~/app/frontend/.env` — use the **same value** as in `~/app/medusa/.env` so default PLP/Agenda `unstable_cache` entries are shared across all Next PM2 workers. Reload frontend PM2 after adding it.
+
 **Salesforce order push (staging)** — required in `~/app/medusa/.env`:
 
 - `SALESFORCE_PERSON_ACCOUNT_RECORD_TYPE_ID=0121t000000QIr0AAG` (sandbox Participant, not Teacher). Without it, new website customers cannot be created in Salesforce and completed orders never appear there.
@@ -383,10 +385,15 @@ PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized li
 | Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart bust: full PLP on create/delete; on update only when product is in first 24 slots; orders bust registration counts only |
 | Frontend PLP hard cache | `frontend/src/lib/plp/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/ons-aanbod` with `sort=order` or `sort=start_date`; bust via `POST /api/revalidate/plp` |
 | Frontend Agenda hard cache | `frontend/src/lib/agenda/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/agenda` with `sort=start_date` or `sort=start_date_desc`; bust via the same `POST /api/revalidate/plp` (`agenda-default` tag) |
+| Frontend Next data cache | `frontend/cache-incremental.cjs` + `next.config.js` | When `REDIS_URL` is set, `cacheHandler` stores `unstable_cache` / ISR entries in Redis (`next:storefront:` prefix) so all PM2 workers share one hard cache; `cacheMaxMemorySize: 0` disables per-worker duplicates. `DEPLOYMENT_VERSION` (git SHA on deploy) isolates entries per release. |
 
 **PLP/Agenda/VA Thuis/registration-counts snapshots (`loadCached` in `store-listing-snapshot.ts`) use stale-while-revalidate**: each entry is stored as `{ value, builtAt }` with a 1 h physical Redis TTL (`LISTING_CACHE_HARD_TTL_SEC`), but is treated as due-for-refresh once `builtAt` is older than `LISTING_CACHE_TTL_SEC` (600 s). A stale entry is still returned instantly; a background rebuild refreshes it without blocking the request. Only a true cold start (nothing cached anywhere yet) blocks. Event detail caching (`store-event-detail.ts`) does **not** use this pattern yet — it still blocks on a cache miss.
 
-Requires `REDIS_URL` on the server for cross-worker sharing; without Redis, an in-process fallback is used per worker (holds the same envelope, never auto-expires — always superseded by the next successful rebuild).
+Requires `REDIS_URL` on the **Medusa** server for cross-worker sharing; without Redis, an in-process fallback is used per worker (holds the same envelope, never auto-expires — always superseded by the next successful rebuild).
+
+**Frontend:** copy the same `REDIS_URL` into `~/app/frontend/.env` (distinct key prefix — does not collide with Medusa `store:listing:*` keys). Without it, local dev keeps the default in-memory cache; production should always set it when using PM2 cluster mode.
+
+**Post-deploy warm:** `frontend/scripts/deploy.sh` runs `scripts/warm-listing-cache.sh` after PM2 reload — best-effort `curl` of default PLP/Agenda URLs (up to 120 s each, retries) so one worker populates the shared Next hard cache and Medusa listing snapshot before traffic hits. Frontend and Medusa deploy jobs run in parallel; if Medusa is still restarting, warm may retry or warn without failing the deploy.
 
 **Optional env for immediate PLP + Agenda bust on catalog changes** (same secret on both sides):
 
@@ -417,7 +424,7 @@ Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600
 
 `frontend/ecosystem.config.cjs` uses `instances: "max"` and `exec_mode: "cluster"` so all CPU cores serve requests in parallel. Memory limit is per-instance.
 
-Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set on the server (which switches the workflow engine, event bus and locking to Redis so state is shared across all processes).
+Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set on the server (which switches the workflow engine, event bus and locking to Redis so state is shared across all processes). The frontend uses the same Redis instance for the Next.js `cacheHandler` when `REDIS_URL` is present in `~/app/frontend/.env`.
 
 `medusa/ecosystem.config.cjs` runs two PM2 apps ([Medusa worker mode](https://docs.medusajs.com/learn/production/worker-mode)):
 
@@ -437,7 +444,9 @@ Events are queued in Redis and processed by the worker with concurrency 5, so a 
 | File | Purpose |
 |------|---------|
 | `.github/workflows/deploy-staging.yml` | GitHub Actions workflow |
-| `frontend/scripts/deploy.sh` | Server-side frontend deploy |
+| `frontend/scripts/deploy.sh` | Server-side frontend deploy (sets `DEPLOYMENT_VERSION`, runs listing warm) |
+| `frontend/scripts/warm-listing-cache.sh` | Post-deploy warm for default PLP/Agenda hard caches |
+| `frontend/cache-incremental.cjs` | Redis `cacheHandler` for shared Next data cache |
 | `medusa/scripts/deploy.sh` | Server-side medusa deploy |
 | `frontend/ecosystem.config.cjs` | PM2 config (Next.js, port 3000, cluster mode) |
 | `medusa/ecosystem.config.cjs` | PM2 config (Medusa, port 9000, cluster mode) |
