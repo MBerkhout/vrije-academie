@@ -34,8 +34,9 @@ export function AudiencePlayerEmbed({
   useLayoutEffect(() => {
     if (!playSignal) return
 
-    const container = containerRef.current
-    if (!container) return
+    const mountTarget = containerRef.current
+    if (!mountTarget) return
+    const host: HTMLDivElement = mountTarget
 
     let cancelled = false
     setError(null)
@@ -43,7 +44,7 @@ export function AudiencePlayerEmbed({
     async function startPlayback() {
       try {
         const player = await mountAndPlayAudiencePlayer(
-          container,
+          host,
           playback,
           playerRef.current,
         )
@@ -62,7 +63,7 @@ export function AudiencePlayerEmbed({
       playerRef.current?.destroy()
       playerRef.current = null
       // Video.js injects DOM outside React; clear it so unmount does not throw removeChild.
-      container.replaceChildren()
+      host.replaceChildren()
     }
   }, [playback, playSignal])
 
