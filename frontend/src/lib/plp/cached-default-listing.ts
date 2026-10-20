@@ -6,8 +6,8 @@ import { medusaClient } from '@/lib/commerce/medusa-client'
 import type { EventListResult, PaginatedEventFilters } from '@/lib/commerce/types'
 import { PAGE_SIZE } from '@/app/(main)/ons-aanbod/_state/url'
 
-/** Matches Medusa `LISTING_CACHE_TTL_SEC` (10 minutes). */
-export const PLP_HARD_CACHE_SEC = 600
+/** Matches Medusa `LISTING_CACHE_TTL_SEC` (default 120 s on staging). */
+export const PLP_HARD_CACHE_SEC = 120
 
 export const PLP_DEFAULT_CACHE_TAG = 'plp-default'
 

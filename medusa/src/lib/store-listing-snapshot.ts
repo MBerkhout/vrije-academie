@@ -43,9 +43,15 @@ import { filterStoreListingProductIds } from "./store-listing-eligibility"
 import { filterStorefrontVisibleVariants, isSalesforceExterneVerhuur } from "./salesforce-visible-on-website"
 import { getBaseEventData } from "./store-query-cache"
 import {
+  isForcedListingRefresh,
+  isListingCacheEnvelope,
+  isListingSnapshotStale,
+  listingCacheRebuildMinIntervalSec,
+  type ListingCacheEnvelope,
+} from "./listing-cache-config"
+import {
   invalidateMemoryListingCaches,
-  LISTING_CACHE_HARD_TTL_SEC,
-  LISTING_CACHE_TTL_SEC,
+  listingCacheHardTtlSec,
   memoryGet,
   memorySet,
   PLP_TOP_SLOT_COUNT,
@@ -593,15 +599,31 @@ async function buildRegistrationCounts(scope: MedusaContainer): Promise<Record<s
   return counts
 }
 
-type CachedEnvelope<T> = { value: T; builtAt: number }
+const lastRebuildStartedAt: Record<string, number> = {}
 
-/** Guards against a pre-deploy, un-enveloped snapshot still sitting in Redis/memory. */
-function isCachedEnvelope<T>(candidate: unknown): candidate is CachedEnvelope<T> {
-  return (
-    !!candidate &&
-    typeof candidate === "object" &&
-    typeof (candidate as CachedEnvelope<T>).builtAt === "number" &&
-    "value" in (candidate as CachedEnvelope<T>)
+function canStartBackgroundRebuild(
+  memorySlot: string,
+  forceRefresh: boolean
+): boolean {
+  if (forceRefresh) return true
+  const minMs = listingCacheRebuildMinIntervalSec() * 1000
+  const last = lastRebuildStartedAt[memorySlot] ?? 0
+  return Date.now() - last >= minMs
+}
+
+function logListingCache(
+  memorySlot: string,
+  outcome: "hit" | "stale" | "miss",
+  buildMs?: number
+): void {
+  if (outcome === "hit" && process.env.LISTING_CACHE_LOG_HITS !== "true") return
+  console.info(
+    JSON.stringify({
+      tag: "listing-cache",
+      slot: memorySlot,
+      outcome,
+      ...(buildMs !== undefined ? { buildMs } : {}),
+    })
   )
 }
 
@@ -619,16 +641,21 @@ async function loadCached<T>(
   inflightRef: { current: Promise<T> | null }
 ): Promise<T> {
   const candidate =
-    (await redisGetJson<CachedEnvelope<T>>(redisKey)) ?? memoryGet<CachedEnvelope<T>>(memorySlot)
-  const cached = isCachedEnvelope<T>(candidate) ? candidate : null
+    (await redisGetJson<ListingCacheEnvelope<T>>(redisKey)) ??
+    memoryGet<ListingCacheEnvelope<T>>(memorySlot)
+  const cached = isListingCacheEnvelope<T>(candidate) ? candidate : null
 
-  const refresh = (): Promise<T> => {
+  const refresh = (blocking: boolean): Promise<T> => {
     if (!inflightRef.current) {
+      const buildStart = Date.now()
+      lastRebuildStartedAt[memorySlot] = buildStart
       inflightRef.current = build()
         .then((value) => {
-          const envelope: CachedEnvelope<T> = { value, builtAt: Date.now() }
+          const envelope: ListingCacheEnvelope<T> = { value, builtAt: Date.now() }
           memorySet(memorySlot, envelope)
-          void redisSetJson(redisKey, envelope, LISTING_CACHE_HARD_TTL_SEC)
+          void redisSetJson(redisKey, envelope, listingCacheHardTtlSec())
+          const buildMs = Date.now() - buildStart
+          logListingCache(memorySlot, blocking ? "miss" : "stale", buildMs)
           return value
         })
         .finally(() => {
@@ -639,12 +666,19 @@ async function loadCached<T>(
   }
 
   if (cached) {
-    const isStale = Date.now() - cached.builtAt >= LISTING_CACHE_TTL_SEC * 1000
-    if (isStale) refresh().catch(() => {})
+    const forceRefresh = isForcedListingRefresh(cached.builtAt)
+    const isStale = isListingSnapshotStale(cached.builtAt)
+    if (isStale) {
+      if (canStartBackgroundRebuild(memorySlot, forceRefresh)) {
+        refresh(false).catch(() => {})
+      }
+    } else {
+      logListingCache(memorySlot, "hit")
+    }
     return cached.value
   }
 
-  return refresh()
+  return refresh(true)
 }
 
 const plpInflight = { current: null as Promise<PlpListingSnapshot> | null }
@@ -806,9 +840,9 @@ export function topPlpProductIds(
 /** True when `productId` is in the cached PLP snapshot's first page (no rebuild). */
 export async function isProductInCachedPlpTopSlots(productId: string): Promise<boolean> {
   const candidate =
-    (await redisGetJson<CachedEnvelope<PlpListingSnapshot>>(REDIS_KEY_PLP)) ??
-    memoryGet<CachedEnvelope<PlpListingSnapshot>>("plp")
-  const snapshot = isCachedEnvelope<PlpListingSnapshot>(candidate) ? candidate.value : null
+    (await redisGetJson<ListingCacheEnvelope<PlpListingSnapshot>>(REDIS_KEY_PLP)) ??
+    memoryGet<ListingCacheEnvelope<PlpListingSnapshot>>("plp")
+  const snapshot = isListingCacheEnvelope<PlpListingSnapshot>(candidate) ? candidate.value : null
   if (!snapshot?.list?.length) return false
   return topPlpProductIds(snapshot).includes(productId)
 }

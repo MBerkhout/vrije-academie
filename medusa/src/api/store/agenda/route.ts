@@ -6,7 +6,7 @@ import {
   slimAgendaItemForResponse,
 } from "../../../lib/agenda-listing-response"
 import { isSalesforceExterneVerhuur } from "../../../lib/salesforce-visible-on-website"
-import { LISTING_CACHE_TTL_SEC } from "../../../lib/store-listing-redis"
+import { listingCacheTtlSec } from "../../../lib/store-listing-redis"
 import {
   getAgendaListingSnapshot,
   type AgendaOccurrenceRow,
@@ -25,7 +25,7 @@ function parseArrayParam(val: string | string[] | undefined): string[] {
 function setListingCacheHeaders(res: MedusaResponse): void {
   res.setHeader(
     "Cache-Control",
-    `public, s-maxage=${LISTING_CACHE_TTL_SEC}, stale-while-revalidate=${LISTING_CACHE_TTL_SEC}`
+    `public, s-maxage=${listingCacheTtlSec()}, stale-while-revalidate=${listingCacheTtlSec()}`
   )
 }
 

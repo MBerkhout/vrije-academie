@@ -15,6 +15,7 @@ import {
   isDeleteSkippedEntity,
 } from "./utils/archive-entity-from-salesforce-delete"
 import { claimPendingWebhookEvents, type ClaimedWebhookEventRow } from "./utils/claim-webhook-events"
+import { shouldDeferWebhookQueueProcessing } from "./utils/webhook-queue-host-guard"
 import { findParentProductgroupIdsForLinkedOnlineSlave } from "./utils/linked-online-productgroup"
 import { runPool } from "./utils/run-pool"
 import {
@@ -449,6 +450,11 @@ export async function processPendingSalesforceWebhookEvents(
   const maxAttempts = webhookQueueMaxAttempts()
 
   if (!(await sync.isIntegrationReady())) {
+    return { claimed: 0, done: 0, skipped: 0, failed: 0 }
+  }
+
+  if (shouldDeferWebhookQueueProcessing()) {
+    logger.info("[salesforce-sync] webhook queue deferred (host load or low memory)")
     return { claimed: 0, done: 0, skipped: 0, failed: 0 }
   }
 

@@ -365,8 +365,8 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 | Route type | Caching |
 |------------|---------|
 | CMS pages (`[...slug]`) | ISR, `revalidate = 60` — on-demand bust via Sanity webhook (`POST /api/revalidate/sanity`) on page publish, or Studio **Clear page cache** (`POST /api/revalidate/studio`) |
-| PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 600 s hard cache for `sort=order` and `sort=start_date`; default `/agenda` (no filters) uses 600 s hard cache for `sort=start_date` and `sort=start_date_desc` |
-| PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail + similar cached in Redis (600 s); React `cache()` dedupes per request |
+| PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 120 s hard cache for `sort=order` and `sort=start_date`; default `/agenda` (no filters) uses 120 s hard cache for `sort=start_date` and `sort=start_date_desc` |
+| PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail + similar cached in Redis (default 120 s listing TTL); React `cache()` dedupes per request |
 | Homepage | ISR, `revalidate = 60`; on-demand bust via Sanity webhook on home page publish, or Studio **Clear page cache** |
 | Header / footer (`generalSettings`, `menu`) | ISR, `revalidate = 60` on `(main)/layout`; on-demand bust via the same webhook (`general-settings` tag + `(main)` and `(checkout)` layouts + batched `revalidatePath` for all storefront URLs) |
 | Redirect rules | In-memory, 60 s TTL |
@@ -382,12 +382,44 @@ PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized li
 | Event detail | `medusa/src/lib/store-event-detail.ts` | Redis cache for `GET /store/events/:handle` |
 | Similar courses | `medusa/src/lib/store-similar-events.ts` | Derives siblings from PLP snapshot (no per-sibling Postgres graph) |
 | Base query cache | `medusa/src/lib/store-query-cache.ts` | Product ids + event-group links (used when building snapshots) |
-| Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart bust: full PLP on create/delete; on update only when product is in first 24 slots; orders bust registration counts only |
-| Frontend PLP hard cache | `frontend/src/lib/plp/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/ons-aanbod` with `sort=order` or `sort=start_date`; bust via `POST /api/revalidate/plp` |
-| Frontend Agenda hard cache | `frontend/src/lib/agenda/cached-default-listing.ts` | `unstable_cache` (600 s) for unfiltered `/agenda` with `sort=start_date` or `sort=start_date_desc`; bust via the same `POST /api/revalidate/plp` (`agenda-default` tag) |
+| Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Smart bust: marks listing snapshots **stale** (keeps serving last value, background rebuild); create/delete always; update when product is in first 24 slots or VA Thuis |
+| Frontend PLP hard cache | `frontend/src/lib/plp/cached-default-listing.ts` | `unstable_cache` (120 s) for unfiltered `/ons-aanbod` with `sort=order` or `sort=start_date`; bust via `POST /api/revalidate/plp` |
+| Frontend Agenda hard cache | `frontend/src/lib/agenda/cached-default-listing.ts` | `unstable_cache` (120 s) for unfiltered `/agenda` with `sort=start_date` or `sort=start_date_desc`; bust via the same `POST /api/revalidate/plp` (`agenda-default` tag) |
 | Frontend Next data cache | `frontend/cache-incremental.cjs` + `next.config.js` | When `REDIS_URL` is set, `cacheHandler` stores `unstable_cache` / ISR entries in Redis (`next:storefront:` prefix) so all PM2 workers share one hard cache; `cacheMaxMemorySize: 0` disables per-worker duplicates. `DEPLOYMENT_VERSION` (git SHA on deploy) isolates entries per release. |
 
-**PLP/Agenda/VA Thuis/registration-counts snapshots (`loadCached` in `store-listing-snapshot.ts`) use stale-while-revalidate**: each entry is stored as `{ value, builtAt }` with a 1 h physical Redis TTL (`LISTING_CACHE_HARD_TTL_SEC`), but is treated as due-for-refresh once `builtAt` is older than `LISTING_CACHE_TTL_SEC` (600 s). A stale entry is still returned instantly; a background rebuild refreshes it without blocking the request. Only a true cold start (nothing cached anywhere yet) blocks. Event detail caching (`store-event-detail.ts`) does **not** use this pattern yet — it still blocks on a cache miss.
+**PLP/Agenda/VA Thuis/registration-counts snapshots (`loadCached` in `store-listing-snapshot.ts`) use stale-while-revalidate**: each entry is stored as `{ value, builtAt }` with a long physical Redis TTL (`LISTING_CACHE_HARD_TTL_SEC`, default 6× logical TTL). Logical freshness defaults to **120 s** (`LISTING_CACHE_TTL_SEC`). Invalidation sets `builtAt = 0` without deleting `value`, so visitors never wait on a cold rebuild after catalog changes. Background rebuilds are rate-limited (`LISTING_CACHE_REBUILD_MIN_INTERVAL_SEC`, default 60 s). Only a true cold start (no envelope anywhere) blocks. Event detail caching (`store-event-detail.ts`) does **not** use this pattern yet — it still blocks on a cache miss.
+
+**Staging performance env (Medusa `~/app/medusa/.env`, reload PM2 after edit):**
+
+| Variable | Suggested staging | Purpose |
+|----------|-------------------|---------|
+| `LISTING_CACHE_TTL_SEC` | `120` | Logical snapshot freshness |
+| `LISTING_CACHE_REBUILD_MIN_INTERVAL_SEC` | `60` | Cap rebuild frequency under load |
+| `SALESFORCE_WEBHOOK_QUEUE_BATCH_SIZE` | `10` | Smaller webhook batches |
+| `SALESFORCE_WEBHOOK_QUEUE_CONCURRENCY` | `2` | Less parallel SF work |
+| `SALESFORCE_WEBHOOK_DEFER_LOADAVG` | `6` | Skip queue tick when 1-min load &gt; threshold |
+| `SALESFORCE_WEBHOOK_DEFER_FREE_MB` | `512` | Skip queue tick when free RAM &lt; threshold |
+| `STORE_SLOW_REQUEST_MS` | `500` | Log `/store/*` slower than this |
+
+**Frontend PM2 (`frontend/ecosystem.config.cjs`):** `instances: 2`, `max_memory_restart: "1G"` (was `max` × 512M).
+
+**Structured logs (grep PM2 / sampler output):**
+
+| `tag` | Meaning |
+|-------|---------|
+| `listing-cache` | `hit` / `stale` / `miss` + optional `buildMs` per listing slot |
+| `store-slow` | Slow Medusa store API request |
+| `subscriber-perf` | Subscriber run ≥ 200 ms |
+| `subscriber-perf-minute` | Per-minute event counts per subscriber |
+| `host-perf` | Load, memory, swap, PM2 restarts, URL probe TTFB |
+
+**Host sampler (optional cron on staging server, as `medusa` user):**
+
+```bash
+mkdir -p ~/logs
+# Add PERF_PROBE_MEDUSA_PUBLISHABLE_KEY to ~/app/medusa/.env for the events probe
+* * * * * cd ~/app/medusa && npm run perf:sampler >> ~/logs/va-perf-sampler.log 2>&1
+```
 
 Requires `REDIS_URL` on the **Medusa** server for cross-worker sharing; without Redis, an in-process fallback is used per worker (holds the same envelope, never auto-expires — always superseded by the next successful rebuild).
 

@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
+import { withSubscriberPerf } from "../lib/subscriber-perf"
 import SearchModuleService from "../modules/search/service"
 
 async function resolveProductIdFromVariant(
@@ -23,31 +24,33 @@ export default async function syncSearchIndexSubscriber({
   event: { name, data },
   container,
 }: SubscriberArgs<{ id: string; product_id?: string }>): Promise<void> {
-  const search = container.resolve("search") as InstanceType<typeof SearchModuleService>
-  if (!search.isEnabled()) return
+  await withSubscriberPerf(name, "sync-search-index", async () => {
+    const search = container.resolve("search") as InstanceType<typeof SearchModuleService>
+    if (!search.isEnabled()) return
 
-  const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+    const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
 
-  try {
-    if (name === "product.deleted") {
-      await search.deleteDoc(`product-${data.id}`)
-      return
-    }
-
-    if (name === "product.created" || name === "product.updated") {
-      await search.reindexProductById(container, data.id)
-      return
-    }
-
-    if (name === "product-variant.created" || name === "product-variant.updated") {
-      const productId = await resolveProductIdFromVariant(container, data.id)
-      if (productId) {
-        await search.reindexProductById(container, productId)
+    try {
+      if (name === "product.deleted") {
+        await search.deleteDoc(`product-${data.id}`)
+        return
       }
+
+      if (name === "product.created" || name === "product.updated") {
+        await search.reindexProductById(container, data.id)
+        return
+      }
+
+      if (name === "product-variant.created" || name === "product-variant.updated") {
+        const productId = await resolveProductIdFromVariant(container, data.id)
+        if (productId) {
+          await search.reindexProductById(container, productId)
+        }
+      }
+    } catch (err) {
+      logger.warn(`Search index sync failed for ${name}: ${String(err)}`)
     }
-  } catch (err) {
-    logger.warn(`Search index sync failed for ${name}: ${String(err)}`)
-  }
+  })
 }
 
 export const config: SubscriberConfig = {

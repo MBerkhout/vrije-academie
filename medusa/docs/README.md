@@ -77,6 +77,10 @@ npm run cache:flush
 
 Use the same `REDIS_URL` as the running server. Does not delete Medusa workflow/job keys. Also POSTs the optional storefront PLP revalidate webhook when `STOREFRONT_REVALIDATE_PLP_URL` is set.
 
+Catalog invalidation **marks** PLP/Agenda/VA Thuis snapshots stale (`builtAt = 0`) instead of deleting Redis keys, so the last snapshot keeps serving while a background rebuild runs. Tune via `LISTING_CACHE_TTL_SEC` (default 120), `LISTING_CACHE_REBUILD_MIN_INTERVAL_SEC` (default 60). Logs: JSON lines with `"tag":"listing-cache"` (`hit` / `stale` / `miss`); set `LISTING_CACHE_LOG_HITS=true` to log hits.
+
+**Performance observability:** slow `/store/*` requests log as `"tag":"store-slow"`; subscribers log `"tag":"subscriber-perf"` when ≥ 200 ms and `"tag":"subscriber-perf-minute"` rollups. On the server: `npm run perf:sampler` (see [docs/DEPLOYMENT.md](../../docs/DEPLOYMENT.md) § Performance & caching).
+
 Built-in Medusa inventory UI (sidebar **Inventory** / **Reservations** items, Settings → **Locations**, product/variant inventory cards) is hidden via `src/admin/widgets/hide-inventory-admin.tsx`. The left admin menu itself stays visible. Capacity is managed in the **Product** variant widget (**Available quantity**).
 
 ## Event / Product Group workflow

@@ -7,8 +7,8 @@ import type { AgendaListResult } from '@/lib/commerce/types'
 import { PAGE_SIZE } from '@/app/(main)/agenda/_state/url'
 import type { HardCachedAgendaSort } from '@/lib/agenda/hard-cache-sort'
 
-/** Matches Medusa `LISTING_CACHE_TTL_SEC` (10 minutes). */
-export const AGENDA_HARD_CACHE_SEC = 600
+/** Matches Medusa `LISTING_CACHE_TTL_SEC` (default 120 s on staging). */
+export const AGENDA_HARD_CACHE_SEC = 120
 
 export const AGENDA_DEFAULT_CACHE_TAG = 'agenda-default'
 

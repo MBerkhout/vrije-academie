@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+import { withSubscriberPerf } from "../lib/subscriber-perf"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { pushCustomerToSalesforceWorkflowId } from "../workflows/salesforce/push-customer-salesforce"
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
@@ -9,22 +10,24 @@ export default async function salesforceSyncCustomer({
   event: { data, name },
   container,
 }: SubscriberArgs<{ id: string }>) {
-  const sync = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
-  if (!(await sync.isIntegrationReady())) return
-  const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const id = data.id
-  const isCreate = name === "customer.created"
-  await runSalesforceWorkflow(
-    container,
-    pushCustomerToSalesforceWorkflowId,
-    { customerId: id, isCreate },
-    {
-      eventGroupId: id,
-      entityType: "customer",
-      medusaId: id,
-    }
-  )
-  logger.info(`[salesforce-sync] enqueued push customer ${id}`)
+  await withSubscriberPerf(name, "salesforce-sync-customer", async () => {
+    const sync = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
+    if (!(await sync.isIntegrationReady())) return
+    const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+    const id = data.id
+    const isCreate = name === "customer.created"
+    await runSalesforceWorkflow(
+      container,
+      pushCustomerToSalesforceWorkflowId,
+      { customerId: id, isCreate },
+      {
+        eventGroupId: id,
+        entityType: "customer",
+        medusaId: id,
+      }
+    )
+    logger.info(`[salesforce-sync] enqueued push customer ${id}`)
+  })
 }
 
 export const config: SubscriberConfig = {

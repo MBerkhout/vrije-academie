@@ -9,7 +9,7 @@ import {
   mergeVathuisIntoPlpList,
   taxonomyFacetsFromListingRows,
 } from "../../../lib/merge-vathuis-into-plp"
-import { LISTING_CACHE_TTL_SEC } from "../../../lib/store-listing-redis"
+import { listingCacheTtlSec } from "../../../lib/store-listing-redis"
 import { filterProductsBySearchQuery, sortByRelevanceRank } from "../../../lib/search-query"
 import {
   incrementCityFacetCounts,
@@ -49,7 +49,7 @@ function eventItemsFromListingProduct(p: Record<string, unknown>): EventItemList
 function setListingCacheHeaders(res: MedusaResponse): void {
   res.setHeader(
     "Cache-Control",
-    `public, s-maxage=${LISTING_CACHE_TTL_SEC}, stale-while-revalidate=${LISTING_CACHE_TTL_SEC}`
+    `public, s-maxage=${listingCacheTtlSec()}, stale-while-revalidate=${listingCacheTtlSec()}`
   )
 }
 

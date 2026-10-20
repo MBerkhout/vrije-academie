@@ -1,7 +1,13 @@
 import { authenticate, defineMiddlewares } from "@medusajs/framework/http"
 
+import { storeRequestTiming } from "./middlewares/store-request-timing"
+
 export default defineMiddlewares({
   routes: [
+    {
+      matcher: "/store/*",
+      middlewares: [storeRequestTiming],
+    },
     {
       matcher: "/store/events/*/waitlist",
       method: "POST",

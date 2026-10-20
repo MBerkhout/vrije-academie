@@ -30,7 +30,7 @@ export async function invalidateEventDetailForProductId(
 }
 
 /**
- * PLP hard cache (10 min) is busted immediately when a product in the first-page
+ * PLP listing snapshot is marked stale (SWR — still served) when a product in the first-page
  * slots is updated; other live-event updates wait for TTL expiry. Drafting a
  * product always busts listings so Agenda cannot keep serving the unpublished
  * occurrence. VA Thuis is never on Ons aanbod, so those updates always bust

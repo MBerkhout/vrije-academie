@@ -4,6 +4,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 
+import { withSubscriberPerf } from "../lib/subscriber-perf"
 import variantEventItemLink from "../links/variant-event-item"
 
 /**
@@ -12,30 +13,32 @@ import variantEventItemLink from "../links/variant-event-item"
  * carts do not reserve stock via the inventory module.
  */
 export default async function ensureEventVariantNoMedusaInventory({
-  event: { data },
+  event: { name, data },
   container,
 }: SubscriberArgs<{ id: string }>) {
-  const variantId = data.id
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
-  const productModule = container.resolve(Modules.PRODUCT)
+  await withSubscriberPerf(name, "ensure-event-variant-no-medusa-inventory", async () => {
+    const variantId = data.id
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const productModule = container.resolve(Modules.PRODUCT)
 
-  const { data: linkRows } = await query.graph({
-    entity: variantEventItemLink.entryPoint,
-    fields: ["id"],
-    filters: { product_variant_id: variantId },
-  })
+    const { data: linkRows } = await query.graph({
+      entity: variantEventItemLink.entryPoint,
+      fields: ["id"],
+      filters: { product_variant_id: variantId },
+    })
 
-  if (!linkRows?.length) {
-    return
-  }
+    if (!linkRows?.length) {
+      return
+    }
 
-  const variant = await productModule.retrieveProductVariant(variantId)
-  if (variant.manage_inventory === false) {
-    return
-  }
+    const variant = await productModule.retrieveProductVariant(variantId)
+    if (variant.manage_inventory === false) {
+      return
+    }
 
-  await productModule.updateProductVariants(variantId, {
-    manage_inventory: false,
+    await productModule.updateProductVariants(variantId, {
+      manage_inventory: false,
+    })
   })
 }
 
