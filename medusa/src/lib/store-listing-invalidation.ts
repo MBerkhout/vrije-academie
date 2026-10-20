@@ -11,8 +11,6 @@ import {
   productHasVathuisEventGroup,
 } from "./store-listing-snapshot"
 import { shouldInvalidateListingsOnProductUpdate } from "./listing-cache-policy"
-import { revalidateStorefrontPlpCache } from "./storefront-revalidate"
-
 export async function invalidateEventDetailForProductId(
   scope: MedusaContainer,
   productId: string
@@ -30,7 +28,7 @@ export async function invalidateEventDetailForProductId(
 }
 
 /**
- * PLP listing snapshot is marked stale (SWR — still served) when a product in the first-page
+ * PLP listing snapshot is marked dirty for the worker when a product in the first-page
  * slots is updated; other live-event updates wait for TTL expiry. Drafting a
  * product always busts listings so Agenda cannot keep serving the unpublished
  * occurrence. VA Thuis is never on Ons aanbod, so those updates always bust
@@ -45,7 +43,6 @@ export async function handleProductCatalogChange(
 
   if (eventName === "product.created" || eventName === "product.deleted") {
     await invalidateStoreListingCache()
-    await revalidateStorefrontPlpCache()
     return
   }
 
@@ -55,7 +52,6 @@ export async function handleProductCatalogChange(
     const isVathuis = await productHasVathuisEventGroup(scope, productId)
     if (shouldInvalidateListingsOnProductUpdate({ unpublished, inPlpTopSlots, isVathuis })) {
       await invalidateStoreListingCache()
-      await revalidateStorefrontPlpCache()
     }
   }
 }

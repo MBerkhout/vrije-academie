@@ -42,25 +42,19 @@ import {
 import { filterStoreListingProductIds } from "./store-listing-eligibility"
 import { filterStorefrontVisibleVariants, isSalesforceExterneVerhuur } from "./salesforce-visible-on-website"
 import { getBaseEventData } from "./store-query-cache"
+import { isListingCacheEnvelope, type ListingCacheEnvelope } from "./listing-cache-config"
 import {
-  isForcedListingRefresh,
-  isListingCacheEnvelope,
-  isListingSnapshotStale,
-  listingCacheRebuildMinIntervalSec,
-  type ListingCacheEnvelope,
-} from "./listing-cache-config"
-import {
-  invalidateMemoryListingCaches,
-  listingCacheHardTtlSec,
+  getListingBuiltAt,
+  getListingSnapshotValue,
   memoryGet,
   memorySet,
+  persistListingSnapshot,
   PLP_TOP_SLOT_COUNT,
-  redisGetJson,
-  REDIS_KEY_PLP,
-  redisSetJson,
   REDIS_KEY_AGENDA,
+  REDIS_KEY_PLP,
   REDIS_KEY_REGISTRATIONS,
   REDIS_KEY_VATHUIS,
+  type ListingMemorySlot,
 } from "./store-listing-redis"
 import { isAgendaOccurrenceEligible, isFutureAgendaStartAt } from "./agenda-listing-response"
 import {
@@ -231,7 +225,7 @@ async function resolveEligibleProductIds(
   }
 }
 
-async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnapshot> {
+export async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnapshot> {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const catalog = scope.resolve("catalog") as InstanceType<typeof CatalogModuleService>
   const catalogCities = await catalog.listCities({}, { order: { sort_order: "ASC" } })
@@ -444,7 +438,7 @@ async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListingSnaps
   }
 }
 
-async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListingSnapshot> {
+export async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListingSnapshot> {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const catalog = scope.resolve("catalog") as InstanceType<typeof CatalogModuleService>
   const catalogCities = await catalog.listCities({}, { order: { sort_order: "ASC" } })
@@ -579,7 +573,9 @@ async function buildAgendaSnapshot(scope: MedusaContainer): Promise<AgendaListin
   return { items: items as AgendaOccurrenceRow[], builtAt: Date.now() }
 }
 
-async function buildRegistrationCounts(scope: MedusaContainer): Promise<Record<string, number>> {
+export async function buildRegistrationCounts(
+  scope: MedusaContainer
+): Promise<Record<string, number>> {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data: orderItems } = await query.graph({
     entity: "order",
@@ -599,21 +595,9 @@ async function buildRegistrationCounts(scope: MedusaContainer): Promise<Record<s
   return counts
 }
 
-const lastRebuildStartedAt: Record<string, number> = {}
-
-function canStartBackgroundRebuild(
-  memorySlot: string,
-  forceRefresh: boolean
-): boolean {
-  if (forceRefresh) return true
-  const minMs = listingCacheRebuildMinIntervalSec() * 1000
-  const last = lastRebuildStartedAt[memorySlot] ?? 0
-  return Date.now() - last >= minMs
-}
-
-function logListingCache(
-  memorySlot: string,
-  outcome: "hit" | "stale" | "miss",
+export function logListingCache(
+  memorySlot: ListingMemorySlot,
+  outcome: "hit" | "miss" | "rebuild",
   buildMs?: number
 ): void {
   if (outcome === "hit" && process.env.LISTING_CACHE_LOG_HITS !== "true") return
@@ -627,58 +611,65 @@ function logListingCache(
   )
 }
 
+async function syncListingFromRedis<T>(
+  redisKey: string,
+  memorySlot: ListingMemorySlot
+): Promise<ListingCacheEnvelope<T> | null> {
+  const [value, builtAt] = await Promise.all([
+    getListingSnapshotValue<T>(redisKey),
+    getListingBuiltAt(redisKey),
+  ])
+  if (value == null || builtAt == null) return null
+  const envelope: ListingCacheEnvelope<T> = { value, builtAt }
+  memorySet(memorySlot, envelope)
+  return envelope
+}
+
 /**
- * Stale-while-revalidate cache: once a snapshot exists (Redis or in-memory), it is always
- * returned immediately — even past `LISTING_CACHE_TTL_SEC` — while a background rebuild
- * refreshes it for next time. Only the very first call ever (nothing cached anywhere yet)
- * blocks on `build()`. This is what keeps `/ons-aanbod` fast for every visitor instead of
- * whichever unlucky request lands right after the 10-minute TTL expires.
+ * Memory-first read path: compare Redis `built_at` (tiny) before loading the blob.
+ * Snapshots are rebuilt by the worker job; API only builds on a true cold start.
  */
 async function loadCached<T>(
   redisKey: string,
-  memorySlot: "plp" | "agenda" | "vathuis" | "registrations",
+  memorySlot: ListingMemorySlot,
   build: () => Promise<T>,
   inflightRef: { current: Promise<T> | null }
 ): Promise<T> {
-  const candidate =
-    (await redisGetJson<ListingCacheEnvelope<T>>(redisKey)) ??
-    memoryGet<ListingCacheEnvelope<T>>(memorySlot)
-  const cached = isListingCacheEnvelope<T>(candidate) ? candidate : null
-
-  const refresh = (blocking: boolean): Promise<T> => {
-    if (!inflightRef.current) {
-      const buildStart = Date.now()
-      lastRebuildStartedAt[memorySlot] = buildStart
-      inflightRef.current = build()
-        .then((value) => {
-          const envelope: ListingCacheEnvelope<T> = { value, builtAt: Date.now() }
-          memorySet(memorySlot, envelope)
-          void redisSetJson(redisKey, envelope, listingCacheHardTtlSec())
-          const buildMs = Date.now() - buildStart
-          logListingCache(memorySlot, blocking ? "miss" : "stale", buildMs)
-          return value
-        })
-        .finally(() => {
-          inflightRef.current = null
-        })
-    }
-    return inflightRef.current
-  }
-
-  if (cached) {
-    const forceRefresh = isForcedListingRefresh(cached.builtAt)
-    const isStale = isListingSnapshotStale(cached.builtAt)
-    if (isStale) {
-      if (canStartBackgroundRebuild(memorySlot, forceRefresh)) {
-        refresh(false).catch(() => {})
-      }
-    } else {
+  const inMemory = memoryGet<ListingCacheEnvelope<T>>(memorySlot)
+  if (inMemory && isListingCacheEnvelope<T>(inMemory)) {
+    const remoteBuiltAt = await getListingBuiltAt(redisKey)
+    if (remoteBuiltAt != null && remoteBuiltAt === inMemory.builtAt) {
       logListingCache(memorySlot, "hit")
+      return inMemory.value
     }
-    return cached.value
+    const synced = await syncListingFromRedis<T>(redisKey, memorySlot)
+    if (synced) {
+      logListingCache(memorySlot, "hit")
+      return synced.value
+    }
+    return inMemory.value
   }
 
-  return refresh(true)
+  const synced = await syncListingFromRedis<T>(redisKey, memorySlot)
+  if (synced) {
+    logListingCache(memorySlot, "hit")
+    return synced.value
+  }
+
+  if (!inflightRef.current) {
+    const buildStart = Date.now()
+    inflightRef.current = build()
+      .then(async (value) => {
+        const builtAt = Date.now()
+        await persistListingSnapshot(redisKey, memorySlot, value, builtAt)
+        logListingCache(memorySlot, "miss", Date.now() - buildStart)
+        return value
+      })
+      .finally(() => {
+        inflightRef.current = null
+      })
+  }
+  return inflightRef.current
 }
 
 const plpInflight = { current: null as Promise<PlpListingSnapshot> | null }
@@ -705,7 +696,7 @@ export async function getRegistrationCountsByProduct(
   )
 }
 
-async function buildVathuisSnapshot(scope: MedusaContainer): Promise<VathuisListingSnapshot> {
+export async function buildVathuisSnapshot(scope: MedusaContainer): Promise<VathuisListingSnapshot> {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { data: eventGroupLinks } = await query.graph({
@@ -839,10 +830,13 @@ export function topPlpProductIds(
 
 /** True when `productId` is in the cached PLP snapshot's first page (no rebuild). */
 export async function isProductInCachedPlpTopSlots(productId: string): Promise<boolean> {
-  const candidate =
-    (await redisGetJson<ListingCacheEnvelope<PlpListingSnapshot>>(REDIS_KEY_PLP)) ??
-    memoryGet<ListingCacheEnvelope<PlpListingSnapshot>>("plp")
-  const snapshot = isListingCacheEnvelope<PlpListingSnapshot>(candidate) ? candidate.value : null
+  const inMemory = memoryGet<ListingCacheEnvelope<PlpListingSnapshot>>("plp")
+  let snapshot: PlpListingSnapshot | null =
+    inMemory && isListingCacheEnvelope(inMemory) ? inMemory.value : null
+  if (!snapshot) {
+    const value = await getListingSnapshotValue<PlpListingSnapshot>(REDIS_KEY_PLP)
+    if (value) snapshot = value
+  }
   if (!snapshot?.list?.length) return false
   return topPlpProductIds(snapshot).includes(productId)
 }

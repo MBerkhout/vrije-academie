@@ -20,11 +20,16 @@ import {
 } from "./medusa-price-to-cents"
 import { listCategoriesForProductIds } from "./product-catalog-category-links"
 import {
+  EVENT_DETAIL_NEGATIVE_CACHE_SEC,
+  eventDetailCacheTtlSec,
+} from "./listing-cache-config"
+import {
   eventDetailRedisKey,
-  EVENT_CACHE_TTL_SEC,
   redisGetJson,
   redisSetJson,
 } from "./store-listing-redis"
+
+const EVENT_DETAIL_NOT_FOUND = "__404__"
 import { stripVathuisPublicEmbeds } from "./vathuis-episode-lookup"
 import {
   isVathuisUnlimitedAvailability,
@@ -327,8 +332,9 @@ export async function getCachedStoreEventDetail(
   handle: string
 ): Promise<Record<string, unknown> | null> {
   const key = eventDetailRedisKey(handle)
-  const cached = await redisGetJson<Record<string, unknown>>(key)
-  if (cached) return cached
+  const cached = await redisGetJson<Record<string, unknown> | string>(key)
+  if (cached === EVENT_DETAIL_NOT_FOUND) return null
+  if (cached && typeof cached === "object") return cached
 
   let inflight = detailInflight.get(handle)
   if (!inflight) {
@@ -340,7 +346,9 @@ export async function getCachedStoreEventDetail(
 
   const built = await inflight
   if (built) {
-    await redisSetJson(key, built, EVENT_CACHE_TTL_SEC)
+    await redisSetJson(key, built, eventDetailCacheTtlSec())
+  } else {
+    await redisSetJson(key, EVENT_DETAIL_NOT_FOUND, EVENT_DETAIL_NEGATIVE_CACHE_SEC)
   }
   return built
 }

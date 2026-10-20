@@ -77,7 +77,7 @@ npm run cache:flush
 
 Use the same `REDIS_URL` as the running server. Does not delete Medusa workflow/job keys. Also POSTs the optional storefront PLP revalidate webhook when `STOREFRONT_REVALIDATE_PLP_URL` is set.
 
-Catalog invalidation **marks** PLP/Agenda/VA Thuis snapshots stale (`builtAt = 0`) instead of deleting Redis keys, so the last snapshot keeps serving while a background rebuild runs. Tune via `LISTING_CACHE_TTL_SEC` (default 120), `LISTING_CACHE_REBUILD_MIN_INTERVAL_SEC` (default 60). Logs: JSON lines with `"tag":"listing-cache"` (`hit` / `stale` / `miss`); set `LISTING_CACHE_LOG_HITS=true` to log hits.
+Listing snapshots: **`medusa-worker`** job `refresh-store-listing-snapshots` rebuilds PLP/Agenda/VA Thuis/registration counts when a slot is **dirty** or older than `LISTING_CACHE_TTL_SEC` (default 120). Catalog invalidation sets Redis dirty flags (no 10 MB blob rewrite). API processes serve from **in-memory** snapshots and only re-fetch the Redis blob when `:built_at` changes. PDP detail uses `EVENT_DETAIL_CACHE_TTL_SEC` (default 86400) with explicit invalidation on product change. Logs: `"tag":"listing-cache"` (`hit` / `miss` on API cold start, `rebuild` on worker); set `LISTING_CACHE_LOG_HITS=true` to log hits.
 
 **Performance observability:** slow `/store/*` requests log as `"tag":"store-slow"`; subscribers log `"tag":"subscriber-perf"` when ≥ 200 ms and `"tag":"subscriber-perf-minute"` rollups. On the server: `npm run perf:sampler` (see [docs/DEPLOYMENT.md](../../docs/DEPLOYMENT.md) § Performance & caching).
 

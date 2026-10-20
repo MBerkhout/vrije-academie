@@ -5,6 +5,7 @@
 import Medusa from '@medusajs/js-sdk'
 import { isOrderVisibleInAccount } from '@/lib/commerce/account-orders'
 import { getMedusaBackendUrl } from './medusa-backend-url'
+import { cleanHandle } from '@/lib/routes'
 import type {
   CommerceClient,
   Product,
@@ -498,8 +499,9 @@ export const medusaClient: CommerceClient = {
   },
 
   async getEvent(handle: string): Promise<EventCard | null> {
+    const safeHandle = encodeURIComponent(cleanHandle(handle))
     const response = await fetch(
-      `${BACKEND_URL}/store/events/${handle}`,
+      `${BACKEND_URL}/store/events/${safeHandle}`,
       { headers: storeHeaders() }
     )
     if (response.status === 404) return null
@@ -518,8 +520,9 @@ export const medusaClient: CommerceClient = {
 
   async getSimilarEvents(handle: string): Promise<EventCard[]> {
     try {
+      const safeHandle = encodeURIComponent(cleanHandle(handle))
       const response = await fetch(
-        `${BACKEND_URL}/store/events/${handle}/similar`,
+        `${BACKEND_URL}/store/events/${safeHandle}/similar`,
         { headers: storeHeaders() }
       )
       if (!response.ok) return []

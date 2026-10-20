@@ -20,7 +20,6 @@ import { SALESFORCE_VISIBLE_ON_WEBSITE_METADATA_KEY } from "../../lib/salesforce
 import { applyCityToEventItemPatch } from "../../lib/resolve-city"
 import { invalidateEventDetailForProductId } from "../../lib/store-listing-invalidation"
 import { invalidateStoreListingCache } from "../../lib/store-listing-redis"
-import { revalidateStorefrontPlpCache } from "../../lib/storefront-revalidate"
 import EventsModuleService from "../events/service"
 import CatalogModuleService from "../catalog/service"
 import type { SfCourseProductShape } from "./mappings/course-product"
@@ -755,7 +754,6 @@ async function hideHiddenChildVariants(
     })
     await invalidateStoreListingCache()
     await invalidateEventDetailForProductId(container, productId)
-    await revalidateStorefrontPlpCache()
   }
 }
 
@@ -797,7 +795,6 @@ async function skipNotVisibleOnWebsite(
 
     await invalidateStoreListingCache()
     await invalidateEventDetailForProductId(container, productId)
-    await revalidateStorefrontPlpCache()
 
     const search = container.resolve("search") as import("../search/service").default
     if (search.isEnabled()) {
@@ -1249,7 +1246,6 @@ export async function importProductgroupFromSalesforce(
 
   await invalidateStoreListingCache()
   await invalidateEventDetailForProductId(container, productId)
-  await revalidateStorefrontPlpCache()
 
   if (!input.skipSearch) {
     const search = container.resolve("search") as import("../search/service").default
