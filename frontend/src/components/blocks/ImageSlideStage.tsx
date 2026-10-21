@@ -160,8 +160,9 @@ export function ImageSlideStage({
                   <SanityImage
                     source={slide.backgroundImage}
                     fill
+                    aspectRatio=""
                     sizes={imageSizes}
-                    className="object-cover"
+                    className="h-full w-full"
                     priority={priorityFirstSlide && slideIndex === 0}
                   />
                 )}
@@ -174,7 +175,7 @@ export function ImageSlideStage({
               })()}
               <div
                 className={cn(
-                  'relative h-full flex flex-col justify-center p-8 text-white',
+                  'absolute inset-0 flex flex-col justify-center p-8 text-white',
                   cleanBlockValue(slide.contentAlignment) === 'center'
                     ? 'items-center text-center'
                     : 'items-start'

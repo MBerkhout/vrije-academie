@@ -68,8 +68,9 @@ export function BlockRenderer({ block, tone = 'default' }: BlockRendererProps) {
           <SanityImage
             source={firstSlide.backgroundImage}
             fill
+            aspectRatio=""
             sizes="(max-width: 1024px) 100vw, 66vw"
-            className="object-cover"
+            className="h-full w-full"
             priority
           />
         ) : undefined

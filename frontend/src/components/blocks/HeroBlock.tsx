@@ -5,6 +5,7 @@ import { PortableText } from '@/components/cms/PortableText'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { Button } from '@/components/ui'
 import { ImageSlideStage } from '@/components/blocks/ImageSlideStage'
+import { HubSpotFormEmbed } from '@/components/hubspot/HubSpotFormEmbed'
 import { getTitleTag, getTitleSizeClass, cleanBlockValue, type HeroBlock as HeroBlockType } from '@/lib/cms'
 import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
@@ -24,12 +25,13 @@ export function HeroBlock({
   const fullBleed = cleanBlockValue(block.width) === 'full'
   const showNewsletter = block.newsletterEnabled !== false
   const newsletterSignupUrl = cleanBlockValue(block.newsletterSignupUrl)?.trim()
+  const newsletterHubSpotFormId = cleanBlockValue(block.newsletterHubSpotFormId)?.trim()
 
   return (
     <BlockWrapper block={block}>
       <div
         className={cn(
-          'grid lg:grid-cols-3 gap-6 md:gap-8 lg:items-stretch',
+          'grid lg:grid-cols-3 gap-6 md:gap-8 lg:items-stretch lg:min-h-0',
           fullBleed && 'px-4 sm:px-6 lg:px-8'
         )}
       >
@@ -37,7 +39,7 @@ export function HeroBlock({
           slides={slides}
           autoplay={block.autoplay}
           autoplayInterval={block.autoplayInterval}
-          className="lg:col-span-2 relative overflow-hidden rounded-lg h-64 md:h-96 lg:h-full lg:min-h-0"
+          className="lg:col-span-2 relative min-h-0 overflow-hidden rounded-lg h-64 md:h-96 lg:h-full lg:max-h-full"
           imageSizes={HERO_SLIDE_SIZES}
           titleTag="h1"
           creativeSlotPrefix="homepage_jumbotron"
@@ -45,7 +47,7 @@ export function HeroBlock({
           lcpImage={lcpImage}
           priorityFirstSlide
         />
-        <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
+        <div className="flex min-h-0 flex-col gap-4 lg:h-full lg:min-h-0 lg:self-stretch">
           <div
             className={cn(
               'flex-1 min-h-0 overflow-hidden border border-va-lightgray-300 bg-white',
@@ -92,22 +94,38 @@ export function HeroBlock({
           </div>
           {showNewsletter && (
             <div className="shrink-0 rounded-lg border border-va-lightgray-300 bg-white p-6 lg:p-8">
-              <h3
-                className={cn(getTitleSizeClass('h3'), 'font-sans font-bold text-va-black mb-2')}
-              >
-                Meld je aan
-              </h3>
-              <p className="font-sans mb-4 text-va-darkgray">
-                Schrijf je hier in voor onze nieuwsbrief!
-              </p>
-              {newsletterSignupUrl ? (
-                <Button variant="primary" href={newsletterSignupUrl}>
-                  Aanmelden
-                </Button>
+              {newsletterHubSpotFormId ? (
+                <>
+                  <h3
+                    className={cn(
+                      getTitleSizeClass('h3'),
+                      'font-sans font-bold text-va-black mb-4 text-balance',
+                    )}
+                  >
+                    Schrijf je hier in voor onze nieuwsbrief!
+                  </h3>
+                  <HubSpotFormEmbed formId={newsletterHubSpotFormId} />
+                </>
               ) : (
-                <Button type="button" variant="primary" disabled>
-                  Aanmelden
-                </Button>
+                <>
+                  <h3
+                    className={cn(getTitleSizeClass('h3'), 'font-sans font-bold text-va-black mb-2')}
+                  >
+                    Meld je aan
+                  </h3>
+                  <p className="font-sans mb-4 text-va-darkgray">
+                    Schrijf je hier in voor onze nieuwsbrief!
+                  </p>
+                  {newsletterSignupUrl ? (
+                    <Button variant="primary" href={newsletterSignupUrl}>
+                      Aanmelden
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="primary" disabled>
+                      Aanmelden
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           )}

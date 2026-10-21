@@ -107,11 +107,31 @@ export const heroBlock = defineType({
       description:
         "Turn off to hide the Meld je aan card. Existing heroes keep showing it until this is turned off.",
     }),
+    defineField({
+      name: "newsletterHubSpotFormId",
+      title: "HubSpot form-ID (nieuwsbrief)",
+      type: "string",
+      group: "newsletter",
+      description:
+        "Form GUID (data-form-id) voor inschrijven, zoals op vrijeacademie.nl. Heeft voorrang op Aanmeldlink.",
+      hidden: ({ parent }) => parent?.newsletterEnabled === false,
+      validation: (Rule) =>
+        Rule.custom((val) => {
+          const trimmed = val?.trim()
+          if (!trimmed) return true
+          if (
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)
+          ) {
+            return "Form-ID moet een geldige HubSpot GUID zijn."
+          }
+          return true
+        }),
+    }),
     defineCtaUrlField({
       name: "newsletterSignupUrl",
       title: "Aanmeldlink",
       group: "newsletter",
-      description: "URL voor de knop Aanmelden (bijv. nieuwsbrief- of inschrijfpagina).",
+      description: "Fallback: URL voor knop Aanmelden wanneer geen HubSpot form-ID is ingevuld.",
       hidden: ({ parent }) => parent?.newsletterEnabled === false,
     }),
     defineField({

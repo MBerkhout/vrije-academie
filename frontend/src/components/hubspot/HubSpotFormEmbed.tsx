@@ -2,9 +2,6 @@
 
 import Script from 'next/script'
 
-const portalId = process.env.NEXT_PUBLIC_HUBSPOT_PORTAL_ID?.trim()
-const region = process.env.NEXT_PUBLIC_HUBSPOT_REGION?.trim() || 'eu1'
-
 function hubspotEmbedScriptHost(regionCode: string): string {
   if (regionCode === 'eu1') return 'js-eu1.hsforms.net'
   if (regionCode === 'na1') return 'js-na1.hsforms.net'
@@ -12,6 +9,9 @@ function hubspotEmbedScriptHost(regionCode: string): string {
 }
 
 export function HubSpotFormEmbed({ formId }: { formId: string }) {
+  const portalId = process.env.NEXT_PUBLIC_HUBSPOT_PORTAL_ID?.trim()
+  const region = process.env.NEXT_PUBLIC_HUBSPOT_REGION?.trim() || 'eu1'
+
   if (!portalId) {
     return (
       <p className="p-6 border border-va-lightgray rounded text-va-gray text-center text-sm">
