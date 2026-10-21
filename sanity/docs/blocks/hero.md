@@ -37,8 +37,9 @@ The hero is split into two columns:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | Show newsletter | Boolean | No | Default on. Turn off to hide the *Meld je aan* card. Unset on older heroes still shows the card. |
-| HubSpot form-ID (nieuwsbrief) | String | No | HubSpot `data-form-id` (same as [vrijeacademie.nl homepage Inschrijven](https://www.vrijeacademie.nl/)). When set, embeds the form in the card (heading *Schrijf je hier in voor onze nieuwsbrief!*). |
-| Aanmeldlink | URL | No | Fallback when no HubSpot form-ID: *Aanmelden* button link. If both are empty, the button is disabled. Hidden when **Show newsletter** is off. |
+| HubSpot form-ID (nieuwsbrief popup) | String | No | Form GUID in the *Inschrijven* modal (`HubSpotFormEmbed`). |
+| HubSpot CTA-ID (legacy) | String | No | Optional; opens the same modal with the default newsletter form when form-ID is empty (live site CTA `276896252118`). |
+| Aanmeldlink | URL | No | Fallback when no HubSpot IDs: *Aanmelden* link. Hidden when **Show newsletter** is off. |
 
 ### Style (tab)
 
@@ -49,7 +50,7 @@ The hero is split into two columns:
 
 ## Newsletter card
 
-Shown when **Show newsletter** is on (default; also when the field is unset). With **HubSpot form-ID**, the card matches the live homepage newsletter block: heading **Schrijf je hier in voor onze nieuwsbrief!** and an embedded HubSpot form (`HubSpotFormEmbed`, portal/region from frontend env). Without a form-ID: title **Meld je aan**, subtext **Schrijf je hier in voor onze nieuwsbrief!**, primary button **Aanmelden** (link from **Aanmeldlink**).
+Shown when **Show newsletter** is on. With a HubSpot CTA-ID: **Inschrijven** opens a modal with the same HubSpot *web interactive* iframe as vrijeacademie.nl (image + *Blijf benieuwd!* form). With only a form-ID: modal uses `HubSpotFormEmbed`. Otherwise: **Meld je aan** + **Aanmelden** link.
 
 ## Design Notes
 

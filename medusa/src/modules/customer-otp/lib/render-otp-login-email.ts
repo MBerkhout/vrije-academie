@@ -1,20 +1,20 @@
 import { existsSync, readFileSync } from "fs"
-import { dirname, join } from "path"
-import { fileURLToPath } from "url"
+import { join } from "path"
 
 import { escapeHtml } from "../../../lib/email-content"
 
 const DEFAULT_STOREFRONT_PUBLIC_URL = "https://v2.vrijeacademie.nl"
 const LOGO_PATH = "/branding/logo-email.png"
+const OTP_LOGIN_TEMPLATE_REL =
+  "modules/customer-otp/templates/otp-login.email.html"
 
 let cachedTemplate: string | undefined
 
 function resolveOtpLoginTemplatePath(): string {
-  const here = dirname(fileURLToPath(import.meta.url))
   const candidates = [
-    join(here, "../templates/otp-login.email.html"),
-    join(process.cwd(), "src/modules/customer-otp/templates/otp-login.email.html"),
-    join(process.cwd(), "dist/modules/customer-otp/templates/otp-login.email.html"),
+    join(process.cwd(), "src", OTP_LOGIN_TEMPLATE_REL),
+    join(process.cwd(), "dist", OTP_LOGIN_TEMPLATE_REL),
+    join(process.cwd(), ".medusa/server/src", OTP_LOGIN_TEMPLATE_REL),
   ]
   for (const path of candidates) {
     if (existsSync(path)) return path

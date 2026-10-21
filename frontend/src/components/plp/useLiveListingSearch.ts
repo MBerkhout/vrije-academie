@@ -1,7 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { trackSearch } from '@/lib/analytics/events/engagement'
+
+/** Stable key for filter props excluding live search query (avoids resetting input on `q` URL sync). */
+export function listingFiltersKeyWithoutQuery<T extends { q?: string }>(state: T): string {
+  const { q: _q, ...rest } = state
+  return JSON.stringify(rest)
+}
 
 type UseLiveListingSearchOptions<TItem, TFilter extends { q?: string; sort?: string }> = {
   basePath: string
@@ -35,6 +41,19 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
   const [searchError, setSearchError] = useState<string | null>(null)
 
   const serverKey = useMemo(() => JSON.stringify(serverFilterState), [serverFilterState])
+  const serverFiltersKey = useMemo(
+    () => listingFiltersKeyWithoutQuery(serverFilterState),
+    [serverFilterState]
+  )
+  const fetchGenerationRef = useRef(0)
+  const queryEditingRef = useRef(false)
+  const queryRef = useRef(query)
+  queryRef.current = query
+
+  const updateQuery = useCallback((value: string) => {
+    queryEditingRef.current = true
+    setQuery(value)
+  }, [])
 
   useEffect(() => {
     // #region agent log
@@ -65,11 +84,18 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
       /* ignore */
     }
     // #endregion
+    queryEditingRef.current = false
     setQuery(serverFilterState.q ?? '')
     setItems(initialItems)
     setCount(initialCount)
     setSearchError(null)
-  }, [serverKey, initialItems, initialCount, serverFilterState.q, basePath])
+    // Only when non-query filters / path change — not on server `q` sync after live search.
+  }, [serverFiltersKey, basePath])
+
+  useEffect(() => {
+    if (queryEditingRef.current) return
+    setQuery(serverFilterState.q ?? '')
+  }, [serverFilterState.q])
 
   const liveFilterState = useMemo(
     () => mergeQuery(serverFilterState, query.trim() || undefined),
@@ -81,9 +107,13 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
   useEffect(() => {
     const trimmed = query.trim()
     const serverQ = (serverFilterState.q ?? '').trim()
-    if (trimmed === serverQ) return
+    if (trimmed === serverQ) {
+      queryEditingRef.current = false
+      return
+    }
 
     const timer = window.setTimeout(async () => {
+      const generation = ++fetchGenerationRef.current
       const nextSort = getSort(trimmed, serverFilterState)
       const params = serialize(
         mergeQuery(serverFilterState, trimmed || undefined)
@@ -103,17 +133,25 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
         if (!response.ok) throw new Error('fetch failed')
 
         const data = (await response.json()) as Record<string, unknown>
+        if (generation !== fetchGenerationRef.current) return
+
         const nextItems = (data[listKey] as TItem[]) ?? []
         const nextCount = typeof data.count === 'number' ? data.count : 0
         setItems(nextItems)
         setCount(nextCount)
+        if (queryRef.current.trim() === trimmed) {
+          queryEditingRef.current = false
+        }
         if (trimmed) {
           trackSearch(trimmed, nextCount)
         }
       } catch {
+        if (generation !== fetchGenerationRef.current) return
         setSearchError('Kon zoekresultaten niet laden. Probeer het opnieuw.')
       } finally {
-        setSearching(false)
+        if (generation === fetchGenerationRef.current) {
+          setSearching(false)
+        }
       }
     }, 300)
 
@@ -133,7 +171,7 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
 
   return {
     query,
-    setQuery,
+    setQuery: updateQuery,
     items,
     count,
     liveFilterState,

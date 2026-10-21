@@ -109,21 +109,43 @@ export const heroBlock = defineType({
     }),
     defineField({
       name: "newsletterHubSpotFormId",
-      title: "HubSpot form-ID (nieuwsbrief)",
+      title: "HubSpot form-ID (nieuwsbrief popup)",
       type: "string",
       group: "newsletter",
       description:
-        "Form GUID (data-form-id) voor inschrijven, zoals op vrijeacademie.nl. Heeft voorrang op Aanmeldlink.",
+        "Form GUID (data-form-id) in de Inschrijven pop-up. Leeg laten is oké zolang HubSpot CTA-ID hieronder staat.",
+      hidden: ({ parent }) => parent?.newsletterEnabled === false,
+      validation: (Rule) =>
+        Rule.custom((val, ctx) => {
+          const parent = ctx.parent as {
+            newsletterHubSpotCtaId?: string
+          }
+          const trimmed = val?.trim()
+          if (trimmed) {
+            if (
+              !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)
+            ) {
+              return "Form-ID moet een geldige HubSpot GUID zijn."
+            }
+            return true
+          }
+          if (parent?.newsletterHubSpotCtaId?.trim()) return true
+          return true
+        }),
+    }),
+    defineField({
+      name: "newsletterHubSpotCtaId",
+      title: "HubSpot CTA-ID (legacy)",
+      type: "string",
+      group: "newsletter",
+      description:
+        "Optioneel: numerieke CTA van vrijeacademie.nl. Opent de pop-up met het standaard nieuwsbriefformulier wanneer form-ID leeg is.",
       hidden: ({ parent }) => parent?.newsletterEnabled === false,
       validation: (Rule) =>
         Rule.custom((val) => {
           const trimmed = val?.trim()
           if (!trimmed) return true
-          if (
-            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)
-          ) {
-            return "Form-ID moet een geldige HubSpot GUID zijn."
-          }
+          if (!/^\d+$/.test(trimmed)) return "CTA-ID moet alleen cijfers bevatten."
           return true
         }),
     }),
@@ -131,7 +153,7 @@ export const heroBlock = defineType({
       name: "newsletterSignupUrl",
       title: "Aanmeldlink",
       group: "newsletter",
-      description: "Fallback: URL voor knop Aanmelden wanneer geen HubSpot form-ID is ingevuld.",
+      description: "Fallback: URL voor knop Aanmelden wanneer geen HubSpot CTA-ID is ingevuld.",
       hidden: ({ parent }) => parent?.newsletterEnabled === false,
     }),
     defineField({

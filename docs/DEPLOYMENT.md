@@ -129,6 +129,8 @@ Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS ori
 
 In the Sanity project (**API → CORS origins**), add `https://v2.vrijeacademie.nl` with **Allow credentials** checked so `SanityLive` can subscribe to draft updates in the Presentation iframe.
 
+**Open Graph (staging):** when `NEXT_PUBLIC_SITE_URL` is the future production canonical (`https://vrijeacademie.nl`), set `NEXT_PUBLIC_STOREFRONT_PUBLIC_URL=https://v2.vrijeacademie.nl` so default share images resolve to `/branding/logo.svg` on the live Next host (otherwise crawlers hit legacy apex redirects). After go-live, point both URLs at production.
+
 Sanity Studio env for CI is provided via GitHub Secrets (see below), not on the server.
 
 ### 5. Medusa dependencies
@@ -452,7 +454,7 @@ Set `SANITY_REVALIDATE_SECRET` in `~/app/frontend/.env` on the server. Sanity si
 
 **Manual page cache clear from Studio:** page documents expose **Clear page cache** in the document ⋯ menu (not the Publish bar). It POSTs `{ _type, slug }` to `https://v2.vrijeacademie.nl/api/revalidate/studio` with `Authorization: Bearer SANITY_STUDIO_REVALIDATE_SECRET`. Set that secret on the frontend server **and** as a GitHub Actions secret so hosted Studio can send it (it is bundled into Studio JS — use a **different** string from the webhook HMAC `SANITY_REVALIDATE_SECRET`). CORS allows `http://localhost:3333` and `https://*.sanity.studio`. Unlike the webhook, this also revalidates VA Thuis paths.
 
-**HubSpot forms:** form-toolkit loads the optional dropdown from `GET /api/hubspot` (`HUBSPOT_TOKEN` on the frontend). Editors paste form GUIDs on `formBlock` or **HubSpot form-ID (nieuwsbrief)** on `heroBlock`. Storefront embed uses `NEXT_PUBLIC_HUBSPOT_PORTAL_ID=145840897` and `NEXT_PUBLIC_HUBSPOT_REGION=eu1`. Live-site IDs (see `frontend/src/lib/hubspot/form-ids.ts`): newsletter `b8d92c58-…`, magazine `baf56412-…`. Studio CORS allowlist: `localhost:3333`, `https://*.sanity.studio`, and `NEXT_PUBLIC_SANITY_STUDIO_URL` origin when set.
+**HubSpot:** `NEXT_PUBLIC_HUBSPOT_PORTAL_ID=145840897` and `NEXT_PUBLIC_HUBSPOT_REGION=eu1` for form embeds. Hero **Inschrijven** opens a site modal with `HubSpotFormEmbed` (form GUID on hero or legacy CTA → default newsletter form `b8d92c58-…`). Other GUIDs in `form-ids.ts`. Studio list: `GET /api/hubspot` + `HUBSPOT_TOKEN`. CORS: `localhost:3333`, `https://*.sanity.studio`.
 
 Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600` on listing and event detail routes.
 

@@ -17,6 +17,8 @@ import { plpProductPath } from '@/lib/routes'
 export const SCHEMA_ORG = 'https://schema.org' as const
 
 const DEFAULT_SITE_ORIGIN = 'https://vrijeacademie.nl'
+/** Where `/public` assets are served until production cutover — keep in sync with Medusa `STOREFRONT_PUBLIC_URL`. */
+export const DEFAULT_STOREFRONT_PUBLIC_ORIGIN = 'https://v2.vrijeacademie.nl'
 export const ORG_NAME = 'Vrije Academie' as const
 export const ORGANIZATION_ID_FRAGMENT = '#organization' as const
 
@@ -24,6 +26,33 @@ export const ORGANIZATION_ID_FRAGMENT = '#organization' as const
 export function getSiteOrigin(): string {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '')
   return raw || DEFAULT_SITE_ORIGIN
+}
+
+/** Public storefront origin for static assets (OG default image, etc.). */
+export function getStorefrontPublicOrigin(): string {
+  const explicit =
+    process.env.NEXT_PUBLIC_STOREFRONT_PUBLIC_URL?.trim() ||
+    process.env.STOREFRONT_PUBLIC_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+
+  const site = getSiteOrigin()
+  try {
+    const { hostname } = new URL(site)
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return site
+  } catch {
+    return site
+  }
+  return DEFAULT_STOREFRONT_PUBLIC_ORIGIN
+}
+
+/** Absolute URL for a path under `frontend/public` (or pass through http(s) URLs). */
+export function absolutizeStorefrontPublicUrl(pathOrUrl: string): string {
+  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+    return pathOrUrl
+  }
+  const base = getStorefrontPublicOrigin()
+  const path = pathOrUrl.startsWith('/') ? pathOrUrl : `/${pathOrUrl}`
+  return `${base}${path}`
 }
 
 /** Stable `@id` for the sitewide Organization entity. */

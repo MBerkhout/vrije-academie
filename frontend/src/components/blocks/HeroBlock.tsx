@@ -5,7 +5,8 @@ import { PortableText } from '@/components/cms/PortableText'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { Button } from '@/components/ui'
 import { ImageSlideStage } from '@/components/blocks/ImageSlideStage'
-import { HubSpotFormEmbed } from '@/components/hubspot/HubSpotFormEmbed'
+import { HubSpotNewsletterPopup } from '@/components/hubspot/HubSpotNewsletterPopup'
+import { resolveHeroNewsletterPopup } from '@/lib/hubspot/resolve-hero-newsletter-popup'
 import { getTitleTag, getTitleSizeClass, cleanBlockValue, type HeroBlock as HeroBlockType } from '@/lib/cms'
 import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
@@ -25,7 +26,10 @@ export function HeroBlock({
   const fullBleed = cleanBlockValue(block.width) === 'full'
   const showNewsletter = block.newsletterEnabled !== false
   const newsletterSignupUrl = cleanBlockValue(block.newsletterSignupUrl)?.trim()
-  const newsletterHubSpotFormId = cleanBlockValue(block.newsletterHubSpotFormId)?.trim()
+  const newsletterPopup = resolveHeroNewsletterPopup(
+    cleanBlockValue(block.newsletterHubSpotFormId),
+    cleanBlockValue(block.newsletterHubSpotCtaId),
+  )
 
   return (
     <BlockWrapper block={block}>
@@ -94,7 +98,7 @@ export function HeroBlock({
           </div>
           {showNewsletter && (
             <div className="shrink-0 rounded-lg border border-va-lightgray-300 bg-white p-6 lg:p-8">
-              {newsletterHubSpotFormId ? (
+              {newsletterPopup ? (
                 <>
                   <h3
                     className={cn(
@@ -104,7 +108,7 @@ export function HeroBlock({
                   >
                     Schrijf je hier in voor onze nieuwsbrief!
                   </h3>
-                  <HubSpotFormEmbed formId={newsletterHubSpotFormId} />
+                  <HubSpotNewsletterPopup config={newsletterPopup} />
                 </>
               ) : (
                 <>

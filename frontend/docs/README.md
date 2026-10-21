@@ -210,7 +210,7 @@ If `SANITY_API_READ_TOKEN` is missing, `/api/draft` returns 503 with a helpful e
 
 ## SEO & JSON-LD
 
-- **Metadata** — `buildSeoMetadata()` in `src/lib/cms/seo-metadata.ts` maps Sanity `seo` fields (title, description, image, `noIndex`) to Next.js App Router metadata. Meta fields are reused for Open Graph. Set `metadataBase` via `buildSiteMetadata()` in the root layout. Default share image: `/branding/logo.svg` (`DEFAULT_OG_IMAGE_PATH`), unless Sanity `metaImage` or a page fallback (e.g. PDP photo) is set.
+- **Metadata** — `buildSeoMetadata()` in `src/lib/cms/seo-metadata.ts` maps Sanity `seo` fields (title, description, image, `noIndex`) to Next.js App Router metadata. Meta fields are reused for Open Graph. Set `metadataBase` via `buildSiteMetadata()` in the root layout. Default share image: `/branding/logo.svg` (`DEFAULT_OG_IMAGE_PATH`), absolutized with `getStorefrontPublicOrigin()` (`NEXT_PUBLIC_STOREFRONT_PUBLIC_URL` / `STOREFRONT_PUBLIC_URL`, else v2 until go-live), unless Sanity `metaImage` or a page fallback (e.g. PDP photo) is set.
 - **Homepage** — fallbacks in `src/lib/cms/homepage-seo.ts` match [vrijeacademie.nl](https://www.vrijeacademie.nl/) (`Home - Vrije Academie` + legacy meta description). Editorial Sanity `seo` overrides when set. One-off CMS sync: `npm run migrate:homepage-seo --prefix sanity`.
 - **Canonical URLs** — pass `path` to `buildSeoMetadata()` (e.g. `/ons-aanbod/kunst`); resolved against `NEXT_PUBLIC_SITE_URL`. **Linked-online slave** PDPs (mirrored `isLinkedOnlineSlave` on Sanity products) use the parent hybrid handle as canonical; slaves without a resolved parent get `noindex`.
 - **PDP fallbacks** — editorial `seo` → Salesforce mirror (`seoTitle` / `seoDescription`) → commerce event title/description.

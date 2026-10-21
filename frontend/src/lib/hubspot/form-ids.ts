@@ -5,3 +5,5 @@
  */
 export const HUBSPOT_NEWSLETTER_FORM_ID = 'b8d92c58-aca6-4807-a28a-f737a986f666'
 export const HUBSPOT_MAGAZINE_FORM_ID = 'baf56412-974b-48eb-aba4-f4c8f795fc75'
+/** Popup CTA on vrijeacademie.nl homepage Inschrijven button (hs-cta-trigger-button-*). */
+export const HUBSPOT_NEWSLETTER_CTA_ID = '276896252118'

@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { GeneralSettings } from '@/lib/cms/types'
 import {
+  DEFAULT_STOREFRONT_PUBLIC_ORIGIN,
   ORG_NAME,
+  absolutizeStorefrontPublicUrl,
   buildBreadcrumbListJsonLd,
   buildFaqPageJsonLd,
   buildItemListJsonLd,
@@ -9,10 +11,27 @@ import {
   buildPdpEventOrCourseJsonLd,
   buildWebSiteJsonLd,
   getOrganizationId,
+  getStorefrontPublicOrigin,
   resolveProductSchemaFields,
 } from './json-ld'
 
 describe('json-ld', () => {
+  it('getStorefrontPublicOrigin prefers NEXT_PUBLIC_STOREFRONT_PUBLIC_URL', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
+    vi.stubEnv('NEXT_PUBLIC_STOREFRONT_PUBLIC_URL', 'https://v2.vrijeacademie.nl')
+    expect(getStorefrontPublicOrigin()).toBe('https://v2.vrijeacademie.nl')
+    expect(absolutizeStorefrontPublicUrl('/branding/logo.svg')).toBe(
+      'https://v2.vrijeacademie.nl/branding/logo.svg',
+    )
+    vi.unstubAllEnvs()
+  })
+
+  it('getStorefrontPublicOrigin defaults to v2 when canonical is production', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
+    expect(getStorefrontPublicOrigin()).toBe(DEFAULT_STOREFRONT_PUBLIC_ORIGIN)
+    vi.unstubAllEnvs()
+  })
+
   it('buildOrganizationJsonLd uses stable @id and footer fallbacks', () => {
     const settings = {
       header: {},

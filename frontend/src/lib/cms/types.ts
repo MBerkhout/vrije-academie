@@ -160,8 +160,10 @@ export interface HeroBlock extends Block {
   topPanelCtaUrl?: string
   /** When false, hide the Meld je aan card. Unset/true keeps it (existing heroes). */
   newsletterEnabled?: boolean
-  /** HubSpot newsletter form GUID; embed replaces the Aanmelden link when set. */
+  /** HubSpot form GUID shown in the Inschrijven pop-up. */
   newsletterHubSpotFormId?: string
+  /** @deprecated Legacy CTA ID — maps to default newsletter form in pop-up. */
+  newsletterHubSpotCtaId?: string
   /** Destination for the newsletter "Aanmelden" CTA. */
   newsletterSignupUrl?: string
 }

@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
-import { getSiteOrigin } from '@/lib/json-ld'
+import {
+  absolutizeStorefrontPublicUrl,
+  getSiteOrigin,
+} from '@/lib/json-ld'
 import type { SEO } from './types'
 
-/** Default share image (public asset; resolved via root `metadataBase`). */
+/** Default share image (`frontend/public`; absolute URL uses storefront public origin). */
 export const DEFAULT_OG_IMAGE_PATH = '/branding/logo.svg'
 
 /** Staging host — must not appear in search results. */
@@ -29,10 +32,15 @@ export function resolveOgImageUrl(
   return resolveSeoImageUrl(seo) ?? fallbackImage ?? DEFAULT_OG_IMAGE_PATH
 }
 
+function absolutizeOgImage(image: string): string {
+  return absolutizeStorefrontPublicUrl(image)
+}
+
 function defaultSocialImages(image: string): Pick<Metadata, 'openGraph' | 'twitter'> {
+  const absolute = absolutizeOgImage(image)
   return {
-    openGraph: { images: [image] },
-    twitter: { card: 'summary_large_image', images: [image] },
+    openGraph: { images: [absolute] },
+    twitter: { card: 'summary_large_image', images: [absolute] },
   }
 }
 
@@ -118,7 +126,9 @@ export function buildSeoMetadata(
 ): Metadata {
   const title = resolveSeoTitle(seo, options.fallbackTitle)
   const description = resolveSeoDescription(seo, options.fallbackDescription)
-  const ogImage = resolveOgImageUrl(seo, options.fallbackImage)
+  const ogImage = absolutizeOgImage(
+    resolveOgImageUrl(seo, options.fallbackImage),
+  )
   const robots = resolveRobots(seo)
   const canonical = resolveCanonical(options.path)
 

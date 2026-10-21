@@ -1,16 +1,28 @@
 'use client'
 
-import Script from 'next/script'
-
-function hubspotEmbedScriptHost(regionCode: string): string {
-  if (regionCode === 'eu1') return 'js-eu1.hsforms.net'
-  if (regionCode === 'na1') return 'js-na1.hsforms.net'
-  return 'js.hsforms.net'
-}
+import { useEffect } from 'react'
+import {
+  ensureHubSpotDeveloperEmbedScript,
+  hubspotDeveloperEmbedScriptSrc,
+} from '@/lib/hubspot/hubspot-form-embed'
 
 export function HubSpotFormEmbed({ formId }: { formId: string }) {
   const portalId = process.env.NEXT_PUBLIC_HUBSPOT_PORTAL_ID?.trim()
   const region = process.env.NEXT_PUBLIC_HUBSPOT_REGION?.trim() || 'eu1'
+
+  useEffect(() => {
+    if (!portalId) return
+    const scriptSrc = hubspotDeveloperEmbedScriptSrc(portalId, region)
+    let cancelled = false
+
+    void ensureHubSpotDeveloperEmbedScript(scriptSrc).catch((err) => {
+      if (!cancelled) console.error(err)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [portalId, region, formId])
 
   if (!portalId) {
     return (
@@ -20,17 +32,12 @@ export function HubSpotFormEmbed({ formId }: { formId: string }) {
     )
   }
 
-  const scriptSrc = `https://${hubspotEmbedScriptHost(region)}/forms/embed/developer/${portalId}.js`
-
   return (
-    <>
-      <Script src={scriptSrc} strategy="afterInteractive" />
-      <div
-        className="hs-form-html"
-        data-region={region}
-        data-form-id={formId}
-        data-portal-id={portalId}
-      />
-    </>
+    <div
+      className="hs-form-html"
+      data-region={region}
+      data-form-id={formId}
+      data-portal-id={portalId}
+    />
   )
 }

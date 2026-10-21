@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { DEFAULT_STOREFRONT_PUBLIC_ORIGIN } from '@/lib/json-ld'
 import {
   buildProductPdpMetadata,
   buildSeoMetadata,
@@ -11,16 +12,19 @@ import {
   resolveSeoTitle,
 } from './seo-metadata'
 
+const DEFAULT_OG_IMAGE_ABSOLUTE = `${DEFAULT_STOREFRONT_PUBLIC_ORIGIN}${DEFAULT_OG_IMAGE_PATH}`
+
 describe('seo-metadata', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
   })
 
   it('buildSiteMetadata sets metadataBase from site origin', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
     const meta = buildSiteMetadata({ title: 'Test' })
     expect(meta.metadataBase?.toString()).toMatch(/^https?:\/\//)
     expect(meta.title).toBe('Test')
-    expect(meta.openGraph?.images).toEqual([DEFAULT_OG_IMAGE_PATH])
+    expect(meta.openGraph?.images).toEqual([DEFAULT_OG_IMAGE_ABSOLUTE])
   })
 
   it('isNoIndexSite is true only for the v2 staging host', () => {
@@ -74,8 +78,16 @@ describe('seo-metadata', () => {
   })
 
   it('buildSeoMetadata uses branding logo when no image is configured', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
     const meta = buildSeoMetadata(null, { fallbackTitle: 'Page', path: '/about' })
-    expect(meta.openGraph?.images).toEqual([DEFAULT_OG_IMAGE_PATH])
+    expect(meta.openGraph?.images).toEqual([DEFAULT_OG_IMAGE_ABSOLUTE])
+  })
+
+  it('buildSeoMetadata absolutizes default logo with NEXT_PUBLIC_STOREFRONT_PUBLIC_URL', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
+    vi.stubEnv('NEXT_PUBLIC_STOREFRONT_PUBLIC_URL', 'https://v2.vrijeacademie.nl')
+    const meta = buildSeoMetadata(null, { fallbackTitle: 'Page', path: '/' })
+    expect(meta.openGraph?.images).toEqual([DEFAULT_OG_IMAGE_ABSOLUTE])
   })
 
   it('buildProductPdpMetadata prefers editorial seo over Salesforce mirror', () => {
@@ -120,10 +132,11 @@ describe('seo-metadata', () => {
   })
 
   it('noIndexMetadata applies utility robots directive', () => {
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
     expect(noIndexMetadata('Login')).toMatchObject({
       title: 'Login',
       robots: NOINDEX_ROBOTS,
-      openGraph: { title: 'Login', images: [DEFAULT_OG_IMAGE_PATH] },
+      openGraph: { title: 'Login', images: [DEFAULT_OG_IMAGE_ABSOLUTE] },
     })
   })
 })
