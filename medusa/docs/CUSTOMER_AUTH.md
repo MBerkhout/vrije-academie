@@ -136,7 +136,9 @@ If `--password` is omitted, a temporary `VaTemp-…!` password is generated.
 
 `POST /store/customer/register-passwordless` — creates customer + auth identity (no password), default shipping address, returns `{ token }`.
 
-Used for unknown emails at checkout step 2 (always register, no guest path).
+Used for unknown emails at checkout step 2 (always register, no guest path). Returns **400** (not 500) when the email already has a Medusa **admin** auth identity (`app_metadata.user_id`) or is linked to another customer’s auth identity — use a personal email for checkout.
+
+`GET /store/customer/lookup` treats emails with an auth identity but no customer row as **known** (`exists: true`, `hasPassword` from the identity) so checkout does not offer passwordless registration for those addresses.
 
 ## Password registration (`/login`)
 

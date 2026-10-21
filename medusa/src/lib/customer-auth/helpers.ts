@@ -83,6 +83,36 @@ export function authIdentityHasPassword(authIdentity: AuthIdentityShape): boolea
   return typeof password === "string" && password.length > 0
 }
 
+const ADMIN_EMAIL_CUSTOMER_REGISTRATION_MESSAGE =
+  "This email is used for a Medusa admin account and cannot be used to register as a customer. Use a personal email address."
+
+export async function assertAuthIdentityAllowsPasswordlessRegistration(
+  container: MedusaContainer,
+  email: string,
+  authIdentity: AuthIdentityShape
+): Promise<void> {
+  const normalized = assertValidEmail(email)
+
+  if (authIdentity.app_metadata?.user_id) {
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, ADMIN_EMAIL_CUSTOMER_REGISTRATION_MESSAGE)
+  }
+
+  const customerId = authIdentity.app_metadata?.customer_id as string | undefined
+  if (!customerId) {
+    return
+  }
+
+  const customerService = container.resolve(Modules.CUSTOMER) as ICustomerModuleService
+  const linked = await customerService.retrieveCustomer(customerId, { select: ["email"] })
+  const linkedEmail = linked.email ? normalizeCustomerEmail(linked.email) : ""
+  if (linkedEmail && linkedEmail !== normalized) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "This email is already linked to another customer account and cannot be registered again."
+    )
+  }
+}
+
 export async function lookupCustomerAuth(
   container: MedusaContainer,
   email: string
@@ -96,6 +126,12 @@ export async function lookupCustomerAuth(
   )
 
   if (!customers.length) {
+    const identities = await listAuthIdentitiesByEmail(container, normalized)
+    if (identities.length) {
+      const hasMedusaPassword = identities.some(authIdentityHasPassword)
+      return { exists: true, hasPassword: hasMedusaPassword }
+    }
+
     const contactId = await salesforcePersonContactIdByEmail(container, normalized)
     return { exists: Boolean(contactId), hasPassword: false }
   }
@@ -285,7 +321,13 @@ export async function registerPasswordlessCustomer(
     return { token, customerId: existing.id }
   }
 
-  const authIdentity = await ensurePasswordlessAuthIdentity(container, normalized)
+  const preexistingAuth = await findAuthIdentityByEmail(container, normalized)
+  if (preexistingAuth) {
+    await assertAuthIdentityAllowsPasswordlessRegistration(container, normalized, preexistingAuth)
+  }
+
+  const authIdentity =
+    preexistingAuth ?? (await ensurePasswordlessAuthIdentity(container, normalized))
   const workflow = createCustomerAccountWorkflow(container)
   const { result: customer } = await workflow.run({
     input: {

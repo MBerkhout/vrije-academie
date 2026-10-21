@@ -541,8 +541,13 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
       })
       await refresh()
       await continueAfterAuth()
-    } catch {
-      setError('Er is iets misgegaan. Probeer het opnieuw.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message.trim() : ''
+      setError(
+        message && !message.endsWith('_FAILED')
+          ? message
+          : 'Er is iets misgegaan. Probeer het opnieuw.'
+      )
     } finally {
       setBusy(false)
     }

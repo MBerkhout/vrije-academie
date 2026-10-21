@@ -9,6 +9,13 @@ export function listingFiltersKeyWithoutQuery<T extends { q?: string }>(state: T
   return JSON.stringify(rest)
 }
 
+export function shouldSkipLiveListingFetch(
+  trimmedLocalQuery: string,
+  committedQuery: string
+): boolean {
+  return trimmedLocalQuery === committedQuery
+}
+
 type UseLiveListingSearchOptions<TItem, TFilter extends { q?: string; sort?: string }> = {
   basePath: string
   serverFilterState: TFilter
@@ -47,6 +54,8 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
   )
   const fetchGenerationRef = useRef(0)
   const queryEditingRef = useRef(false)
+  /** Last query we applied to URL + listing fetch (server `q` often lags behind replaceState). */
+  const committedQueryRef = useRef((serverFilterState.q ?? '').trim())
   const queryRef = useRef(query)
   queryRef.current = query
 
@@ -85,6 +94,7 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
     }
     // #endregion
     queryEditingRef.current = false
+    committedQueryRef.current = (serverFilterState.q ?? '').trim()
     setQuery(serverFilterState.q ?? '')
     setItems(initialItems)
     setCount(initialCount)
@@ -94,6 +104,8 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
 
   useEffect(() => {
     if (queryEditingRef.current) return
+    const serverQ = (serverFilterState.q ?? '').trim()
+    committedQueryRef.current = serverQ
     setQuery(serverFilterState.q ?? '')
   }, [serverFilterState.q])
 
@@ -106,8 +118,7 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
 
   useEffect(() => {
     const trimmed = query.trim()
-    const serverQ = (serverFilterState.q ?? '').trim()
-    if (trimmed === serverQ) {
+    if (shouldSkipLiveListingFetch(trimmed, committedQueryRef.current)) {
       queryEditingRef.current = false
       return
     }
@@ -124,6 +135,8 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
 
       const nextUrl = params.toString() ? `${basePath}?${params.toString()}` : basePath
       window.history.replaceState(window.history.state, '', nextUrl)
+      const previousCommitted = committedQueryRef.current
+      committedQueryRef.current = trimmed
 
       setSearching(true)
       setSearchError(null)
@@ -147,6 +160,7 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
         }
       } catch {
         if (generation !== fetchGenerationRef.current) return
+        committedQueryRef.current = previousCommitted
         setSearchError('Kon zoekresultaten niet laden. Probeer het opnieuw.')
       } finally {
         if (generation === fetchGenerationRef.current) {

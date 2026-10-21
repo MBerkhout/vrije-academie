@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { MedusaError } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 
 import { registerPasswordlessCustomer } from "../../../../lib/customer-auth/helpers"
 
@@ -51,6 +51,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
       res.status(400).json({ message: err.message })
       return
     }
+    const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER) as {
+      error: (msg: string) => void
+    }
+    logger.error(
+      `[register-passwordless] ${err instanceof Error ? err.message : String(err)}`
+    )
     res.status(500).json({ message: "Registration failed" })
   }
 }

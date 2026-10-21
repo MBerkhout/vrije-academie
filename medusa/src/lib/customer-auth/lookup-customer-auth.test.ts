@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { Modules } from "@medusajs/framework/utils"
 
 vi.mock("./ensure-salesforce-customer", () => ({
@@ -33,6 +33,11 @@ function makeContainer(customers: { id: string }[]) {
 }
 
 describe("lookupCustomerAuth", () => {
+  beforeEach(() => {
+    vi.mocked(salesforcePersonContactIdByEmail).mockReset()
+    vi.mocked(salesforcePersonContactIdByEmail).mockResolvedValue(null)
+  })
+
   it("returns exists true when Medusa customer exists", async () => {
     vi.mocked(salesforcePersonContactIdByEmail).mockResolvedValue(null)
     const result = await lookupCustomerAuth(
@@ -57,5 +62,38 @@ describe("lookupCustomerAuth", () => {
     vi.mocked(salesforcePersonContactIdByEmail).mockResolvedValue(null)
     const result = await lookupCustomerAuth(makeContainer([]), "unknown@example.com")
     expect(result).toEqual({ exists: false, hasPassword: false })
+  })
+
+  it("returns exists true when an auth identity exists without a customer row", async () => {
+    vi.mocked(salesforcePersonContactIdByEmail).mockResolvedValue(null)
+    const listAuthIdentities = vi.fn().mockResolvedValue([
+      {
+        id: "authid_1",
+        app_metadata: { user_id: "user_1" },
+        provider_identities: [
+          {
+            provider: "emailpass",
+            provider_metadata: { password: "hashed" },
+          },
+        ],
+      },
+    ])
+    const container = {
+      resolve: (key: string) => {
+        if (key === Modules.CUSTOMER) {
+          return { listAndCountCustomers: vi.fn().mockResolvedValue([[], 0]) }
+        }
+        if (key === Modules.AUTH) {
+          return { listAuthIdentities }
+        }
+        if (key === "legacyPassword") {
+          return { hasLegacyPassword: vi.fn().mockResolvedValue(false) }
+        }
+        throw new Error(`Unexpected resolve: ${key}`)
+      },
+    }
+    const result = await lookupCustomerAuth(container, "admin@example.com")
+    expect(result).toEqual({ exists: true, hasPassword: true })
+    expect(salesforcePersonContactIdByEmail).not.toHaveBeenCalled()
   })
 })

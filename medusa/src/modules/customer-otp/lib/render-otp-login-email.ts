@@ -73,9 +73,12 @@ export function buildOtpLoginEmail(input: {
 }): { html: string; text: string } {
   const safeCode = escapeHtml(input.code)
   const html = otpLoginTemplate()
-    .replaceAll("[LOGO_URL]", escapeHtml(input.logoUrl))
-    .replaceAll("{{CODE}}", safeCode)
-    .replaceAll("{{GELDIGHEID}}", String(input.validityMinutes))
+    .split("[LOGO_URL]")
+    .join(escapeHtml(input.logoUrl))
+    .split("{{CODE}}")
+    .join(safeCode)
+    .split("{{GELDIGHEID}}")
+    .join(String(input.validityMinutes))
 
   return {
     html,
