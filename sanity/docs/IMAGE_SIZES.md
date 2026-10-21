@@ -40,6 +40,7 @@ Guidance only — uploads are not blocked when dimensions differ.
 | `heroBlock` | `topPanelImage` | `heroTopPanel` | `HeroBlock.tsx` top panel |
 | `afbeeldingBlock` | `image` | `blockImageAspectRatio` | `AfbeeldingBlock.tsx` |
 | `afbeeldingBlock` | `placeholderImage` | `blockImageAspectRatio` | YouTube poster |
+| `videoBlock` | `posterImage` | `blockImageAspectRatio` | MP4 poster / reduced-motion fallback |
 | `editorialCardsBlock` | `backgroundImage` | `editorialBackground` | `EditorialCardsBlock.tsx` |
 | `editorialCardsBlock` | `cards[].image` | `editorialCard` | `EditorialCardsBlock.tsx` |
 | `columnsBlock` | `columns[].mediaImage` | `blockImageAspectRatio` | `ColumnsBlock.tsx` |

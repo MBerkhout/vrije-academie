@@ -6,9 +6,11 @@ import Link from 'next/link'
 import { commerceClient } from '@/lib/commerce'
 import { clearCartId, dispatchCartUpdated, getActiveCart, getCartId, setCartId } from '@/lib/commerce/cart'
 import {
+  cartEmailMatchesCustomer,
   checkoutPaymentErrorMessage,
   resolveCheckoutPaymentDestination,
 } from '@/lib/commerce/checkout-payment-guards'
+import { buildEmailMismatchNotice, setCheckoutNotice } from '@/lib/commerce/checkout-notice'
 import { getDefaultCheckoutAddress } from '@/lib/commerce/checkout-profile'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { trackAddPaymentInfo } from '@/lib/analytics/events/ecommerce'
@@ -95,8 +97,20 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
         loadError,
         customer,
       })
-      if (dest === '/winkelwagen' || dest === '/checkout/inloggen') {
+      if (dest === '/winkelwagen') {
         router.replace(dest)
+        setLoading(false)
+        return
+      }
+      if (dest === '/checkout/inloggen') {
+        if (customer && c && !cartEmailMatchesCustomer(c, customer)) {
+          setCheckoutNotice(
+            buildEmailMismatchNotice(customer.email ?? '', c.email ?? '')
+          )
+          router.replace('/checkout/inloggen?wijzig-email=1')
+        } else {
+          router.replace(dest)
+        }
         setLoading(false)
         return
       }
@@ -109,11 +123,28 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
       }
 
       if (customer) {
+        if (
+          c.email?.trim() &&
+          customer.email?.trim() &&
+          !cartEmailMatchesCustomer(c, customer)
+        ) {
+          setCheckoutNotice(
+            buildEmailMismatchNotice(customer.email, c.email ?? '')
+          )
+          router.replace('/checkout/inloggen?wijzig-email=1')
+          setLoading(false)
+          return
+        }
         try {
           c = await commerceClient.syncCartFromCustomer(customer, c.id)
           setCartId(c.id)
           dispatchCartUpdated()
         } catch {
+          setCheckoutNotice({
+            kind: 'generic',
+            message:
+              'We konden je gegevens niet op de bestelling zetten. Controleer of je bent ingelogd met het juiste e-mailadres en probeer het opnieuw.',
+          })
           router.replace('/checkout/inloggen')
           setLoading(false)
           return

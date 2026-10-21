@@ -41,14 +41,16 @@ Portable Text content block for formatted text content. Supports headings, bold,
 - Long-form text content
 - Descriptions and explanations
 
-## Related: Afbeelding Block
+## Related: Afbeelding & Video blocks
 
-The Afbeelding (Image) block supports:
+The **Afbeelding** (Image) block supports:
 
 - Media type: Image or YouTube Video (VA-style button select)
 - Width & aspect ratio: VA-style button selects
 - Placeholder image for YouTube videos (click-to-play poster)
 - Conditional visibility: only relevant fields show per media type
+
+The **Video** block supports hosted MP4 with the same width, aspect ratio, caption, and layout fields. See [videoBlock.md](./videoBlock.md).
 
 ## Example Usage
 

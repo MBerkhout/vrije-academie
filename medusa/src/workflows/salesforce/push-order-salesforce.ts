@@ -8,6 +8,7 @@ import {
 import { activateOrderSalesforceStep } from "./steps/activate-order-salesforce-step"
 import { ensureOrderCustomerSalesforceStep } from "./steps/ensure-order-customer-salesforce-step"
 import { markPushSuccessStep } from "./steps/mark-push-success-step"
+import { persistSalesforceOrderNumberStep } from "./steps/persist-salesforce-order-number-step"
 import { preparePushOrderStep } from "./steps/prepare-push-order-step"
 import { pushOrderHeaderSalesforceStep } from "./steps/push-order-header-salesforce-step"
 import { pushOrderLinesSalesforceStep } from "./steps/push-order-lines-salesforce-step"
@@ -48,6 +49,10 @@ export const pushOrderToSalesforceWorkflow = createWorkflow(
       transform({ prep, header }, ({ prep, header }) => ({ prep, header }))
     )
 
+    const orderNumberPersisted = persistSalesforceOrderNumberStep(
+      transform({ prep, activated }, ({ prep, activated }) => ({ prep, activated }))
+    )
+
     const marked = markPushSuccessStep(
       transform({ prep, activated }, ({ prep, activated }) => ({
         skipped: prep.skipped,
@@ -58,12 +63,16 @@ export const pushOrderToSalesforceWorkflow = createWorkflow(
     )
 
     return new WorkflowResponse(
-      transform({ marked, lines, vouchers, activated }, ({ marked, lines, vouchers, activated }) => ({
-        ...marked,
-        lines,
-        vouchers,
-        activated,
-      }))
+      transform(
+        { marked, lines, vouchers, activated, orderNumberPersisted },
+        ({ marked, lines, vouchers, activated, orderNumberPersisted }) => ({
+          ...marked,
+          lines,
+          vouchers,
+          activated,
+          orderNumberPersisted,
+        })
+      )
     )
   }
 )

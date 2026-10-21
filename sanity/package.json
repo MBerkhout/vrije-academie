@@ -16,6 +16,7 @@
     "seed:homepage-categories": "node ./scripts/seed-homepage-categories.mjs",
     "seed:homepage-product-columns": "node ./scripts/seed-homepage-product-columns.mjs",
     "migrate:homepage-product-row": "node ./scripts/migrate-homepage-product-row.mjs",
+    "migrate:homepage-seo": "node ./scripts/migrate-homepage-seo.mjs",
     "migrate:seo-fields": "node ./scripts/migrate-seo-fields.mjs",
     "migrate:seo-to-custom": "node ./scripts/migrate-seo-to-custom.mjs",
     "migrate:vathuis-landing-to-blocks": "node ./scripts/migrate-vathuis-landing-to-blocks.mjs",

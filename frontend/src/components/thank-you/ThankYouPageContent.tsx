@@ -11,6 +11,8 @@ import type { CheckoutConfirmationPayload } from '@/lib/commerce/checkout-confir
 
 const POLL_MS = 1200
 const MAX_POLLS = 45
+/** After payment is confirmed, poll for Salesforce OrderNumber (~30s). */
+const MAX_READY_POLLS_FOR_SF_ORDER_NUMBER = 25
 
 export interface ThankYouContactInfo {
   phone?: string | null
@@ -133,6 +135,7 @@ export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContac
   const [error, setError] = useState<string | null>(null)
   const [polling, setPolling] = useState(true)
   const clearedCart = useRef(false)
+  const bookmarkUrlUpdated = useRef(false)
 
   // Clear cart immediately if order ID is already in URL (revisit scenario)
   useEffect(() => {
@@ -145,14 +148,17 @@ export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContac
   useEffect(() => {
     let cancelled = false
     let attempts = 0
+    let readyPollAttempts = 0
     let timer: ReturnType<typeof setTimeout> | undefined
     // Pinned: the cart cookie can change while polling (e.g. another tab).
     const cartId = getCartId()
+    let activeOrderId = orderFromUrl
+    let activeToken = tokenFromUrl
 
     async function poll() {
       if (cancelled) return
 
-      if (!orderFromUrl && !sessionFromUrl && !cartId) {
+      if (!activeOrderId && !sessionFromUrl && !cartId) {
         setError('Geen bestelling gevonden. Controleer je e-mail voor de bevestiging.')
         setPolling(false)
         return
@@ -160,29 +166,44 @@ export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContac
 
       try {
         const result = await fetchCheckoutConfirmation({
-          orderId: orderFromUrl,
-          token: tokenFromUrl,
-          cartId: orderFromUrl ? null : cartId,
+          orderId: activeOrderId,
+          token: activeToken,
+          cartId: activeOrderId ? null : cartId,
           sessionId: sessionFromUrl,
         })
 
         if (cancelled) return
 
         if (result.status === 'ready' && result.order) {
+          activeOrderId = result.order.id
+          if (result.view_token) activeToken = result.view_token
+
           setPayload(result)
           setPolling(false)
           if (!clearedCart.current) {
             clearCartId()
             clearedCart.current = true
           }
-          // Update URL to include order ID + token for bookmarking
-          if (result.view_token && result.order.id) {
+          if (
+            result.view_token &&
+            result.order.id &&
+            !bookmarkUrlUpdated.current
+          ) {
+            bookmarkUrlUpdated.current = true
             const newParams = new URLSearchParams()
             newParams.set('order', result.order.id)
             newParams.set('token', result.view_token)
             router.replace(`/bedankt?${newParams.toString()}`, { scroll: false })
           }
           dispatchCartUpdated()
+
+          const sfOrderNumber = result.order.salesforce_order_number?.trim()
+          if (sfOrderNumber) return
+
+          readyPollAttempts += 1
+          if (readyPollAttempts >= MAX_READY_POLLS_FOR_SF_ORDER_NUMBER) return
+
+          timer = setTimeout(poll, POLL_MS)
           return
         }
 
@@ -248,10 +269,12 @@ export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContac
                     Je ontvangt een bevestiging per e-mail.
                   </p>
                 )}
-                {order?.display_id != null ? (
+                {order?.salesforce_order_number?.trim() ? (
                   <p className="font-sans text-sm text-va-darkgray">
                     Bestelnummer:{' '}
-                    <strong className="text-va-black font-semibold">#{order.display_id}</strong>
+                    <strong className="text-va-black font-semibold">
+                      {order.salesforce_order_number.trim()}
+                    </strong>
                   </p>
                 ) : null}
               </div>

@@ -10,6 +10,7 @@ const CONTENT_BLOCK_TYPES = [
   "eventList",
   "textBlock",
   "afbeeldingBlock",
+  "videoBlock",
   "whitespaceBlock",
   "tabsBlock",
   "formBlock",

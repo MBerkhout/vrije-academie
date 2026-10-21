@@ -67,6 +67,7 @@ npx medusa exec ./src/scripts/verify-legacy-password.ts -- \
 - 6-digit code. Login codes expire after 1 hour; password-setup codes (`set_password`) expire after 10 minutes. Max 3 requests / 15 min per email, max 5 verify attempts
 - Codes stored hashed in `customer_otp_challenge` (`customerOtp` module)
 - Email via SMTP (`SMTP_HOST`) or SendGrid (`SENDGRID_API_KEY`); otherwise logged to Medusa stdout as `[customer-otp] email → code` (dev). SMTP wins if both are set. Bodies include `text` and `html` (SendGrid only sends `html`).
+- **Login OTP mail:** HTML template in `src/modules/customer-otp/templates/otp-login.email.html` (subject: *Je inlogcode voor Mijn Vrije Academie*), plus a matching plain-text part. Logo: PNG at `{STOREFRONT_PUBLIC_URL}/branding/logo-email.png` (asset in `frontend/public/branding/logo-email.png`). `set_password` OTP still uses plain text only.
 
 ### Email (optional)
 
@@ -75,7 +76,8 @@ Set in `medusa/.env`. Prefer SMTP for the staging/production server:
 ```env
 SMTP_HOST=127.0.0.1
 SMTP_PORT=25
-SMTP_FROM=noreply@vrijeacademie.nl
+SMTP_FROM="Vrije Academie" <noreply@vrijeacademie.nl>
+STOREFRONT_PUBLIC_URL=https://v2.vrijeacademie.nl
 # SMTP_USER=
 # SMTP_PASS=
 # SMTP_SECURE=false
@@ -91,7 +93,8 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=...
 SMTP_PASS=...
-SMTP_FROM=noreply@vrijeacademie.nl
+SMTP_FROM="Vrije Academie" <noreply@vrijeacademie.nl>
+STOREFRONT_PUBLIC_URL=https://v2.vrijeacademie.nl
 ```
 
 SendGrid fallback when `SMTP_HOST` is unset:

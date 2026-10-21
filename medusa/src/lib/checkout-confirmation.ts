@@ -16,6 +16,8 @@ import {
   fetchMolliePaymentStatus,
   isMolliePaymentFailed,
 } from "./mollie-payment-status"
+import { resolveSalesforceOrderNumber } from "./resolve-salesforce-order-number"
+import { salesforceOrderNumberFromMetadata } from "../modules/salesforce-sync/utils/order-import-metadata"
 
 function getTokenSecret(): string {
   return (
@@ -454,6 +456,7 @@ export async function buildCheckoutConfirmation(
       "shipping_address.last_name",
       "shipping_address.country_code",
       "billing_address.country_code",
+      "metadata",
       "items.*",
       "items.tax_lines.rate",
     ],
@@ -463,6 +466,15 @@ export async function buildCheckoutConfirmation(
   const order = orders?.[0] as Record<string, unknown> | undefined
   if (!order) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, `Order '${orderId}' not found`)
+  }
+
+  const orderMetadata = order.metadata as Record<string, unknown> | null | undefined
+  let salesforceOrderNumber = salesforceOrderNumberFromMetadata(orderMetadata)
+  if (!salesforceOrderNumber) {
+    salesforceOrderNumber = await resolveSalesforceOrderNumber(scope, {
+      orderId,
+      metadata: orderMetadata,
+    })
   }
 
   const enriched = await enrichOrderItems(scope, order)
@@ -497,6 +509,7 @@ export async function buildCheckoutConfirmation(
       tax_total: medusaMajorToCents(taxMajor),
       tax_rate: taxRate,
       created_at: order.created_at,
+      salesforce_order_number: salesforceOrderNumber,
     },
     items: enriched.items,
     notices: enriched.notices,

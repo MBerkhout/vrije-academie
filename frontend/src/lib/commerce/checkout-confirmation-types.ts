@@ -4,6 +4,8 @@ import type { EventCard } from '@/lib/commerce/types'
 export type CheckoutConfirmationOrder = {
   id: string
   display_id?: number
+  /** Salesforce Order.OrderNumber (storefront bestelnummer). */
+  salesforce_order_number?: string | null
   status?: string
   email?: string
   first_name?: string | null

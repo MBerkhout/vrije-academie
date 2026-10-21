@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "medusa develop",
-    "build": "medusa build",
+    "build": "medusa build && cp -R src/modules/customer-otp/templates dist/modules/customer-otp/templates",
     "start": "medusa start",
     "migrate": "medusa db:migrate",
     "seed": "medusa seed -f ./data/seed.json",

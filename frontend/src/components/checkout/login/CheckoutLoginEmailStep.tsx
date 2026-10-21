@@ -15,6 +15,7 @@ interface CheckoutLoginEmailStepProps {
   validity: FieldValidity
   validateOnBlur: (value: string) => void
   error: string | null
+  infoMessage?: string | null
   busy: boolean
   onSubmit: (e: React.FormEvent) => void
   backHref?: string
@@ -29,6 +30,7 @@ export function CheckoutLoginEmailStep({
   validity,
   validateOnBlur,
   error,
+  infoMessage,
   busy,
   onSubmit,
   backHref,
@@ -37,6 +39,14 @@ export function CheckoutLoginEmailStep({
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       <h1 className="font-sans text-xl font-bold text-va-black">{heading}</h1>
+      {infoMessage && (
+        <div
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 font-sans text-sm text-amber-950"
+          role="status"
+        >
+          {infoMessage}
+        </div>
+      )}
       {settings.emailStep?.intro && (
         <p className="font-sans text-sm text-va-darkgray">{settings.emailStep.intro}</p>
       )}

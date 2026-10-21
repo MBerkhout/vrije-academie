@@ -260,6 +260,7 @@ export function PdpEpisodesTable({
   const descriptionCol = labels?.descriptionColumn ?? t.episodesDescriptionColumn ?? 'Beschrijving'
   const watchLabel = labels?.watchEpisode ?? t.episodesWatchEpisode ?? 'Bekijk aflevering'
   const buyLabel = labels?.bundleCta ?? t.episodesBuyAll ?? 'Koop alle lessen'
+  const actionButtonClass = 'w-full uppercase tracking-wide text-xs'
 
   const accessNote =
     hasPurchasedAccess && accessExpiresAt
@@ -366,13 +367,13 @@ export function PdpEpisodesTable({
                     <td className={cn('py-4 pr-4 align-top hidden md:table-cell', mutedClass)}>
                       {episode.description ?? '—'}
                     </td>
-                    <td className="py-4 align-top text-right whitespace-nowrap">
+                    <td className="w-44 py-4 align-top text-right">
                       {watchable ? (
                         <Button
                           type="button"
                           variant="primary"
                           size="sm"
-                          className="uppercase tracking-wide text-xs"
+                          className={actionButtonClass}
                           disabled={loading}
                           onClick={() => void handleWatchEpisode(episode, selectedChapter.number)}
                         >
@@ -383,7 +384,7 @@ export function PdpEpisodesTable({
                           type="button"
                           variant="secondary"
                           size="sm"
-                          className="uppercase tracking-wide text-xs opacity-80"
+                          className={cn(actionButtonClass, 'opacity-80')}
                           disabled={buying}
                           onClick={() => void handleBuyAll()}
                         >

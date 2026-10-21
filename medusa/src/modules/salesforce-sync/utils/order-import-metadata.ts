@@ -2,6 +2,7 @@
 export const ORDER_IMPORTED_FROM_SALESFORCE = "imported_from_salesforce"
 export const ORDER_HIDDEN_FROM_ACCOUNT = "hidden_from_account"
 export const ORDER_SALESFORCE_ORDER_ID = "salesforce_order_id"
+export const ORDER_SALESFORCE_ORDER_NUMBER = "salesforce_order_number"
 export const ORDER_REPLACES_ORDER_ID = "replaces_order_id"
 export const ORDER_REPLACES_SALESFORCE_ORDER_ID = "replaces_salesforce_order_id"
 export const ORDER_REPLACED_BY_SALESFORCE_ORDER_ID = "replaced_by_salesforce_order_id"
@@ -28,14 +29,26 @@ export function isHiddenFromAccountOrder(
   return orderMetadata(metadata)[ORDER_HIDDEN_FROM_ACCOUNT] === true
 }
 
+export function salesforceOrderNumberFromMetadata(
+  metadata: Record<string, unknown> | null | undefined
+): string | null {
+  const raw = orderMetadata(metadata)[ORDER_SALESFORCE_ORDER_NUMBER]
+  if (raw == null) return null
+  const s = String(raw).trim()
+  return s.length > 0 ? s : null
+}
+
 export function buildImportedOrderMetadata(input: {
   salesforceOrderId: string
+  salesforceOrderNumber?: string | null
   replacesSalesforceOrderId?: string | null
   replacesMedusaOrderId?: string | null
 }): Record<string, unknown> {
+  const orderNumber = input.salesforceOrderNumber?.trim()
   return {
     [ORDER_IMPORTED_FROM_SALESFORCE]: true,
     [ORDER_SALESFORCE_ORDER_ID]: input.salesforceOrderId,
+    ...(orderNumber ? { [ORDER_SALESFORCE_ORDER_NUMBER]: orderNumber } : {}),
     ...(input.replacesSalesforceOrderId
       ? { [ORDER_REPLACES_SALESFORCE_ORDER_ID]: input.replacesSalesforceOrderId }
       : {}),

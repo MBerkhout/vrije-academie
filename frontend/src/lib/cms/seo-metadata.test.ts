@@ -3,6 +3,7 @@ import {
   buildProductPdpMetadata,
   buildSeoMetadata,
   buildSiteMetadata,
+  DEFAULT_OG_IMAGE_PATH,
   isNoIndexSite,
   NOINDEX_ROBOTS,
   noIndexMetadata,
@@ -19,6 +20,7 @@ describe('seo-metadata', () => {
     const meta = buildSiteMetadata({ title: 'Test' })
     expect(meta.metadataBase?.toString()).toMatch(/^https?:\/\//)
     expect(meta.title).toBe('Test')
+    expect(meta.openGraph?.images).toEqual([DEFAULT_OG_IMAGE_PATH])
   })
 
   it('isNoIndexSite is true only for the v2 staging host', () => {
@@ -68,6 +70,12 @@ describe('seo-metadata', () => {
     expect(meta.title).toBe('Fallback title')
     expect(meta.description).toBe('Fallback description')
     expect(meta.openGraph?.images).toEqual(['https://example.com/image.jpg'])
+    expect(meta.twitter?.images).toEqual(['https://example.com/image.jpg'])
+  })
+
+  it('buildSeoMetadata uses branding logo when no image is configured', () => {
+    const meta = buildSeoMetadata(null, { fallbackTitle: 'Page', path: '/about' })
+    expect(meta.openGraph?.images).toEqual([DEFAULT_OG_IMAGE_PATH])
   })
 
   it('buildProductPdpMetadata prefers editorial seo over Salesforce mirror', () => {
@@ -112,9 +120,10 @@ describe('seo-metadata', () => {
   })
 
   it('noIndexMetadata applies utility robots directive', () => {
-    expect(noIndexMetadata('Login')).toEqual({
+    expect(noIndexMetadata('Login')).toMatchObject({
       title: 'Login',
       robots: NOINDEX_ROBOTS,
+      openGraph: { title: 'Login', images: [DEFAULT_OG_IMAGE_PATH] },
     })
   })
 })

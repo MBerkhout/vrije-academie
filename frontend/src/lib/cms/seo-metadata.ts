@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import { getSiteOrigin } from '@/lib/json-ld'
 import type { SEO } from './types'
 
+/** Default share image (public asset; resolved via root `metadataBase`). */
+export const DEFAULT_OG_IMAGE_PATH = '/branding/logo.svg'
+
 /** Staging host — must not appear in search results. */
 export const NOINDEX_HOST = 'v2.vrijeacademie.nl'
 
@@ -16,6 +19,21 @@ export function isNoIndexSite(origin = getSiteOrigin()): boolean {
 
 export function resolveSeoImageUrl(seo?: SEO | null): string | undefined {
   return seo?.metaImage?.asset?.url
+}
+
+/** Editorial SEO image → page fallback (e.g. PDP photo) → branding logo. */
+export function resolveOgImageUrl(
+  seo?: SEO | null,
+  fallbackImage?: string,
+): string {
+  return resolveSeoImageUrl(seo) ?? fallbackImage ?? DEFAULT_OG_IMAGE_PATH
+}
+
+function defaultSocialImages(image: string): Pick<Metadata, 'openGraph' | 'twitter'> {
+  return {
+    openGraph: { images: [image] },
+    twitter: { card: 'summary_large_image', images: [image] },
+  }
 }
 
 export function resolveSeoTitle(seo?: SEO | null, fallback?: string): string | undefined {
@@ -47,18 +65,44 @@ function resolveCanonical(path?: string): string | undefined {
 
 /** Metadata for utility routes that should not appear in search results. */
 export function noIndexMetadata(title: string, description?: string): Metadata {
+  const social = defaultSocialImages(DEFAULT_OG_IMAGE_PATH)
   return {
     title,
     ...(description && { description }),
     robots: NOINDEX_ROBOTS,
+    ...social,
+    openGraph: {
+      ...social.openGraph,
+      ...(title && { title }),
+      ...(description && { description }),
+    },
+    twitter: {
+      ...social.twitter,
+      ...(title && { title }),
+      ...(description && { description }),
+    },
   }
 }
 
 /** Root layout defaults — sets metadataBase for relative OG URLs. */
 export function buildSiteMetadata(defaults: Metadata = {}): Metadata {
+  const social = defaultSocialImages(DEFAULT_OG_IMAGE_PATH)
   return {
     metadataBase: new URL(getSiteOrigin()),
     ...defaults,
+    openGraph: {
+      siteName: 'Vrije Academie',
+      locale: 'nl_NL',
+      type: 'website',
+      ...social.openGraph,
+      ...defaults.openGraph,
+      images: defaults.openGraph?.images ?? social.openGraph?.images,
+    },
+    twitter: {
+      ...social.twitter,
+      ...defaults.twitter,
+      images: defaults.twitter?.images ?? defaults.openGraph?.images ?? social.twitter?.images,
+    },
     ...(isNoIndexSite() && { robots: NOINDEX_ROBOTS }),
   }
 }
@@ -74,7 +118,7 @@ export function buildSeoMetadata(
 ): Metadata {
   const title = resolveSeoTitle(seo, options.fallbackTitle)
   const description = resolveSeoDescription(seo, options.fallbackDescription)
-  const ogImage = resolveSeoImageUrl(seo) ?? options.fallbackImage
+  const ogImage = resolveOgImageUrl(seo, options.fallbackImage)
   const robots = resolveRobots(seo)
   const canonical = resolveCanonical(options.path)
 
@@ -87,7 +131,13 @@ export function buildSeoMetadata(
       ...(title && { title }),
       ...(description && { description }),
       ...(canonical && { url: canonical }),
-      ...(ogImage && { images: [ogImage] }),
+      images: [ogImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      ...(title && { title }),
+      ...(description && { description }),
+      images: [ogImage],
     },
   }
 }

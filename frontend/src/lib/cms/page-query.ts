@@ -26,6 +26,12 @@ const INLINE_PAGE_BLOCK_LAYOUT = `"_id": coalesce(@._id, @._key),
 
 const PT_BLOCK = `{ _type, _key, children[] { _key, _type, text, marks }, markDefs[] { _key, _type, href, buttonType, label, url }, listItem, style }`
 
+/** Resolved MP4 + poster for videoBlock (file assets need asset->). */
+const VIDEO_BLOCK_MEDIA = `videoFile { asset-> { url, mimeType } },
+        posterImage { asset-> { _id, url, metadata { dimensions } }, alt },
+        "contentWidth": @.width,
+        aspectRatio`
+
 /** Shared hero / banner slider slide projection (per slide). */
 const SLIDER_SLIDE_FIELDS = `"backgroundImage": backgroundImage { asset-> },
           overlayOpacity,
@@ -143,6 +149,11 @@ const TAB_PANEL_NESTED_BLOCKS_INNER = `            ...select(
                 ${INLINE_PAGE_BLOCK_LAYOUT},
                 ${INLINE_COLUMNS_BLOCK_COLUMNS}
               },
+              @._type == "videoBlock" => {
+                ...@,
+                ${INLINE_PAGE_BLOCK_LAYOUT},
+                ${VIDEO_BLOCK_MEDIA}
+              },
               {
                 ...@,
                 ${INLINE_PAGE_BLOCK_LAYOUT}
@@ -189,6 +200,11 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
         ...@,
         ${INLINE_PAGE_BLOCK_LAYOUT},
         ${INLINE_COLUMNS_BLOCK_COLUMNS}
+      },
+      @._type == "videoBlock" => {
+        ...@,
+        ${INLINE_PAGE_BLOCK_LAYOUT},
+        ${VIDEO_BLOCK_MEDIA}
       },
       @._type == "productRowBlock" => {
         ...@,

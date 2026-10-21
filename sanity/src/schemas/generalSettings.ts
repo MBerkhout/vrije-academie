@@ -209,6 +209,12 @@ export const generalSettings = defineType({
               type: "string",
               initialValue: "Workshops",
             }),
+            defineField({
+              name: "excursies_collegereeks",
+              title: "Excursies Collegereeks",
+              type: "string",
+              initialValue: "Excursiereeks",
+            }),
           ],
         }),
       ],

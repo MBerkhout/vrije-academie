@@ -27,6 +27,15 @@ describe('pdpActivityTypeBadge', () => {
       label: 'Collegereeks',
       href: `${PLP_BASE_PATH}/collegereeks`,
     })
+    expect(
+      pdpActivityTypeBadge({
+        productType: 'Excursies_collegereeks',
+        recordType: 'excursie',
+      }),
+    ).toEqual({
+      label: 'Excursies Collegereeks',
+      href: `${PLP_BASE_PATH}/excursies_collegereeks`,
+    })
   })
 
   it('keeps EventGroup record type when product type has no landing', () => {

@@ -75,6 +75,17 @@ describe('resolveCheckoutPaymentDestination', () => {
     ).toBe('stay')
   })
 
+  it('sends logged-in customers to inloggen when cart email differs from account email', () => {
+    expect(
+      resolveCheckoutPaymentDestination({
+        cookiePresent: true,
+        cart: cart({ email: 'other@example.nl' }),
+        loadError: false,
+        customer: customer({ email: 'a@b.nl' }),
+      })
+    ).toBe('/checkout/inloggen')
+  })
+
   it('sends incomplete logged-in customers to the login/details step', () => {
     expect(
       resolveCheckoutPaymentDestination({

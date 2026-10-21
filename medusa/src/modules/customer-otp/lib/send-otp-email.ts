@@ -4,41 +4,49 @@ import {
 } from "@medusajs/framework/utils"
 
 import { emailContent, hasEmailProvider } from "../../../lib/email-content"
+import { otpValidityMinutes, type OtpPurpose } from "./otp-ttl"
+import {
+  buildOtpLoginEmail,
+  resolveOtpLoginLogoUrl,
+} from "./render-otp-login-email"
 
-export type OtpPurpose = "login" | "set_password"
+export type { OtpPurpose }
 
 const PURPOSE_SUBJECT: Record<OtpPurpose, string> = {
-  login: "Je eenmalige inlogcode — Vrije Academie",
+  login: "Je inlogcode voor Mijn Vrije Academie",
   set_password: "Bevestig je wachtwoord — Vrije Academie",
 }
 
-function purposeBody(purpose: OtpPurpose, code: string): string {
-  if (purpose === "set_password") {
-    return [
-      "Je hebt gevraagd om een wachtwoord in te stellen voor je Vrije Academie-account.",
-      "",
-      `Je verificatiecode is: ${code}`,
-      "",
-      "Deze code is 10 minuten geldig.",
-      "",
-      "Heb je dit niet aangevraagd? Negeer deze e-mail.",
-    ].join("\n")
-  }
+function setPasswordBody(code: string): string {
   return [
-    "Gebruik onderstaande code om in te loggen bij Vrije Academie.",
+    "Je hebt gevraagd om een wachtwoord in te stellen voor je Vrije Academie-account.",
     "",
-    `Je inlogcode is: ${code}`,
+    `Je verificatiecode is: ${code}`,
     "",
-    "Deze code is 1 uur geldig.",
+    "Deze code is 10 minuten geldig.",
     "",
     "Heb je dit niet aangevraagd? Negeer deze e-mail.",
   ].join("\n")
 }
 
 export function buildOtpEmailContent(purpose: OtpPurpose, code: string) {
+  if (purpose === "login") {
+    const validityMinutes = otpValidityMinutes("login")
+    const { html, text } = buildOtpLoginEmail({
+      code,
+      validityMinutes,
+      logoUrl: resolveOtpLoginLogoUrl(),
+    })
+    return emailContent({
+      subject: PURPOSE_SUBJECT.login,
+      text,
+      html,
+    })
+  }
+
   return emailContent({
-    subject: PURPOSE_SUBJECT[purpose],
-    text: purposeBody(purpose, code),
+    subject: PURPOSE_SUBJECT.set_password,
+    text: setPasswordBody(code),
   })
 }
 
@@ -46,11 +54,9 @@ function logOtpToConsole(
   logger: { info: (msg: string) => void; warn: (msg: string) => void },
   input: { email: string; code: string; purpose: OtpPurpose }
 ): void {
-  const subject = PURPOSE_SUBJECT[input.purpose]
-  const text = purposeBody(input.purpose, input.code)
-  // warn — visible in medusa dev output alongside http: lines
+  const content = buildOtpEmailContent(input.purpose, input.code)
   logger.warn(`[customer-otp] ${input.email} → ${input.code}`)
-  logger.info(`[customer-otp] ${subject}\n${text}`)
+  logger.info(`[customer-otp] ${content.subject}\n${content.text}`)
 }
 
 export async function sendOtpEmail(
@@ -97,3 +103,5 @@ export async function sendOtpEmail(
     logOtpToConsole(logger, input)
   }
 }
+
+export { otpValidityMinutes } from "./otp-ttl"

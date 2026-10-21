@@ -6,6 +6,17 @@
 import { isCartShippingComplete, isCustomerProfileComplete } from './checkout-profile'
 import type { Cart, Customer } from './types'
 
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase()
+}
+
+export function cartEmailMatchesCustomer(cart: Cart, customer: Customer): boolean {
+  const cartEmail = cart.email?.trim()
+  const customerEmail = customer.email?.trim()
+  if (!cartEmail || !customerEmail) return true
+  return normalizeEmail(cartEmail) === normalizeEmail(customerEmail)
+}
+
 export type CheckoutPaymentDestination =
   | '/winkelwagen'
   | '/checkout/inloggen'
@@ -23,7 +34,10 @@ export function resolveCheckoutPaymentDestination(input: {
 
   if (input.customer) {
     if (!isCustomerProfileComplete(input.customer)) return '/checkout/inloggen'
-    // Email/shipping may still live only on the customer; payment form syncs the cart.
+    if (input.cart && !cartEmailMatchesCustomer(input.cart, input.customer)) {
+      return '/checkout/inloggen'
+    }
+    // Email/shipping may still live only on the customer; payment form syncs the cart when emails match.
     return 'stay'
   }
 

@@ -6,6 +6,7 @@ import { blockLayout } from "./blockLayout"
 import { eventList } from "./blocks/eventList"
 import { textBlock } from "./blocks/text"
 import { afbeeldingBlock } from "./blocks/afbeelding"
+import { videoBlock } from "./blocks/video"
 import { whitespaceBlock } from "./blocks/whitespace"
 import { accordionBlock } from "./blocks/accordion"
 import { tabsBlock } from "./blocks/tabs"
@@ -62,6 +63,7 @@ export const schemaTypes = [
   eventList,
   textBlock,
   afbeeldingBlock,
+  videoBlock,
   whitespaceBlock,
   accordionBlock,
   tabsBlock,

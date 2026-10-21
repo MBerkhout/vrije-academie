@@ -14,6 +14,7 @@ import {
   toIsoString,
   vathuisAccessExpiresAt,
 } from "../../lib/vathuis-access-expiry"
+import { resolveVathuisEntitlementCustomerId } from "../../lib/vathuis-entitlement-customer"
 import { CustomerVathuisAccess } from "./models/customer-vathuis-access"
 
 function isGiftCardLine(item: Record<string, unknown>): boolean {
@@ -75,10 +76,10 @@ class VathuisAccessModuleService extends MedusaService({
 
     const order = orders?.[0] as Record<string, unknown> | undefined
     if (!order) return null
-
-    const customerId = order.customer_id as string | undefined
-    if (!customerId) return null
     if (order.status !== "completed") return null
+
+    const customerId = await resolveVathuisEntitlementCustomerId(container, orderId)
+    if (!customerId) return null
 
     const grantedAt = parseIsoDate(order.created_at as string) ?? new Date()
     const items = (order.items as Record<string, unknown>[]) ?? []
@@ -159,6 +160,61 @@ class VathuisAccessModuleService extends MedusaService({
     return { customerId, grantedAt, lines }
   }
 
+  private async reassignOrderLineGrant(
+    existingRow: {
+      id: string
+      customer_id: string
+      product_id: string
+      order_id: string
+      expires_at: string
+    },
+    targetCustomerId: string,
+    line: VathuisLineContext,
+    grantedAt: Date,
+    newExpiresAt: Date
+  ): Promise<void> {
+    if (existingRow.customer_id === targetCustomerId) return
+
+    const existingForProduct = await this.listCustomerVathuisAccesses(
+      { customer_id: targetCustomerId, product_id: line.productId },
+      { take: 1 }
+    )
+    const targetRow = existingForProduct[0]
+    const grantedAtIso = toIsoString(grantedAt)
+    const newExpiresIso = toIsoString(newExpiresAt)
+
+    if (targetRow) {
+      const currentExpires = parseIsoDate(targetRow.expires_at)
+      const mergedExpires =
+        currentExpires && currentExpires.getTime() > newExpiresAt.getTime()
+          ? currentExpires
+          : newExpiresAt
+
+      await this.updateCustomerVathuisAccesses({
+        id: targetRow.id,
+        variant_id: line.variantId,
+        order_id: existingRow.order_id,
+        order_line_item_id: line.lineItemId,
+        granted_at: grantedAtIso,
+        expires_at: toIsoString(mergedExpires),
+        product_handle: line.productHandle,
+        product_title: line.productTitle,
+      })
+      await this.deleteCustomerVathuisAccesses(existingRow.id)
+      return
+    }
+
+    await this.updateCustomerVathuisAccesses({
+      id: existingRow.id,
+      customer_id: targetCustomerId,
+      variant_id: line.variantId,
+      product_handle: line.productHandle,
+      product_title: line.productTitle,
+      granted_at: grantedAtIso,
+      expires_at: newExpiresIso,
+    })
+  }
+
   async listVathuisLinesForOrder(
     container: MedusaContainer,
     orderId: string
@@ -186,7 +242,27 @@ class VathuisAccessModuleService extends MedusaService({
         },
         { take: 1 }
       )
-      if (existingForLine[0]) continue
+      const lineGrant = existingForLine[0]
+      if (lineGrant) {
+        if (lineGrant.customer_id === customerId) {
+          continue
+        }
+        await this.reassignOrderLineGrant(
+          lineGrant as {
+            id: string
+            customer_id: string
+            product_id: string
+            order_id: string
+            expires_at: string
+          },
+          customerId,
+          line,
+          grantedAt,
+          newExpiresAt
+        )
+        granted += 1
+        continue
+      }
 
       const existingForProduct = await this.listCustomerVathuisAccesses(
         { customer_id: customerId, product_id: line.productId },

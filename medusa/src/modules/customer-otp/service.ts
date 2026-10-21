@@ -2,10 +2,8 @@ import { MedusaError, MedusaService } from "@medusajs/framework/utils"
 import { createHash, randomInt, timingSafeEqual } from "crypto"
 
 import { sendOtpEmail, type OtpPurpose } from "./lib/send-otp-email"
+import { otpTtlMs } from "./lib/otp-ttl"
 import { CustomerOtpChallenge } from "./models/customer-otp-challenge"
-
-const OTP_LOGIN_TTL_MS = 60 * 60 * 1000
-const OTP_SET_PASSWORD_TTL_MS = 10 * 60 * 1000
 const MAX_REQUESTS_PER_WINDOW = 3
 const REQUEST_WINDOW_MS = 15 * 60 * 1000
 const MAX_VERIFY_ATTEMPTS = 5
@@ -27,10 +25,6 @@ function codesMatch(storedHash: string, code: string): boolean {
 
 function generateCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0")
-}
-
-function otpTtlMs(purpose: OtpPurpose): number {
-  return purpose === "login" ? OTP_LOGIN_TTL_MS : OTP_SET_PASSWORD_TTL_MS
 }
 
 class CustomerOtpModuleService extends MedusaService({
@@ -141,3 +135,5 @@ class CustomerOtpModuleService extends MedusaService({
 }
 
 export default CustomerOtpModuleService
+
+export { otpValidityMinutes } from "./lib/otp-ttl"

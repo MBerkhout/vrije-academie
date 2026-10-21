@@ -1,5 +1,9 @@
 import type { Metadata } from 'next'
 import { cmsClient } from '@/lib/cms/server'
+import {
+  HOMEPAGE_META_DESCRIPTION,
+  HOMEPAGE_META_TITLE,
+} from '@/lib/cms/homepage-seo'
 import { buildSeoMetadata } from '@/lib/cms/seo-metadata'
 import { buildCmsPageJsonLd } from '@/lib/cms/page-structured-data'
 import { CONTAINER_CLASS } from '@/lib/cms'
@@ -11,16 +15,9 @@ export const revalidate = 60
 
 export async function generateMetadata(): Promise<Metadata> {
   const page = await cmsClient.getPage('/')
-  if (!page) {
-    return buildSeoMetadata(undefined, {
-      fallbackTitle: 'Vrije Academie',
-      fallbackDescription: 'Kunst, geschiedenis en filosofie',
-      path: '/',
-    })
-  }
-
-  return buildSeoMetadata(page.seo, {
-    fallbackTitle: page.title ? `${page.title} | Vrije Academie` : 'Vrije Academie',
+  return buildSeoMetadata(page?.seo, {
+    fallbackTitle: HOMEPAGE_META_TITLE,
+    fallbackDescription: HOMEPAGE_META_DESCRIPTION,
     path: '/',
   })
 }

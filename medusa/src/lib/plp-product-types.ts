@@ -7,6 +7,7 @@ export const PLP_PRODUCT_TYPE_SLUGS = [
   "wandeling",
   "rondleiding",
   "workshop",
+  "excursies_collegereeks",
 ] as const
 
 export type PlpProductTypeSlug = (typeof PLP_PRODUCT_TYPE_SLUGS)[number]

@@ -5,6 +5,7 @@
 import { EventList } from './EventList'
 import { TextBlock } from './TextBlock'
 import { AfbeeldingBlock } from './AfbeeldingBlock'
+import { VideoBlock } from './VideoBlock'
 import { AccordionBlock } from './AccordionBlock'
 import { WhitespaceBlock } from './WhitespaceBlock'
 import { TabsBlock } from './TabsBlock'
@@ -47,6 +48,8 @@ export function BlockRenderer({ block, tone = 'default' }: BlockRendererProps) {
       return <TextBlock block={block as any} tone={tone} />
     case 'afbeeldingBlock':
       return <AfbeeldingBlock block={block as any} />
+    case 'videoBlock':
+      return <VideoBlock block={block as any} />
     case 'accordionBlock':
       return <AccordionBlock block={block as any} />
     case 'whitespaceBlock':

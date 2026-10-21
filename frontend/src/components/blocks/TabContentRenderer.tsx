@@ -6,6 +6,7 @@
 import { EventList } from './EventList'
 import { TextBlock } from './TextBlock'
 import { AfbeeldingBlock } from './AfbeeldingBlock'
+import { VideoBlock } from './VideoBlock'
 import { AccordionBlock } from './AccordionBlock'
 import { PersonsBlock } from './PersonsBlock'
 import { WhitespaceBlock } from './WhitespaceBlock'
@@ -29,6 +30,8 @@ export function TabContentRenderer({ block }: TabContentRendererProps) {
       return <TextBlock block={block as any} />
     case 'afbeeldingBlock':
       return <AfbeeldingBlock block={block as any} />
+    case 'videoBlock':
+      return <VideoBlock block={block as any} />
     case 'accordionBlock':
       return <AccordionBlock block={block as any} />
     case 'personsBlock':

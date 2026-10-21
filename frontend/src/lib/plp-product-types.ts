@@ -7,6 +7,11 @@ export const PLP_PRODUCT_TYPES = [
   { slug: 'wandeling', label: 'Wandeling', badgeClass: 'bg-va-orange text-white' },
   { slug: 'rondleiding', label: 'Rondleiding', badgeClass: 'bg-va-brown text-white' },
   { slug: 'workshop', label: 'Workshop', badgeClass: 'bg-va-black text-white' },
+  {
+    slug: 'excursies_collegereeks',
+    label: 'Excursies Collegereeks',
+    badgeClass: 'bg-va-footer text-white',
+  },
 ] as const
 
 export type PlpProductTypeSlug = (typeof PLP_PRODUCT_TYPES)[number]['slug']
@@ -20,6 +25,7 @@ export const DEFAULT_PLP_PRODUCT_TYPE_PLURALS: ProductTypePluralMap = {
   collegereeks: 'Colleges',
   reis: 'Reizen',
   rondleiding: 'Rondleidingen',
+  excursies_collegereeks: 'Excursiereeks',
 }
 
 const SLUG_SET = new Set<string>(PLP_PRODUCT_TYPES.map((t) => t.slug))

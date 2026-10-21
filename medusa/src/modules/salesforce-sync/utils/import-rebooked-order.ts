@@ -360,6 +360,11 @@ export async function importRebookedOrder(
       billing_address: address,
       metadata: buildImportedOrderMetadata({
         salesforceOrderId,
+        salesforceOrderNumber:
+          typeof bundle.order.OrderNumber === "string" ||
+          typeof bundle.order.OrderNumber === "number"
+            ? String(bundle.order.OrderNumber)
+            : null,
         replacesSalesforceOrderId: analysis.originalSalesforceOrderId,
         replacesMedusaOrderId: originalMedusaOrderId,
       }),

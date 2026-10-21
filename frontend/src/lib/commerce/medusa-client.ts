@@ -4,6 +4,7 @@
 
 import Medusa from '@medusajs/js-sdk'
 import { isOrderVisibleInAccount } from '@/lib/commerce/account-orders'
+import { mapCartSyncErrorMessage } from '@/lib/commerce/checkout-notice'
 import { getMedusaBackendUrl } from './medusa-backend-url'
 import { cleanHandle } from '@/lib/routes'
 import type {
@@ -1148,7 +1149,9 @@ export const medusaClient: CommerceClient = {
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      throw new Error((data as { message?: string }).message ?? 'CART_SYNC_FAILED')
+      throw new Error(
+        mapCartSyncErrorMessage((data as { message?: string }).message ?? 'CART_SYNC_FAILED')
+      )
     }
     const data = await res.json()
     return ensureCartTaxCountry(normalizeStoreCart(data.cart))

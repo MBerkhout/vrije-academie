@@ -1,6 +1,7 @@
 'use client'
 
 import { commerceClient } from '@/lib/commerce'
+import { setCheckoutNotice } from '@/lib/commerce/checkout-notice'
 import { clearCheckoutDraft } from '@/lib/commerce/checkout-draft'
 import { trackAddToCart } from '@/lib/analytics/events/ecommerce'
 import type { Cart, EventCard, EventVariant } from '@/lib/commerce/types'
@@ -63,7 +64,12 @@ export async function ensureAccountCartSynced(): Promise<string | null> {
       }
       syncedCustomerId = customer.id
       return cart?.id ?? getCartId()
-    } catch {
+    } catch (err) {
+      if (isCheckoutPath()) {
+        const message =
+          err instanceof Error ? err.message : 'Kon je winkelmandje niet koppelen aan je account.'
+        setCheckoutNotice({ kind: 'cart_account_conflict', message })
+      }
       syncedCustomerId = customer.id
       return getCartId()
     } finally {

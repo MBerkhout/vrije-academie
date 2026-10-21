@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest"
 import { buildOtpEmailContent } from "./send-otp-email"
 
 describe("buildOtpEmailContent", () => {
-  it("includes html so SendGrid can send the body", () => {
+  it("uses branded html for login otp", () => {
     const content = buildOtpEmailContent("login", "123456")
-    expect(content.subject).toContain("inlogcode")
+    expect(content.subject).toBe("Je inlogcode voor Mijn Vrije Academie")
     expect(content.text).toContain("123456")
-    expect(content.text).toContain("1 uur geldig")
+    expect(content.text).toContain("60 minuten geldig")
+    expect(content.text).not.toContain("1 uur geldig")
     expect(content.html).toContain("123456")
+    expect(content.html).toContain("Vul deze code in om in te loggen.")
+    expect(content.html).toContain("/branding/logo-email.png")
   })
 
   it("uses a set-password subject", () => {

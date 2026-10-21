@@ -6,6 +6,7 @@ import type { Block } from '@/lib/cms'
 vi.mock('../EventList', () => ({ EventList: () => <div data-testid="event-list">EventList</div> }))
 vi.mock('../TextBlock', () => ({ TextBlock: ({ block }: { block: { _type: string } }) => <div data-testid="text-block">{block._type}</div> }))
 vi.mock('../AfbeeldingBlock', () => ({ AfbeeldingBlock: () => <div data-testid="afbeelding-block">Afbeelding</div> }))
+vi.mock('../VideoBlock', () => ({ VideoBlock: () => <div data-testid="video-block">Video</div> }))
 vi.mock('../WhitespaceBlock', () => ({ WhitespaceBlock: () => <div data-testid="whitespace-block">Whitespace</div> }))
 vi.mock('../TabsBlock', () => ({ TabsBlock: () => <div data-testid="tabs-block">Tabs</div> }))
 vi.mock('../FormBlock', () => ({ FormBlock: () => <div data-testid="form-block">Form</div> }))
@@ -56,6 +57,11 @@ describe('BlockRenderer', () => {
   it('renders afbeeldingBlock', () => {
     render(<BlockRenderer block={{ ...baseBlock, _type: 'afbeeldingBlock' } as Block} />)
     expect(screen.getByTestId('afbeelding-block')).toBeInTheDocument()
+  })
+
+  it('renders videoBlock', () => {
+    render(<BlockRenderer block={{ ...baseBlock, _type: 'videoBlock' } as Block} />)
+    expect(screen.getByTestId('video-block')).toBeInTheDocument()
   })
 
   it('renders whitespaceBlock', () => {

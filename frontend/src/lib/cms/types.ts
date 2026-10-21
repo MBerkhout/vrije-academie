@@ -76,6 +76,15 @@ export interface AfbeeldingBlock extends Block {
   aspectRatio?: '16:9' | '4:3' | '1:1' | 'free'
 }
 
+export interface VideoBlock extends Block {
+  _type: 'videoBlock'
+  videoFile?: { asset?: { url?: string; mimeType?: string } }
+  posterImage?: { asset?: { _ref?: string; url?: string }; alt?: string }
+  caption?: string
+  contentWidth?: 'narrow' | 'normal' | 'wide'
+  aspectRatio?: '16:9' | '4:3' | '1:1' | 'free'
+}
+
 export interface WhitespaceBlock extends Block {
   _type: 'whitespaceBlock'
   height: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'custom'
@@ -507,6 +516,7 @@ export interface GeneralSettings {
       wandeling?: string
       rondleiding?: string
       workshop?: string
+      excursies_collegereeks?: string
     }
   }
   pdp?: {

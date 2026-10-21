@@ -6,6 +6,7 @@ export const NESTED_BLOCK_TYPES = [
   { type: "eventList" },
   { type: "textBlock" },
   { type: "afbeeldingBlock" },
+  { type: "videoBlock" },
   { type: "whitespaceBlock" },
   { type: "accordionBlock" },
   { type: "formBlock" },

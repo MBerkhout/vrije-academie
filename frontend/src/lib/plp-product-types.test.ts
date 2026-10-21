@@ -3,6 +3,7 @@ import {
   productTypeLabelFromSlug,
   productTypeListLabelFromSlug,
   productTypePluralsFromCms,
+  productTypeToSlug,
   plpProductTypeBadgeLabel,
 } from './plp-product-types'
 
@@ -12,6 +13,11 @@ describe('productTypeListLabelFromSlug', () => {
     expect(productTypeListLabelFromSlug('collegereeks')).toBe('Colleges')
     expect(productTypeListLabelFromSlug('reis')).toBe('Reizen')
     expect(productTypeListLabelFromSlug('Reis')).toBe('Reizen')
+  })
+
+  it('uses Excursiereeks default for excursies_collegereeks', () => {
+    expect(productTypeListLabelFromSlug('excursies_collegereeks')).toBe('Excursiereeks')
+    expect(productTypeToSlug('Excursies_collegereeks')).toBe('excursies_collegereeks')
   })
 
   it('keeps other types singular unless CMS overrides them', () => {

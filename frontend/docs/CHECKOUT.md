@@ -93,7 +93,11 @@ OTP/passwordless backend: `medusa/docs/CUSTOMER_AUTH.md`. Commerce methods: `cus
 
 `selectedProviderId` is the full provider ID (e.g. `pp_mollie-ideal_mollie`). No separate `methodId` is needed.
 
-**Guards** (`resolveCheckoutPaymentDestination`): empty cart (no cookie, 404, or 0 line items) → `/winkelwagen`. Retrieve failure while the cookie is still set → stay on betaling with an error (do **not** clear the cookie or bounce to cart). **Logged-in** with incomplete profile → `/checkout/inloggen`. **Logged-in** with complete profile → stay and `syncCartFromCustomer` (cart email/shipping may still be empty right after account creation). **Guest** without cart email or shipping → `/checkout/inloggen`.
+**Guards** (`resolveCheckoutPaymentDestination`): empty cart (no cookie, 404, or 0 line items) → `/winkelwagen`. Retrieve failure while the cookie is still set → stay on betaling with an error (do **not** clear the cookie or bounce to cart). **Logged-in** with incomplete profile → `/checkout/inloggen`. **Logged-in** with complete profile but **cart email ≠ account email** → `/checkout/inloggen` (avoid completing on the wrong customer; VA Thuis collectie is per account). Otherwise stay and `syncCartFromCustomer` (cart email/shipping may still be empty right after account creation). **Guest** without cart email or shipping → `/checkout/inloggen`.
+
+Before payment, Medusa `prepare-checkout` reconciles `cart.customer_id` with `cart.email` (transfer to the email’s customer or detach a mismatched login).
+
+**Switching e-mail mid-checkout:** If the logged-in account ≠ cart e-mail, the user sees an amber explanation on the inloggen step (`checkout-notice.ts`) and must log in with the cart e-mail or change the cart e-mail to match the account (VA Thuis collectie follows the account that completes payment). Submitting a different e-mail while logged in shows a short toast before logout.
 
 ## Step 4 — Bevestiging
 
@@ -103,8 +107,10 @@ After Mollie payment, Mollie redirects to `{MOLLIE_REDIRECT_URL}` (e.g. `http://
 
 Once the order is confirmed the URL is updated to `/bedankt?order={order.id}&token={view_token}` so the page can be bookmarked or revisited. The `view_token` is a 24-char HMAC-SHA256 (`THANK_YOU_SECRET` env → fallback `COOKIE_SECRET`). When visiting with both `?order=` and `?token=`, the backend validates the token before returning data.
 
+**Bestelnummer:** the thank-you page shows Salesforce **`OrderNumber`** (`order.salesforce_order_number` from `GET /store/checkout/confirmation`), not Medusa `display_id`. After payment is confirmed the page keeps polling briefly (~30s) until the async Salesforce order push has written the number; if it is not ready yet, the bestelnummer line stays hidden (no Medusa fallback). Revisits load it from order metadata.
+
 **Layout — two columns (lg+):**
-- **Left:** success icon + "Bedankt voor je aankoop, {firstName}" + "Je ontvangt een bevestiging op {email}" + bestelnummer + participation notices (zaal vs online, based on `event_item.delivery_type`) + "Vragen? Neem contact op" (phone + email from `generalSettings.footer.contact`).
+- **Left:** success icon + "Bedankt voor je aankoop, {firstName}" + "Je ontvangt een bevestiging op {email}" + bestelnummer (Salesforce, when known) + participation notices (zaal vs online, based on `event_item.delivery_type`) + "Vragen? Neem contact op" (phone + email from `generalSettings.footer.contact`).
 - **Right:** order summary card (items + totals). VA Thuis items show a "Bekijk VAthuis video" CTA to the product page.
 
 **Below (full width):** VAthuis recommendations. Heading: "Duik alvast in {category} met onze online cursussen" (first catalog category of purchased products). CTA: "Alles van {category} online bekijken" → `/va-thuis/ons-aanbod?category={slug}`; fallback "Ontdek VAthuis online". Shows up to 4 cards; for VAthuis orders uses similar-products logic with fallback to top catalog items.

@@ -133,6 +133,14 @@ function SearchField({
   )
 }
 
+const rowTextEllipsis = {
+  display: "block" as const,
+  overflow: "hidden" as const,
+  textOverflow: "ellipsis" as const,
+  whiteSpace: "nowrap" as const,
+  lineHeight: 1.35,
+}
+
 function PaneRow({
   childId,
   title,
@@ -155,17 +163,19 @@ function PaneRow({
       childId={childId}
       style={{ display: "block", color: "inherit", textDecoration: "none" }}
     >
-      <Card padding={2} radius={2} tone={selected || pressed ? "primary" : "default"}>
-        <Flex align="center" gap={3}>
-          <Text size={1}>
-            <Icon />
-          </Text>
-          <Stack space={2}>
-            <Text size={1} weight="medium" textOverflow="ellipsis">
+      <Card padding={3} radius={2} tone={selected || pressed ? "primary" : "default"}>
+        <Flex align="flex-start" gap={3}>
+          <Box paddingTop={1} style={{ flexShrink: 0, lineHeight: 0 }}>
+            <Text size={1}>
+              <Icon />
+            </Text>
+          </Box>
+          <Stack flex={1} space={2} style={{ minWidth: 0 }}>
+            <Text size={1} weight="medium" style={rowTextEllipsis}>
               {title}
             </Text>
             {subtitle ? (
-              <Text size={1} muted textOverflow="ellipsis">
+              <Text size={1} muted style={rowTextEllipsis}>
                 {subtitle}
               </Text>
             ) : null}
@@ -213,7 +223,7 @@ export function PageTreePane(props: PaneProps) {
         matches.length === 0 ? (
           <EmptyMessage>No pages found</EmptyMessage>
         ) : (
-          <Stack paddingX={2} space={1}>
+          <Stack paddingX={3} paddingBottom={3} space={2}>
             {matches.map((page) => (
               <PaneRow
                 key={page._id}
@@ -323,7 +333,7 @@ function TreeRows({
   }
 
   return (
-    <Stack paddingX={2} space={1}>
+    <Stack paddingX={3} paddingBottom={3} space={2}>
       {rows}
     </Stack>
   )
@@ -351,7 +361,7 @@ export function PagesIndexPane(props: PagesIndexProps) {
         matches.length === 0 && pages ? (
           <EmptyMessage>No pages found</EmptyMessage>
         ) : (
-          <Stack paddingX={2} space={1}>
+          <Stack paddingX={3} paddingBottom={3} space={2}>
             {matches.map((page) => (
               <PaneRow
                 key={page._id}
@@ -366,7 +376,7 @@ export function PagesIndexPane(props: PagesIndexProps) {
           </Stack>
         )
       ) : (
-        <Stack paddingX={2} space={1}>
+        <Stack paddingX={3} paddingBottom={3} space={2}>
           <PaneRow
             childId={VA_PAGES_NAV_ID}
             title="VA pages"

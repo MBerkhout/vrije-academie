@@ -44,7 +44,7 @@ When **`Highlighted_Teacher__c`** is set on the Salesforce product group (`vaPro
 
 Each block schema in `sanity/src/schemas/blocks/` exports `surfaces`. PDP-allowed blocks:
 
-`textBlock`, `afbeeldingBlock`, `columnsBlock`, `accordionBlock`, `tabsBlock`, `whitespaceBlock`
+`textBlock`, `afbeeldingBlock`, `videoBlock`, `columnsBlock`, `accordionBlock`, `tabsBlock`, `whitespaceBlock`
 
 To add a block to the PDP, add `'pdp'` to its `surfaces` array.
 

@@ -12,6 +12,7 @@ Blocks are reusable content components that can be arranged on pages. Each block
 - [Banner slider](#banner-slider) - Full-width 400px image slider (same slide controls as hero)
 - [Rich Text](#rich-text) - Portable Text content
 - [Image](#image) - Single image with caption
+- [Video](#video) - Hosted MP4 with caption and aspect ratio
 - [FAQ / Accordion](#faq--accordion) - Expandable Q&A pairs
 - [Tabs](#tabs) - Tabbed content with per-tab blocks or rich text
 - [Reviews](#reviews) - Participant quotes with optional overall score and carousel navigation
@@ -136,6 +137,24 @@ Image Block
 ```
 
 **Documentation**: [blocks/imageBlock.md](./blocks/imageBlock.md)
+
+---
+
+## Video
+
+**Purpose**: Hosted MP4 video with optional poster, caption, width, and aspect ratio (same layout pattern as Afbeelding).
+
+**Use when**:
+- Short autoplay loops (muted) without YouTube
+- Decorative or brand motion on pages or PDP body
+
+**Fields**:
+- Video MP4 (required)
+- Poster image (optional)
+- Caption (optional)
+- Width, aspect ratio, layout
+
+**Documentation**: [blocks/videoBlock.md](./blocks/videoBlock.md)
 
 ---
 

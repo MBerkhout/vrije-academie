@@ -220,6 +220,14 @@ const PDP_BODY_BLOCKS_PROJECTION = `"body": body[] {
       "contentWidth": @.width,
       aspectRatio
     },
+    @._type == "videoBlock" => {
+      ...@,
+      ${PDP_BLOCK_LAYOUT},
+      videoFile { asset-> { url, mimeType } },
+      posterImage { asset-> { _id, url, metadata { dimensions } }, alt },
+      "contentWidth": @.width,
+      aspectRatio
+    },
     @._type == "columnsBlock" => {
       ...@,
       ${PDP_BLOCK_LAYOUT},

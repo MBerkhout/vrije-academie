@@ -435,7 +435,7 @@ export async function syncAccountCarts(
       if (local.customer_id && local.customer_id !== customerId) {
         throw new MedusaError(
           MedusaError.Types.NOT_ALLOWED,
-          "Cart belongs to another customer"
+          "Deze winkelwagen hoort bij een ander account. Log uit en log in met het e-mailadres van je bestelling."
         )
       }
       if (hasPaymentInProgress(local)) {

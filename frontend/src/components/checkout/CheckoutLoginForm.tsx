@@ -24,6 +24,8 @@ import type { Cart } from '@/lib/commerce/types'
 import { commerceClient } from '@/lib/commerce'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { getActiveCart, getOrCreateCartId, setCartId, dispatchCartUpdated } from '@/lib/commerce/cart'
+import { buildEmailMismatchNotice, consumeCheckoutNotice } from '@/lib/commerce/checkout-notice'
+import { cartEmailMatchesCustomer } from '@/lib/commerce/checkout-payment-guards'
 import type { Customer } from '@/lib/commerce/types'
 import type { GeneralSettings } from '@/lib/cms/types'
 import {
@@ -76,6 +78,12 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   const [manualAddress, setManualAddress] = useState(false)
   const [validity, setValidity] = useState<CheckoutGuestValidity>(() => initialCheckoutGuestValidity())
   const [bootstrapping, setBootstrapping] = useState(true)
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    const notice = consumeCheckoutNotice()
+    if (notice) setInfoMessage(notice.message)
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -225,12 +233,12 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     ;(async () => {
       try {
         if (changingEmail) {
-          if (customer?.id) {
+          const cart = await ensureGuestCheckoutCartHydrated()
+          if (!cancelled && cart?.email) {
+            setEmail(cart.email)
+          } else if (customer?.id) {
             const fresh = await commerceClient.getCustomer()
             if (!cancelled && fresh?.email) setEmail(fresh.email)
-          } else {
-            const cart = await ensureGuestCheckoutCartHydrated()
-            if (!cancelled && cart?.email) setEmail(cart.email)
           }
           return
         }
@@ -243,6 +251,22 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
               prefillFromCustomer(fresh)
               setEmail(fresh.email)
               setState('logged_in_details')
+              return
+            }
+            const cartBeforeSync = await getActiveCart().catch(() => null)
+            if (
+              cartBeforeSync?.email?.trim() &&
+              fresh.email?.trim() &&
+              !cartEmailMatchesCustomer(cartBeforeSync, fresh)
+            ) {
+              if (!cancelled) {
+                setEmail(cartBeforeSync.email ?? '')
+                setInfoMessage(
+                  (prev) =>
+                    prev ??
+                    buildEmailMismatchNotice(fresh.email ?? '', cartBeforeSync.email ?? '').message
+                )
+              }
               return
             }
             skipBootstrapEnd = true
@@ -372,7 +396,11 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
         return
       }
       if (customer && !sameAsAccount) {
+        showToast(
+          `Je bent ingelogd als ${customer.email}. We loggen je uit zodat je kunt doorgaan met ${trimmed}.`
+        )
         await logout()
+        setInfoMessage(null)
       }
       const lookup = await commerceClient.customerLookup(trimmed)
       if (lookup.exists) {
@@ -629,6 +657,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
           validateOnBlur={(value) => blurField('email', value)}
           validity={validity.email}
           error={error}
+          infoMessage={infoMessage}
           busy={busy}
           onSubmit={handleEmailSubmit}
           backHref={changingEmail ? '/checkout/betaling' : undefined}

@@ -1,5 +1,6 @@
 import { accordionBlock, surfaces as accordionSurfaces } from "./accordion"
 import { afbeeldingBlock, surfaces as afbeeldingSurfaces } from "./afbeelding"
+import { videoBlock, surfaces as videoSurfaces } from "./video"
 import { categoriesBlock, surfaces as categoriesSurfaces } from "./categories"
 import { columnsBlock, surfaces as columnsSurfaces } from "./columns"
 import { demandNearbyBlock, surfaces as demandNearbySurfaces } from "./demandNearby"
@@ -29,6 +30,7 @@ const BLOCK_MODULES: { schema: { name: string }; surfaces: readonly string[] }[]
   { schema: eventList, surfaces: eventListSurfaces },
   { schema: textBlock, surfaces: textSurfaces },
   { schema: afbeeldingBlock, surfaces: afbeeldingSurfaces },
+  { schema: videoBlock, surfaces: videoSurfaces },
   { schema: whitespaceBlock, surfaces: whitespaceSurfaces },
   { schema: accordionBlock, surfaces: accordionSurfaces },
   { schema: tabsBlock, surfaces: tabsSurfaces },

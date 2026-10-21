@@ -5,6 +5,8 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 
+import { reconcileCartCustomerWithEmail } from "./reconcile-cart-customer-email"
+
 /**
  * Event registrations and digital products are not physically shipped.
  * Medusa sets `requires_shipping` on line items when the product has a
@@ -14,6 +16,8 @@ export async function ensureCartCheckoutReady(
   container: MedusaContainer,
   cartId: string
 ): Promise<{ updated: number }> {
+  await reconcileCartCustomerWithEmail(container, cartId)
+
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const cartModule = container.resolve(Modules.CART) as {
     updateLineItems: (
