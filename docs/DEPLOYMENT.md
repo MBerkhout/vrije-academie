@@ -452,6 +452,8 @@ Set `SANITY_REVALIDATE_SECRET` in `~/app/frontend/.env` on the server. Sanity si
 
 **Manual page cache clear from Studio:** page documents expose **Clear page cache** in the document ⋯ menu (not the Publish bar). It POSTs `{ _type, slug }` to `https://v2.vrijeacademie.nl/api/revalidate/studio` with `Authorization: Bearer SANITY_STUDIO_REVALIDATE_SECRET`. Set that secret on the frontend server **and** as a GitHub Actions secret so hosted Studio can send it (it is bundled into Studio JS — use a **different** string from the webhook HMAC `SANITY_REVALIDATE_SECRET`). CORS allows `http://localhost:3333` and `https://*.sanity.studio`. Unlike the webhook, this also revalidates VA Thuis paths.
 
+**HubSpot form selector in Studio:** form-toolkit loads forms from `GET /api/hubspot` on the preview origin (see `sanity/sanity.config.ts`). Set `HUBSPOT_TOKEN` on the frontend server. The same Studio CORS allowlist applies (`localhost:3333`, `https://*.sanity.studio`, and the origin of `NEXT_PUBLIC_SANITY_STUDIO_URL` when set).
+
 Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600` on listing and event detail routes.
 
 ### PM2 cluster mode

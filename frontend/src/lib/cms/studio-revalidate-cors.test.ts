@@ -32,4 +32,11 @@ describe('studioRevalidateCorsHeaders', () => {
     })
     expect(studioRevalidateCorsHeaders('https://evil.example')).toEqual({})
   })
+
+  it('allows custom methods for GET routes such as /api/hubspot', () => {
+    expect(studioRevalidateCorsHeaders('https://v4eheew2.sanity.studio', 'GET, OPTIONS')).toMatchObject({
+      'Access-Control-Allow-Origin': 'https://v4eheew2.sanity.studio',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    })
+  })
 })

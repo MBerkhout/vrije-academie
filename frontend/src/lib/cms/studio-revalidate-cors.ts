@@ -22,12 +22,13 @@ export function allowStudioRevalidateOrigin(
 
 export function studioRevalidateCorsHeaders(
   origin: string | null | undefined,
+  methods = 'POST, OPTIONS',
 ): Record<string, string> {
   if (!allowStudioRevalidateOrigin(origin)) return {}
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': methods,
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
   }
