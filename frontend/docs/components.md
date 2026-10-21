@@ -126,6 +126,8 @@ Block components in `@/components/blocks` map to Sanity block types. The main pa
 
 **Demand nearby**: Section background is **#f3f3f3** with a faint map image (**`src/assets/city-map.jpg`**) and a light tint layer; a centered **rounded yellow** card holds the title, optional intro, and a **joined** white input + **charcoal** submit row. The city field uses **`CitySuggestField`** (`src/components/search/CitySuggestField.tsx`): live plaats suggestions from `GET /api/search/places` (Medusa event city facets — same source as Ons aanbod filters), keyboard navigation, and navigation to **`/ons-aanbod/plaats/{slug}`** on select or submit. Copy (placeholder, button label) is in `src/content/form-strings.json` under `demandNearby`.
 
+**Form** — `formBlock`: Sanity form (form-toolkit) or HubSpot. For HubSpot, pick a form from the API list or paste the **form-ID** (HubSpot `data-form-id` GUID). Storefront embed uses `NEXT_PUBLIC_HUBSPOT_PORTAL_ID` and `NEXT_PUBLIC_HUBSPOT_REGION` (`HubSpotFormEmbed`).
+
 **Persons** — `personsBlock`: Manual refs or **dynamic** GROQ list by **type** (unique multi-select: Docent / Team / Gastspreker) and subject. Empty **Max Items** shows everyone matching the filters (hard cap 200 in the query); a set max trims the list in the block. Optional on-page search filters the loaded cards client-side.
 
 ### Deferred Work
@@ -134,7 +136,6 @@ Search codebase for `TODO(HUBSPOT)` and `TODO(EVENTS_DYNAMIC)`:
 
 | Tag | Location | Description |
 |-----|----------|-------------|
-| TODO(HUBSPOT) | FormBlock | HubSpot form embed by ID |
 | TODO(HUBSPOT) | api/form-submit | HubSpot submission mapping |
 | TODO(HUBSPOT) | HeroBlock | Newsletter form submit handler |
 | TODO(EVENTS_DYNAMIC) | ColumnsBlock | productCards dynamic source (Medusa removed; manual items only) |

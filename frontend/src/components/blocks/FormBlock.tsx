@@ -2,15 +2,17 @@
 
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
 import { PortableText } from '@/components/cms/PortableText'
-import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { getTitleTag, getTitleSizeClass, type FormBlock as FormBlockType } from '@/lib/cms'
 import { FormRenderer } from '@sanity/form-toolkit/form-renderer'
+import { HubSpotFormEmbed } from '@/components/hubspot/HubSpotFormEmbed'
+import { resolveHubSpotFormId } from '@/lib/hubspot/resolve-hubspot-form-id'
 
 export function FormBlock({ block }: { block: FormBlockType }) {
   const Tag = getTitleTag(block.titleSize)
+  const hubSpotFormId = resolveHubSpotFormId(block.hubSpotFormId, block.hubSpotForm)
 
-  if (block.formSource === 'hubspot' && block.hubSpotForm) {
+  if (block.formSource === 'hubspot' && hubSpotFormId) {
     return (
       <BlockWrapper block={block}>
         <div className="max-w-2xl mx-auto space-y-6">
@@ -20,10 +22,7 @@ export function FormBlock({ block }: { block: FormBlockType }) {
           {block.introText && block.introText.length > 0 && (
             <PortableText value={block.introText} />
           )}
-          {/* TODO(HUBSPOT): Embed HubSpot form by ID. HubSpot embed script or iframe. */}
-          <div className="p-6 border border-va-lightgray rounded text-va-gray text-center">
-            HubSpot form (ID: {block.hubSpotForm}) – embed placeholder. Configure HubSpot form embedding.
-          </div>
+          <HubSpotFormEmbed formId={hubSpotFormId} />
         </div>
       </BlockWrapper>
     )

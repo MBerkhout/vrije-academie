@@ -125,6 +125,8 @@ export interface FormBlock extends Block {
   formSource?: 'sanity' | 'hubspot'
   form?: { _ref: string }
   hubSpotForm?: string
+  /** HubSpot form GUID (data-form-id); overrides hubSpotForm when set. */
+  hubSpotFormId?: string
   submitButtonLabel?: string
   successMessage?: string
   errorMessage?: string

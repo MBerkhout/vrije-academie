@@ -124,6 +124,7 @@ Authenticated via `useCustomer()` (same Medusa JWT session as the header). Guest
 | `/mijn-account/bewaard` | Wishlist (`WishlistList`, `metadata.va_wishlist`) |
 | `/mijn-account/aankopen` | Order list with line items, session/vathuis details and totals (`listCustomerOrders` + `GET /store/checkout/confirmation` per order via `AccountOrderCard`). Omgeboekte website orders are hidden (`metadata.hidden_from_account`); Salesforce omboeking imports show the new enrollment only. |
 | `/mijn-account/collectie` | **Mijn VAthuis video's** — purchased VA Thuis courses with expiry; links to episode player on PDP |
+| `/mijn-account/voorkeuren` | **Voorkeuren** — HubSpot marketing preferences form (`HubSpotFormEmbed`, form ID in page) |
 
 **Commerce**: `listCustomerOrders` wraps `medusa.store.order.list`. Password login uses `commerceClient.login` → `POST /store/auth/login` (supports legacy Django PBKDF2 migration on first login). Password management uses `commerceClient.setPassword` → `POST /store/auth/set-password` (current password, or OTP verification when the account has no password). `getAuthStatus` drives “Wachtwoord instellen” vs “Wachtwoord wijzigen” in account gegevens. Checkout/login OTP: `customerLookup`, `requestOtp`, `verifyOtp`, `registerPasswordless` — see `medusa/docs/CUSTOMER_AUTH.md`.
 
@@ -260,7 +261,7 @@ const event = await commerceClient.getEvent('event-handle')
 
 The following dynamic backends are stubbed with explicit TODOs; search for `TODO(HUBSPOT)` and `TODO(EVENTS_DYNAMIC)`:
 
-- **HUBSPOT**: Form block HubSpot embed; Form submit handler HubSpot submission mapping; Hero newsletter form
+- **HUBSPOT**: Form block embed (`HubSpotFormEmbed`, manual form-ID or dropdown); Form submit handler HubSpot submission mapping; Hero newsletter form
 - **EVENTS_DYNAMIC**: Persons block dynamic data source; Columns block productCards dynamic product source (Medusa)
 
 See [components.md](./components.md#deferred-work) for details.

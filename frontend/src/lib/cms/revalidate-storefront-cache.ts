@@ -22,6 +22,7 @@ export const STOREFRONT_CHROME_PATHS = [
   '/mijn-account/gegevens',
   '/mijn-account/bewaard',
   '/mijn-account/aankopen',
+  '/mijn-account/voorkeuren',
 ] as const
 
 export const REVALIDATE_BATCH_SIZE = 50

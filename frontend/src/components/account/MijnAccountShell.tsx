@@ -13,6 +13,7 @@ const NAV = [
   { href: '/mijn-account/bewaard', key: 'navSaved' as const },
   { href: '/mijn-account/aankopen', key: 'navPurchases' as const },
   { href: '/mijn-account/collectie', key: 'navCollection' as const },
+  { href: '/mijn-account/voorkeuren', key: 'navPreferences' as const },
 ]
 
 function isNavActive(pathname: string, href: string): boolean {

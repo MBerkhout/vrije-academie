@@ -68,11 +68,39 @@ export const formBlock = defineType({
       title: "HubSpot Form",
       type: "hubSpotForm",
       group: "content",
+      description: "Optioneel als je hieronder een form-ID invult.",
       hidden: ({ parent }) => parent?.formSource !== "hubspot",
       validation: (Rule) =>
         Rule.custom((val, ctx) => {
-          const doc = ctx.document as { formSource?: string }
-          if (doc?.formSource === "hubspot" && !val) return "Selecteer een HubSpot formulier."
+          const parent = ctx.parent as { formSource?: string; hubSpotFormId?: string }
+          if (parent?.formSource !== "hubspot") return true
+          if (parent.hubSpotFormId?.trim()) return true
+          if (!val) return "Selecteer een HubSpot formulier of vul een form-ID in."
+          return true
+        }),
+    }),
+    defineField({
+      name: "hubSpotFormId",
+      title: "HubSpot form-ID",
+      type: "string",
+      group: "content",
+      description:
+        "Form GUID uit HubSpot (waarde van data-form-id in de embedcode). Heeft voorrang op de lijst hierboven.",
+      hidden: ({ parent }) => parent?.formSource !== "hubspot",
+      validation: (Rule) =>
+        Rule.custom((val, ctx) => {
+          const parent = ctx.parent as { formSource?: string; hubSpotForm?: string }
+          if (parent?.formSource !== "hubspot") return true
+          const trimmed = val?.trim()
+          if (!trimmed) {
+            if (parent.hubSpotForm) return true
+            return "Vul een form-ID in of selecteer een formulier uit de lijst."
+          }
+          if (
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)
+          ) {
+            return "Form-ID moet een geldige HubSpot GUID zijn (bijv. baf56412-974b-48eb-aba4-f4c8f795fc75)."
+          }
           return true
         }),
     }),

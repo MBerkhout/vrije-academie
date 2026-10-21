@@ -10,6 +10,7 @@ const SECTION_BY_PATH: Record<string, string> = {
   '/mijn-account/aankopen': 'aankopen',
   '/mijn-account/bewaard': 'bewaard',
   '/mijn-account/collectie': 'collectie',
+  '/mijn-account/voorkeuren': 'voorkeuren',
 }
 
 export function AccountViewTracker() {
