@@ -41,7 +41,7 @@ Delete removes published pages and unpublished drafts. Studio passes each docume
 - Query + cache: `frontend/src/lib/redirects.ts`
 - Enforcement: `frontend/src/proxy.ts`
 
-Proxy matches normalized paths (trailing slashes ignored except for `/`) and skips `/_next`, `/api`, `/studio`, and static assets.
+Proxy matches normalized paths (trailing slashes ignored except for `/`) and skips `/_next`, `/api`, `/studio`, and static assets. Relative destinations from Sanity (e.g. `/ons-aanbod`) are resolved against the incoming request URL before redirecting (required by Next.js 16+).
 
 ## Notes
 

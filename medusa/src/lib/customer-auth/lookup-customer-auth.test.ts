@@ -64,12 +64,12 @@ describe("lookupCustomerAuth", () => {
     expect(result).toEqual({ exists: false, hasPassword: false })
   })
 
-  it("returns exists true when an auth identity exists without a customer row", async () => {
+  it("returns exists false for admin auth only (no storefront customer for that email)", async () => {
     vi.mocked(salesforcePersonContactIdByEmail).mockResolvedValue(null)
     const listAuthIdentities = vi.fn().mockResolvedValue([
       {
         id: "authid_1",
-        app_metadata: { user_id: "user_1" },
+        app_metadata: { user_id: "user_1", customer_id: "cus_other" },
         provider_identities: [
           {
             provider: "emailpass",
@@ -78,10 +78,14 @@ describe("lookupCustomerAuth", () => {
         ],
       },
     ])
+    const retrieveCustomer = vi.fn().mockResolvedValue({ email: "other@example.com" })
     const container = {
       resolve: (key: string) => {
         if (key === Modules.CUSTOMER) {
-          return { listAndCountCustomers: vi.fn().mockResolvedValue([[], 0]) }
+          return {
+            listAndCountCustomers: vi.fn().mockResolvedValue([[], 0]),
+            retrieveCustomer,
+          }
         }
         if (key === Modules.AUTH) {
           return { listAuthIdentities }
@@ -93,7 +97,7 @@ describe("lookupCustomerAuth", () => {
       },
     }
     const result = await lookupCustomerAuth(container, "admin@example.com")
-    expect(result).toEqual({ exists: true, hasPassword: true })
-    expect(salesforcePersonContactIdByEmail).not.toHaveBeenCalled()
+    expect(result).toEqual({ exists: false, hasPassword: false })
+    expect(salesforcePersonContactIdByEmail).toHaveBeenCalled()
   })
 })

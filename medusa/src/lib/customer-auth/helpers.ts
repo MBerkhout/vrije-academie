@@ -6,7 +6,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
-import { createCustomerAccountWorkflow } from "@medusajs/core-flows"
+import { createCustomerAccountWorkflow, createCustomersWorkflow } from "@medusajs/core-flows"
 import type { ICustomerModuleService } from "@medusajs/framework/types"
 
 import { CUSTOMER_OTP_MODULE } from "../../modules/customer-otp"
@@ -83,34 +83,51 @@ export function authIdentityHasPassword(authIdentity: AuthIdentityShape): boolea
   return typeof password === "string" && password.length > 0
 }
 
-const ADMIN_EMAIL_CUSTOMER_REGISTRATION_MESSAGE =
-  "This email is used for a Medusa admin account and cannot be used to register as a customer. Use a personal email address."
-
-export async function assertAuthIdentityAllowsPasswordlessRegistration(
+/** Returns customer id when auth `customer_id` points at a customer with this email. */
+export async function storefrontCustomerIdFromAuthIdentity(
   container: MedusaContainer,
   email: string,
   authIdentity: AuthIdentityShape
-): Promise<void> {
+): Promise<string | null> {
   const normalized = assertValidEmail(email)
-
-  if (authIdentity.app_metadata?.user_id) {
-    throw new MedusaError(MedusaError.Types.INVALID_DATA, ADMIN_EMAIL_CUSTOMER_REGISTRATION_MESSAGE)
-  }
-
   const customerId = authIdentity.app_metadata?.customer_id as string | undefined
   if (!customerId) {
-    return
+    return null
   }
 
   const customerService = container.resolve(Modules.CUSTOMER) as ICustomerModuleService
-  const linked = await customerService.retrieveCustomer(customerId, { select: ["email"] })
-  const linkedEmail = linked.email ? normalizeCustomerEmail(linked.email) : ""
-  if (linkedEmail && linkedEmail !== normalized) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "This email is already linked to another customer account and cannot be registered again."
-    )
+  try {
+    const linked = await customerService.retrieveCustomer(customerId, { select: ["email"] })
+    const linkedEmail = linked.email ? normalizeCustomerEmail(linked.email) : ""
+    if (linkedEmail === normalized) {
+      return customerId
+    }
+  } catch {
+    /* stale customer_id on auth identity */
   }
+  return null
+}
+
+export async function setAuthIdentityCustomerId(
+  container: MedusaContainer,
+  authIdentityId: string,
+  customerId: string
+): Promise<void> {
+  const auth = container.resolve(Modules.AUTH) as {
+    retrieveAuthIdentity: (id: string) => Promise<AuthIdentityShape>
+    updateAuthIdentities: (data: {
+      id: string
+      app_metadata: Record<string, unknown>
+    }) => Promise<unknown>
+  }
+  const authIdentity = await auth.retrieveAuthIdentity(authIdentityId)
+  await auth.updateAuthIdentities({
+    id: authIdentityId,
+    app_metadata: {
+      ...(authIdentity.app_metadata ?? {}),
+      customer_id: customerId,
+    },
+  })
 }
 
 export async function lookupCustomerAuth(
@@ -127,9 +144,16 @@ export async function lookupCustomerAuth(
 
   if (!customers.length) {
     const identities = await listAuthIdentitiesByEmail(container, normalized)
-    if (identities.length) {
-      const hasMedusaPassword = identities.some(authIdentityHasPassword)
-      return { exists: true, hasPassword: hasMedusaPassword }
+    for (const identity of identities) {
+      const linkedCustomerId = await storefrontCustomerIdFromAuthIdentity(
+        container,
+        normalized,
+        identity
+      )
+      if (linkedCustomerId) {
+        const hasMedusaPassword = identities.some(authIdentityHasPassword)
+        return { exists: true, hasPassword: hasMedusaPassword }
+      }
     }
 
     const contactId = await salesforcePersonContactIdByEmail(container, normalized)
@@ -181,6 +205,19 @@ export async function linkAuthIdentityToCustomer(
   authIdentityId: string,
   customerId: string
 ): Promise<void> {
+  const auth = container.resolve(Modules.AUTH) as {
+    retrieveAuthIdentity: (id: string) => Promise<AuthIdentityShape>
+  }
+  const authIdentity = await auth.retrieveAuthIdentity(authIdentityId)
+  const current = authIdentity.app_metadata?.customer_id as string | undefined
+  if (current === customerId) {
+    return
+  }
+  if (current) {
+    await setAuthIdentityCustomerId(container, authIdentityId, customerId)
+    return
+  }
+
   const { setAuthAppMetadataWorkflow } = await import("@medusajs/core-flows")
   await setAuthAppMetadataWorkflow(container).run({
     input: {
@@ -298,6 +335,16 @@ export async function registerPasswordlessCustomer(
 ): Promise<{ token: string; customerId: string }> {
   const normalized = assertValidEmail(input.email)
   const existing = await getCustomerByEmail(container, normalized)
+  const customerPayload = {
+    email: normalized,
+    first_name: input.first_name.trim(),
+    last_name: input.last_name.trim(),
+    ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
+    ...(input.birthdate?.trim()
+      ? { metadata: { sf_birthdate: input.birthdate.trim() } }
+      : {}),
+  }
+
   if (existing) {
     const lookup = await lookupCustomerAuth(container, normalized)
     if (lookup.hasPassword) {
@@ -311,7 +358,8 @@ export async function registerPasswordlessCustomer(
     if (!authIdentity) {
       authIdentity = await ensurePasswordlessAuthIdentity(container, normalized)
     }
-    if (!authIdentity.app_metadata?.customer_id) {
+    const linkedId = authIdentity.app_metadata?.customer_id as string | undefined
+    if (linkedId !== existing.id) {
       await linkAuthIdentityToCustomer(container, authIdentity.id, existing.id)
       authIdentity = (await findAuthIdentityByEmail(container, normalized)) ?? authIdentity
     }
@@ -322,27 +370,34 @@ export async function registerPasswordlessCustomer(
   }
 
   const preexistingAuth = await findAuthIdentityByEmail(container, normalized)
-  if (preexistingAuth) {
-    await assertAuthIdentityAllowsPasswordlessRegistration(container, normalized, preexistingAuth)
-  }
+  const staleAuthCustomerLink =
+    preexistingAuth &&
+    (await storefrontCustomerIdFromAuthIdentity(container, normalized, preexistingAuth)) ==
+      null &&
+    Boolean(preexistingAuth.app_metadata?.customer_id)
 
-  const authIdentity =
-    preexistingAuth ?? (await ensurePasswordlessAuthIdentity(container, normalized))
-  const workflow = createCustomerAccountWorkflow(container)
-  const { result: customer } = await workflow.run({
-    input: {
-      authIdentityId: authIdentity.id,
-      customerData: {
-        email: normalized,
-        first_name: input.first_name.trim(),
-        last_name: input.last_name.trim(),
-        ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
-        ...(input.birthdate?.trim()
-          ? { metadata: { sf_birthdate: input.birthdate.trim() } }
-          : {}),
+  let customer: { id: string }
+
+  if (staleAuthCustomerLink && preexistingAuth) {
+    const { result } = await createCustomersWorkflow(container).run({
+      input: {
+        customersData: [{ ...customerPayload, has_account: true }],
       },
-    },
-  })
+    })
+    customer = result[0]
+    await setAuthIdentityCustomerId(container, preexistingAuth.id, customer.id)
+  } else {
+    const authIdentity =
+      preexistingAuth ?? (await ensurePasswordlessAuthIdentity(container, normalized))
+    const workflow = createCustomerAccountWorkflow(container)
+    const { result } = await workflow.run({
+      input: {
+        authIdentityId: authIdentity.id,
+        customerData: customerPayload,
+      },
+    })
+    customer = result
+  }
 
   if (input.address) {
     const customerService = container.resolve(Modules.CUSTOMER) as ICustomerModuleService

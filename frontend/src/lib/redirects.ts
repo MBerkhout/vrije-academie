@@ -82,3 +82,11 @@ export async function findRedirect(pathname: string): Promise<RedirectRule | nul
   const redirects = await getRedirects()
   return redirects.find((rule) => rule.source === normalizedPath) ?? null
 }
+
+/** Next.js proxy/middleware requires absolute redirect targets (Next 16+). */
+export function resolveRedirectDestination(destination: string, requestUrl: string | URL): URL {
+  if (/^https?:\/\//i.test(destination)) {
+    return new URL(destination)
+  }
+  return new URL(destination, requestUrl)
+}
