@@ -23,6 +23,8 @@ export interface CartItemExtras {
   instructor_names: string[]
 }
 
-export function isVathuisCartLine(extras: CartItemExtras | null | undefined): boolean {
+export function isVathuisCartLine(
+  extras: Pick<CartItemExtras, 'is_vathuis' | 'vathuis'> | null | undefined
+): boolean {
   return Boolean(extras?.is_vathuis || extras?.vathuis)
 }
