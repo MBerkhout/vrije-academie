@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
@@ -48,8 +48,104 @@ const MEDIA_ASPECT_CLASS = {
 
 type MediaAspectTailwind = 'aspect-video' | 'aspect-[4/3]' | 'aspect-square' | ''
 
+function mediaVideoUrl(col: ColumnItem): string | undefined {
+  const asset = col.mediaVideoFile?.asset
+  if (asset && typeof asset === 'object' && 'url' in asset && asset.url) {
+    return String(asset.url)
+  }
+  return undefined
+}
+
+function mediaVideoPosterUrl(col: ColumnItem): string | undefined {
+  const asset = col.mediaVideoPoster?.asset
+  if (asset && typeof asset === 'object' && 'url' in asset && asset.url) {
+    return String(asset.url)
+  }
+  return undefined
+}
+
+function ColumnMediaVideo({ col }: { col: ColumnItem }) {
+  const mediaAspect = cleanBlockValue(col.mediaAspectRatio) ?? '16:9'
+  const aspectClass =
+    MEDIA_ASPECT_CLASS[mediaAspect as keyof typeof MEDIA_ASPECT_CLASS] ?? MEDIA_ASPECT_CLASS['16:9']
+  const videoSrc = mediaVideoUrl(col)
+  const posterUrl = mediaVideoPosterUrl(col)
+  const caption = col.mediaCaption?.trim()
+  const ariaLabel = caption || 'Video'
+  const [reduceMotion, setReduceMotion] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => setReduceMotion(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
+  const freeDims = aspectClass ? null : sanityAssetDimensions(col.mediaVideoPoster)
+  const freeWidth = freeDims ? Math.min(freeDims.width, 1200) : undefined
+  const freeHeight =
+    freeDims && freeWidth ? Math.round((freeWidth * freeDims.height) / freeDims.width) : undefined
+  const objectFit = aspectClass ? 'cover' : 'contain'
+
+  if (!videoSrc && !posterUrl) return null
+
+  const showVideo = videoSrc && !reduceMotion
+
+  return (
+    <figure>
+      <div className={cn(aspectClass && aspectClass, 'overflow-hidden rounded-lg')}>
+        {showVideo ? (
+          <video
+            autoPlay
+            muted
+            playsInline
+            loop
+            poster={posterUrl}
+            className={cn(
+              aspectClass ? 'h-full w-full' : 'h-auto w-full',
+              objectFit === 'cover' ? 'object-cover' : 'object-contain',
+            )}
+            aria-label={ariaLabel}
+          >
+            <source src={videoSrc} type="video/mp4" />
+          </video>
+        ) : posterUrl || col.mediaVideoPoster ? (
+          <SanityImage
+            source={col.mediaVideoPoster ?? null}
+            aspectRatio={
+              (aspectClass || 'aspect-video') as MediaAspectTailwind | 'aspect-video'
+            }
+            fill={!!aspectClass}
+            objectFit={aspectClass ? 'cover' : 'contain'}
+            width={freeWidth}
+            height={freeHeight}
+            className="h-auto w-full"
+          />
+        ) : (
+          <video
+            muted
+            playsInline
+            controls
+            poster={posterUrl}
+            className={cn(
+              'h-full w-full',
+              objectFit === 'cover' ? 'object-cover' : 'object-contain',
+            )}
+            aria-label={ariaLabel}
+          >
+            <source src={videoSrc} type="video/mp4" />
+          </video>
+        )}
+      </div>
+      {caption && <figcaption className="mt-2 text-sm text-va-gray">{caption}</figcaption>}
+    </figure>
+  )
+}
+
 function ColumnMedia({ col }: { col: ColumnItem }) {
   if (col.columnType !== 'media') return null
+  if (col.mediaType === 'video') return <ColumnMediaVideo col={col} />
   if (col.mediaType === 'youtube' && col.mediaYoutubeUrl) {
     const match = col.mediaYoutubeUrl.match(/(?:watch\?v=|youtu\.be\/|embed\/)([\w-]+)/)
     const id = match ? match[1] : ''

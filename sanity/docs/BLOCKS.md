@@ -247,7 +247,7 @@ Image Block
 **Frontend**: From `md` up, columns are a horizontal flex row with proportional widths; **vertical alignment** applies within the row. On small screens, columns stack. Inline `columnsBlock` on pages (and columns inside tabs) uses a dedicated GROQ branch so **`person->`** and other column references resolve—same idea as categories/persons inline blocks.
 
 **Nested column types**:
-- Text, Media, Highlight card, Product cards, CTA card, Person card (not arbitrary nested blocks)
+- Text, Media (image / YouTube / hosted MP4), Highlight card, Product cards, CTA card, Person card (not arbitrary nested blocks)
 
 **Product cards column**: Pick up to three mirrored **Product** references; optional **Card CTA label** (same text on each card, e.g. “VAthuis – ON DEMAND”). Frontend uses `thumbnailUrl`, `handle`, and `plpProductPath`. Each card’s thumbnail is `88px` wide and stretches to the card height (covers a wrapping title). Seed homepage trio: `npm run seed:homepage-product-columns --prefix sanity`.
 

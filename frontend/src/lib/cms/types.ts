@@ -376,16 +376,24 @@ export interface ColumnsBlock extends Block {
 }
 
 export interface ColumnItem {
-  columnType: 'text' | 'media' | 'highlightCard' | 'productCards' | 'ctaCard' | 'personCard'
+  columnType:
+    | 'text'
+    | 'media'
+    | 'highlightCard'
+    | 'productCards'
+    | 'ctaCard'
+    | 'personCard'
   width?: 'equal' | 'narrow' | 'wide'
   verticalAlignment?: 'top' | 'center' | 'bottom'
   textTitle?: string
   textTitleSize?: string
   textContent?: PortableTextBlock[]
-  mediaType?: 'image' | 'youtube'
+  mediaType?: 'image' | 'youtube' | 'video'
   mediaImage?: SanityImageMetadata
   mediaImageAlt?: string
   mediaYoutubeUrl?: string
+  mediaVideoFile?: { asset?: { url?: string; mimeType?: string } }
+  mediaVideoPoster?: SanityImageMetadata
   mediaCaption?: string
   mediaAspectRatio?: string
   highlightImage?: SanityImageMetadata

@@ -29,6 +29,8 @@ Each column object: **Width** (equal / narrow / wide), **Vertical alignment** (t
 
 Each column is one of: Text, Media, Highlight card, Product cards, CTA card, Person card—not arbitrary nested blocks.
 
+**Media column — Media type:** Image, YouTube, or **Video** (hosted MP4, same behavior as the standalone Video block: optional poster, caption, aspect ratio).
+
 ## When to Use
 
 - Side-by-side content comparison

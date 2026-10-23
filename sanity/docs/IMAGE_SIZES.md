@@ -44,6 +44,7 @@ Guidance only — uploads are not blocked when dimensions differ.
 | `editorialCardsBlock` | `backgroundImage` | `editorialBackground` | `EditorialCardsBlock.tsx` |
 | `editorialCardsBlock` | `cards[].image` | `editorialCard` | `EditorialCardsBlock.tsx` |
 | `columnsBlock` | `columns[].mediaImage` | `blockImageAspectRatio` | `ColumnsBlock.tsx` |
+| `columnsBlock` | `columns[].mediaVideoPoster` | `blockImageAspectRatio` | `ColumnsBlock.tsx` |
 | `columnsBlock` | `columns[].mediaMobileImageAsset` | `mobileMediaImage` | `ColumnsBlock.tsx` |
 | `columnsBlock` | `columns[].highlightImage` | `blockImage16x9` | `ColumnsBlock.tsx` |
 | `columnsBlock` | `columns[].ctaCardBgImage` | `blockImage16x9` | `ColumnsBlock.tsx` |

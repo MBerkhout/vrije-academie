@@ -50,6 +50,7 @@ const VERTICAL_ALIGNMENT_OPTIONS = [
 const COLUMN_MEDIA_TYPE_OPTIONS = [
   { title: "Image", value: "image" },
   { title: "YouTube", value: "youtube" },
+  { title: "Video", value: "video" },
 ] as const
 
 export const columnsBlock = defineType({
@@ -226,11 +227,34 @@ export const columnsBlock = defineType({
               hidden: ({ parent }) => parent?.columnType !== "media" || parent?.mediaType !== "youtube",
             }),
             defineField({
+              name: "mediaVideoFile",
+              title: "Video (MP4)",
+              type: "file",
+              options: { accept: "video/mp4" },
+              hidden: ({ parent }) => parent?.columnType !== "media" || parent?.mediaType !== "video",
+              validation: (Rule) =>
+                Rule.custom((file, ctx) => {
+                  const parent = ctx.parent as { columnType?: string; mediaType?: string }
+                  if (parent?.columnType === "media" && parent?.mediaType === "video" && !file)
+                    return "Upload een MP4-bestand."
+                  return true
+                }),
+            }),
+            defineImageField({
+              name: "mediaVideoPoster",
+              title: "Poster Image",
+              spec: "blockImageAspectRatio",
+              extraDescription:
+                "Optioneel: getoond vóór afspelen en bij voorkeur voor minder beweging. Kies beeldverhouding hieronder.",
+              hidden: ({ parent }) => parent?.columnType !== "media" || parent?.mediaType !== "video",
+            }),
+            defineField({
               name: "mediaMobileImage",
               title: "Different Mobile Image",
               type: "boolean",
               initialValue: false,
-              hidden: ({ parent }) => parent?.columnType !== "media",
+              hidden: ({ parent }) =>
+                parent?.columnType !== "media" || parent?.mediaType !== "image",
             }),
             defineImageField({
               name: "mediaMobileImageAsset",
@@ -238,7 +262,9 @@ export const columnsBlock = defineType({
               spec: "mobileMediaImage",
               extraDescription: "Optioneel alternatief voor mobiel.",
               hidden: ({ parent }) =>
-                parent?.columnType !== "media" || !parent?.mediaMobileImage,
+                parent?.columnType !== "media" ||
+                parent?.mediaType !== "image" ||
+                !parent?.mediaMobileImage,
             }),
             defineField({
               name: "mediaCaption",

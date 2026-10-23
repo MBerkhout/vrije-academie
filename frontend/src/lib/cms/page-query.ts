@@ -90,6 +90,8 @@ const COLUMNS_BLOCK_COLUMN_FIELDS = `
           mediaImage { ${GROQ_SANITY_IMAGE_FIELDS} },
           mediaImageAlt,
           mediaYoutubeUrl,
+          mediaVideoFile { asset-> { url, mimeType } },
+          mediaVideoPoster { ${GROQ_SANITY_IMAGE_FIELDS} },
           mediaMobileImage,
           mediaMobileImageAsset { ${GROQ_SANITY_IMAGE_FIELDS} },
           mediaCaption,
