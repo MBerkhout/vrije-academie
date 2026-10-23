@@ -24,7 +24,7 @@ export default async function MainLayout({
         <JsonLd data={buildWebSiteJsonLd()} />
         <Header settings={settings} />
         <ListingReturnScroll />
-        <main className="min-h-screen">{children}</main>
+        <main className="min-h-screen has-[[data-compact-main]]:min-h-0">{children}</main>
         <Footer settings={settings} />
       </AnalyticsProvider>
     </CustomerProvider>

@@ -32,7 +32,7 @@ Guidance only — uploads are not blocked when dimensions differ.
 | `seo` | `metaImage` | `social` | OG / Twitter (`seo-metadata.ts`) |
 | `generalSettings` | `header.logo` | `logo` | `HeaderNav.tsx` |
 | `generalSettings` | `organization.logo` | `logo` | Organization JSON-LD |
-| `generalSettings` | `account.loginImage` | `loginPortrait` | Login page left panel |
+| `generalSettings` | `account.loginImage` | `loginPortrait` | Optional CMS field; not shown on `/login` |
 | `person` | `photo` | `personPhoto` | `PersonsBlock.tsx` |
 | `category` | `image` | `categoryTile` | Category tiles / search |
 | `heroBlock` | `slides[].backgroundImage` | `heroSlide` | `ImageSlideStage` in `HeroBlock.tsx` |
