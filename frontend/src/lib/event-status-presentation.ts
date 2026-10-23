@@ -290,9 +290,6 @@ export function classNameForProductBadge(badge: string | null | undefined): stri
   return DEFAULT_PRODUCT_BADGE_CLASS
 }
 
-/** From this many free spots onward, the PDP session table shows "Beschikbaar" instead of a count. */
-export const SESSION_AVAILABILITY_GENERIC_THRESHOLD = 10
-
 /** PDP waitlist CTA: #bfbfbf / hover #4c4c4c. */
 export const PDP_WAITLIST_CTA_CLASS =
   'bg-[#bfbfbf] text-va-black hover:bg-[#4c4c4c] hover:text-white'
@@ -403,17 +400,8 @@ export function sessionTableAvailabilityPresentation(
     }
   }
 
-  if (availableQuantity >= SESSION_AVAILABILITY_GENERIC_THRESHOLD) {
-    return {
-      label: t.tableAvailabilityAvailable ?? 'Beschikbaar',
-      className: 'text-xs font-medium text-green-700',
-    }
-  }
-
   return {
-    label: interpolate(t.tableAvailabilityCount ?? '{count} beschikbaar', {
-      count: availableQuantity,
-    }),
+    label: t.tableAvailabilityAvailable ?? 'Beschikbaar',
     className: 'text-xs font-medium text-green-700',
   }
 }
