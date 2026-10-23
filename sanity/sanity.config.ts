@@ -1,4 +1,5 @@
 import { defineConfig } from "sanity"
+import { media } from "sanity-plugin-media"
 import { assist } from "@sanity/assist"
 import { structureTool } from "sanity/structure"
 import { structure } from "./src/structure"
@@ -31,6 +32,7 @@ export default defineConfig({
 
   plugins: [
     structureTool({ structure }),
+    media(),
     formSchema(),
     hubSpotInput({ url: hubspotApiUrl }),
     presentationTool({

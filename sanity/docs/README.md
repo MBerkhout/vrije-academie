@@ -20,6 +20,15 @@ Fields titled **CTA URL** (and related link fields) use `defineCtaUrlField` from
 
 Every Sanity **image** upload field shows recommended dimensions in Studio (field description). Specs are centralized in `src/schemas/objects/imageSpecs.ts` and applied via `defineImageField` / `defineImageWithAltField`. See [IMAGE_SIZES.md](./IMAGE_SIZES.md) for the full field → size mapping.
 
+### Media assets
+
+Studio includes **[sanity-plugin-media](https://www.sanity.io/plugins/sanity-plugin-media)** (`media()` in `sanity.config.ts`):
+
+- Open **Media** in the Studio tool menu to browse, search, tag, and bulk-manage assets stored in the dataset.
+- Image and file fields also offer the Media plugin as an asset source alongside the default Sanity picker.
+
+Assets remain normal Content Lake references; the storefront does not need changes. Sanity’s org-wide **Media Library** (Dashboard app) is a separate Enterprise add-on—see [configure Media Library](https://www.sanity.io/docs/media-library/configure-library) if the organization enables it later.
+
 ### Block System
 
 Pages are composed of **blocks** — reusable content components stored **inline** on `page.blocks[]` as Sanity object types (`type: "object"`), not separate documents. This keeps Presentation click-to-edit paths aligned with the schema.
