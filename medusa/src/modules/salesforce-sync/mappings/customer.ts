@@ -72,7 +72,6 @@ export type SfPersonAccountPushShape = {
   /** Custom: "Shipping Address equals Billing Address" on Person Account. */
   Same_account_address__c?: boolean
   PersonBirthdate?: string
-  Initials__c?: string
   Newsletter__c?: boolean
   Magazine__c?: boolean
   Editorial__c?: boolean
@@ -109,7 +108,6 @@ export type SfContactPushShape = {
   MailingPostalCode?: string
   MailingCountry?: string
   Birthdate?: string
-  Initials__c?: string
   Active__c?: boolean
   Newsletter__c?: boolean
 }
@@ -360,7 +358,6 @@ export function personAccountFieldsFromMedusa(
   recordTypeId?: string
 ): SfPersonAccountPushShape {
   const meta = c.metadata ?? {}
-  const initials = (meta[CUSTOMER_METADATA_KEYS.initials] as string | undefined)?.trim()
 
   const fields: SfPersonAccountPushShape = {
     FirstName: c.first_name?.trim() || "Unknown",
@@ -373,8 +370,6 @@ export function personAccountFieldsFromMedusa(
     fields.PersonMobilePhone = c.phone.trim()
     fields.Phone = c.phone.trim()
   }
-  if (initials) fields.Initials__c = initials
-
   applyMedusaAddressToAccountFields(fields, c.address)
   applyBirthdateFromMedusa(fields, meta, "account")
 
@@ -387,7 +382,6 @@ export function personAccountFieldsFromMedusa(
 
 export function contactFieldsFromMedusa(c: MedusaCustomerShape): SfContactPushShape {
   const meta = c.metadata ?? {}
-  const initials = (meta[CUSTOMER_METADATA_KEYS.initials] as string | undefined)?.trim()
 
   const fields: SfContactPushShape = {
     FirstName: c.first_name?.trim() || "Unknown",
@@ -399,8 +393,6 @@ export function contactFieldsFromMedusa(c: MedusaCustomerShape): SfContactPushSh
     fields.MobilePhone = c.phone.trim()
     fields.Phone = c.phone.trim()
   }
-  if (initials) fields.Initials__c = initials
-
   const addr = c.address
   if (addr?.address_1?.trim()) fields.MailingStreet = addr.address_1.trim()
   if (addr?.city?.trim()) fields.MailingCity = addr.city.trim()
@@ -425,7 +417,6 @@ export function customerPushPayloadFingerprint(c: MedusaCustomerShape): string {
     email: c.email ?? null,
     phone: c.phone ?? null,
     address: c.address ?? null,
-    initials: c.metadata?.[CUSTOMER_METADATA_KEYS.initials] ?? null,
     birthdate: c.metadata?.[CUSTOMER_METADATA_KEYS.birthdate] ?? null,
     newsletter: c.metadata?.[CUSTOMER_METADATA_KEYS.newsletter] ?? null,
   })
