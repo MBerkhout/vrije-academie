@@ -766,7 +766,7 @@ export const generalSettings = defineType({
           fields: [
             defineField({ name: "heading", type: "string", title: "Heading", initialValue: "Bedankt voor je aankoop" }),
             defineField({ name: "subheading", type: "string", title: "Subheading", initialValue: "Je ontvangt een bevestiging per e-mail." }),
-            defineField({ name: "orderNumberLabel", type: "string", title: "Bestelnummer label", initialValue: "Bestelnummer" }),
+            defineField({ name: "orderNumberLabel", type: "string", title: "Ordernummer label", initialValue: "Ordernummer" }),
             defineField({ name: "backToOverviewLabel", type: "string", title: "Terug naar aanbod knop", initialValue: "Bekijk ons volledig aanbod" }),
             defineField({ name: "backToOverviewUrl", type: "string", title: "Terug naar aanbod URL", initialValue: PLP_BASE_PATH }),
           ],

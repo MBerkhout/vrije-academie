@@ -19,7 +19,7 @@ All other fields are mirrors from Medusa and are read-only, including **SEO titl
 
 | Setting | Default | Effect |
 |---|---|---|
-| `lowStockThreshold` | 5 | Session table and PLP availability copy when `available_quantity ≤ N`. Not shown in the booking panel sidebar. |
+| `lowStockThreshold` | 5 | PLP card low-stock copy when `available_quantity ≤ N`. PDP session table orange “Nog N plaatsen” uses the Bijna vol rule (≤30% of capacity) instead. Not shown in the booking panel sidebar. |
 | `deadlineWarningDays` | 7 | Show deadline warning when `registration_deadline_at` is within N days. |
 
 ## UI labels (`generalSettings › PDP › Labels`)

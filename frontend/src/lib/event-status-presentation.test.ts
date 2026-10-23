@@ -81,17 +81,24 @@ describe('minPositiveBookableQuantity', () => {
 
 describe('sessionTableAvailabilityPresentation', () => {
   it('shows Wachtlijst when a session has zero spots', () => {
-    expect(sessionTableAvailabilityPresentation(0, 5).label).toBe('Wachtlijst')
+    expect(sessionTableAvailabilityPresentation(0).label).toBe('Wachtlijst')
   })
 
-  it('shows the orange count when the session is Bijna vol, even above the low-stock threshold', () => {
-    const almostFull = sessionTableAvailabilityPresentation(13, 5, 50)
+  it('shows the orange count when the session is Bijna vol', () => {
+    const almostFull = sessionTableAvailabilityPresentation(13, 50)
     expect(almostFull.label).not.toBe('Beschikbaar')
     expect(almostFull.className).toContain('text-va-orange')
   })
 
   it('stays green above the Bijna vol band', () => {
-    expect(sessionTableAvailabilityPresentation(20, 5, 50).className).toContain('text-green-700')
+    expect(sessionTableAvailabilityPresentation(20, 50).className).toContain('text-green-700')
+  })
+
+  it('does not show orange from a fixed low count when above the 30% band', () => {
+    // 5 spots on capacity 12: above ceil(12×0.3)=4, but would have matched lowStockThreshold=5
+    const presentation = sessionTableAvailabilityPresentation(5, 12)
+    expect(presentation.className).toContain('text-green-700')
+    expect(presentation.className).not.toContain('text-va-orange')
   })
 })
 

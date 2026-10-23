@@ -8,6 +8,7 @@ import { ThankYouVathuisRecommendations } from '@/components/thank-you/ThankYouV
 import { clearCartId, dispatchCartUpdated, getCartId } from '@/lib/commerce/cart'
 import { fetchCheckoutConfirmation } from '@/lib/commerce/fetch-checkout-confirmation'
 import type { CheckoutConfirmationPayload } from '@/lib/commerce/checkout-confirmation-types'
+import { defaultMessages } from '@/lib/i18n/messages'
 
 const POLL_MS = 1200
 const MAX_POLLS = 45
@@ -125,6 +126,7 @@ function ContactBlock({ contact }: { contact: ThankYouContactInfo }) {
 }
 
 export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContactInfo }) {
+  const checkoutCopy = defaultMessages.checkout
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderFromUrl = searchParams.get('order')
@@ -271,7 +273,7 @@ export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContac
                 )}
                 {order?.salesforce_order_number?.trim() ? (
                   <p className="font-sans text-sm text-va-darkgray">
-                    Bestelnummer:{' '}
+                    {checkoutCopy.confirmationOrderLabel}:{' '}
                     <strong className="text-va-black font-semibold">
                       {order.salesforce_order_number.trim()}
                     </strong>

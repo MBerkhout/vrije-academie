@@ -16,6 +16,14 @@ export interface SeoImage {
   asset?: { url?: string }
 }
 
+/** Sanity image object with optional hotspot/crop for CDN cropping. */
+export interface SanityImageMetadata {
+  asset?: { _ref?: string; _id?: string; url?: string }
+  alt?: string
+  hotspot?: { x: number; y: number; width: number; height: number }
+  crop?: { top: number; bottom: number; left: number; right: number }
+}
+
 export interface SEO {
   metaTitle?: string
   metaDescription?: string
@@ -375,12 +383,12 @@ export interface ColumnItem {
   textTitleSize?: string
   textContent?: PortableTextBlock[]
   mediaType?: 'image' | 'youtube'
-  mediaImage?: { asset: { _ref: string }; alt?: string }
+  mediaImage?: SanityImageMetadata
   mediaImageAlt?: string
   mediaYoutubeUrl?: string
   mediaCaption?: string
   mediaAspectRatio?: string
-  highlightImage?: { asset: { _ref: string } }
+  highlightImage?: SanityImageMetadata
   highlightTitle?: string
   highlightTitleSize?: string
   highlightTeaser?: PortableTextBlock[]
@@ -400,7 +408,7 @@ export interface ColumnItem {
   productCardsFooterCtaEnabled?: boolean
   productCardsFooterCtaLabel?: string
   productCardsFooterCtaUrl?: string
-  ctaCardBgImage?: { asset: { _ref: string } }
+  ctaCardBgImage?: SanityImageMetadata
   ctaCardTitle?: string
   ctaCardTitleSize?: string
   ctaCardOverlay?: string

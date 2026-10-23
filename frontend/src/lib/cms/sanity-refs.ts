@@ -1,6 +1,11 @@
 import { cache } from 'react'
 import { sanityPreviewClient } from './sanity-preview-client'
 import { SEO_FIELD } from './seo-fragment'
+import {
+  GROQ_SANITY_IMAGE_FIELDS,
+  GROQ_SANITY_IMAGE_FIELDS_WITH_DIMENSIONS,
+  GROQ_SANITY_PERSON_PHOTO_FIELDS_WITH_URL,
+} from './groq-image-projection'
 import type { ProductSeoSource } from './seo-metadata'
 import type { SEO } from './types'
 
@@ -216,7 +221,7 @@ const PDP_BODY_BLOCKS_PROJECTION = `"body": body[] {
     @._type == "afbeeldingBlock" => {
       ...@,
       ${PDP_BLOCK_LAYOUT},
-      image { asset-> { _id, url, metadata { dimensions } }, alt },
+      image { ${GROQ_SANITY_IMAGE_FIELDS_WITH_DIMENSIONS} },
       "contentWidth": @.width,
       aspectRatio
     },
@@ -224,7 +229,7 @@ const PDP_BODY_BLOCKS_PROJECTION = `"body": body[] {
       ...@,
       ${PDP_BLOCK_LAYOUT},
       videoFile { asset-> { url, mimeType } },
-      posterImage { asset-> { _id, url, metadata { dimensions } }, alt },
+      posterImage { ${GROQ_SANITY_IMAGE_FIELDS_WITH_DIMENSIONS} },
       "contentWidth": @.width,
       aspectRatio
     },
@@ -236,14 +241,14 @@ const PDP_BODY_BLOCKS_PROJECTION = `"body": body[] {
         textTitle, textTitleSize,
         textContent[] ${PT_BLOCK},
         mediaType,
-        mediaImage { asset-> { _id, url }, alt },
+        mediaImage { ${GROQ_SANITY_IMAGE_FIELDS} },
         mediaImageAlt, mediaYoutubeUrl, mediaCaption, mediaAspectRatio,
-        highlightImage { asset-> { _id, url } }, highlightTitle, highlightTitleSize,
+        highlightImage { ${GROQ_SANITY_IMAGE_FIELDS} }, highlightTitle, highlightTitleSize,
         highlightTeaser[] ${PT_BLOCK}, highlightLabel,
-        ctaCardBgImage { asset-> { _id, url } }, ctaCardTitle, ctaCardTitleSize, ctaCardOverlay,
+        ctaCardBgImage { ${GROQ_SANITY_IMAGE_FIELDS} }, ctaCardTitle, ctaCardTitleSize, ctaCardOverlay,
         ctaCardBody[] ${PT_BLOCK},
         ctaCardCtaEnabled, ctaCardCtaLabel, ctaCardCtaUrl,
-        person-> { _id, name, photo { asset->{ _id, url } }, role, bio, profileUrl, personType },
+        person-> { _id, name, photo { ${GROQ_SANITY_PERSON_PHOTO_FIELDS_WITH_URL} }, role, bio, profileUrl, personType },
         personShowBio, personShowLink
       }
     },

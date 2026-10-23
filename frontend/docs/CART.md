@@ -69,7 +69,7 @@ Zie ook [`medusa/docs/GIFT-CARDS.md`](../../medusa/docs/GIFT-CARDS.md).
 |---|---|
 | `CartStepper` | 4-step horizontal stepper pill bar; on mobile, only steps 1–3 are shown (step 4 and its connector are hidden) so the bar fits without horizontal scroll |
 | `CartView` | Client root: loads cart + extras, owns mutations |
-| `CartLineItemDetails` | Rendert `LineItemDetailBlock[]` (`session`, `vathuis`, `instructors`, `quantity_label`, `gift_recipient`, `notice`) — varianten `cart` / `payment` / `summary` |
+| `CartLineItemDetails` | Rendert `LineItemDetailBlock[]` (`session`, `vathuis`, `instructors`, `quantity_label`, `gift_recipient`, `notice`) — varianten `cart` / `payment` / `summary`. `quantity_label` (“N tickets”) alleen via `buildLineItemQuantityLabel` op betaling/bedankt; niet voor cadeaubon of VA Thuis. |
 | `GiftCardRecipientLine` | Alleen de **Voor:**-regel; aangeroepen vanuit `CartLineItemDetails` |
 | `CartItemRow` | Thumbnail (4:3, same crop as product tiles), title, `CartLineItemDetails`, qty selector (locked at **1** without −/+ for cadeaubon purchases and VA Thuis bundles), remove |
 | `DiscountCodeForm` | Kortings- **en** cadeauboncodes (zelfde veld); `commerceClient.applyCode`; verwijderen: `removePromoCodes` (alleen niet-automatische promo) / `removeGiftCardCode` (cadeaubon). Promoties met `is_automatic` uit de Store API tonen geen verwijderknop. |

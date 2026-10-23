@@ -1,4 +1,4 @@
-const DEFAULT_FROM = "noreply@vrijeacademie.nl"
+const DEFAULT_FROM = "info@vrijeacademie.nl"
 
 export type SmtpNotificationOptions = {
   channels: ["email"]

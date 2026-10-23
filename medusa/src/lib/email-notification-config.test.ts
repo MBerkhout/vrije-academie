@@ -20,7 +20,7 @@ describe("resolveEmailNotificationConfig", () => {
       port: 25,
       secure: false,
       ignoreTLS: true,
-      from: "noreply@vrijeacademie.nl",
+      from: "info@vrijeacademie.nl",
     })
     expect(config.options.auth).toBeUndefined()
   })

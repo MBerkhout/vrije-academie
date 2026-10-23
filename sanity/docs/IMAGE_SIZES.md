@@ -64,9 +64,10 @@ defineImageField({
   title: "Image",
   spec: "blockImage16x9",
   extraDescription: "Optional extra context for editors.",
-  options: { hotspot: true },
 })
 ```
+
+`defineImageField` enables **hotspot** (focus point) by default so editors can mark the important part of a photo; the frontend uses it when cropping via the Sanity CDN.
 
 For `imageWithAlt` fields, use `defineImageWithAltField` with the same `spec` / `extraDescription` options.
 

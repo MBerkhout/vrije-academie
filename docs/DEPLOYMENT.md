@@ -111,10 +111,12 @@ Copy the values from local `medusa/.env` (do not commit them). Reload PM2 after 
 | `SMTP_SECURE` | Optional, `true`/`false` (default: true only when port is 465). Does **not** disable STARTTLS. |
 | `SMTP_IGNORE_TLS` | Optional. Default `true` for `127.0.0.1`/`localhost`/`::1` so Nodemailer does not STARTTLS against local Postfix snakeoil. Set `false` to allow STARTTLS. |
 | `SMTP_USER` / `SMTP_PASS` | Optional; omit for unauthenticated localhost |
-| `SMTP_FROM` | From address (default `noreply@vrijeacademie.nl`) |
+| `SMTP_FROM` | From address — recommended `"Vrije Academie" <info@vrijeacademie.nl>` (code default `info@vrijeacademie.nl` when unset) |
 | `SENDGRID_API_KEY` / `SENDGRID_FROM` | Fallback when `SMTP_HOST` is unset |
 
 Without SMTP or SendGrid, OTP codes are logged on the Medusa server only (`[customer-otp]`).
+
+**Smoke test (after PM2 reload):** request a storefront login OTP for a test inbox. Confirm **From** is `Vrije Academie <info@vrijeacademie.nl>` and authentication passes (SPF/DKIM/DMARC in the provider’s “show original” view). If the relay rejects the From address, allow `info@vrijeacademie.nl` on Postfix or the SMTP account.
 
 Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS origins, database, Redis, etc.
 

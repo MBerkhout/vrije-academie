@@ -377,12 +377,11 @@ export interface SessionTableAvailabilityPresentation {
 
 /**
  * Availability cell on the PDP session table (`PdpLocationTabs`).
- * Orange “Nog N plaatsen” at or below `lowStockThreshold` or whenever the session is Bijna vol,
- * so the cell never reads “Beschikbaar” next to a Bijna vol CTA.
+ * Orange “Nog N plaatsen” only when the session is Bijna vol (≤30% of capacity remaining),
+ * matching the session CTA rule via `isAlmostFullAvailability`.
  */
 export function sessionTableAvailabilityPresentation(
   availableQuantity: number,
-  lowStockThreshold: number,
   capacity?: number | null,
 ): SessionTableAvailabilityPresentation {
   const t = defaultMessages.pdp
@@ -394,10 +393,7 @@ export function sessionTableAvailabilityPresentation(
     }
   }
 
-  if (
-    availableQuantity <= lowStockThreshold ||
-    isAlmostFullAvailability({ available_quantity: availableQuantity, capacity })
-  ) {
+  if (isAlmostFullAvailability({ available_quantity: availableQuantity, capacity })) {
     return {
       label:
         availableQuantity === 1

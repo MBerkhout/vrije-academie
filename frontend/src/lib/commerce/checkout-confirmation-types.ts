@@ -4,7 +4,7 @@ import type { EventCard } from '@/lib/commerce/types'
 export type CheckoutConfirmationOrder = {
   id: string
   display_id?: number
-  /** Salesforce Order.OrderNumber (storefront bestelnummer). */
+  /** Salesforce Order.OrderNumber (storefront ordernummer). */
   salesforce_order_number?: string | null
   status?: string
   email?: string
@@ -43,4 +43,11 @@ export type CheckoutConfirmationPayload = {
   vathuis_recommendations: EventCard[]
   /** HMAC token for revisiting the page: /bedankt?order={id}&token={view_token} */
   view_token?: string
+}
+
+export function salesforceOrderNumberFromConfirmation(
+  confirmation: CheckoutConfirmationPayload | null | undefined,
+): string | null {
+  const n = confirmation?.order?.salesforce_order_number?.trim()
+  return n || null
 }

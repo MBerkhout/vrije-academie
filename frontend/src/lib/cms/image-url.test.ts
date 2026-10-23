@@ -9,20 +9,37 @@ const portraitSource = {
   },
 }
 
+const hotspotSource = {
+  ...portraitSource,
+  hotspot: { x: 0.5, y: 0.15, width: 0.4, height: 0.35 },
+}
+
 function params(url: string) {
   return new URL(url).searchParams
 }
 
 describe('sanityImageSrc', () => {
-  it('does not force a 16:9 crop for fill (keeps source aspect, no upscale)', () => {
-    const url = sanityImageSrc(portraitSource, { fill: true })
+  it('uses CDN crop for fill + cover with aspect ratio (hotspot-aware)', () => {
+    const url = sanityImageSrc(portraitSource, {
+      fill: true,
+      cropAspect: 'aspect-video',
+    })
     const q = params(url)
     expect(q.get('w')).toBe('1200')
-    expect(q.get('h')).toBeNull()
-    expect(q.get('rect')).toBeNull()
-    expect(q.get('fit')).toBe('max')
+    expect(q.get('h')).toBe('675')
+    expect(q.get('fit')).toBe('crop')
     expect(q.get('auto')).toBe('format')
     expect(q.get('q')).toBe('80')
+  })
+
+  it('applies hotspot when cropping', () => {
+    const url = sanityImageSrc(hotspotSource, {
+      fill: true,
+      cropAspect: 'aspect-video',
+    })
+    const q = params(url)
+    expect(q.get('fit')).toBe('crop')
+    expect(q.get('rect')).not.toBeNull()
   })
 
   it('does not force a 16:9 crop for contain', () => {
@@ -46,6 +63,7 @@ describe('sanityImageSrc', () => {
     const q = params(url)
     expect(q.get('w')).toBe('75')
     expect(q.get('h')).toBe('90')
+    expect(q.get('fit')).toBe('crop')
   })
 
   it('crops cover (non-fill) to the default 16:9 box', () => {
@@ -53,5 +71,6 @@ describe('sanityImageSrc', () => {
     const q = params(url)
     expect(q.get('w')).toBe('1200')
     expect(q.get('h')).toBe('675')
+    expect(q.get('fit')).toBe('crop')
   })
 })

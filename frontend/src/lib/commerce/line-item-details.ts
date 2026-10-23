@@ -5,7 +5,7 @@ import {
   getGiftCardPurchaseMetaFromLineItem,
   isGiftCardPurchaseLineItem,
 } from '@/lib/commerce/gift-card'
-import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
+import { isVathuisCartLine, type CartItemExtras } from '@/lib/commerce/cart-item-extras'
 import {
   formatDateShortOrNull,
   formatTimeOrNull,
@@ -30,7 +30,7 @@ export type BuildLineItemDetailsOptions = {
    * Cart row does not use this fallback.
    */
   onlineCityFallback?: boolean
-  /** Shown after instructors / before gift (e.g. “2 tickets”). Omit for cadeaubon lines and in cart rows. */
+  /** Shown after instructors / before gift (e.g. “2 tickets”). Omit for cadeaubon, VA Thuis, and in cart rows. */
   quantityLabel?: string
   groupBookingNotice?: string
   /** Show notice when quantity is strictly greater than this (default 12). */
@@ -46,12 +46,13 @@ function isGiftCardPurchaseLine(
   )
 }
 
-/** Checkout summaries: “1 ticket”, “2 tickets”, etc. Empty for cadeaubon purchase lines. */
+/** Checkout summaries: “1 ticket”, “2 tickets”, etc. Empty for cadeaubon and VA Thuis lines. */
 export function buildLineItemQuantityLabel(
   item: Pick<CartItem, 'quantity'> & Parameters<typeof isGiftCardPurchaseLineItem>[0],
-  extras?: Pick<CartItemExtras, 'product_handle'> | null
+  extras?: Pick<CartItemExtras, 'product_handle' | 'is_vathuis' | 'vathuis'> | null
 ): string {
   if (isGiftCardPurchaseLine(item, extras)) return ''
+  if (isVathuisCartLine(extras)) return ''
   const qty = item.quantity
   return `${qty} ${qty === 1 ? 'ticket' : 'tickets'}`
 }

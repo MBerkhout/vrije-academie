@@ -76,7 +76,7 @@ Set in `medusa/.env`. Prefer SMTP for the staging/production server:
 ```env
 SMTP_HOST=127.0.0.1
 SMTP_PORT=25
-SMTP_FROM="Vrije Academie" <noreply@vrijeacademie.nl>
+SMTP_FROM="Vrije Academie" <info@vrijeacademie.nl>
 STOREFRONT_PUBLIC_URL=https://v2.vrijeacademie.nl
 # SMTP_USER=
 # SMTP_PASS=
@@ -93,7 +93,7 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=...
 SMTP_PASS=...
-SMTP_FROM="Vrije Academie" <noreply@vrijeacademie.nl>
+SMTP_FROM="Vrije Academie" <info@vrijeacademie.nl>
 STOREFRONT_PUBLIC_URL=https://v2.vrijeacademie.nl
 ```
 
@@ -104,7 +104,7 @@ SENDGRID_API_KEY=...
 SENDGRID_FROM=noreply@example.com
 ```
 
-When `SMTP_HOST` is set, `medusa-config.ts` registers the custom SMTP provider (`src/providers/smtp`, nodemailer). When only `SENDGRID_API_KEY` is set, it registers `@medusajs/notification-sendgrid`. SPF/DKIM/DMARC for the From domain is required for inbox delivery.
+When `SMTP_HOST` is set, `medusa-config.ts` registers the custom SMTP provider (`src/providers/smtp`, nodemailer). When only `SENDGRID_API_KEY` is set, it registers `@medusajs/notification-sendgrid`. SPF/DKIM/DMARC for the From domain is required for inbox delivery. If no `SMTP_FROM` / `SENDGRID_FROM` is set, Medusa falls back to `info@vrijeacademie.nl`.
 
 ## Admin (support)
 

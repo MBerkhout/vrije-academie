@@ -162,8 +162,6 @@ export function PdpLocationTabs({
   const profiles = instructors.length > 0 ? instructors : (event.instructors ?? [])
   const labels = settings?.pdp?.labels
   const t = defaultMessages.pdp
-  const threshold = settings?.pdp?.lowStockThreshold ?? 5
-
   const onlineVariants = sortVariantsByStart(variants.filter(isOnlineVariant))
   const offlineVariants = sortVariantsByStart(variants.filter(isOfflineVariant))
   const hasOnline = onlineVariants.length > 0
@@ -504,7 +502,7 @@ export function PdpLocationTabs({
               const isOnline = isOnlineVariant(variant)
               const qty = ei?.available_quantity ?? 0
               const isFreeTrial = ei?.is_free_trial ?? false
-              const availability = sessionTableAvailabilityPresentation(qty, threshold, ei?.capacity)
+              const availability = sessionTableAvailabilityPresentation(qty, ei?.capacity)
               const ctaTone = sessionCtaTone(qty, ei?.capacity)
               const price = minVariantPriceCents(variant)
               const city = sessionCityLabel(ei, isOnline)
@@ -579,7 +577,7 @@ export function PdpLocationTabs({
                   const isOnline = isOnlineVariant(variant)
                   const qty = ei?.available_quantity ?? 0
                   const isFreeTrial = ei?.is_free_trial ?? false
-                  const availability = sessionTableAvailabilityPresentation(qty, threshold, ei?.capacity)
+                  const availability = sessionTableAvailabilityPresentation(qty, ei?.capacity)
                   const ctaTone = sessionCtaTone(qty, ei?.capacity)
                   const price = minVariantPriceCents(variant)
 

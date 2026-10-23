@@ -39,6 +39,7 @@ export function SanityImage({
     objectFit,
     quality,
     priority,
+    cropAspect: fill && objectFit === 'cover' && aspectRatio ? aspectRatio : undefined,
   })
   const alt = source.alt ?? ''
   const objectClass = objectFit === 'contain' ? 'object-contain' : 'object-cover'

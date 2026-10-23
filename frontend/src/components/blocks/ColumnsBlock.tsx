@@ -8,6 +8,7 @@ import { Button } from '@/components/ui'
 import { PortableText } from '@/components/cms/PortableText'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { getTitleTag, getTitleSizeClass, cleanBlockValue, type ColumnsBlock as ColumnsBlockType, type ColumnItem } from '@/lib/cms'
+import { sanityAssetDimensions } from '@/lib/cms/image-url'
 import {
   classNameForProductBadge,
   DEFAULT_PRODUCT_BADGE_CLASS,
@@ -38,6 +39,15 @@ const COLUMN_VALIGN_CLASS = {
   bottom: 'justify-end',
 } as const
 
+const MEDIA_ASPECT_CLASS = {
+  '16:9': 'aspect-video',
+  '4:3': 'aspect-[4/3]',
+  '1:1': 'aspect-square',
+  free: '',
+} as const
+
+type MediaAspectTailwind = 'aspect-video' | 'aspect-[4/3]' | 'aspect-square' | ''
+
 function ColumnMedia({ col }: { col: ColumnItem }) {
   if (col.columnType !== 'media') return null
   if (col.mediaType === 'youtube' && col.mediaYoutubeUrl) {
@@ -55,13 +65,26 @@ function ColumnMedia({ col }: { col: ColumnItem }) {
     )
   }
   if (col.mediaImage) {
+    const mediaAspect = cleanBlockValue(col.mediaAspectRatio) ?? '16:9'
+    const aspectClass =
+      MEDIA_ASPECT_CLASS[mediaAspect as keyof typeof MEDIA_ASPECT_CLASS] ?? MEDIA_ASPECT_CLASS['16:9']
+    const imageSource = { ...col.mediaImage, alt: col.mediaImageAlt ?? col.mediaImage?.alt }
+    const freeDims = aspectClass ? null : sanityAssetDimensions(col.mediaImage)
+    const freeWidth = freeDims ? Math.min(freeDims.width, 1200) : undefined
+    const freeHeight =
+      freeDims && freeWidth ? Math.round((freeWidth * freeDims.height) / freeDims.width) : undefined
+    const sanityAspect: MediaAspectTailwind = (aspectClass || '') as MediaAspectTailwind
     return (
       <figure>
-        <div className="aspect-video overflow-hidden rounded-lg">
+        <div className={cn(aspectClass && aspectClass, 'overflow-hidden rounded-lg')}>
           <SanityImage
-            source={{ ...col.mediaImage, alt: col.mediaImageAlt ?? col.mediaImage?.alt }}
-            fill
-            aspectRatio="aspect-video"
+            source={imageSource}
+            fill={!!aspectClass}
+            objectFit={aspectClass ? 'cover' : 'contain'}
+            aspectRatio={sanityAspect}
+            width={freeWidth}
+            height={freeHeight}
+            className={aspectClass ? undefined : 'h-auto w-full'}
           />
         </div>
         {col.mediaCaption && (

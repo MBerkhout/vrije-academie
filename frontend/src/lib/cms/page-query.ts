@@ -8,6 +8,11 @@
  */
 
 import { SEO_FRAGMENT } from './seo-fragment'
+import {
+  GROQ_SANITY_IMAGE_FIELDS,
+  GROQ_SANITY_IMAGE_FIELDS_WITH_DIMENSIONS,
+  GROQ_SANITY_PERSON_PHOTO_FIELDS,
+} from './groq-image-projection'
 
 /** Layout flattening for blocks stored inline on `page.blocks`. */
 const INLINE_PAGE_BLOCK_LAYOUT = `"_id": coalesce(@._id, @._key),
@@ -28,12 +33,12 @@ const PT_BLOCK = `{ _type, _key, children[] { _key, _type, text, marks }, markDe
 
 /** Resolved MP4 + poster for videoBlock (file assets need asset->). */
 const VIDEO_BLOCK_MEDIA = `videoFile { asset-> { url, mimeType } },
-        posterImage { asset-> { _id, url, metadata { dimensions } }, alt },
+        posterImage { ${GROQ_SANITY_IMAGE_FIELDS_WITH_DIMENSIONS} },
         "contentWidth": @.width,
         aspectRatio`
 
 /** Shared hero / banner slider slide projection (per slide). */
-const SLIDER_SLIDE_FIELDS = `"backgroundImage": backgroundImage { asset-> },
+const SLIDER_SLIDE_FIELDS = `"backgroundImage": backgroundImage { ${GROQ_SANITY_IMAGE_FIELDS} },
           overlayOpacity,
           title,
           subtitle,
@@ -52,7 +57,7 @@ const HERO_SLIDES_INLINE = `"slides": @.slides[] {
         }`
 
 /** Person fields returned for cards / persons block (keep in sync with Person type). */
-const PERSON_PUBLIC_FIELDS = `_id, name, photo { asset-> }, role, bio, profileUrl, personType`
+const PERSON_PUBLIC_FIELDS = `_id, name, photo { ${GROQ_SANITY_PERSON_PHOTO_FIELDS} }, role, bio, profileUrl, personType`
 
 /**
  * Filter for dynamic persons list. `^` = enclosing personsBlock (must be valid in this projection scope).
@@ -82,14 +87,14 @@ const COLUMNS_BLOCK_COLUMN_FIELDS = `
           textTitleSize,
           textContent[] ${PT_BLOCK},
           mediaType,
-          mediaImage { asset-> },
+          mediaImage { ${GROQ_SANITY_IMAGE_FIELDS} },
           mediaImageAlt,
           mediaYoutubeUrl,
           mediaMobileImage,
-          mediaMobileImageAsset { asset-> },
+          mediaMobileImageAsset { ${GROQ_SANITY_IMAGE_FIELDS} },
           mediaCaption,
           mediaAspectRatio,
-          highlightImage { asset-> },
+          highlightImage { ${GROQ_SANITY_IMAGE_FIELDS} },
           highlightTitle,
           highlightTitleSize,
           highlightTeaser[] ${PT_BLOCK},
@@ -100,7 +105,7 @@ const COLUMNS_BLOCK_COLUMN_FIELDS = `
           productCardsFooterCtaEnabled,
           productCardsFooterCtaLabel,
           productCardsFooterCtaUrl,
-          ctaCardBgImage { asset-> },
+          ctaCardBgImage { ${GROQ_SANITY_IMAGE_FIELDS} },
           ctaCardTitle,
           ctaCardTitleSize,
           ctaCardOverlay,
@@ -214,12 +219,12 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
       @._type == "editorialCardsBlock" => {
         ...@,
         ${INLINE_PAGE_BLOCK_LAYOUT},
-        "backgroundImage": @.backgroundImage { asset->, alt },
+        "backgroundImage": @.backgroundImage { ${GROQ_SANITY_IMAGE_FIELDS} },
         "cards": @.cards[] {
           label,
           title,
           description[] ${PT_BLOCK},
-          image { asset->, alt },
+          image { ${GROQ_SANITY_IMAGE_FIELDS} },
           linkLabel,
           linkUrl
         }
@@ -229,7 +234,7 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
         ${INLINE_PAGE_BLOCK_LAYOUT},
         ${HERO_SLIDES_INLINE},
         "topPanelBody": @.topPanelBody[] ${PT_BLOCK},
-        "topPanelImage": @.topPanelImage { asset->, alt }
+        "topPanelImage": @.topPanelImage { ${GROQ_SANITY_IMAGE_FIELDS} }
       },
       @._type == "bannerSliderBlock" => {
         ...@,
@@ -267,7 +272,7 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
       @._type == "vathuisHeroBlock" => {
         ...@,
         ${INLINE_PAGE_BLOCK_LAYOUT},
-        "image": @.image { asset-> { url } }
+        "image": @.image { ${GROQ_SANITY_IMAGE_FIELDS} }
       },
       @._type == "vathuisCategoriesBlock" => {
         ...@,
@@ -293,7 +298,7 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
           title,
           description,
           href,
-          image { asset-> { url } }
+          image { ${GROQ_SANITY_IMAGE_FIELDS} }
         }
       },
       {

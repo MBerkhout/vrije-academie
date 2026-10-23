@@ -4,6 +4,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { commerceClient, type EventCard } from '@/lib/commerce'
+import {
+  salesforceOrderNumberFromConfirmation,
+  type CheckoutConfirmationPayload,
+} from '@/lib/commerce/checkout-confirmation-types'
+import { fetchCheckoutConfirmation } from '@/lib/commerce/fetch-checkout-confirmation'
 import type { Order } from '@/lib/commerce/types'
 import { getDefaultCheckoutAddress } from '@/lib/commerce/checkout-profile'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
@@ -238,6 +243,7 @@ function RecentPurchasePanel() {
   const t = defaultMessages.accountPage
   const common = defaultMessages.common
   const [order, setOrder] = useState<Order | null>(null)
+  const [confirmation, setConfirmation] = useState<CheckoutConfirmationPayload | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -251,9 +257,25 @@ function RecentPurchasePanel() {
           const tb = new Date(b.created_at ?? 0).getTime()
           return tb - ta
         })
-        setOrder(sorted[0] ?? null)
+        const latest = sorted[0] ?? null
+        setOrder(latest)
+        if (latest) {
+          try {
+            const result = await fetchCheckoutConfirmation({ orderId: latest.id })
+            if (!cancelled) {
+              setConfirmation(result.status === 'ready' ? result : null)
+            }
+          } catch {
+            if (!cancelled) setConfirmation(null)
+          }
+        } else {
+          setConfirmation(null)
+        }
       } catch {
-        if (!cancelled) setOrder(null)
+        if (!cancelled) {
+          setOrder(null)
+          setConfirmation(null)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -262,6 +284,8 @@ function RecentPurchasePanel() {
       cancelled = true
     }
   }, [])
+
+  const orderNumber = salesforceOrderNumberFromConfirmation(confirmation)
 
   return (
     <section className={panelClassName('flex flex-1 flex-col')}>
@@ -283,10 +307,11 @@ function RecentPurchasePanel() {
       ) : (
         <div className="flex flex-1 flex-col gap-3">
           <div className="rounded-none border border-va-lightgray-300 bg-white p-4 font-sans text-sm">
-            <p className="font-medium text-va-black">
-              {t.ordersNumber}{' '}
-              {order.display_id != null ? `#${order.display_id}` : order.id.slice(-8)}
-            </p>
+            {orderNumber ? (
+              <p className="font-medium text-va-black">
+                {t.orderNumberLabel}: {orderNumber}
+              </p>
+            ) : null}
             {order.created_at ? (
               <p className="mt-1 text-va-darkgray">
                 {t.ordersDate}: {formatDateShort(order.created_at)}

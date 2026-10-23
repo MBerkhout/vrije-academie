@@ -15,6 +15,18 @@ describe('buildLineItemQuantityLabel', () => {
     ).toBe('')
   })
 
+  it('omits label for VA Thuis lines', () => {
+    expect(buildLineItemQuantityLabel({ quantity: 1 }, { is_vathuis: true })).toBe('')
+    expect(
+      buildLineItemQuantityLabel(
+        { quantity: 2 },
+        {
+          vathuis: { episode_count_label: '12 afleveringen', play_time: '6 uur' },
+        },
+      ),
+    ).toBe('')
+  })
+
   it('shows ticket count for session lines', () => {
     expect(buildLineItemQuantityLabel({ quantity: 1 })).toBe('1 ticket')
     expect(buildLineItemQuantityLabel({ quantity: 3 })).toBe('3 tickets')

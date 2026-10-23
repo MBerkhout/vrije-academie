@@ -19,13 +19,18 @@ type ImageWithAltFieldConfig = Parameters<typeof defineField>[0] & {
 export function defineImageField(
   config: ImageFieldConfig & { spec?: ImageSpecKey; extraDescription?: string },
 ) {
-  const { spec, extraDescription, description, ...rest } = config
+  const { spec, extraDescription, description, options, ...rest } = config
   const sizeDescription = spec ? imageSpecDescription(spec, extraDescription) : extraDescription
 
   return defineField({
     type: "image",
     ...rest,
     description: description ?? sizeDescription,
+    options: {
+      hotspot: true,
+      accept: "image/jpeg,image/png,image/webp",
+      ...options,
+    },
   })
 }
 

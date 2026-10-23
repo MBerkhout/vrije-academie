@@ -1,8 +1,9 @@
 'use client'
 
-import type {
-  CheckoutConfirmationItem,
-  CheckoutConfirmationPayload,
+import {
+  salesforceOrderNumberFromConfirmation,
+  type CheckoutConfirmationItem,
+  type CheckoutConfirmationPayload,
 } from '@/lib/commerce/checkout-confirmation-types'
 import type { Order, OrderItem } from '@/lib/commerce/types'
 import { ThankYouOrderItems, ThankYouOrderTotals } from '@/components/thank-you/ThankYouOrderSummary'
@@ -45,14 +46,16 @@ export function AccountOrderCard({
     discount_total: discountTotal,
     credit_line_total: 0,
   })
+  const orderNumber = salesforceOrderNumberFromConfirmation(confirmation)
 
   return (
     <li className="border border-va-lightgray bg-white p-4 rounded-none font-sans text-sm">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-        <span className="font-medium text-va-black">
-          {t.ordersNumber}{' '}
-          {order.display_id != null ? `#${order.display_id}` : order.id.slice(-8)}
-        </span>
+        {orderNumber ? (
+          <span className="font-medium text-va-black">
+            {t.orderNumberLabel}: {orderNumber}
+          </span>
+        ) : null}
         {order.created_at ? (
           <span className="text-va-darkgray">
             {t.ordersDate}: {formatDateShort(order.created_at)}
