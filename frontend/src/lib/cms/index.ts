@@ -15,6 +15,7 @@ export {
   getBlockSectionDomId,
   getTitleTag,
   getTitleSizeClass,
+  getTitleFontWeightClass,
   LEAD_SUBTITLE_CLASS,
   cleanBlockValue,
 } from './blockLayout'

@@ -2,7 +2,13 @@
 
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
 import { PortableText } from '@/components/cms/PortableText'
-import { getTitleTag, getTitleSizeClass, LEAD_SUBTITLE_CLASS, cleanBlockValue } from '@/lib/cms'
+import {
+  getTitleTag,
+  getTitleSizeClass,
+  getTitleFontWeightClass,
+  LEAD_SUBTITLE_CLASS,
+  cleanBlockValue,
+} from '@/lib/cms'
 import type { TextBlock as TextBlockType } from '@/lib/cms'
 import { cn } from '@/lib/utils'
 
@@ -45,7 +51,7 @@ export function TextBlock({ block, tone = 'default' }: { block: TextBlockType; t
             <TitleTag
               className={cn(
                 getTitleSizeClass(block.titleSize),
-                'font-bold',
+                getTitleFontWeightClass(block.titleSize),
                 subtitle || showDivider ? 'mb-0' : 'mb-4',
                 isDark ? 'text-white' : 'text-va-black',
                 alignmentClass,

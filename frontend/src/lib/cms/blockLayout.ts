@@ -31,8 +31,14 @@ export function getTitleSizeClass(titleSize: string | undefined): string {
   return TITLE_SIZE_CLASS[size ?? 'h2'] ?? TITLE_SIZE_CLASS.h2
 }
 
+/** Section h2 titles use semibold; other heading levels stay bold. */
+export function getTitleFontWeightClass(titleSize: string | undefined): string {
+  const size = cleanBlockValue(titleSize) ?? 'h2'
+  return size === 'h2' ? 'font-semibold' : 'font-bold'
+}
+
 /** Subtitle-only text blocks (e.g. Salesforce PDP lead line): semantic h2, larger than section h2s. */
-export const LEAD_SUBTITLE_CLASS = 'text-3xl md:text-4xl leading-snug'
+export const LEAD_SUBTITLE_CLASS = 'text-3xl leading-snug'
 
 export type BlockLayout = {
   marginTop: string

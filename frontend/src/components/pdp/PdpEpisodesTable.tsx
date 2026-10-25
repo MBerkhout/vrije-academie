@@ -326,7 +326,7 @@ export function PdpEpisodesTable({
           </div>
         )}
 
-        <h2 className={cn('font-sans text-2xl font-bold mb-4', headingClass)}>{heading}</h2>
+        <h2 className={cn('font-sans text-2xl font-semibold mb-4', headingClass)}>{heading}</h2>
 
         {accessNote ? (
           <p className={cn('mb-4 text-sm', mutedClass)}>{accessNote}</p>

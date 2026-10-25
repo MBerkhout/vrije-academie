@@ -472,7 +472,7 @@ export function PdpLocationTabs({
       )}
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <h2 className="font-sans text-2xl font-bold text-va-black">{sessionsHeading}</h2>
+        <h2 className="font-sans text-2xl font-semibold text-va-black">{sessionsHeading}</h2>
         {canSort && (
           <div className="flex items-center gap-2">
             <label htmlFor="sessions-sort" className="text-sm text-va-gray">

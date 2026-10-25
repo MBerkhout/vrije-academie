@@ -16,7 +16,7 @@ export function PdpRelatedProducts({ products, heading = 'Gerelateerd', stockThr
 
   return (
     <section className="py-10">
-      <h2 className="font-sans text-2xl font-bold text-va-black mb-6">{heading}</h2>
+      <h2 className="font-sans text-2xl font-semibold text-va-black mb-6">{heading}</h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {products.map((product) => {
           const href = product.handle ? plpProductPath(product.handle) : '#'

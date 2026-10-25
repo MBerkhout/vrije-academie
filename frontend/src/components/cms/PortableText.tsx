@@ -47,7 +47,7 @@ function portableTextComponents(tone: 'default' | 'onDark') {
         <h1 className={cn('font-sans text-3xl font-bold mb-4', heading)}>{children}</h1>
       ),
       h2: ({ children }: { children?: React.ReactNode }) => (
-        <h2 className={cn('font-sans text-2xl font-bold mb-3', heading)}>{children}</h2>
+        <h2 className={cn('font-sans text-2xl font-semibold mb-3', heading)}>{children}</h2>
       ),
       h3: ({ children }: { children?: React.ReactNode }) => (
         <h3 className={cn('font-sans text-xl font-semibold mb-2', heading)}>{children}</h3>
