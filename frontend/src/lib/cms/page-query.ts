@@ -71,12 +71,28 @@ const PERSONS_DYNAMIC_FILTER = `_type == "person" && defined(name) &&
 /** GROQ range endpoints must be integer literals; cap matches schema max. Trim with dynamicFilters.maxItems in PersonsBlock when set. */
 const PERSONS_DYNAMIC_SLICE = '[0..199]'
 
+const DOCENT_MIRROR_FILTER = `_type == "docent" && defined(name) && defined(slug) &&
+        (count(coalesce(^.dynamicFilters.subjectTags, [])) == 0 || count(coalesce(subjectTags, [])[@ in coalesce(^.dynamicFilters.subjectTags, [])]) > 0) &&
+        !(_id in coalesce(^.dynamicFilters.exclude[]._ref, []))`
+
+/** Mirrored docent cap (Medusa sync); merged client-side with editorial persons. */
+const DOCENT_MIRROR_SLICE = '[0..799]'
+
+const DOCENT_MIRROR_PUBLIC_FIELDS = `_id, name, role, bio, slug, photoUrl`
+
+const SYNCED_DOCENTEN_RESOLVED = `"syncedDocenten": select(
+        @.dataSource == "dynamic" && coalesce(@.dynamicFilters.includeSyncedDocenten, true) && "docent" in array::unique(coalesce(@.dynamicFilters.typeTags, [])) =>
+          *[ ${DOCENT_MIRROR_FILTER} ] | order(name asc) ${DOCENT_MIRROR_SLICE} { ${DOCENT_MIRROR_PUBLIC_FIELDS} },
+        []
+      )`
+
 /** Inline personsBlock on page.blocks[]: conditions use @. ; ^ still refers to the block object. */
 const PERSONS_BLOCK_RESOLVED_PERSONS_INLINE = `"persons": select(
         @.dataSource == "dynamic" && coalesce(@.dynamicFilters.sort, "alphabetical") == "recently_added" => *[ ${PERSONS_DYNAMIC_FILTER} ] | order(_updatedAt desc) ${PERSONS_DYNAMIC_SLICE} { ${PERSON_PUBLIC_FIELDS} },
         @.dataSource == "dynamic" => *[ ${PERSONS_DYNAMIC_FILTER} ] | order(name asc) ${PERSONS_DYNAMIC_SLICE} { ${PERSON_PUBLIC_FIELDS} },
         @.persons[]-> { ${PERSON_PUBLIC_FIELDS} }
-      )`
+      ),
+      ${SYNCED_DOCENTEN_RESOLVED}`
 
 /** Each column in columnsBlock: expand person->, product refs, images. */
 const COLUMNS_BLOCK_COLUMN_FIELDS = `

@@ -64,6 +64,13 @@ export function vathuisTeacherHref(teacherSlug: string): string {
   return `${VATHUIS_CATALOG_PATH}?docent=${encodeURIComponent(teacherSlug)}`
 }
 
+/** Ons aanbod with docent filter (synced Medusa/Salesforce docent slug). */
+export function plpTeacherHref(teacherSlug: string): string {
+  const params = new URLSearchParams()
+  params.set('docent', teacherSlug)
+  return `${PLP_BASE_PATH}?${params.toString()}`
+}
+
 /** Resolve product link: VA Thuis bundle → `/va-thuis/{handle}`, else Ons aanbod PDP. */
 export function productDetailPath(
   handle: string,

@@ -110,11 +110,20 @@ export const personsBlock = defineType({
           of: [{ type: "reference", to: [{ type: "person" }] }],
         }),
         defineField({
+          name: "includeSyncedDocenten",
+          title: "Include synced docenten",
+          description:
+            "When Type includes Docent: also list Medusa-synced docent profiles (~all course instructors). Editorial Person entries with the same name override photo, role and bio.",
+          type: "boolean",
+          initialValue: true,
+        }),
+        defineField({
           name: "maxItems",
           title: "Max Items",
-          description: "Leave empty to show everyone matching the filters.",
+          description:
+            "Leave empty to show everyone matching the filters (after merge). Combined docent lists can be large; use on-page search.",
           type: "number",
-          validation: (Rule) => Rule.min(1).max(200),
+          validation: (Rule) => Rule.min(1).max(1000),
         }),
         defineField({
           name: "sort",

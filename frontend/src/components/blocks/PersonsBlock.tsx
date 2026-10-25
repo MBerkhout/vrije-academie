@@ -7,7 +7,13 @@ import { PortableText } from '@/components/cms/PortableText'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { Button, Input } from '@/components/ui'
 import { getTitleTag, getTitleSizeClass, type Person, type PersonsBlock as PersonsBlockType } from '@/lib/cms'
+import { mergePersonAndSyncedDocenten } from '@/lib/cms/merge-person-list'
+import { plpTeacherHref } from '@/lib/routes'
 import { cn } from '@/lib/utils'
+
+function isRenderablePhotoUrl(url: string | null | undefined): url is string {
+  return !!url && /^https?:\/\//i.test(url)
+}
 
 function normalizeSearch(s: string) {
   return s.trim().toLocaleLowerCase('nl-NL').replace(/\s+/g, ' ')
@@ -19,12 +25,20 @@ function personSearchHaystack(person: Person): string {
 }
 
 export function PersonsBlock({ block }: { block: PersonsBlockType }) {
-  const raw = block.persons ?? []
+  const fromPersons = block.persons ?? []
+  const fromSynced = block.syncedDocenten ?? []
+  const includeSynced =
+    block.dataSource === 'dynamic' &&
+    block.dynamicFilters?.includeSyncedDocenten !== false &&
+    (block.dynamicFilters?.typeTags ?? []).includes('docent')
+  const merged = includeSynced
+    ? mergePersonAndSyncedDocenten(fromPersons, fromSynced)
+    : fromPersons
   const maxItems = block.dynamicFilters?.maxItems
   const persons =
     block.dataSource === 'dynamic' && typeof maxItems === 'number' && maxItems > 0
-      ? raw.slice(0, maxItems)
-      : raw
+      ? merged.slice(0, maxItems)
+      : merged
   const [query, setQuery] = useState('')
   const searchOn = Boolean(block.searchOnPage)
   const qNorm = normalizeSearch(query)
@@ -82,14 +96,29 @@ export function PersonsBlock({ block }: { block: PersonsBlockType }) {
               const name = (person as { name?: string }).name ?? ''
               const role = (person as { role?: string }).role
               const photo = (person as { photo?: { asset?: unknown } }).photo
+              const photoUrl = (person as { photoUrl?: string }).photoUrl
               const bio = (person as { bio?: string }).bio
               const profileUrl = (person as { profileUrl?: string }).profileUrl
+              const slug = (person as { slug?: string }).slug?.trim()
+              const listingHref =
+                profileUrl?.trim() || (slug ? plpTeacherHref(slug) : undefined)
               return (
                 <article key={(person as { _id?: string })._id} className="border border-va-lightgray rounded p-4">
                   <div className="flex gap-4">
                     {photo ? (
                       <div className="h-[126px] w-[100px] flex-shrink-0 overflow-hidden rounded">
                         <SanityImage source={photo} width={100} height={126} aspectRatio="" />
+                      </div>
+                    ) : isRenderablePhotoUrl(photoUrl) ? (
+                      <div className="relative h-[126px] w-[100px] flex-shrink-0 overflow-hidden rounded">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- mirrored Salesforce/Medusa URLs */}
+                        <img
+                          src={photoUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                          width={100}
+                          height={126}
+                        />
                       </div>
                     ) : (
                       <div
@@ -103,9 +132,9 @@ export function PersonsBlock({ block }: { block: PersonsBlockType }) {
                       <h3 className={cn(getTitleSizeClass('h3'), 'font-sans font-semibold text-va-black')}>{name}</h3>
                       {role && <p className="text-sm text-va-gray">{role}</p>}
                       {bio && <p className="text-sm text-va-darkgray mt-2">{bio}</p>}
-                      {profileUrl && (
-                        <Link href={profileUrl} className="text-va-orange underline text-sm mt-1 inline-block">
-                          Profiel
+                      {listingHref && (
+                        <Link href={listingHref} className="text-va-orange underline text-sm mt-1 inline-block">
+                          {profileUrl?.trim() ? 'Profiel' : 'Activiteiten'}
                         </Link>
                       )}
                     </div>

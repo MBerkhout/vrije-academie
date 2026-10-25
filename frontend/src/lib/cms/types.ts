@@ -348,10 +348,14 @@ export interface PersonsBlock extends Block {
   dataSource?: 'manual' | 'dynamic'
   /** Resolved person documents from GROQ `persons[]->` (not raw references). */
   persons?: Person[]
+  /** Medusa-synced `docent` documents when dynamic + include synced docenten. */
+  syncedDocenten?: Person[]
   dynamicFilters?: {
     typeTags?: string[]
     subjectTags?: string[]
     exclude?: { _ref: string }[]
+    /** When true (default), dynamic lists with Type Docent also load mirrored `docent` docs. */
+    includeSyncedDocenten?: boolean
     maxItems?: number
     sort?: 'alphabetical' | 'recently_added' | 'manual'
   }
@@ -729,9 +733,13 @@ export interface Person {
   /** Set in Studio after schema change; omit on legacy documents until migrated. */
   personType?: PersonType
   photo?: { asset: { _ref: string } }
+  /** Mirrored docent (Medusa sync); used when no Sanity upload photo. */
+  photoUrl?: string
   role?: string
   bio?: string
   profileUrl?: string
+  /** Mirrored docent slug → Ons aanbod filter link when no profileUrl. */
+  slug?: string
 }
 
 /**
