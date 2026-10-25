@@ -40,6 +40,7 @@ export function PersonsBlock({ block }: { block: PersonsBlockType }) {
       ? merged.slice(0, maxItems)
       : merged
   const [query, setQuery] = useState('')
+  const showBio = block.showBio !== false
   const searchOn = Boolean(block.searchOnPage)
   const qNorm = normalizeSearch(query)
 
@@ -131,7 +132,7 @@ export function PersonsBlock({ block }: { block: PersonsBlockType }) {
                     <div>
                       <h3 className={cn(getTitleSizeClass('h3'), 'font-sans font-semibold text-va-black')}>{name}</h3>
                       {role && <p className="text-sm text-va-gray">{role}</p>}
-                      {bio && <p className="text-sm text-va-darkgray mt-2">{bio}</p>}
+                      {showBio && bio && <p className="text-sm text-va-darkgray mt-2">{bio}</p>}
                       {listingHref && (
                         <Link href={listingHref} className="text-va-orange underline text-sm mt-1 inline-block">
                           {profileUrl?.trim() ? 'Profiel' : 'Activiteiten'}

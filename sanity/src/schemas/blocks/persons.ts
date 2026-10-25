@@ -137,6 +137,14 @@ export const personsBlock = defineType({
       hidden: ({ parent }) => parent?.dataSource !== "dynamic",
     }),
     defineField({
+      name: "showBio",
+      title: "Show bio",
+      description: "When off, cards show name and role only (useful for long docent directories).",
+      type: "boolean",
+      group: "content",
+      initialValue: true,
+    }),
+    defineField({
       name: "searchOnPage",
       title: "Search on page",
       description: "Shows a search field above the list; filters names, roles and bios in the browser.",

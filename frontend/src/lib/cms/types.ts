@@ -360,6 +360,8 @@ export interface PersonsBlock extends Block {
     sort?: 'alphabetical' | 'recently_added' | 'manual'
   }
   columnsDesktop?: '2' | '3' | '4'
+  /** When false, cards show name and role only. Default true. */
+  showBio?: boolean
   /** Client-side filter over loaded persons */
   searchOnPage?: boolean
   searchPlaceholder?: string
