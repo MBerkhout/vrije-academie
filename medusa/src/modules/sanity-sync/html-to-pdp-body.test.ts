@@ -160,8 +160,8 @@ describe("buildSalesforceImportedBody", () => {
     expect((blocks[2]?.content as Array<{ listItem?: string }>)?.[0]?.listItem).toBe("bullet")
   })
 
-  // Rondleiding Paleis op de Dam: trigger = catch line, Subtitle = heading of the first paragraph.
-  it("maps trigger to a lead subtitle and Subtitle to the first section heading", () => {
+  // Rondleiding Paleis op de Dam: Subtitle = lead line; Web Trigger is not shown when Subtitle is set.
+  it("maps Subtitle to the lead line and omits Web Trigger from the body", () => {
     const blocks = buildSalesforceImportedBody({
       salesforce_web_trigger: "Kom mee en ontdek het mooiste stadhuis van de Gouden Eeuw!",
       salesforce_subtitle: "Het stadhuis van Amsterdam",
@@ -172,16 +172,16 @@ describe("buildSalesforceImportedBody", () => {
 
     expect(blocks).toHaveLength(3)
     expect(blocks[0]).toMatchObject({
-      subtitle: "Kom mee en ontdek het mooiste stadhuis van de Gouden Eeuw!",
+      subtitle: "Het stadhuis van Amsterdam",
       content: [],
     })
     expect(blocks[0]).not.toHaveProperty("title")
-    expect(blocks[1]).toMatchObject({ title: "Het stadhuis van Amsterdam", titleSize: "h2" })
+    expect(blocks[1]).not.toHaveProperty("title")
     expect(blocks[2]).toMatchObject({ title: "Sporen uit de 17e eeuw", titleSize: "h2" })
   })
 
-  // Colleges Introductie kunstgeschiedenis: Subtitle repeats the trigger (minus the period).
-  it("shows a Subtitle that repeats the trigger only once", () => {
+  // Colleges Introductie kunstgeschiedenis: Subtitle is the lead; trigger is ignored.
+  it("uses Subtitle as the lead when it overlaps with Web Trigger", () => {
     const blocks = buildSalesforceImportedBody({
       salesforce_web_trigger: "2500 jaar westerse kunstgeschiedenis in vogelvlucht.",
       salesforce_subtitle: "2500 jaar westerse kunstgeschiedenis in vogelvlucht",
@@ -190,13 +190,15 @@ describe("buildSalesforceImportedBody", () => {
 
     expect(blocks).toHaveLength(2)
     expect(blocks[0]).toMatchObject({
-      subtitle: "2500 jaar westerse kunstgeschiedenis in vogelvlucht.",
+      subtitle: "2500 jaar westerse kunstgeschiedenis in vogelvlucht",
     })
     expect(blocks[1]).not.toHaveProperty("title")
   })
 
-  it("does not turn a lone Subtitle into body content", () => {
-    expect(buildSalesforceImportedBody({ salesforce_subtitle: "Korte intro." })).toEqual([])
+  it("maps a lone Subtitle to a lead subtitle block", () => {
+    expect(buildSalesforceImportedBody({ salesforce_subtitle: "Korte intro." })).toEqual([
+      expect.objectContaining({ subtitle: "Korte intro.", content: [] }),
+    ])
   })
 
   // VA Thuis PDP lifts the first textBlock.subtitle under the H1 (`extractPdpSubtitle`).

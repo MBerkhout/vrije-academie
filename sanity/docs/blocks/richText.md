@@ -13,7 +13,7 @@ Portable Text content block for formatted text content. Supports headings, bold,
 | Width | String | No | Full width or container |
 | Background Color | String | No | Block background color |
 | Heading | String | No | Optional heading above the content (size H1–H4, left/center/right) |
-| Subtitle | Text | No | Optional line under the heading. Shown only when a heading is set. |
+| Subtitle | Text | No | Optional line under the heading when **Heading** is set. A **subtitle-only** block (no heading) is used for Salesforce PDP lead copy and renders on the storefront as a larger **h2** under the page title. |
 | Line between title and subtitle | Boolean | No | Renders a 4px yellow bar as wide as the heading, between heading and subtitle. Shown in Studio only when both are set. |
 | Content | Portable Text | Yes | Formatted text content |
 | Content width | String | No | Narrow / normal / wide |

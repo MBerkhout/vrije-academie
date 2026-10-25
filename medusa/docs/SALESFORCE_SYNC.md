@@ -505,8 +505,8 @@ Example record `a05Mz00000YEMptIAH` (*Lezing Amrita Sher-Gil*):
 | Gallery | `Image_1_Url__c` … `Image_4_Url__c` | `Product.images` → Sanity `imageUrls`; store `image_urls` / `gallery_images` |
 | Gallery captions | `Image_1_Source__c` … `Image_4_Source__c` (Afbeelding N Tekst) | `Product.metadata.salesforce_gallery_images` → Sanity `imageCaptions`; store `gallery_images[].caption` (PDP hover) |
 | Short / PDP description | `Productgroup_Description__c` | `Product.description` (plain text) |
-| Web body / trigger / description HTML | `Productgroup_Web_Body__c`, `Productgroup_Web_Trigger__c`, `Productgroup_Description__c` | metadata → Sanity `body` (quote, section titles, bullet footer) unless `pageBodyOwnedBySanity` |
-| Subtitle | `Productgroup_Subtitle__c` | metadata `salesforce_subtitle` |
+| Web body / trigger / description HTML | `Productgroup_Web_Body__c`, `Productgroup_Web_Trigger__c`, `Productgroup_Description__c` | metadata → Sanity `body` (description `<strong>` section titles, bullet footer) unless `pageBodyOwnedBySanity`. **Web Trigger** is not added to the body when **Subtitle** is set (Subtitle is the lead line instead); otherwise trigger → lead subtitle block. |
+| Subtitle | `Productgroup_Subtitle__c` | metadata `salesforce_subtitle` → regular PDP lead subtitle block under the page title (not duplicated as first-section h2) |
 | Product card CTA bar | `CTA_Label__c`, `CTA_Color__c`, `CTA_Color_Hover__c` | metadata `salesforce_cta_*` → store `badge`, `cta_color`, `cta_color_hover` on `GET /store/events` and `GET /store/agenda`; Sanity `badge`, `ctaColor`, `ctaColorHover`; PLP card bar in `PlpEventCard`; agenda chip under the location |
 | Catalog sort order | `Order__c` | metadata `salesforce_order` → default PLP / VA Thuis sort (`sort=order`, ascending; nulls last) |
 | Child products | `vaProduct__c` (lookup `ProductGroup__c`) | `ProductVariant` + linked `EventItem` |

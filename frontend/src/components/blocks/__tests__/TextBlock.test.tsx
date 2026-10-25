@@ -44,6 +44,20 @@ describe('TextBlock', () => {
     expect(inner).toBeTruthy()
   })
 
+  it('renders subtitle-only blocks as a lead h2', () => {
+    render(
+      <TextBlock
+        block={{
+          ...baseBlock,
+          subtitle: 'Een andere kijk op de werkelijkheid.',
+        }}
+      />,
+    )
+    const lead = screen.getByRole('heading', { level: 2 })
+    expect(lead).toHaveTextContent('Een andere kijk op de werkelijkheid.')
+    expect(lead).toHaveClass('text-3xl')
+  })
+
   it('renders subtitle under the heading', () => {
     render(
       <TextBlock

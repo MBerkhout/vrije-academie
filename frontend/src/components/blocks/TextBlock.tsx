@@ -2,7 +2,7 @@
 
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
 import { PortableText } from '@/components/cms/PortableText'
-import { getTitleTag, getTitleSizeClass, cleanBlockValue } from '@/lib/cms'
+import { getTitleTag, getTitleSizeClass, LEAD_SUBTITLE_CLASS, cleanBlockValue } from '@/lib/cms'
 import type { TextBlock as TextBlockType } from '@/lib/cms'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +29,7 @@ export function TextBlock({ block, tone = 'default' }: { block: TextBlockType; t
   const title = cleanBlockValue(block.title)?.trim()
   const subtitle = cleanBlockValue(block.subtitle)?.trim()
   const showDivider = Boolean(block.showTitleDivider) && Boolean(title) && Boolean(subtitle)
+  const isLeadSubtitle = Boolean(subtitle) && !title
 
   return (
     <BlockWrapper block={block}>
@@ -57,20 +58,31 @@ export function TextBlock({ block, tone = 'default' }: { block: TextBlockType; t
             )}
           </div>
         )}
-        {subtitle && (
-          <p
-            className={cn(
-              title ? getTitleSizeClass('h3') : 'text-xl md:text-2xl leading-snug',
-              'font-semibold mb-4',
-              !title && !showDivider && 'mt-0',
-              title && !showDivider && 'mt-2',
-              isDark ? 'text-white' : 'text-va-black',
-              alignmentClass,
-            )}
-          >
-            {subtitle}
-          </p>
-        )}
+        {subtitle &&
+          (isLeadSubtitle ? (
+            <h2
+              className={cn(
+                LEAD_SUBTITLE_CLASS,
+                'font-bold mb-4 mt-0',
+                isDark ? 'text-white' : 'text-va-black',
+                alignmentClass,
+              )}
+            >
+              {subtitle}
+            </h2>
+          ) : (
+            <p
+              className={cn(
+                getTitleSizeClass('h3'),
+                'font-semibold mb-4',
+                !showDivider && 'mt-2',
+                isDark ? 'text-white' : 'text-va-black',
+                alignmentClass,
+              )}
+            >
+              {subtitle}
+            </p>
+          ))}
         {block.content && block.content.length > 0 && (
           <div>
             <PortableText value={block.content} tone={tone} />

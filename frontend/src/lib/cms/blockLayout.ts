@@ -31,6 +31,9 @@ export function getTitleSizeClass(titleSize: string | undefined): string {
   return TITLE_SIZE_CLASS[size ?? 'h2'] ?? TITLE_SIZE_CLASS.h2
 }
 
+/** Subtitle-only text blocks (e.g. Salesforce PDP lead line): semantic h2, larger than section h2s. */
+export const LEAD_SUBTITLE_CLASS = 'text-3xl md:text-4xl leading-snug'
+
 export type BlockLayout = {
   marginTop: string
   marginTopCustom?: number

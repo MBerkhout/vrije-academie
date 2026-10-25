@@ -8,7 +8,7 @@ Open any **Product** document in Sanity Studio. The "Editorial content" tab cont
 
 | Field | Description |
 |---|---|
-| **Page body** | Drag-and-drop content blocks (text, image/video, columns, accordion, tabs, whitespace). Restricted to PDP-surface blocks via the block registry. On Salesforce sync, the **Web Trigger** becomes a text block with only a **Subtitle** (large intro line under the PDP title) and **Productgroup Subtitle** becomes the heading of the first description paragraph. |
+| **Page body** | Drag-and-drop content blocks (text, image/video, columns, accordion, tabs, whitespace). Restricted to PDP-surface blocks via the block registry. On Salesforce sync, **Productgroup Subtitle** becomes the first body block: a subtitle-only text block (storefront lead **h2**, larger than section h2s). **Web Trigger** is not imported when Subtitle is set; if Subtitle is empty, Web Trigger fills the lead line. Description HTML and web body follow as before. |
 | **Online badge** | Toggle + custom text shown in the booking panel (e.g. "Nu ook online te volgen!"). |
 | **Custom urgency message** | Short text (max 80 chars) shown in the promo banner above the page header. |
 | **Related products** | Up to 4 editor-curated product picks shown below the auto-generated Similar courses section. |

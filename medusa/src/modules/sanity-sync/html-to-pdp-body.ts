@@ -184,9 +184,9 @@ function isStrongOnlyParagraph(inner: string): string | null {
  * Quote / web trigger (`Productgroup_Web_Trigger__c`) — the catch line under the PDP title
  * (e.g. “Beleef de kunst van Matisse van dichtbij.”).
  *
- * Default: a heading-less `textBlock` with `subtitle`, which the storefront renders as a large
- * lead line. VA Thuis passes `asLead: false` (plain text block) because its PDP takes the
- * subtitle from `Productgroup_Subtitle__c` instead (see `extractPdpSubtitle` in the storefront).
+ * Default: a heading-less `textBlock` with `subtitle`, which the storefront renders as a lead h2
+ * under the page title. VA Thuis passes `asLead: false` (plain text block) because its PDP takes
+ * the subtitle from `Productgroup_Subtitle__c` via `extractPdpSubtitle` in the storefront.
  */
 export function quoteHtmlToPdpBody(
   html: string | null | undefined,
@@ -201,12 +201,10 @@ export function quoteHtmlToPdpBody(
 /**
  * Productgroup description: paragraphs plus `<strong>` headings mapped to `textBlock.title`.
  *
- * `Productgroup_Subtitle__c` is mapped one of two ways:
- * - `sectionTitle` (regular PDPs, e.g. “Het stadhuis van Amsterdam”): heading of the first
- *   description paragraph, same as a `<strong>` section heading. When the description already
- *   opens with its own heading, the section title is kept as a separate heading-only block.
- * - `leadSubtitle` (VA Thuis): a leading subtitle-only block that the storefront lifts under the
- *   H1; an opening `<p>` repeating it is dropped.
+ * `Productgroup_Subtitle__c` on regular PDPs is the lead line via `buildSalesforceImportedBody`
+ * (not passed here as `sectionTitle`). Optional `sectionTitle` still heads the first description
+ * paragraph when used directly. VA Thuis uses `leadSubtitle`: a subtitle-only block the storefront
+ * lifts under the H1; an opening `<p>` repeating it is dropped.
  */
 export function descriptionHtmlToPdpBody(
   html: string | null | undefined,
@@ -331,7 +329,14 @@ export function buildSalesforceImportedBody(
     (typeof metadata.salesforce_subtitle === "string" && metadata.salesforce_subtitle.trim()) ||
     null
 
-  if (!trigger && !descriptionHtml && !webBody && !(isVathuisBundle(metadata) && subtitle)) {
+  const regularLead = subtitle || trigger
+
+  if (
+    !regularLead &&
+    !descriptionHtml &&
+    !webBody &&
+    !(isVathuisBundle(metadata) && subtitle)
+  ) {
     return []
   }
 
@@ -344,16 +349,11 @@ export function buildSalesforceImportedBody(
     ]
   }
 
-  // Regular PDP: the trigger is the lead line; the Subtitle heads the first description paragraph.
-  // Some groups repeat the trigger in the Subtitle field; show that line once.
-  const sectionTitle =
-    subtitle && trigger && normalizeComparableText(subtitle) === normalizeComparableText(trigger)
-      ? null
-      : subtitle
-
+  // Regular PDP: Productgroup Subtitle is the lead line under the page title (storefront h2).
+  // Web Trigger is omitted when Subtitle is set; falls back to trigger when Subtitle is empty.
   return [
-    ...quoteHtmlToPdpBody(trigger),
-    ...descriptionHtmlToPdpBody(descriptionHtml, { sectionTitle }),
+    ...quoteHtmlToPdpBody(regularLead),
+    ...descriptionHtmlToPdpBody(descriptionHtml),
     ...webBodyHtmlToPdpBody(webBody),
   ]
 }
