@@ -56,7 +56,7 @@ Module path: `src/modules/events/`. Links: `src/links/` (`product-event-group`, 
 
 ## `people` module
 
-- **`Docent`**: `slug`, `name`, `role`, `photo_url`, `bio`, `subject_tags` (jsonb).
+- **`Docent`**: `slug`, `name`, `role`, `photo_url`, `bio`, `subject_tags` (jsonb). Slug is created from the name (e.g. `arianne-deligianis`); a 6-char Salesforce id suffix is added only on a name collision. To clean legacy `-sf-xxxxxx` slugs of existing docents (re-mirrors to Sanity): `npm run fix:docent-slugs` (dry run) and `npm run fix:docent-slugs -- --fix`. Old slug URLs/filters stop matching afterwards.
 - Links: `product_product_people_docent` (Product ↔ Docent, many-to-many via pivot).
 - Admin: `/admin/people/docenten` (CRUD), `/admin/people/product-groups/:productId/docenten` (attach/detach).
 

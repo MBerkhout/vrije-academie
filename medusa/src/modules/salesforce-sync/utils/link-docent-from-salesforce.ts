@@ -218,7 +218,10 @@ export async function ensureDocentFromSalesforceTeacher(
 
   if (!docentId) {
     const slugBase = slugifyTeacher(teacher.name) || "docent"
-    const slug = `${slugBase}-sf-${teacher.salesforceId.slice(-6).toLowerCase()}`
+    // Clean slug first; only add a short Salesforce id suffix when another docent already uses it.
+    const suffixed = `${slugBase}-${teacher.salesforceId.slice(-6).toLowerCase()}`
+    const [baseTaken] = await people.listDocents({ slug: slugBase }, { take: 1 })
+    const slug = baseTaken?.id ? suffixed : slugBase
     const [existingBySlug] = await people.listDocents({ slug }, { take: 1 })
     if (existingBySlug?.id) {
       docentId = existingBySlug.id
