@@ -16,7 +16,11 @@ import {
   sortCityFacetsByCount,
   type CityRef,
 } from "../../../lib/city-refs"
-import { productTypeMatchesFilter, productTypeToSlug } from "../../../lib/plp-product-types"
+import {
+  listingRowProductTypeValue,
+  productTypeFacetsFromTypeValues,
+  productTypeMatchesFilter,
+} from "../../../lib/plp-product-types"
 import {
   sortListingBySalesforceOrder,
   tieBreakEventsByStartThenTitle,
@@ -128,12 +132,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     relevanceRank = searchResult.rankByProductId
   }
 
+  let listForProductTypeFacets = [...list]
+
   if (productTypes.length) {
     list = list.filter((p) =>
-      productTypeMatchesFilter(
-        (p.type as { value?: string } | null | undefined)?.value ?? (p.product_type as string),
-        productTypes
-      )
+      productTypeMatchesFilter(listingRowProductTypeValue(p), productTypes)
     )
   }
 
@@ -144,36 +147,20 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     periodEnd,
   }
 
-  list = list.filter(
-    (p) =>
-      isVathuisListingRow(p) ||
-      futureEventItemsMatchSessionFilters(eventItemsFromListingProduct(p), sessionFilters)
-  )
-
-  list = list.map((p) => {
-    if (isVathuisListingRow(p)) return p
-    const earliest = earliestMatchingSessionStartAt(
-      eventItemsFromListingProduct(p),
-      sessionFilters
-    )
-    return {
-      ...p,
-      earliest_start_at: earliest,
-      day_part_of_earliest: dayPartFromStartAt(earliest),
-    }
-  })
+  list = applyPlpSessionFilters(list, sessionFilters)
+  listForProductTypeFacets = applyPlpSessionFilters(listForProductTypeFacets, sessionFilters)
 
   const vathuisFacetCount = countPreRecordedDelivery(list)
 
-  if (deliveryTypes.length) {
-    list = list.filter((p) =>
-      ((p.delivery_types ?? []) as string[]).some((dt) => deliveryTypes.includes(dt))
-    )
-  } else {
-    list = list.filter((p) => !isVathuisListingRow(p))
-  }
+  list = applyPlpDeliveryFilter(list, deliveryTypes)
+  listForProductTypeFacets = applyPlpDeliveryFilter(listForProductTypeFacets, deliveryTypes)
 
-  const facets = buildFacets(list, snapshot.eventGroupLinks, sessionFilters)
+  const facets = buildFacets(
+    list,
+    snapshot.eventGroupLinks,
+    sessionFilters,
+    listForProductTypeFacets
+  )
   const facetsWithVathuis = injectVathuisDeliveryFacet(facets, vathuisFacetCount)
   const count = list.length
   const registrationCounts =
@@ -204,6 +191,41 @@ function matchesPropertyFilters(
     if (!variantPropsList.some((vp) => vp[k] === want)) return false
   }
   return true
+}
+
+function applyPlpSessionFilters(
+  list: Record<string, unknown>[],
+  sessionFilters: ListingSessionFilters
+): Record<string, unknown>[] {
+  const filtered = list.filter(
+    (p) =>
+      isVathuisListingRow(p) ||
+      futureEventItemsMatchSessionFilters(eventItemsFromListingProduct(p), sessionFilters)
+  )
+  return filtered.map((p) => {
+    if (isVathuisListingRow(p)) return p
+    const earliest = earliestMatchingSessionStartAt(
+      eventItemsFromListingProduct(p),
+      sessionFilters
+    )
+    return {
+      ...p,
+      earliest_start_at: earliest,
+      day_part_of_earliest: dayPartFromStartAt(earliest),
+    }
+  })
+}
+
+function applyPlpDeliveryFilter(
+  list: Record<string, unknown>[],
+  deliveryTypes: string[]
+): Record<string, unknown>[] {
+  if (deliveryTypes.length) {
+    return list.filter((p) =>
+      ((p.delivery_types ?? []) as string[]).some((dt) => deliveryTypes.includes(dt))
+    )
+  }
+  return list.filter((p) => !isVathuisListingRow(p))
 }
 
 function sortList(
@@ -268,7 +290,8 @@ function sortList(
 function buildFacets(
   list: Record<string, unknown>[],
   eventGroupLinks: { product_id: string; event_group?: { record_type?: string } | null }[],
-  sessionFilters: ListingSessionFilters
+  sessionFilters: ListingSessionFilters,
+  productTypeFacetList: Record<string, unknown>[]
 ): Record<string, unknown> {
   const productIds = new Set(list.map((p) => p.id as string))
 
@@ -285,7 +308,6 @@ function buildFacets(
   const deliveryTypeCounts: Record<string, number> = {}
   const dayPartCounts: Record<string, number> = {}
   const monthCounts: Record<string, number> = {}
-  const productTypeCounts: Record<string, { slug: string; label: string; count: number }> = {}
 
   for (const p of list) {
     const eventItems = eventItemsFromListingProduct(p)
@@ -317,22 +339,15 @@ function buildFacets(
     for (const month of uniqueFutureMonthKeys(periodFiltered)) {
       monthCounts[month] = (monthCounts[month] ?? 0) + 1
     }
-    const ptSlug = productTypeToSlug(p.product_type as string | undefined)
-    if (ptSlug) {
-      if (!productTypeCounts[ptSlug]) {
-        productTypeCounts[ptSlug] = {
-          slug: ptSlug,
-          label: ptSlug.charAt(0).toUpperCase() + ptSlug.slice(1),
-          count: 0,
-        }
-      }
-      productTypeCounts[ptSlug].count++
-    }
   }
+
+  const product_type = productTypeFacetsFromTypeValues(
+    productTypeFacetList.map((p) => listingRowProductTypeValue(p))
+  )
 
   return {
     record_type: Object.entries(recordTypeCounts).map(([slug, count]) => ({ slug, count })),
-    product_type: Object.values(productTypeCounts),
+    product_type,
     categories,
     docenten,
     cities: sortCityFacetsByCount(Object.values(cityCounts)),

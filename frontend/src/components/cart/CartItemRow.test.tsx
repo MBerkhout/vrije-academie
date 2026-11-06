@@ -56,6 +56,27 @@ describe('CartItemRow quantity stepper', () => {
     expect(screen.getByText('1')).toBeInTheDocument()
   })
 
+  it('shows Online under the title for online lecture sessions', () => {
+    render(
+      <CartItemRow
+        item={item}
+        extras={extras({
+          event_item: {
+            delivery_type: 'online',
+            start_at: '2026-09-22T19:00:00.000Z',
+            end_at: null,
+            city: null,
+          },
+        })}
+        updating={false}
+        onQuantityChange={async () => {}}
+        onRemove={async () => {}}
+      />,
+    )
+
+    expect(screen.getByText('Online')).toBeInTheDocument()
+  })
+
   it('keeps +/- for ordinary session lines', () => {
     render(
       <CartItemRow

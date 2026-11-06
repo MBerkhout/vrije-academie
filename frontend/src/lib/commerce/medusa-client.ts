@@ -519,6 +519,30 @@ export const medusaClient: CommerceClient = {
       : { ...normalized, variants }
   },
 
+  async getEventsByHandles(handles: string[]): Promise<EventCard[]> {
+    const unique = [...new Set(handles.map((h) => cleanHandle(h)).filter(Boolean))].slice(0, 8)
+    if (unique.length === 0) return []
+
+    const params = new URLSearchParams()
+    for (const handle of unique) {
+      params.append('handle', handle)
+    }
+
+    const response = await fetch(
+      `${BACKEND_URL}/store/events/by-handles?${params.toString()}`,
+      { headers: storeHeaders() },
+    )
+    if (!response.ok) {
+      throw new Error(`Failed to fetch events by handles: ${response.status}`)
+    }
+    const data = await response.json()
+    const raw = data.events ?? []
+    return raw.map((e: Record<string, unknown>) => {
+      const { variants: _variants, ...rest } = normalizeDocentenRow(e)
+      return rest
+    }) as unknown as EventCard[]
+  },
+
   async getSimilarEvents(handle: string): Promise<EventCard[]> {
     try {
       const safeHandle = encodeURIComponent(cleanHandle(handle))

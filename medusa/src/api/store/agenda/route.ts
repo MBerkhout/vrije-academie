@@ -15,7 +15,10 @@ import { sortCityFacetsByCount } from "../../../lib/city-refs"
 import { monthKeyFromStartAt, sessionStartInPeriod } from "../../../lib/listing-future-filters"
 import SearchModuleService from "../../../modules/search/service"
 import { agendaItemMatchesQuery } from "../../../modules/search/in-memory-search"
-import { productTypeMatchesFilter, productTypeToSlug } from "../../../lib/plp-product-types"
+import {
+  productTypeFacetsFromTypeValues,
+  productTypeMatchesFilter,
+} from "../../../lib/plp-product-types"
 
 function parseArrayParam(val: string | string[] | undefined): string[] {
   if (!val) return []
@@ -63,6 +66,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     items = items.filter((it) => it.record_type && recordTypes.includes(it.record_type))
   }
 
+  let itemsForProductTypeFacets = [...items]
+
   if (productTypes.length) {
     items = items.filter((it) => productTypeMatchesFilter(it.product_type, productTypes))
   }
@@ -73,16 +78,27 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
         (c) => c.slug && categorySlugs.includes(c.slug)
       )
     )
+    itemsForProductTypeFacets = itemsForProductTypeFacets.filter((it) =>
+      (it.categories as { slug?: string }[]).some(
+        (c) => c.slug && categorySlugs.includes(c.slug)
+      )
+    )
   }
 
   if (docentSlugs.length) {
     items = items.filter((it) =>
       (it.docenten as { slug?: string }[]).some((d) => d.slug && docentSlugs.includes(d.slug))
     )
+    itemsForProductTypeFacets = itemsForProductTypeFacets.filter((it) =>
+      (it.docenten as { slug?: string }[]).some((d) => d.slug && docentSlugs.includes(d.slug))
+    )
   }
 
   if (!includePast) {
     items = items.filter((it) => it.start_at && new Date(it.start_at).getTime() >= nowMs)
+    itemsForProductTypeFacets = itemsForProductTypeFacets.filter(
+      (it) => it.start_at && new Date(it.start_at).getTime() >= nowMs
+    )
   }
 
   let productRank: Map<string, number> | null = null
@@ -104,28 +120,49 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
       const idSet = new Set(rankedIds)
       productRank = new Map(rankedIds.map((id, index) => [id, index]))
       items = items.filter((it) => idSet.has(it.product_id))
+      itemsForProductTypeFacets = itemsForProductTypeFacets.filter((it) =>
+        idSet.has(it.product_id)
+      )
     } else {
       items = items.filter((it) => agendaItemMatchesQuery(it, searchQ))
+      itemsForProductTypeFacets = itemsForProductTypeFacets.filter((it) =>
+        agendaItemMatchesQuery(it, searchQ)
+      )
     }
   }
 
   if (deliveryTypes.length) {
     items = items.filter((it) => deliveryTypes.includes(it.delivery_type))
+    itemsForProductTypeFacets = itemsForProductTypeFacets.filter((it) =>
+      deliveryTypes.includes(it.delivery_type)
+    )
   }
   if (citySlugs.length) {
     items = items.filter((it) => it.city_slug && citySlugs.includes(it.city_slug))
+    itemsForProductTypeFacets = itemsForProductTypeFacets.filter(
+      (it) => it.city_slug && citySlugs.includes(it.city_slug)
+    )
   }
   if (dayParts.length) {
     items = items.filter((it) => it.day_part && dayParts.includes(it.day_part))
+    itemsForProductTypeFacets = itemsForProductTypeFacets.filter(
+      (it) => it.day_part && dayParts.includes(it.day_part)
+    )
   }
   if (periodStart || periodEnd) {
     items = items.filter((it) => sessionStartInPeriod(it.start_at, periodStart, periodEnd))
+    itemsForProductTypeFacets = itemsForProductTypeFacets.filter((it) =>
+      sessionStartInPeriod(it.start_at, periodStart, periodEnd)
+    )
   }
   if (dateOnly) {
     items = items.filter((it) => it.start_at && sameLocalDay(it.start_at, dateOnly))
+    itemsForProductTypeFacets = itemsForProductTypeFacets.filter(
+      (it) => it.start_at && sameLocalDay(it.start_at, dateOnly)
+    )
   }
 
-  const facets = buildFacets(items)
+  const facets = buildFacets(items, itemsForProductTypeFacets)
   items = items.map((it) => ({ ...it, status: deriveAgendaItemStatus(it) }))
   const count = items.length
   items = sortItems(items, sort, productRank)
@@ -186,7 +223,10 @@ function sortItems(
   return sorted
 }
 
-function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
+function buildFacets(
+  items: AgendaOccurrenceRow[],
+  productTypeFacetItems: AgendaOccurrenceRow[]
+): Record<string, unknown> {
   const delivery: Record<string, number> = {}
   const cities: Record<string, { slug: string; label: string; count: number }> = {}
   const daypart: Record<string, number> = {}
@@ -194,7 +234,6 @@ function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
   const categoriesMap: Record<string, { slug: string; label: string; count: number }> = {}
   const docentenMap: Record<string, { slug: string; name: string; count: number }> = {}
   const recordType: Record<string, number> = {}
-  const productTypeCounts: Record<string, { slug: string; label: string; count: number }> = {}
 
   for (const it of items) {
     delivery[it.delivery_type] = (delivery[it.delivery_type] ?? 0) + 1
@@ -208,17 +247,6 @@ function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
     const month = monthKeyFromStartAt(it.start_at)
     if (month) months[month] = (months[month] ?? 0) + 1
     if (it.record_type) recordType[it.record_type] = (recordType[it.record_type] ?? 0) + 1
-    const ptSlug = productTypeToSlug(it.product_type)
-    if (ptSlug) {
-      if (!productTypeCounts[ptSlug]) {
-        productTypeCounts[ptSlug] = {
-          slug: ptSlug,
-          label: ptSlug.charAt(0).toUpperCase() + ptSlug.slice(1),
-          count: 0,
-        }
-      }
-      productTypeCounts[ptSlug].count++
-    }
     for (const c of it.categories as { slug?: string; label?: string }[]) {
       const slug = c.slug
       if (!slug) continue
@@ -237,9 +265,13 @@ function buildFacets(items: AgendaOccurrenceRow[]): Record<string, unknown> {
     }
   }
 
+  const product_type = productTypeFacetsFromTypeValues(
+    productTypeFacetItems.map((it) => it.product_type)
+  )
+
   return {
     record_type: Object.entries(recordType).map(([slug, count]) => ({ slug, count })),
-    product_type: Object.values(productTypeCounts),
+    product_type,
     categories: Object.values(categoriesMap),
     docenten: Object.values(docentenMap),
     cities: sortCityFacetsByCount(Object.values(cities)),

@@ -29,3 +29,34 @@ export function productTypeMatchesFilter(
   if (!slug) return false
   return filterSlugs.some((f) => f.toLowerCase() === slug)
 }
+
+export type ProductTypeFacet = { slug: string; label: string; count: number }
+
+/** Disjunctive Soort activiteit facets: counts per slug from raw Salesforce/Medusa type values. */
+export function productTypeFacetsFromTypeValues(
+  typeValues: Iterable<string | null | undefined>
+): ProductTypeFacet[] {
+  const productTypeCounts: Record<string, ProductTypeFacet> = {}
+  for (const typeValue of typeValues) {
+    const ptSlug = productTypeToSlug(typeValue)
+    if (!ptSlug) continue
+    if (!productTypeCounts[ptSlug]) {
+      productTypeCounts[ptSlug] = {
+        slug: ptSlug,
+        label: ptSlug.charAt(0).toUpperCase() + ptSlug.slice(1),
+        count: 0,
+      }
+    }
+    productTypeCounts[ptSlug].count++
+  }
+  return Object.values(productTypeCounts)
+}
+
+export function listingRowProductTypeValue(
+  row: Record<string, unknown>
+): string | null | undefined {
+  return (
+    (row.type as { value?: string } | null | undefined)?.value ??
+    (row.product_type as string | undefined)
+  )
+}

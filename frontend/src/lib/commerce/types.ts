@@ -453,6 +453,8 @@ export interface CommerceClient {
   getEvents(filters?: EventFilters): Promise<EventCard[]>
   /** `null` only when Medusa responds 404. Network / 5xx failures throw. */
   getEvent(handle: string): Promise<EventCard | null>
+  /** PLP-shaped cards from listing snapshot; preserves handle order; max 8 handles. */
+  getEventsByHandles(handles: string[]): Promise<EventCard[]>
   getSimilarEvents(handle: string): Promise<EventCard[]>
   getEventsPaginated(filters?: PaginatedEventFilters): Promise<EventListResult>
   getVathuisPaginated(filters?: VathuisFilters): Promise<VathuisListResult>

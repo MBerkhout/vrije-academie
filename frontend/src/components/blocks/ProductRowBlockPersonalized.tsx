@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import {
-  commerceClient,
   getRecentViewedHandlesLocal,
   handlesForRecentDisplay,
   mergeRecentViewedHandles,
@@ -11,6 +10,7 @@ import {
   resolvePersonalizedProductRowHandles,
   type EventCard,
 } from '@/lib/commerce'
+import { resolveProductRowEvents } from '@/lib/commerce/resolve-product-row-events'
 import { useWishlist } from '@/lib/commerce/useWishlist'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import type { ProductRowBlock as ProductRowBlockType } from '@/lib/cms'
@@ -53,10 +53,9 @@ export function ProductRowBlockPersonalized({ block }: ProductRowBlockPersonaliz
         return
       }
 
-      const results = await Promise.all(
-        handles.map((handle) => commerceClient.getEvent(handle).catch(() => null))
-      )
-      const valid = results.filter((e): e is EventCard => e != null)
+      const valid = await resolveProductRowEvents(handles, {
+        hideWithoutUpcomingSessions: block.hideWithoutUpcomingSessions !== false,
+      })
 
       if (!cancelled) {
         setEvents(valid)

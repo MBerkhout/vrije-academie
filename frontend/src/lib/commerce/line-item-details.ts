@@ -25,11 +25,6 @@ export type LineItemDetailBlock =
   | { kind: 'notice'; text: string; italic?: boolean }
 
 export type BuildLineItemDetailsOptions = {
-  /**
-   * Payment/overview: show “Online” when city is empty but delivery is online.
-   * Cart row does not use this fallback.
-   */
-  onlineCityFallback?: boolean
   /** Shown after instructors / before gift (e.g. “2 tickets”). Omit for cadeaubon, VA Thuis, and in cart rows. */
   quantityLabel?: string
   groupBookingNotice?: string
@@ -57,17 +52,16 @@ export function buildLineItemQuantityLabel(
   return `${qty} ${qty === 1 ? 'ticket' : 'tickets'}`
 }
 
-function sessionLinesFromExtras(
-  extras: CartItemExtras | null,
-  options: BuildLineItemDetailsOptions
-): string[] {
+function sessionLocationLine(eventItem: NonNullable<CartItemExtras['event_item']>): string | null {
+  if (eventItem.delivery_type?.toLowerCase() === 'online') return 'Online'
+  const city = eventItem.city?.trim() || null
+  if (city?.toLowerCase() === 'online') return 'Online'
+  return city
+}
+
+function sessionLinesFromExtras(extras: CartItemExtras | null): string[] {
   const eventItem = extras?.event_item ?? null
-  let sessionCity = eventItem?.city?.trim() || null
-  if (!sessionCity && options.onlineCityFallback) {
-    if (eventItem?.delivery_type?.toLowerCase() === 'online') {
-      sessionCity = 'Online'
-    }
-  }
+  const sessionCity = eventItem ? sessionLocationLine(eventItem) : null
   const sessionDate = formatDateShortOrNull(eventItem?.start_at)
   const startTime = formatTimeOrNull(eventItem?.start_at)
   const sessionTime =
@@ -98,7 +92,7 @@ export function buildCartLineItemDetailBlocks(
   const ops = options ?? {}
   const blocks: LineItemDetailBlock[] = []
 
-  const sessionLines = sessionLinesFromExtras(extras, ops)
+  const sessionLines = sessionLinesFromExtras(extras)
   if (sessionLines.length > 0) {
     blocks.push({ kind: 'session', lines: sessionLines })
   }

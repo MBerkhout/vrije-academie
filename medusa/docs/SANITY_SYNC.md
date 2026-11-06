@@ -100,7 +100,7 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | `hasFreeTrial` | any `EventItem.is_free_trial` | No |
 | `priceFrom` | min variant price in **cents** (converted from Medusa major EUR units) | No |
 | `cities` | distinct `EventItem.city` values | No |
-| `startAt` | earliest `EventItem.start_at` | No |
+| `startAt` | earliest `EventItem.start_at` across all variants (compared as timestamps, not strings) | No |
 | `seoTitle` | `Product.metadata.salesforce_seo_title` (SF import) | No |
 | `seoDescription` | `Product.metadata.salesforce_seo_description` (SF import) | No |
 | `externalRegistrationUrl` | `Product.metadata.salesforce_external_registration_url` (SF group `External_Registration_URL__c`), else first variant `External_Registration_URL_Product__c` | No |

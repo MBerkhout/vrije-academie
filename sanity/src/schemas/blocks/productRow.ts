@@ -68,6 +68,16 @@ export const productRowBlock = defineType({
         }),
     }),
     defineField({
+      name: "hideWithoutUpcomingSessions",
+      title: "Verberg producten zonder komende sessie",
+      type: "boolean",
+      group: "content",
+      description:
+        "When enabled, handpicked and personalized cards only show products that appear on Ons aanbod (upcoming session). Turn off to keep expired handpicks visible.",
+      initialValue: true,
+      hidden: ({ parent }) => parent?.sourceType === "automated",
+    }),
+    defineField({
       name: "automatedFeed",
       title: "Feed",
       type: "string",

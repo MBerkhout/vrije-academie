@@ -4,6 +4,7 @@ import {
   agendaRowButtonStatus,
   agendaRowStatusButtonPresentation,
   bookingPanelPrimaryCtaTone,
+  eventEligibleForPlpListing,
   eventIsFullySoldOut,
   isAlmostFullAvailability,
   minPositiveBookableQuantity,
@@ -17,6 +18,46 @@ import {
 } from './event-status-presentation'
 
 const futureStart = '2099-06-01T10:00:00.000Z'
+const pastStart = '2020-01-01T10:00:00.000Z'
+
+describe('eventEligibleForPlpListing', () => {
+  it('is false when there are no session variants', () => {
+    expect(eventEligibleForPlpListing({ variants: [] })).toBe(false)
+  })
+
+  it('is false when every session is in the past', () => {
+    expect(
+      eventEligibleForPlpListing({
+        variants: [
+          {
+            id: 'v1',
+            title: 'Past',
+            event_item: {
+              id: 'ei1',
+              delivery_type: 'offline',
+              available_quantity: 10,
+              capacity: 20,
+              start_at: pastStart,
+              is_free_trial: false,
+            },
+          },
+        ],
+      }),
+    ).toBe(false)
+  })
+
+  it('is true for a future sold-out session', () => {
+    expect(eventEligibleForPlpListing(makeEvent([0]))).toBe(true)
+  })
+
+  it('is true for VA Thuis bundle-only products', () => {
+    expect(
+      eventEligibleForPlpListing(
+        makeEvent([0], { purchase_mode: 'bundle_only', record_type: 'vathuis' }),
+      ),
+    ).toBe(true)
+  })
+})
 
 function makeEvent(
   quantities: number[],

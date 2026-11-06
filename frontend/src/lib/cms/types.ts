@@ -199,6 +199,8 @@ export interface ProductRowBlock extends Block {
   ctaEnabled?: boolean
   ctaLabel?: string
   ctaUrl?: string
+  /** Default true when unset — hide handpicked/personalized cards without a komende sessie. */
+  hideWithoutUpcomingSessions?: boolean
 }
 
 export interface VathuisHeroBlock extends Block {

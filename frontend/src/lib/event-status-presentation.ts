@@ -175,6 +175,22 @@ export function eventHasUnlimitedAvailability(
   return event.purchase_mode === 'bundle_only' || event.record_type === 'vathuis'
 }
 
+/**
+ * Same rules as Ons aanbod / Medusa `productEligibleForPlpListing`:
+ * at least one future session (sold-out included), or VA Thuis on-demand.
+ */
+export function eventEligibleForPlpListing(
+  event: Pick<EventCard, 'variants' | 'purchase_mode' | 'bundle_variant_id' | 'record_type'>,
+): boolean {
+  if (eventHasUnlimitedAvailability(event)) return true
+  const variants = filterFutureEventVariants(pricingVariantsForEvent(event))
+  const eventItems = variants
+    .map((v) => v.event_item)
+    .filter((ei): ei is NonNullable<typeof ei> => ei != null)
+  if (eventItems.length === 0) return false
+  return eventItems.some((ei) => isFutureEventVariant({ event_item: ei }))
+}
+
 function variantAvailableQuantity(variant: EventVariant): number {
   return variant.event_item?.available_quantity ?? 0
 }

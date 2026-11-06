@@ -142,7 +142,6 @@ export function OrderSummaryLineItems({
         const thumbnail = resolveLineItemThumbnail(item, itemExtras)
         const title = itemExtras?.product_title ?? item.title
         const blocks = buildCartLineItemDetailBlocks(item, itemExtras, {
-          onlineCityFallback: true,
           quantityLabel: buildLineItemQuantityLabel(item, itemExtras),
           ...detailOptions,
         })

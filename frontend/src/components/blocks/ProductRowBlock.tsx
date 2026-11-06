@@ -1,9 +1,14 @@
-import { commerceClient } from '@/lib/commerce'
 import { cleanBlockValue, type ProductRowBlock as ProductRowBlockType } from '@/lib/cms'
+import { commerceClient } from '@/lib/commerce'
+import { resolveProductRowEvents } from '@/lib/commerce/resolve-product-row-events'
 import { ProductRowBlockView } from './ProductRowBlockView'
 
 interface ProductRowBlockProps {
   block: ProductRowBlockType
+}
+
+function hideWithoutUpcomingSessions(block: ProductRowBlockType): boolean {
+  return block.hideWithoutUpcomingSessions !== false
 }
 
 async function resolveHandpickedEvents(block: ProductRowBlockType) {
@@ -12,10 +17,9 @@ async function resolveHandpickedEvents(block: ProductRowBlockType) {
     .filter(Boolean)
   if (handles.length === 0) return []
 
-  const results = await Promise.all(
-    handles.map((handle) => commerceClient.getEvent(handle).catch(() => null))
-  )
-  return results.filter((e): e is NonNullable<typeof e> => e != null)
+  return resolveProductRowEvents(handles, {
+    hideWithoutUpcomingSessions: hideWithoutUpcomingSessions(block),
+  })
 }
 
 async function resolveAutomatedEvents(block: ProductRowBlockType) {
