@@ -27,8 +27,8 @@ function parseMemoryMb(raw, fallbackMb) {
 }
 
 function pm2MemoryString(mb) {
+  // PM2 rejects fractional gigabytes (e.g. "1.5G"); use whole G or M only.
   if (mb >= 1024 && mb % 1024 === 0) return `${mb / 1024}G`
-  if (mb >= 1024) return `${(mb / 1024).toFixed(1).replace(/\.0$/, "")}G`
   return `${mb}M`
 }
 

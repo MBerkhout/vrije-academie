@@ -35,20 +35,16 @@ ssh_cmd() {
 
 fetch_staging_env() {
   local user="$1"
-  ssh_cmd "$user" 'set -euo pipefail; test -f ~/app/'"$2"'/.env || { echo "missing ~/app/'"$2"'/.env on staging" >&2; exit 1; }; cat ~/app/'"$2"'/.env"
+  local app="$2"
+  ssh_cmd "$user" "set -euo pipefail; test -f ~/app/${app}/.env; cat ~/app/${app}/.env"
 }
 
-parse_env_to_assoc() {
-  local file="$1"
-  # shellcheck disable=SC2034
-  declare -n _out="$2"
-  _out=()
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-    if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
-      _out["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
-    fi
-  done < "$file"
+env_value() {
+  local file="$1" key="$2"
+  local line
+  line="$(grep -m1 "^${key}=" "$file" 2>/dev/null || true)"
+  [[ -n "$line" ]] || return 1
+  printf '%s' "${line#*=}"
 }
 
 upsert_line() {
@@ -66,13 +62,12 @@ upsert_line() {
 
 apply_from_staging() {
   local dest="$1"
-  shift
-  local -n staging_map="$2"
-  shift
-  local keys=("$@")
+  local src="$2"
+  shift 2
+  local keys=("$@") k val
   for k in "${keys[@]}"; do
-    if [[ -n "${staging_map[$k]+x}" ]]; then
-      upsert_line "$dest" "$k" "${staging_map[$k]}"
+    if val="$(env_value "$src" "$k")"; then
+      upsert_line "$dest" "$k" "$val"
     fi
   done
 }
@@ -86,16 +81,13 @@ prompt_if_empty() {
 
 TMP_STAGING_MEDUSA="$(mktemp)"
 TMP_STAGING_FE="$(mktemp)"
-trap 'rm -f "$TMP_STAGING_MEDUSA" "$TMP_STAGING_FE"' EXIT
+trap "rm -f \"$TMP_STAGING_MEDUSA\" \"$TMP_STAGING_FE\"" EXIT
 
 echo "==> Fetching staging medusa .env from medusa@${STAGING_HOST}"
-fetch_staging_env medusa medusa > "$TMP_STAGING_MEDUSA"
+fetch_staging_env medusa medusa >"$TMP_STAGING_MEDUSA"
 echo "==> Fetching staging frontend .env from frontend@${STAGING_HOST}"
-fetch_staging_env frontend frontend > "$TMP_STAGING_FE"
+fetch_staging_env frontend frontend >"$TMP_STAGING_FE"
 
-declare -A STAGING_MEDUSA STAGING_FE
-parse_env_to_assoc "$TMP_STAGING_MEDUSA" STAGING_MEDUSA
-parse_env_to_assoc "$TMP_STAGING_FE" STAGING_FE
 
 prompt_if_empty PROD_DATABASE_URL "PROD_DATABASE_URL (Postgres for prod Medusa)"
 prompt_if_empty PROD_REDIS_URL "PROD_REDIS_URL (must use noeviction policy)"
@@ -129,7 +121,7 @@ else
   cp "$ROOT/medusa/.env.template" "$MEDUSA_OUT"
 fi
 
-apply_from_staging "$MEDUSA_OUT" STAGING_MEDUSA "${MEDUSA_COPY_KEYS[@]}"
+apply_from_staging "$MEDUSA_OUT" "$TMP_STAGING_MEDUSA" "${MEDUSA_COPY_KEYS[@]}"
 
 upsert_line "$MEDUSA_OUT" DATABASE_URL "$PROD_DATABASE_URL"
 upsert_line "$MEDUSA_OUT" REDIS_URL "$PROD_REDIS_URL"
@@ -168,11 +160,11 @@ else
   cp "$ROOT/frontend/.env.example" "$FRONTEND_OUT"
 fi
 
-apply_from_staging "$FRONTEND_OUT" STAGING_FE "${FE_COPY_KEYS[@]}"
+apply_from_staging "$FRONTEND_OUT" "$TMP_STAGING_FE" "${FE_COPY_KEYS[@]}"
 
-PK_FROM_STAGING="${STAGING_FE[NEXT_PUBLIC_MEDUSA_API_KEY]:-}"
-if [[ -z "$PK_FROM_STAGING" && -n "${STAGING_MEDUSA[NEXT_PUBLIC_MEDUSA_API_KEY]+x}" ]]; then
-  PK_FROM_STAGING="${STAGING_MEDUSA[NEXT_PUBLIC_MEDUSA_API_KEY]}"
+PK_FROM_STAGING="$(env_value "$TMP_STAGING_FE" NEXT_PUBLIC_MEDUSA_API_KEY || true)"
+if [[ -z "$PK_FROM_STAGING" ]]; then
+  PK_FROM_STAGING="$(env_value "$TMP_STAGING_MEDUSA" NEXT_PUBLIC_MEDUSA_API_KEY || true)"
 fi
 
 upsert_line "$FRONTEND_OUT" REDIS_URL "$PROD_REDIS_URL"
@@ -182,11 +174,13 @@ upsert_line "$FRONTEND_OUT" NEXT_PUBLIC_STOREFRONT_PUBLIC_URL "$PROD_STOREFRONT"
 upsert_line "$FRONTEND_OUT" NEXT_PUBLIC_MEDUSA_API_KEY "$PK_FROM_STAGING"
 upsert_line "$FRONTEND_OUT" REVALIDATE_SECRET "$REVALIDATE_NEW"
 upsert_line "$FRONTEND_OUT" SANITY_STUDIO_REVALIDATE_SECRET "$REVALIDATE_NEW"
-upsert_line "$FRONTEND_OUT" SANITY_REVALIDATE_SECRET "${STAGING_FE[SANITY_REVALIDATE_SECRET]:-}"
+SANITY_WEBHOOK_SECRET="$(env_value "$TMP_STAGING_FE" SANITY_REVALIDATE_SECRET || true)"
+upsert_line "$FRONTEND_OUT" SANITY_REVALIDATE_SECRET "$SANITY_WEBHOOK_SECRET"
 upsert_line "$FRONTEND_OUT" SANITY_STUDIO_MEDUSA_ADMIN_URL "$PROD_MEDUSA"
 upsert_line "$FRONTEND_OUT" SENTRY_ENVIRONMENT "production"
 upsert_line "$FRONTEND_OUT" SENTRY_TRACES_SAMPLE_RATE "0.2"
-upsert_line "$FRONTEND_OUT" NEXT_PUBLIC_SENTRY_DSN "${STAGING_FE[SENTRY_DSN]:-}"
+FE_SENTRY_DSN="$(env_value "$TMP_STAGING_FE" SENTRY_DSN || true)"
+upsert_line "$FRONTEND_OUT" NEXT_PUBLIC_SENTRY_DSN "$FE_SENTRY_DSN"
 
 chmod 600 "$MEDUSA_OUT" "$FRONTEND_OUT" 2>/dev/null || true
 

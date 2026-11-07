@@ -22,7 +22,7 @@
  *   STAGING_SSH_HOST=... node scripts/prod/copy-staging-to-prod.mjs --confirm-prod
  */
 import { spawnSync, execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, existsSync, writeFileSync, openSync, closeSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -68,19 +68,6 @@ function run(cmd, cmdArgs, opts = {}) {
     fail(`${cmd} failed: ${err}`)
   }
   return r
-}
-
-function sshBuffer(remoteCmd) {
-  if (dryRun) {
-    log(`[dry-run] ssh ${stagingUser}@${stagingHost} ${remoteCmd}`)
-    return Buffer.alloc(0)
-  }
-  const sshArgs = ['-o', 'BatchMode=yes', '-i', sshKey, `${stagingUser}@${stagingHost}`, remoteCmd]
-  const r = spawnSync('ssh', sshArgs, { encoding: 'buffer' })
-  if (r.status !== 0) {
-    fail(`ssh failed: ${(r.stderr || '').toString()}`)
-  }
-  return r.stdout
 }
 
 function loadEnvFile(path) {
@@ -161,13 +148,26 @@ run('pg_dump', ['-Fc', '--no-owner', '--no-acl', '-f', backupFile, prodDbUrl], {
 
 log(`==> Dumping staging database via SSH (${stagingUser}@${stagingHost})`)
 const remoteDump =
-  "set -euo pipefail; set -a; source ~/app/medusa/.env; set +a; pg_dump \"$DATABASE_URL\" -Fc --no-owner --no-acl"
+  'set -euo pipefail; set -a; source ~/app/medusa/.env; set +a; pg_dump "$DATABASE_URL" -Fc --no-owner --no-acl'
 if (dryRun) {
   log(`[dry-run] ssh … '${remoteDump}' > ${stagingDumpFile}`)
 } else {
-  const dumpBuf = sshBuffer(remoteDump)
-  if (!dumpBuf?.length) fail('Empty pg_dump from staging')
-  writeFileSync(stagingDumpFile, dumpBuf)
+  // Stream to disk — staging dumps exceed Node spawnSync maxBuffer.
+  const sshArgs = [
+    '-o',
+    'BatchMode=yes',
+    '-i',
+    sshKey,
+    `${stagingUser}@${stagingHost}`,
+    remoteDump,
+  ]
+  const outFd = openSync(stagingDumpFile, 'w')
+  const r = spawnSync('ssh', sshArgs, { stdio: ['ignore', outFd, 'inherit'] })
+  closeSync(outFd)
+  if (r.status !== 0) fail('staging pg_dump over ssh failed')
+  if (!existsSync(stagingDumpFile) || readFileSync(stagingDumpFile).length === 0) {
+    fail('Empty pg_dump from staging')
+  }
 }
 
 log('==> Restoring staging dump into production (pg_restore --clean --if-exists)')
