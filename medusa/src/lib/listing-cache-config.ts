@@ -57,3 +57,23 @@ export function eventDetailCacheTtlSec(): number {
 }
 
 export const EVENT_DETAIL_NEGATIVE_CACHE_SEC = 60
+
+/** Logical PDP freshness (availability); defaults to listing TTL when unset. */
+export function eventDetailFreshnessTtlSec(): number {
+  const n = Number(process.env.EVENT_DETAIL_FRESHNESS_TTL_SEC)
+  if (Number.isFinite(n) && n > 0) return Math.floor(n)
+  return listingCacheTtlSec()
+}
+
+export function shouldRebuildEventDetail(input: {
+  dirty: boolean
+  builtAt: number | null
+  now?: number
+}): boolean {
+  return shouldRebuildSlot({
+    dirty: input.dirty,
+    builtAt: input.builtAt,
+    now: input.now,
+    ttlSec: eventDetailFreshnessTtlSec(),
+  })
+}

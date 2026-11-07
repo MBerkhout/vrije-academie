@@ -51,6 +51,18 @@ export function eventDetailRedisKey(handle: string): string {
   return `store:event:detail:${handle}`
 }
 
+export function eventDetailBuiltAtRedisKey(handle: string): string {
+  return `${eventDetailRedisKey(handle)}:built_at`
+}
+
+export function eventDetailDirtyRedisKey(handle: string): string {
+  return `store:event:detail:dirty:${handle}`
+}
+
+export function eventDetailBuildLockKey(handle: string): string {
+  return `store:event:detail:build:${handle}`
+}
+
 /** Prefixes flushed by `npm run cache:flush`. Does not touch Medusa workflow/job keys. */
 export const STOREFRONT_REDIS_KEY_PATTERNS = [
   "store:listing:*",
@@ -234,8 +246,71 @@ export async function invalidateRegistrationCountsCache(): Promise<void> {
   await markListingSlotsDirty(["registrations"])
 }
 
+/** Marks detail stale; blob is kept for stale-while-revalidate. */
 export async function invalidateEventDetailCache(handle: string): Promise<void> {
-  await redisDeleteKey(eventDetailRedisKey(handle))
+  await markEventDetailDirty(handle)
+}
+
+export async function markEventDetailDirty(handle: string): Promise<void> {
+  const client = await getRedisClient()
+  if (!client) return
+  try {
+    await client.set(eventDetailDirtyRedisKey(handle), "1")
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function redisIsEventDetailDirty(handle: string): Promise<boolean> {
+  const client = await getRedisClient()
+  if (!client) return false
+  try {
+    const v = await client.get(eventDetailDirtyRedisKey(handle))
+    return v != null && v !== ""
+  } catch {
+    return false
+  }
+}
+
+export async function clearEventDetailDirty(handle: string): Promise<void> {
+  await redisDeleteKey(eventDetailDirtyRedisKey(handle))
+}
+
+export async function getEventDetailBuiltAt(handle: string): Promise<number | null> {
+  return redisGetNumber(eventDetailBuiltAtRedisKey(handle))
+}
+
+export async function persistEventDetail(
+  handle: string,
+  value: Record<string, unknown> | string,
+  builtAt: number
+): Promise<void> {
+  const hardTtl = listingCacheHardTtlSec()
+  await redisSetJson(eventDetailRedisKey(handle), value, hardTtl)
+  await redisSetString(eventDetailBuiltAtRedisKey(handle), String(builtAt), hardTtl)
+}
+
+export async function tryAcquireEventDetailBuildLock(
+  handle: string,
+  ttlSec = 120
+): Promise<boolean> {
+  const client = await getRedisClient()
+  if (!client) return true
+  try {
+    const result = await client.set(eventDetailBuildLockKey(handle), "1", { NX: true, EX: ttlSec })
+    return result === "OK"
+  } catch {
+    return false
+  }
+}
+
+export async function deleteEventDetailCache(handle: string): Promise<void> {
+  await Promise.all([
+    redisDeleteKey(eventDetailRedisKey(handle)),
+    redisDeleteKey(eventDetailBuiltAtRedisKey(handle)),
+    redisDeleteKey(eventDetailDirtyRedisKey(handle)),
+    redisDeleteKey(eventDetailBuildLockKey(handle)),
+  ])
 }
 
 async function scanKeys(client: RedisClient, match: string): Promise<string[]> {

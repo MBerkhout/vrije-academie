@@ -59,10 +59,10 @@ describe('planSanityRevalidate', () => {
   })
 
   it('skips unknown types and pages without a slug', () => {
-    expect(planSanityRevalidate({ _type: 'product' })).toEqual({
-      kind: 'skip',
-      reason: 'unsupported_type',
-      type: 'product',
+    expect(planSanityRevalidate({ _type: 'product', handle: 'foo' })).toEqual({
+      kind: 'product',
+      handle: 'foo',
+      medusaId: undefined,
     })
     expect(planSanityRevalidate({ _type: 'page' })).toEqual({
       kind: 'skip',

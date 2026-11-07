@@ -125,6 +125,10 @@ SANITY_STUDIO_PREVIEW_URL=https://v2.vrijeacademie.nl
 # SANITY_STUDIO_REVALIDATE_SECRET=
 ```
 
+### Storefront cache webhook
+
+On-demand ISR bust for pages, menu/footer, categories, and PDP Sanity fields. Configure in [API → Webhooks](https://www.sanity.io/manage/project/v4eheew2/api/webhooks) (needs a token with webhook grants to use `sanity hook` CLI). Copy from [`webhooks/storefront-revalidate.reference.json`](../webhooks/storefront-revalidate.reference.json): filter must include `product`; webhook secret = frontend `SANITY_REVALIDATE_SECRET` (not `SANITY_STUDIO_REVALIDATE_SECRET`).
+
 ### Development
 
 ```bash

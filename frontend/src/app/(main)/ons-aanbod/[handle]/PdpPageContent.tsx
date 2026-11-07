@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { getCachedEvent, getCachedSimilarEvents } from '@/lib/commerce/server'
 import type { EventCard } from '@/lib/commerce/types'
 import { cmsClient } from '@/lib/cms/server'
-import { getSanityProductExtras } from '@/lib/cms/sanity-refs'
+import { getSharedCachedSanityProductExtras } from '@/lib/cms/cached-pdp-sanity'
 import { CONTAINER_CLASS } from '@/lib/cms'
 
 import { Breadcrumbs } from '@/components/common/Breadcrumbs'
@@ -38,7 +38,7 @@ export async function PdpPageContent({
 
   if (!event) notFound()
 
-  const extras = await getSanityProductExtras(event.id)
+  const extras = await getSharedCachedSanityProductExtras(event.id)
 
   const pdpLabels = settings?.pdp?.labels
   const stockThreshold = settings?.pdp?.lowStockThreshold ?? 5

@@ -6,7 +6,7 @@ import {
   ContainerRegistrationKeys,
   Modules,
 } from "@medusajs/framework/utils"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
 import { listProductCatalogCategoryLinks } from "../../../../../../lib/product-catalog-category-links"
 import { syncProductById } from "../../../../../../modules/sanity-sync/sync-product-by-id"

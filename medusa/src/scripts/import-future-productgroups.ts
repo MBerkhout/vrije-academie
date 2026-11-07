@@ -262,7 +262,7 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
     }
 
     if (skipSearch && reindexProductIds.length) {
-      const search = container.resolve("search") as import("../modules/search/service").default
+      const search = container.resolve("siteSearch") as unknown as import("../modules/search/service").default
       if (search.isEnabled()) {
         logger.info(`[${logTag}] Reindexing ${reindexProductIds.length} product(s) in search…`)
         for (const productId of reindexProductIds) {

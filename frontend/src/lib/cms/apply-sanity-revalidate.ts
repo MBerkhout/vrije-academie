@@ -2,6 +2,11 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 import { after } from 'next/server'
 
 import {
+  PDP_SANITY_PRODUCT_TAG,
+  pdpSanityHandleTag,
+  pdpSanityProductTag,
+} from '@/lib/cms/cached-pdp-sanity'
+import {
   planSanityRevalidate,
   type SanityRevalidateBody,
 } from './revalidate-sanity-plan'
@@ -40,6 +45,20 @@ export function applySanityRevalidate(
         revalidatePath(path)
       }
       return { ok: true, json: { revalidated: true, type: body._type, paths: plan.paths } }
+    }
+    case 'product': {
+      const tags = [PDP_SANITY_PRODUCT_TAG]
+      if (plan.medusaId) {
+        const tag = pdpSanityProductTag(plan.medusaId)
+        revalidateTag(tag, { expire: 0 })
+        tags.push(tag)
+      }
+      if (plan.handle) {
+        const tag = pdpSanityHandleTag(plan.handle)
+        revalidateTag(tag, { expire: 0 })
+        tags.push(tag)
+      }
+      return { ok: true, json: { revalidated: true, type: 'product', tags } }
     }
     case 'page':
       revalidatePath(plan.path)

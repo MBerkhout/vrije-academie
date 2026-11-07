@@ -47,12 +47,17 @@ describe('ensureHubSpotDeveloperEmbedScript', () => {
     expect(appendSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('resolves when script tag already exists', async () => {
-    const script = document.createElement('script')
-    script.src = scriptSrc
-    document.body.appendChild(script)
+  it('re-injects the script when it already exists so new containers are scanned', async () => {
+    const old = document.createElement('script')
+    old.src = scriptSrc
+    document.body.appendChild(old)
 
-    await expect(ensureHubSpotDeveloperEmbedScript(scriptSrc)).resolves.toBeUndefined()
-    expect(document.querySelectorAll(`script[src="${scriptSrc}"]`)).toHaveLength(1)
+    const promise = ensureHubSpotDeveloperEmbedScript(scriptSrc)
+    const scripts = document.querySelectorAll(`script[src="${scriptSrc}"]`)
+    expect(scripts).toHaveLength(1)
+    expect(scripts[0]).not.toBe(old)
+    ;(scripts[0] as HTMLScriptElement).onload?.(new Event('load'))
+
+    await expect(promise).resolves.toBeUndefined()
   })
 })

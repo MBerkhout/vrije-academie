@@ -98,4 +98,6 @@ If cancel throws — missing `session.data.id`, payment already gone, or GET 404
 
 `deletePayment` / `cancelPayment` are best-effort: Klarna uses `safeCancelMolliePayment`; the VariableVic plugin is wrapped in `medusa-config.ts` via `patchMolliePluginDeletePayment`. Terminal Mollie statuses (`paid`, `canceled`, `expired`, `failed`) skip cancel. Failures are logged and the Medusa session is still dropped.
 
+**Missed webhook recovery:** `GET /store/checkout/confirmation?cart_id=…` polls while no order exists. If the cart's session is `paid`/`authorized` at Mollie, it runs `processPaymentWorkflow` (same as the webhook subscriber) to complete the cart. Needed when the tunnel was down (the settled-payment guard below otherwise keeps blocking cart changes such as adding a gift card).
+
 **Exception — settled payments:** `deletePayment` first checks Mollie (`assertMolliePaymentNotSettled`). If the payment is `paid` or `authorized` it throws instead of dropping the session, so the cart update that triggered the delete fails and the webhook can still complete the order. Without this, a cart change racing the webhook (e.g. account cart sync on `/bedankt`) lost the paid payment and the thank-you page stayed on "Je betaling wordt verwerkt".

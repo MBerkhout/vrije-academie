@@ -11,6 +11,7 @@ import {
   productHasVathuisEventGroup,
 } from "./store-listing-snapshot"
 import { shouldInvalidateListingsOnProductUpdate } from "./listing-cache-policy"
+import { revalidateStorefrontPdpHandles } from "./storefront-revalidate"
 export async function invalidateEventDetailForProductId(
   scope: MedusaContainer,
   productId: string
@@ -23,7 +24,10 @@ export async function invalidateEventDetailForProductId(
   })
   const row = data?.[0] as { handle?: string | null; status?: string | null } | undefined
   const handle = row?.handle
-  if (handle) await invalidateEventDetailCache(handle)
+  if (handle) {
+    await invalidateEventDetailCache(handle)
+    void revalidateStorefrontPdpHandles([handle])
+  }
   return row?.status ?? null
 }
 

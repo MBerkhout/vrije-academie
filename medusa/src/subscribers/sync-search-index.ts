@@ -25,7 +25,7 @@ export default async function syncSearchIndexSubscriber({
   container,
 }: SubscriberArgs<{ id: string; product_id?: string }>): Promise<void> {
   await withSubscriberPerf(name, "sync-search-index", async () => {
-    const search = container.resolve("search") as InstanceType<typeof SearchModuleService>
+    const search = container.resolve("siteSearch") as unknown as InstanceType<typeof SearchModuleService>
     if (!search.isEnabled()) return
 
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)

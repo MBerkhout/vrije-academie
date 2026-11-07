@@ -126,7 +126,7 @@ function searchRowToHit(row: SiteSearchRow): SiteSearchHit | null {
 export const sanityClient: CMSClient = {
   async getPage(slug: string): Promise<Page | null> {
     const { data } = await sanityFetch({ query: PAGE_QUERY, params: { slug } })
-    return data || null
+    return (data as Page | null) || null
   },
 
   async getGeneralSettings(): Promise<GeneralSettings | null> {
@@ -430,7 +430,7 @@ export const sanityClient: CMSClient = {
     const { isEnabled } = await draftMode()
     if (isEnabled) {
       const { data } = await sanityFetch({ query })
-      return data || null
+      return (data as GeneralSettings | null) || null
     }
     try {
       return (
@@ -461,7 +461,7 @@ export const sanityClient: CMSClient = {
     }`
 
     const { data } = await sanityFetch({ query, params: { id } })
-    return data || null
+    return (data as Menu | null) || null
   },
 
   async searchSiteContent(query: string): Promise<SiteSearchHit[]> {

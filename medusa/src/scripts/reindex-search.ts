@@ -17,7 +17,7 @@ export default async function reindexSearch({ container }: ExecArgs) {
     return
   }
 
-  const search = container.resolve("search") as InstanceType<typeof SearchModuleService>
+  const search = container.resolve("siteSearch") as unknown as InstanceType<typeof SearchModuleService>
   const { commerce, sanity } = await search.fullReindex(container)
 
   logger.info(

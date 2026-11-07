@@ -1,22 +1,31 @@
-/** PM2 config for the Next.js frontend (production). */
+/** PM2 config for the Next.js frontend (production). Sizing: ../scripts/pm2-sizing.cjs */
+const path = require("path")
+const { loadDotEnv, resolveCluster, formatSizingLog } = require("../scripts/pm2-sizing.cjs")
+
+loadDotEnv(__dirname)
+const sizing = resolveCluster(__dirname, "frontend")
+// eslint-disable-next-line no-console
+console.log(formatSizingLog("frontend", sizing))
+
 module.exports = {
   apps: [
     {
-      name: "frontend",
+      name: process.env.PM2_APP_NAME || "frontend",
       cwd: __dirname,
       script: "node_modules/.bin/next",
       args: "start",
-      instances: 2,
+      instances: sizing.instances,
       exec_mode: "cluster",
       autorestart: true,
       watch: false,
-      max_memory_restart: "1G",
+      max_memory_restart: sizing.max_memory_restart,
       env: {
         NODE_ENV: "production",
-        PORT: 3000,
+        PORT: sizing.port,
+        NODE_OPTIONS: sizing.nodeOptions,
       },
-      kill_timeout: 5000,
-      listen_timeout: 10000,
+      kill_timeout: parseInt(process.env.PM2_KILL_TIMEOUT_MS, 10) || 5000,
+      listen_timeout: parseInt(process.env.PM2_LISTEN_TIMEOUT_MS, 10) || 10000,
     },
   ],
 }

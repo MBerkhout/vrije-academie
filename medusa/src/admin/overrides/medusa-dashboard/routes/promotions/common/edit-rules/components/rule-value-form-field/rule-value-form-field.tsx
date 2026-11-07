@@ -99,7 +99,7 @@ export const RuleValueFormField = ({
   useEffect(() => {
     const hasDirtyRules = Object.keys(form.formState.dirtyFields).length > 0
 
-    if (!hasDirtyRules) {
+    if (!hasDirtyRules || isEventStartDateRule) {
       return
     }
 

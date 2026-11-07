@@ -3,10 +3,10 @@ import { redirect } from 'next/navigation'
 import { getCachedEvent } from '@/lib/commerce/server'
 import { cmsClient } from '@/lib/cms/server'
 import {
-  getCategoryBySlug,
-  categoryDisplayTitle,
-  getProductSeoByHandle,
-} from '@/lib/cms/sanity-refs'
+  getSharedCachedCategoryBySlug,
+  getSharedCachedProductSeoByHandle,
+} from '@/lib/cms/cached-pdp-sanity'
+import { categoryDisplayTitle } from '@/lib/cms/sanity-refs'
 import {
   buildProductPdpMetadata,
   buildSeoMetadata,
@@ -28,7 +28,7 @@ interface HandlePageProps {
 
 export async function generateMetadata({ params }: HandlePageProps): Promise<Metadata> {
   const { handle } = await params
-  const category = await getCategoryBySlug(handle)
+  const category = await getSharedCachedCategoryBySlug(handle)
   const siteName = 'Vrije Academie'
 
   if (category) {
@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: HandlePageProps): Promise<Met
 
   const [event, productSeo] = await Promise.all([
     getCachedEvent(handle),
-    getProductSeoByHandle(handle),
+    getSharedCachedProductSeoByHandle(handle),
   ])
   if (!event) return {}
 
@@ -82,7 +82,7 @@ export async function generateMetadata({ params }: HandlePageProps): Promise<Met
 
 export default async function HandlePage({ params, searchParams }: HandlePageProps) {
   const { handle } = await params
-  const category = await getCategoryBySlug(handle)
+  const category = await getSharedCachedCategoryBySlug(handle)
 
   if (category) {
     const paramsResolved = await searchParams

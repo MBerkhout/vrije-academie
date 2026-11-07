@@ -88,7 +88,7 @@ export default defineConfig({
     salesforceSync: {
       resolve: "./src/modules/salesforce-sync",
     },
-    search: {
+    siteSearch: {
       resolve: "./src/modules/search",
     },
     customerOtp: {

@@ -136,7 +136,7 @@ async function upsertIncomingLockBySalesforceId(
   ])
 }
 
-async function ensureProductSessionOptionValues(
+export async function ensureProductSessionOptionValues(
   container: MedusaContainer,
   productId: string,
   optionName: string,
@@ -191,7 +191,8 @@ async function ensureProductSessionOptionValues(
             values: [...existingValues, ...missing],
           },
         ],
-      },
+        // `options` is no longer in the typed update input as of Medusa 2.22; kept as fallback.
+      } as Record<string, unknown>,
     },
   })
 }
@@ -796,7 +797,7 @@ async function skipNotVisibleOnWebsite(
     await invalidateStoreListingCache()
     await invalidateEventDetailForProductId(container, productId)
 
-    const search = container.resolve("search") as import("../search/service").default
+    const search = container.resolve("siteSearch") as unknown as import("../search/service").default
     if (search.isEnabled()) {
       await search.deleteDoc(`product-${productId}`).catch(() => undefined)
     }
@@ -1248,7 +1249,7 @@ export async function importProductgroupFromSalesforce(
   await invalidateEventDetailForProductId(container, productId)
 
   if (!input.skipSearch) {
-    const search = container.resolve("search") as import("../search/service").default
+    const search = container.resolve("siteSearch") as unknown as import("../search/service").default
     if (search.isEnabled()) {
       await search.reindexProductById(container, productId).catch((err) => {
         const logger = container.resolve(ContainerRegistrationKeys.LOGGER)

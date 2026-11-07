@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { giftCardCartLockKey } from "./gift-card-cart-lock.ts"
+import { giftCardCartLockKey } from "./gift-card-cart-lock"
 
 describe("giftCardCartLockKey", () => {
   it("is a stable signed integer for the same cart", () => {

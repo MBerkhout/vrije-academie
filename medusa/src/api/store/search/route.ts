@@ -23,7 +23,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
     return
   }
 
-  const search = req.scope.resolve("search") as InstanceType<typeof SearchModuleService>
+  const search = req.scope.resolve("siteSearch") as unknown as InstanceType<typeof SearchModuleService>
 
   if (!search.isEnabled()) {
     res.status(503).json({ message: "Search not configured" })

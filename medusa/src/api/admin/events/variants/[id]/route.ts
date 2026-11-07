@@ -7,7 +7,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
 import variantEventItemLink from "../../../../../links/variant-event-item"
 import EventsModuleService from "../../../../../modules/events/service"

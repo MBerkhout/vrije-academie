@@ -7,7 +7,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
 import productPropertiesLink from "../../../../links/product-properties"
 import variantPropertiesLink from "../../../../links/variant-properties"

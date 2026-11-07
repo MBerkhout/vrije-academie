@@ -370,7 +370,7 @@ Studio URL: `https://<SANITY_STUDIO_PROJECT_ID>.sanity.studio/studio`. Local dev
 |------------|---------|
 | CMS pages (`[...slug]`) | ISR, `revalidate = 60` — on-demand bust via Sanity webhook (`POST /api/revalidate/sanity`) on page publish, or Studio **Clear page cache** (`POST /api/revalidate/studio`) |
 | PLP / Agenda pages | `force-dynamic` — filters via `searchParams`; default `/ons-aanbod` (no filters) uses 120 s hard cache for `sort=order` and `sort=start_date`; default `/agenda` (no filters) uses 120 s hard cache for `sort=start_date` and `sort=start_date_desc` |
-| PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail + similar cached in Redis (default 120 s listing TTL); React `cache()` dedupes per request |
+| PDP (`/ons-aanbod/[handle]`) | `force-dynamic`; Medusa event detail **stale-while-revalidate** in Redis (`store:event:detail:{handle}` + dirty flag); worker job `refresh-event-detail-snapshots` warms top PLP handles; frontend `unstable_cache` for Medusa + Sanity PDP lookups (tags `pdp:{handle}`); bust via `POST /api/revalidate/plp` with `{ "pdpHandles": ["…"] }` |
 | Homepage | ISR, `revalidate = 60`; on-demand bust via Sanity webhook on home page publish, or Studio **Clear page cache** |
 | Header / footer (`generalSettings`, `menu`) | ISR, `revalidate = 60` on `(main)/layout`; on-demand bust via the same webhook (`general-settings` tag + `(main)` and `(checkout)` layouts + batched `revalidatePath` for all storefront URLs) |
 | Redirect rules | In-memory, 60 s TTL |
@@ -383,7 +383,9 @@ PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized li
 |-------|------|------|
 | Redis keys | `medusa/src/lib/store-listing-redis.ts` | `store:listing:plp`, `store:listing:agenda`, `store:listing:registrations`, `store:event:detail:{handle}` |
 | Snapshot build | `medusa/src/lib/store-listing-snapshot.ts` | Loads + enriches full catalog once; routes only filter/facet/sort/paginate in memory |
-| Event detail | `medusa/src/lib/store-event-detail.ts` | Redis cache for `GET /store/events/:handle` |
+| Event detail | `medusa/src/lib/event-detail-rebuild.ts` | Redis SWR + cross-worker build lock for `GET /store/events/:handle` |
+| Event detail worker | `medusa/src/jobs/refresh-event-detail-snapshots.ts` | Rebuilds dirty/aged PDP blobs for top PLP slots every minute |
+| Frontend PDP cache | `frontend/src/lib/commerce/cached-pdp.ts`, `frontend/src/lib/cms/cached-pdp-sanity.ts` | Shared `unstable_cache` across PM2 workers (needs `REDIS_URL` on frontend) |
 | Similar courses | `medusa/src/lib/store-similar-events.ts` | Derives siblings from PLP snapshot (no per-sibling Postgres graph) |
 | Base query cache | `medusa/src/lib/store-query-cache.ts` | Product ids + event-group links (used when building snapshots) |
 | Invalidation | `medusa/src/subscribers/invalidate-store-listing-cache.ts` | Sets listing **dirty** flags for worker rebuild; create/delete always; update when product is in first 24 slots or VA Thuis |
@@ -392,7 +394,9 @@ PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized li
 | Frontend Agenda hard cache | `frontend/src/lib/agenda/cached-default-listing.ts` | `unstable_cache` (120 s) for unfiltered `/agenda` with `sort=start_date` or `sort=start_date_desc`; bust via the same `POST /api/revalidate/plp` (`agenda-default` tag) |
 | Frontend Next data cache | `frontend/cache-incremental.cjs` + `next.config.js` | When `REDIS_URL` is set, `cacheHandler` stores `unstable_cache` / ISR entries in Redis (`next:storefront:` prefix) so all PM2 workers share one hard cache; `cacheMaxMemorySize: 0` disables per-worker duplicates. `DEPLOYMENT_VERSION` (git SHA on deploy) isolates entries per release. |
 
-**PLP/Agenda/VA Thuis/registration-counts snapshots**: Redis stores the blob + separate `:built_at` key (`LISTING_SNAPSHOT_VERSION` 6). API `loadCached` is **memory-first** (compares tiny `built_at` before loading the blob). Rebuilds run on **`medusa-worker`** only; invalidation sets `store:listing:dirty:*`. Only a true cold start (no Redis blob) blocks on the API. PDP detail Redis TTL: `EVENT_DETAIL_CACHE_TTL_SEC` (default 86400); HTTP `Cache-Control` still uses `LISTING_CACHE_TTL_SEC`.
+**PLP/Agenda/VA Thuis/registration-counts snapshots**: Redis stores the blob + separate `:built_at` key (`LISTING_SNAPSHOT_VERSION` 6). API `loadCached` is **memory-first** (compares tiny `built_at` before loading the blob). Rebuilds run on **`medusa-worker`** only; invalidation sets `store:listing:dirty:*`. Only a true cold start (no Redis blob) blocks on the API.
+
+**PDP detail**: Same pattern — physical Redis TTL `LISTING_CACHE_HARD_TTL_SEC`; logical freshness `EVENT_DETAIL_FRESHNESS_TTL_SEC` (defaults to `LISTING_CACHE_TTL_SEC`). Product updates set `store:event:detail:dirty:{handle}` and POST storefront revalidate. HTTP `Cache-Control` on `/store/events/:handle` still uses `LISTING_CACHE_TTL_SEC`.
 
 **Staging performance env (Medusa `~/app/medusa/.env`, reload PM2 after edit):**
 
@@ -400,20 +404,28 @@ PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized li
 |----------|-------------------|---------|
 | `LISTING_CACHE_TTL_SEC` | `120` | Rebuild when snapshot age exceeds this |
 | `LISTING_CACHE_HARD_TTL_SEC` | `604800` | Redis blob TTL (7 d fallback) |
-| `EVENT_DETAIL_CACHE_TTL_SEC` | `86400` | PDP detail in Redis |
+| `EVENT_DETAIL_FRESHNESS_TTL_SEC` | _(unset → `LISTING_CACHE_TTL_SEC`)_ | Logical PDP freshness (availability) |
+| `EVENT_DETAIL_CACHE_TTL_SEC` | `86400` | Legacy name; physical PDP Redis TTL follows `LISTING_CACHE_HARD_TTL_SEC` |
+| `PDP_MEDUSA_CACHE_SEC` / `PDP_SANITY_CACHE_SEC` | `60` | Frontend `unstable_cache` for PDP (optional in `frontend/.env`) |
 | `SALESFORCE_WEBHOOK_QUEUE_BATCH_SIZE` | `10` | Smaller webhook batches |
 | `SALESFORCE_WEBHOOK_QUEUE_CONCURRENCY` | `2` | Less parallel SF work |
 | `SALESFORCE_WEBHOOK_DEFER_LOADAVG` | `6` | Skip queue tick when 1-min load &gt; threshold |
 | `SALESFORCE_WEBHOOK_DEFER_FREE_MB` | `512` | Skip queue tick when free RAM &lt; threshold |
 | `STORE_SLOW_REQUEST_MS` | `500` | Log `/store/*` slower than this |
 
-**Frontend PM2 (`frontend/ecosystem.config.cjs`):** `instances: 2`, `max_memory_restart: "1G"` (was `max` × 512M).
+**PM2 auto-sizing** (`scripts/pm2-sizing.cjs`, used by both `ecosystem.config.cjs` files): reserves `PM2_RESERVED_MB` (default `3500` for Postgres + Redis + OpenSearch + OS on a single 8 GB host). Overrides: `PM2_FRONTEND_INSTANCES`, `PM2_MEDUSA_INSTANCES`, `PM2_*_MAX_MEMORY`, `PM2_RESERVED_MB`. Deploy prints resolved counts and runs `scripts/pm2-scale-cluster.sh` when the running cluster size drifts.
+
+| Host | Typical result (no overrides) |
+|------|-------------------------------|
+| 3 CPU, 8 GB | frontend 2×~768M, medusa 2×~768M, worker 1×1G |
+| 4 CPU, 16 GB | frontend 3×1G, medusa 3×1G, worker 1×1.5G |
 
 **Structured logs (grep PM2 / sampler output):**
 
 | `tag` | Meaning |
 |-------|---------|
 | `listing-cache` | `hit` / `miss` (API) or `rebuild` (worker) + optional `buildMs` per listing slot |
+| `event-detail-cache` | PDP Redis `hit` / `miss` / `rebuild` + `handle` |
 | `store-slow` | Slow Medusa store API request |
 | `subscriber-perf` | Subscriber run ≥ 200 ms |
 | `subscriber-perf-minute` | Per-minute event counts per subscriber |
@@ -448,8 +460,8 @@ Requires `REDIS_URL` on the **Medusa** server for cross-worker sharing; without 
 | URL | `https://v2.vrijeacademie.nl/api/revalidate/sanity` |
 | Dataset | `production` (and `staging` if applicable) |
 | Trigger on | Create, Update, Delete |
-| Filter | `_type in ["page", "generalSettings", "menu", "category"]` |
-| Projection | `{ "_type": _type, "slug": coalesce(slug.current, slug), "isVaThuis": isVaThuis }` |
+| Filter | `_type in ["page", "generalSettings", "menu", "category", "product"]` |
+| Projection | Pages: `{ "_type": _type, "slug": coalesce(slug.current, slug), "isVaThuis": isVaThuis }`. Product: `{ "_type": "product", "handle": handle, "medusaId": medusaId }` |
 | Secret | Same string as frontend `SANITY_REVALIDATE_SECRET` |
 
 Set `SANITY_REVALIDATE_SECRET` in `~/app/frontend/.env` on the server. Sanity signs the request body; the route verifies via `next-sanity/webhook` `parseBody`. VA Thuis pages (`va-thuis/…`) are skipped — those routes are `force-dynamic`. `generalSettings` and `menu` publishes bust the `general-settings` fetch tag, the `(main)` and `(checkout)` layouts, then queue a background pass that calls `revalidatePath` for every storefront URL (sitemap paths including `noIndex` CMS rows, plus private chrome such as `/winkelwagen` and `/mijn-account/*`) in batches of 50 with a 100 ms pause between batches so regeneration does not spike. **Category** publishes bust `/`, `/va-thuis`, and `/ons-aanbod/{slug}` so tile thumbnails do not wait on ISR. Draft-only General Settings is invisible on the storefront — publish the singleton. The 60 s ISR window remains as a fallback when the webhook is not configured or fails.
@@ -462,16 +474,14 @@ Responses carry `Cache-Control: public, s-maxage=600, stale-while-revalidate=600
 
 ### PM2 cluster mode
 
-`frontend/ecosystem.config.cjs` uses `instances: "max"` and `exec_mode: "cluster"` so all CPU cores serve requests in parallel. Memory limit is per-instance.
-
-Both frontend and Medusa use cluster mode. Medusa requires `REDIS_URL` to be set on the server (which switches the workflow engine, event bus and locking to Redis so state is shared across all processes). The frontend uses the same Redis instance for the Next.js `cacheHandler` when `REDIS_URL` is present in `~/app/frontend/.env`.
+Both apps use **cluster** mode with instance counts from `scripts/pm2-sizing.cjs` (see table above). Medusa requires `REDIS_URL` (workflow engine, event bus, locking). Frontend uses the same Redis for `cacheHandler` when `REDIS_URL` is in `~/app/frontend/.env`.
 
 `medusa/ecosystem.config.cjs` runs two PM2 apps ([Medusa worker mode](https://docs.medusajs.com/learn/production/worker-mode)):
 
-| App | Mode | Instances | Memory limit | Role |
-|---|---|---|---|---|
-| `medusa` | `MEDUSA_WORKER_MODE=server`, cluster, port 9000 | CPUs − 1 | 1 GB | HTTP API + admin |
-| `medusa-worker` | `MEDUSA_WORKER_MODE=worker`, fork, port 9001 (not proxied), admin disabled | 1 | 1.5 GB | Subscribers, scheduled jobs, event-bus queue |
+| App | Mode | Instances | Role |
+|---|---|---|---|
+| `medusa` | `MEDUSA_WORKER_MODE=server`, cluster, port 9000 | auto (see sizing) | HTTP API + admin |
+| `medusa-worker` | `MEDUSA_WORKER_MODE=worker`, fork, port 9001 | 1 | Subscribers, scheduled jobs, listing + PDP refresh jobs |
 
 Events are queued in Redis and processed by the worker with concurrency 5, so a burst (e.g. a Salesforce bulk import emitting thousands of `product-variant.updated`) no longer fans out in-memory inside the API processes. Before the split, all three `shared` instances hit the 1 GB cap every few minutes during imports (~300 PM2 restarts each), and the in-memory local event bus lost pending events — including payment webhooks — on every restart. `scripts/deploy.sh` recreates `medusa` once when `medusa-worker` does not exist yet (instance count does not change on `startOrReload`).
 
@@ -479,13 +489,39 @@ Events are queued in Redis and processed by the worker with concurrency 5, so a 
 
 `SanityLive` and `VisualEditing` are only rendered when `draftMode()` is enabled. Regular visitors never open a Live Content API connection.
 
+### Load testing
+
+[k6](https://grafana.com/docs/k6/) scenarios live in [`loadtest/`](../loadtest/). Copy `loadtest/config.env.example`, set `BASE_URL`, `MEDUSA_URL`, and `PUBLISHABLE_KEY`, then:
+
+```bash
+k6 run loadtest/scenarios/browse.js
+./loadtest/run-all.sh
+```
+
+During a run, watch server swap, PM2 RSS, and logs tagged `store-slow`, `listing-cache`, `event-detail-cache`. Copy `loadtest/config.env.example` → `loadtest/config.env` (gitignored).
+
+**Staging baseline (2026-03-22, laptop → v2 / medusa.vrijeacademie.nl, 20 VUs unless noted):**
+
+| Scenario | Metric | Result |
+|----------|--------|--------|
+| `browse.js` | `page_duration` p95 | ~737 ms (short smoke; full ramp is ~3 min) |
+| `api-only.js` | `http_req_duration` p95 @ 20 VU, 90 s | ~346 ms, 0% errors, ~40 req/s |
+| `pdp-hot-cold.js` | `pdp_hot_ms` / `pdp_cold_ms` p95, 2 min | ~1.2 s / ~991 ms, 0% errors (hot threshold 800 ms not met yet — deploy PDP `unstable_cache` + Medusa SWR, then re-run) |
+
+Ops: `node scripts/verify-staging-revalidate.mjs` (needs `REVALIDATE_SECRET` + `PUBLISHABLE_KEY`). Patch Medusa server env: `SERVER_HOST=… REVALIDATE_SECRET=… scripts/patch-staging-revalidate-env.sh`. Sanity webhook reference: [`sanity/webhooks/storefront-revalidate.reference.json`](../sanity/webhooks/storefront-revalidate.reference.json) (add `product` to filter — CLI needs `sanity.project.webhooks` grant).
+
 ## Files reference
 
 | File | Purpose |
 |------|---------|
 | `.github/workflows/deploy-staging.yml` | GitHub Actions workflow |
 | `frontend/scripts/deploy.sh` | Server-side frontend deploy (sets `DEPLOYMENT_VERSION`, runs listing warm) |
-| `frontend/scripts/warm-listing-cache.sh` | Post-deploy warm for default PLP/Agenda hard caches |
+| `frontend/scripts/warm-listing-cache.sh` | Post-deploy warm for default PLP/Agenda + top PDP paths |
+| `scripts/pm2-sizing.cjs` | Host-aware PM2 instances and memory caps |
+| `scripts/pm2-scale-cluster.sh` | Align running PM2 cluster size after deploy |
+| `loadtest/` | k6 load test scenarios |
+| `medusa/src/lib/event-detail-rebuild.ts` | PDP Redis stale-while-revalidate |
+| `medusa/src/jobs/refresh-event-detail-snapshots.ts` | Worker PDP warm for top PLP handles |
 | `frontend/cache-incremental.cjs` | Redis `cacheHandler` for shared Next data cache |
 | `medusa/scripts/deploy.sh` | Server-side medusa deploy |
 | `frontend/ecosystem.config.cjs` | PM2 config (Next.js, port 3000, cluster mode) |

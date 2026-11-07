@@ -13,7 +13,7 @@ export async function filterProductsBySearchQuery(
     return { list, rankByProductId: null }
   }
 
-  const search = scope.resolve("search") as InstanceType<typeof SearchModuleService>
+  const search = scope.resolve("siteSearch") as unknown as InstanceType<typeof SearchModuleService>
 
   if (search.isEnabled()) {
     try {

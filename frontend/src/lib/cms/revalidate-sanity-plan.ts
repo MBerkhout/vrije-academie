@@ -3,12 +3,15 @@ import { categoryPublishRevalidatePaths } from './revalidate-storefront-cache'
 export type SanityRevalidateBody = {
   _type: string
   slug?: string
+  handle?: string
+  medusaId?: string
 }
 
 export type SanityRevalidatePlan =
   | { kind: 'page'; path: string }
   | { kind: 'chrome'; type: string }
   | { kind: 'category'; paths: string[] }
+  | { kind: 'product'; handle?: string; medusaId?: string }
   | {
       kind: 'skip'
       reason: 'unsupported_type' | 'missing_slug' | 'force_dynamic'
@@ -39,6 +42,14 @@ export function planSanityRevalidate(
 
   if (body._type === 'category') {
     return { kind: 'category', paths: categoryPublishRevalidatePaths(body.slug) }
+  }
+
+  if (body._type === 'product') {
+    return {
+      kind: 'product',
+      handle: typeof body.handle === 'string' ? body.handle : undefined,
+      medusaId: typeof body.medusaId === 'string' ? body.medusaId : undefined,
+    }
   }
 
   if (body._type !== 'page') {

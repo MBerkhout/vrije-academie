@@ -40,7 +40,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse): Promise<voi
     return
   }
 
-  const search = req.scope.resolve("search") as InstanceType<typeof SearchModuleService>
+  const search = req.scope.resolve("siteSearch") as unknown as InstanceType<typeof SearchModuleService>
   if (!search.isEnabled()) {
     res.status(503).json({ message: "OpenSearch not configured" })
     return

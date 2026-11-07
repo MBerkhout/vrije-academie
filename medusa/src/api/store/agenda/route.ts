@@ -103,7 +103,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
 
   let productRank: Map<string, number> | null = null
   if (searchQ) {
-    const search = req.scope.resolve("search") as InstanceType<typeof SearchModuleService>
+    const search = req.scope.resolve("siteSearch") as unknown as InstanceType<typeof SearchModuleService>
     let rankedIds: string[] = []
     let openSearchOk = false
 

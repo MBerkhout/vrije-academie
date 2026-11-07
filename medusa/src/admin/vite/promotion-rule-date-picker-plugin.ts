@@ -9,6 +9,13 @@ const MARKERS = [
 
 const DATE_HELPERS = `
 function __vaYyyymmddToLocalDate(value) {
+  const display =
+    typeof value === "string"
+      ? value.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/)
+      : null;
+  if (display) {
+    return new Date(Number(display[3]), Number(display[2]) - 1, Number(display[1]));
+  }
   const parsed =
     typeof value === "string" || typeof value === "number"
       ? Number.parseInt(String(value), 10)
@@ -273,6 +280,12 @@ export function patchPromotionRuleDatePicker(code: string): string | null {
 
   patched = injectEventDateRuleFlag(patched)
   patched = injectDatePickerBranch(patched)
+  // The core effect clears the value on operator changes (also on mount once the
+  // form is dirty), which wipes the saved date; skip it for event date rules.
+  patched = patched.replace(
+    "if (!hasDirtyRules) {",
+    "if (!hasDirtyRules || isEventStartDateRule) {"
+  )
 
   return patched === code ? null : patched
 }

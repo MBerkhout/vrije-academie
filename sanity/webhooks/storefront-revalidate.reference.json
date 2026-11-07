@@ -1,0 +1,17 @@
+{
+  "name": "Storefront ISR revalidate (v2)",
+  "description": "On publish: bust Next.js ISR (pages, chrome, categories, PDP Sanity cache). Configure at https://www.sanity.io/manage/project/v4eheew2/api/webhooks",
+  "url": "https://v2.vrijeacademie.nl/api/revalidate/sanity",
+  "dataset": "production",
+  "trigger": ["create", "update", "delete"],
+  "filter": "_type in [\"page\", \"generalSettings\", \"menu\", \"category\", \"product\"]",
+  "projection": "select(\n  _type == \"product\" => { \"_type\": _type, \"handle\": handle, \"medusaId\": medusaId },\n  _type == \"category\" => { \"_type\": _type, \"slug\": slug.current },\n  _type in [\"generalSettings\", \"menu\"] => { \"_type\": _type },\n  { \"_type\": _type, \"slug\": slug.current, \"isVaThuis\": isVaThuis }\n)",
+  "migrationFromPrevious": {
+    "filterWas": "_type == \"page\"",
+    "projectionWas": "{ \"_type\": _type, \"slug\": slug.current, \"isVaThuis\": isVaThuis }"
+  },
+  "httpMethod": "POST",
+  "apiVersion": "v2021-03-25",
+  "includeDrafts": false,
+  "secretNote": "Set the webhook secret to the value of SANITY_REVALIDATE_SECRET on the frontend server (HMAC — not SANITY_STUDIO_REVALIDATE_SECRET)."
+}

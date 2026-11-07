@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
 import { addGiftCardProductToCart, MAX_AMOUNT_CENTS, MIN_AMOUNT_CENTS } from "../../../../lib/gift-card-cart"
 import { refetchStoreCart } from "../../../../lib/store-cart"

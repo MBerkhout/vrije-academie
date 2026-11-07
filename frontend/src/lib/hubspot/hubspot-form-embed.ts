@@ -12,19 +12,18 @@ export function hubspotDeveloperEmbedScriptSrc(portalId: string, region: string)
   return `https://${hubspotEmbedScriptHost(region)}/forms/embed/developer/${portalId}.js`
 }
 
-/** Idempotent: injects the developer embed script once per URL (works after Next.js client navigations). */
+/**
+ * Injects the developer embed script. The script only scans for `.hs-form-html` containers when it
+ * executes, so after a client-side navigation (new container, script already loaded) we must
+ * re-inject it. Concurrent calls while a load is pending are deduped.
+ */
 export function ensureHubSpotDeveloperEmbedScript(scriptSrc: string): Promise<void> {
   if (typeof document === 'undefined') return Promise.resolve()
 
-  const cached = scriptLoadPromises.get(scriptSrc)
-  if (cached) return cached
+  const pending = scriptLoadPromises.get(scriptSrc)
+  if (pending) return pending
 
-  const existing = document.querySelector(`script[src="${scriptSrc}"]`)
-  if (existing) {
-    const resolved = Promise.resolve()
-    scriptLoadPromises.set(scriptSrc, resolved)
-    return resolved
-  }
+  document.querySelectorAll(`script[src="${scriptSrc}"]`).forEach((el) => el.remove())
 
   const promise = new Promise<void>((resolve, reject) => {
     const script = document.createElement('script')
@@ -34,6 +33,9 @@ export function ensureHubSpotDeveloperEmbedScript(scriptSrc: string): Promise<vo
     script.onerror = () => reject(new Error(`Failed to load HubSpot form embed: ${scriptSrc}`))
     document.body.appendChild(script)
   })
+
+  const clear = () => scriptLoadPromises.delete(scriptSrc)
+  promise.then(clear, clear)
 
   scriptLoadPromises.set(scriptSrc, promise)
   return promise

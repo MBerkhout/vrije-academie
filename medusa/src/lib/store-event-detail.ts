@@ -19,24 +19,15 @@ import {
   normalizeVariantPricesForStorefront,
 } from "./medusa-price-to-cents"
 import { listCategoriesForProductIds } from "./product-catalog-category-links"
-import {
-  EVENT_DETAIL_NEGATIVE_CACHE_SEC,
-  eventDetailCacheTtlSec,
-} from "./listing-cache-config"
-import {
-  eventDetailRedisKey,
-  redisGetJson,
-  redisSetJson,
-} from "./store-listing-redis"
-
-const EVENT_DETAIL_NOT_FOUND = "__404__"
 import { stripVathuisPublicEmbeds } from "./vathuis-episode-lookup"
 import {
   isVathuisUnlimitedAvailability,
   VATHUIS_UNLIMITED_AVAILABILITY,
 } from "./vathuis-availability"
 
-const detailInflight = new Map<string, Promise<Record<string, unknown> | null>>()
+export const EVENT_DETAIL_NOT_FOUND = "__404__"
+
+export { getCachedStoreEventDetail } from "./event-detail-rebuild"
 
 type StoreInstructor = {
   id: string
@@ -327,28 +318,3 @@ export async function buildStoreEventDetail(
   }
 }
 
-export async function getCachedStoreEventDetail(
-  scope: MedusaContainer,
-  handle: string
-): Promise<Record<string, unknown> | null> {
-  const key = eventDetailRedisKey(handle)
-  const cached = await redisGetJson<Record<string, unknown> | string>(key)
-  if (cached === EVENT_DETAIL_NOT_FOUND) return null
-  if (cached && typeof cached === "object") return cached
-
-  let inflight = detailInflight.get(handle)
-  if (!inflight) {
-    inflight = buildStoreEventDetail(scope, handle).finally(() => {
-      detailInflight.delete(handle)
-    })
-    detailInflight.set(handle, inflight)
-  }
-
-  const built = await inflight
-  if (built) {
-    await redisSetJson(key, built, eventDetailCacheTtlSec())
-  } else {
-    await redisSetJson(key, EVENT_DETAIL_NOT_FOUND, EVENT_DETAIL_NEGATIVE_CACHE_SEC)
-  }
-  return built
-}

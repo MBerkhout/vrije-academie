@@ -23,8 +23,19 @@ git reset --hard "origin/$BRANCH"
 git clean -fd -- medusa/src
 
 cd "$APP_DIR"
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
 npm ci
 npm run build
+
+PM2_MEDUSA_INSTANCES="$(
+  node -e "const { loadDotEnv, resolveCluster } = require('$REPO_DIR/scripts/pm2-sizing.cjs'); loadDotEnv('$APP_DIR'); console.log(resolveCluster('$APP_DIR', 'medusa').instances)"
+)"
+echo "==> PM2 medusa target instances: $PM2_MEDUSA_INSTANCES"
 
 # Production start serves admin from public/admin; build writes dist/public/admin
 mkdir -p public
@@ -48,6 +59,7 @@ if ! pm2 describe medusa-worker >/dev/null 2>&1 && pm2 describe "$PM2_APP_NAME" 
 fi
 echo "==> startOrReload PM2 processes from ecosystem.config.cjs: $PM2_APP_NAME + medusa-worker"
 pm2 startOrReload ecosystem.config.cjs --update-env
+bash "$REPO_DIR/scripts/pm2-scale-cluster.sh" "$PM2_APP_NAME" "$PM2_MEDUSA_INSTANCES"
 pm2 save
 
 # Warm PLP + Agenda listing snapshots so the first visitor after deploy avoids a ~3–4s cold build.
@@ -62,6 +74,15 @@ if [ -f .env ]; then
       -H "x-publishable-api-key: $PUBLISHABLE_KEY" || true
     curl -sf -o /dev/null "http://127.0.0.1:${PORT:-9000}/store/agenda?limit=1" \
       -H "x-publishable-api-key: $PUBLISHABLE_KEY" || true
+    WARM_HANDLES="$(
+      curl -sf "http://127.0.0.1:${PORT:-9000}/store/events?limit=8&offset=0&sort=order" \
+        -H "x-publishable-api-key: $PUBLISHABLE_KEY" \
+        | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{try{const j=JSON.parse(s);const h=(j.events||[]).map(e=>e.handle).filter(Boolean);console.log(h.join(' '));}catch{}})"
+    )"
+    for h in $WARM_HANDLES; do
+      curl -sf -o /dev/null "http://127.0.0.1:${PORT:-9000}/store/events/${h}" \
+        -H "x-publishable-api-key: $PUBLISHABLE_KEY" || true
+    done
   fi
 fi
 

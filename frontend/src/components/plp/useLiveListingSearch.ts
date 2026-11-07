@@ -65,34 +65,6 @@ export function useLiveListingSearch<TItem, TFilter extends { q?: string; sort?:
   }, [])
 
   useEffect(() => {
-    // #region agent log
-    try {
-      const clickTs = sessionStorage.getItem('debugFilterClickTs_1cde71')
-      if (clickTs) {
-        const navigationMs = Date.now() - Number(clickTs)
-        fetch('http://127.0.0.1:7766/ingest/daa88646-6778-4a68-b046-b8741af3d131', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1cde71' },
-          body: JSON.stringify({
-            sessionId: '1cde71',
-            location: 'useLiveListingSearch.ts:serverKey',
-            message: 'listing props updated after filter nav',
-            hypothesisId: 'A',
-            data: {
-              basePath,
-              navigationMs,
-              initialCount,
-              initialItemsLen: initialItems.length,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {})
-        sessionStorage.removeItem('debugFilterClickTs_1cde71')
-      }
-    } catch {
-      /* ignore */
-    }
-    // #endregion
     queryEditingRef.current = false
     committedQueryRef.current = (serverFilterState.q ?? '').trim()
     setQuery(serverFilterState.q ?? '')

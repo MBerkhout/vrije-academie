@@ -17,6 +17,8 @@ PATHS=(
   '/agenda?sort=start_date_desc'
 )
 
+PDP_WARM_COUNT="${STOREFRONT_WARM_PDP_COUNT:-8}"
+
 warm_path() {
   local path="$1"
   local url="${BASE}${path}"
@@ -46,6 +48,18 @@ done
 
 if [[ "$failed" -gt 0 ]]; then
   echo "==> Warm finished with $failed path(s) still failing (deploy continues)" >&2
+fi
+
+if [[ -n "${NEXT_PUBLIC_MEDUSA_BACKEND_URL:-}" ]] && [[ -n "${NEXT_PUBLIC_MEDUSA_API_KEY:-}" ]]; then
+  MEDUSA_BASE="${NEXT_PUBLIC_MEDUSA_BACKEND_URL%/}"
+  HANDLES="$(
+    curl -sf "${MEDUSA_BASE}/store/events?limit=${PDP_WARM_COUNT}&offset=0&sort=order" \
+      -H "x-publishable-api-key: ${NEXT_PUBLIC_MEDUSA_API_KEY}" \
+      | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{try{const j=JSON.parse(s);console.log((j.events||[]).map(e=>e.handle).filter(Boolean).join(' '));}catch{}})" 2>/dev/null || true
+  )"
+  for h in $HANDLES; do
+    warm_path "/ons-aanbod/${h}" || failed=$((failed + 1))
+  done
 fi
 
 exit 0

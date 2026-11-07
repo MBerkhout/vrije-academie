@@ -47,10 +47,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@medusajs/admin-sdk": "^2.13.6",
-    "@medusajs/draft-order": "^2.13.6",
-    "@medusajs/framework": "^2.13.6",
-    "@medusajs/medusa": "^2.13.6",
+    "@medusajs/admin-sdk": "2.22.4",
+    "@medusajs/draft-order": "2.22.4",
+    "@medusajs/framework": "2.22.4",
+    "@medusajs/medusa": "2.22.4",
     "@medusajs/ui": "^4.1.6",
     "@mollie/api-client": "^4.6.0",
     "@opensearch-project/opensearch": "^3.6.0",
@@ -61,10 +61,10 @@
     "nodemailer": "^10.0.10",
     "pg": "^8.20.0",
     "redis": "^5.11.0",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@medusajs/cli": "^2.13.6",
+    "@medusajs/cli": "2.22.4",
     "@types/node": "^25.5.0",
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.0.0",

@@ -2,7 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
 import GiftCardModuleService from "../../../modules/gift-card/service"
 import { GIFT_CARD_MODULE } from "../../../modules/gift-card"

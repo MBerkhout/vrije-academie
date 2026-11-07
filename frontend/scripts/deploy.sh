@@ -19,9 +19,20 @@ git checkout -f "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
 cd "$APP_DIR"
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
 npm ci
 export DEPLOYMENT_VERSION="${DEPLOYMENT_VERSION:-$(git -C "$REPO_DIR" rev-parse --short HEAD)}"
 npm run build
+
+PM2_DESIRED_INSTANCES="$(
+  node -e "const { loadDotEnv, resolveCluster } = require('$REPO_DIR/scripts/pm2-sizing.cjs'); loadDotEnv('$APP_DIR'); console.log(resolveCluster('$APP_DIR', 'frontend').instances)"
+)"
+echo "==> PM2 frontend target instances: $PM2_DESIRED_INSTANCES"
 
 # startOrReload re-applies ecosystem.config.cjs (instances, exec_mode, etc.) on every
 # deploy instead of blindly reloading whatever process object already exists in PM2 —
@@ -29,6 +40,7 @@ npm run build
 # of cluster) if it was ever started outside this config.
 echo "==> startOrReload PM2 process from ecosystem.config.cjs: $PM2_APP_NAME (DEPLOYMENT_VERSION=$DEPLOYMENT_VERSION)"
 pm2 startOrReload ecosystem.config.cjs --update-env
+bash "$REPO_DIR/scripts/pm2-scale-cluster.sh" "$PM2_APP_NAME" "$PM2_DESIRED_INSTANCES"
 pm2 save
 
 bash "$APP_DIR/scripts/warm-listing-cache.sh"

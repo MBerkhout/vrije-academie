@@ -10,7 +10,7 @@ export default async function syncSearchCatalogEntitiesSubscriber({
   event: { name, data },
   container,
 }: SubscriberArgs<Record<string, unknown>>): Promise<void> {
-  const search = container.resolve("search") as InstanceType<typeof SearchModuleService>
+  const search = container.resolve("siteSearch") as unknown as InstanceType<typeof SearchModuleService>
   if (!search.isEnabled()) return
 
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)

@@ -3,7 +3,10 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
+  Modules,
+  PaymentActions,
 } from "@medusajs/framework/utils"
+import { processPaymentWorkflowId } from "@medusajs/core-flows"
 
 import productDocentenLink from "../links/product-docenten"
 import { vathuisCartDisplayFromProductMetadata } from "../modules/salesforce-sync/utils/vathuis-metadata"
@@ -387,6 +390,53 @@ async function enrichOrderItems(
   }
 }
 
+/**
+ * Fallback for a missed Mollie webhook: if the cart's session is paid/authorized at
+ * Mollie but no order exists, run the same workflow the webhook subscriber would.
+ * Never throws.
+ */
+async function recoverPaidCart(scope: MedusaContainer, cartId: string): Promise<void> {
+  try {
+    const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+    const { data: carts } = await query.graph({
+      entity: "cart",
+      fields: [
+        "id",
+        "completed_at",
+        "payment_collection.payment_sessions.id",
+        "payment_collection.payment_sessions.amount",
+        "payment_collection.payment_sessions.data",
+      ],
+      filters: { id: cartId },
+    })
+    const sessions =
+      (
+        carts?.[0] as
+          | { payment_collection?: { payment_sessions?: Array<PaymentSessionRow & { amount?: unknown }> } }
+          | undefined
+      )?.payment_collection?.payment_sessions ?? []
+
+    for (const session of sessions) {
+      const mollieId = extractMolliePaymentId(session.data)
+      if (!mollieId || !session.id) continue
+      const status = await fetchMolliePaymentStatus(mollieId)
+      if (status !== "paid" && status !== "authorized") continue
+
+      const wfEngine = scope.resolve(Modules.WORKFLOW_ENGINE)
+      await wfEngine.run(processPaymentWorkflowId, {
+        input: {
+          action: status === "paid" ? PaymentActions.SUCCESSFUL : PaymentActions.AUTHORIZED,
+          data: { session_id: session.id, amount: session.amount },
+        },
+      })
+      return
+    }
+  } catch (e) {
+    const logger = scope.resolve(ContainerRegistrationKeys.LOGGER)
+    logger.warn(`Checkout confirmation recovery failed for ${cartId}: ${(e as Error).message}`)
+  }
+}
+
 export async function buildCheckoutConfirmation(
   scope: MedusaContainer,
   input: { order_id?: string; cart_id?: string; payment_session_id?: string; token?: string }
@@ -405,6 +455,12 @@ export async function buildCheckoutConfirmation(
   }
 
   if (!orderId && input.cart_id?.trim()) {
+    orderId = await resolveOrderIdByCartId(scope, input.cart_id.trim())
+  }
+
+  if (!orderId && input.cart_id?.trim()) {
+    // Webhook never arrived (e.g. tunnel down in dev): complete the cart ourselves.
+    await recoverPaidCart(scope, input.cart_id.trim())
     orderId = await resolveOrderIdByCartId(scope, input.cart_id.trim())
   }
 

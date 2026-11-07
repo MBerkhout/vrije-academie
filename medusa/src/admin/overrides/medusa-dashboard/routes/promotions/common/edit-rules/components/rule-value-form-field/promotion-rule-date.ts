@@ -1,5 +1,14 @@
 /** YYYYMMDD integer ↔ local calendar date for promotion admin date pickers. */
 export function yyyymmddToLocalDate(value: unknown): Date | null {
+  // The rules API returns display values (DD/MM/YYYY) when editing.
+  const display =
+    typeof value === "string"
+      ? value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+      : null
+  if (display) {
+    return new Date(Number(display[3]), Number(display[2]) - 1, Number(display[1]))
+  }
+
   const parsed =
     typeof value === "string" || typeof value === "number"
       ? Number.parseInt(String(value), 10)
