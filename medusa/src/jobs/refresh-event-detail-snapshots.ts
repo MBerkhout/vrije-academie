@@ -1,5 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
+import * as Sentry from "@sentry/node"
 
+import { captureWithContext } from "../lib/sentry"
 import { rebuildEventDetail } from "../lib/event-detail-rebuild"
 import { shouldRebuildEventDetail } from "../lib/listing-cache-config"
 import { PLP_TOP_SLOT_COUNT } from "../lib/store-listing-redis"
@@ -39,7 +41,20 @@ export async function refreshEventDetailSnapshots(container: MedusaContainer): P
 }
 
 export default async function refreshEventDetailSnapshotsJob(container: MedusaContainer) {
-  await refreshEventDetailSnapshots(container)
+  await Sentry.withMonitor(
+    "refresh-event-detail-snapshots",
+    async () => {
+      try {
+        await refreshEventDetailSnapshots(container)
+      } catch (error) {
+        captureWithContext(error, {
+          tags: { kind: "job", job: "refresh-event-detail-snapshots" },
+        })
+        throw error
+      }
+    },
+    { schedule: { type: "crontab", value: "* * * * *" } }
+  )
 }
 
 export const config = {

@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { buildGtmRefundPayload } from "../lib/gtm/build-refund-payload"
@@ -11,7 +12,7 @@ import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/orde
  * Server-side refund event for sGTM when an order is canceled.
  * Idempotent via order.metadata.gtm_refund_sent_at.
  */
-export default async function gtmRefundOnOrderCanceled({
+async function gtmRefundOnOrderCanceled({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -48,3 +49,5 @@ export default async function gtmRefundOnOrderCanceled({
 export const config: SubscriberConfig = {
   event: "order.canceled",
 }
+
+export default sentrySubscriber("gtm-refund-order-canceled", gtmRefundOnOrderCanceled)

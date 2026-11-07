@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { VATHUIS_ACCESS_MODULE } from "../modules/vathuis-access"
@@ -7,7 +8,7 @@ import type VathuisAccessModuleService from "../modules/vathuis-access/service"
 /**
  * On order.completed: grant VA Thuis bundle access for 3 calendar months.
  */
-export default async function vathuisAccessOrderCompleted({
+async function vathuisAccessOrderCompleted({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -33,3 +34,5 @@ export default async function vathuisAccessOrderCompleted({
 export const config: SubscriberConfig = {
   event: "order.completed",
 }
+
+export default sentrySubscriber("vathuis-access-order-completed", vathuisAccessOrderCompleted)

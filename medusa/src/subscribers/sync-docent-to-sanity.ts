@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import PeopleModuleService from "../modules/people/service"
@@ -40,8 +41,8 @@ async function syncDocentToSanity({
   }
 }
 
-export default syncDocentToSanity
-
 export const config: SubscriberConfig = {
   event: ["people.docent.created", "people.docent.updated", "people.docent.deleted"],
 }
+
+export default sentrySubscriber("sync-docent-to-sanity", syncDocentToSanity)

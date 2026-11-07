@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 import { ErrorView } from '@/components/ErrorView'
 import './globals.css'
@@ -12,7 +13,7 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error(error)
+    Sentry.captureException(error)
   }, [error])
 
   return (

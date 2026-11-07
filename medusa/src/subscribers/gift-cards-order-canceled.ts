@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import GiftCardModuleService from "../modules/gift-card/service"
@@ -7,7 +8,7 @@ import { GIFT_CARD_MODULE } from "../modules/gift-card"
 /**
  * Restore gift-card balances used on a canceled order; void freshly issued cards if still unused.
  */
-export default async function giftCardsOnOrderCanceled({
+async function giftCardsOnOrderCanceled({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -27,3 +28,5 @@ export default async function giftCardsOnOrderCanceled({
 export const config: SubscriberConfig = {
   event: "order.canceled",
 }
+
+export default sentrySubscriber("gift-cards-order-canceled", giftCardsOnOrderCanceled)

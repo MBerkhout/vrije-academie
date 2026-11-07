@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import {
@@ -15,7 +16,7 @@ import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/orde
  * Server-side purchase event for sGTM (not browser dataLayer).
  * Idempotent via order.metadata.gtm_purchase_sent_at.
  */
-export default async function gtmPurchaseOnOrderCompleted({
+async function gtmPurchaseOnOrderCompleted({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -53,3 +54,5 @@ export default async function gtmPurchaseOnOrderCompleted({
 export const config: SubscriberConfig = {
   event: "order.completed",
 }
+
+export default sentrySubscriber("gtm-purchase-order-completed", gtmPurchaseOnOrderCompleted)

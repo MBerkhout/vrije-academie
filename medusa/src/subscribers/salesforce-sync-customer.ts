@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { withSubscriberPerf } from "../lib/subscriber-perf"
@@ -6,7 +7,7 @@ import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { pushCustomerToSalesforceWorkflowId } from "../workflows/salesforce/push-customer-salesforce"
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 
-export default async function salesforceSyncCustomer({
+async function salesforceSyncCustomer({
   event: { data, name },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -33,3 +34,5 @@ export default async function salesforceSyncCustomer({
 export const config: SubscriberConfig = {
   event: ["customer.created", "customer.updated"],
 }
+
+export default sentrySubscriber("salesforce-sync-customer", salesforceSyncCustomer)

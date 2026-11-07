@@ -24,7 +24,8 @@ describe("sendSgtmEvent", () => {
     const fetchMock = vi.mocked(fetch)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(url).toBe("https://sgtm.example/collect")
+    expect(url).toContain("https://sgtm.example/collect")
+    expect(url).toContain("event_name=purchase")
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer secret")
     const body = JSON.parse(String(init.body))
     expect(body.event_name).toBe("purchase")

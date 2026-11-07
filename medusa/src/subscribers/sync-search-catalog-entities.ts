@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import SearchModuleService from "../modules/search/service"
@@ -6,7 +7,7 @@ import SearchModuleService from "../modules/search/service"
 /**
  * Re-index docent/category/city entity docs when catalog or people data changes.
  */
-export default async function syncSearchCatalogEntitiesSubscriber({
+async function syncSearchCatalogEntitiesSubscriber({
   event: { name, data },
   container,
 }: SubscriberArgs<Record<string, unknown>>): Promise<void> {
@@ -75,3 +76,5 @@ export const config: SubscriberConfig = {
     "people.docent.deleted",
   ],
 }
+
+export default sentrySubscriber("sync-search-catalog-entities", syncSearchCatalogEntitiesSubscriber)

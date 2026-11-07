@@ -152,6 +152,17 @@ See [SANITY_SYNC.md](./SANITY_SYNC.md). Cities sync as Sanity `city` documents (
 - `POST /hooks/salesforce` — Salesforce outbound webhook (batched `{ object_type, method, ids[] }`, shared secret)
 - `/admin/salesforce/*` — sync status, push/pull, webhook queue, failure list & retry (authenticated). See [SALESFORCE_SYNC.md](./SALESFORCE_SYNC.md).
 
+## Monitoring (Sentry)
+
+When `SENTRY_DSN` is set, `src/instrument.ts` loads via `medusa-config.ts` (server + worker).
+
+- **HTTP**: custom `errorHandler` in `src/api/middlewares.ts`; store requests get route/customer tags in `store-request-timing`.
+- **Background**: subscribers wrapped with `sentrySubscriber`; scheduled jobs use `Sentry.withMonitor`; Salesforce workflow failures call `captureWithContext` in `workflows/salesforce/report-failure.ts`.
+- **Helpers**: `captureWithContext` in `src/lib/sentry.ts` — use tags (`flow`, `kind`), no PII in `extra`.
+- **Checkout/payments**: Mollie Klarna and OTP email failures are captured with `flow: checkout` / `auth`.
+
+Env template: `.env.template` (Sentry block). Deploy: [DEPLOYMENT.md](../../docs/DEPLOYMENT.md) § Sentry.
+
 ## Documentation
 
 - [PAYMENT-MOLLIE.md](./PAYMENT-MOLLIE.md) — Mollie providers, webhooks, retry after failed payment

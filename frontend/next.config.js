@@ -1,5 +1,7 @@
 import { createRequire } from 'module'
 
+const { withSentryConfig } = createRequire(import.meta.url)('@sentry/nextjs/config')
+
 /** Staging host — keep in sync with `NOINDEX_HOST` in `src/lib/cms/seo-metadata.ts`. */
 const NOINDEX_HOST = 'v2.vrijeacademie.nl'
 
@@ -39,4 +41,14 @@ const nextConfig = {
     : {}),
 }
 
-export default nextConfig
+const sentryWebpackPluginOptions = {
+  org: process.env.SENTRY_ORG || 'vrije-academie',
+  project: process.env.SENTRY_PROJECT || 'vrije-academie-frontend',
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  widenClientFileUpload: true,
+  tunnelRoute: '/monitoring',
+  disableLogger: true,
+}
+
+export default withSentryConfig(nextConfig, sentryWebpackPluginOptions)

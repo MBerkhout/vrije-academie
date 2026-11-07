@@ -27,6 +27,7 @@ if [ -f .env ]; then
 fi
 npm ci
 export DEPLOYMENT_VERSION="${DEPLOYMENT_VERSION:-$(git -C "$REPO_DIR" rev-parse --short HEAD)}"
+export SENTRY_RELEASE="${SENTRY_RELEASE:-$(git -C "$REPO_DIR" rev-parse HEAD)}"
 npm run build
 
 PM2_DESIRED_INSTANCES="$(

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getMedusaBackendUrl } from '@/lib/commerce/medusa-backend-url'
+import { medusaTraceHeaders } from '@/lib/sentry'
 
 const BACKEND_URL = getMedusaBackendUrl()
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_API_KEY ?? ''
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
       headers: {
         cookie: req.headers.get('cookie') ?? '',
         ...(PUBLISHABLE_KEY ? { 'x-publishable-api-key': PUBLISHABLE_KEY } : {}),
+        ...medusaTraceHeaders(),
       },
       credentials: 'include',
     })

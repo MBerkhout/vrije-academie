@@ -22,6 +22,19 @@ set -a && source loadtest/config.env && set +a
 | `scenarios/spike.js` | 10× ramp on a single PDP |
 | `scenarios/api-only.js` | Medusa `/store/*` ceiling |
 | `scenarios/checkout-light.js` | Cart create + line item (no payment) |
+| `scenarios/ga4-normal.js` | **50 VU**, 15 min — GA4 mixed journey (browse / account / search / checkout) |
+| `scenarios/ga4-peak.js` | **200 VU** (configurable), 15 min — launch peak |
+| `scenarios/ga4-spike.js` | **350 VU** spike ~2 min — email blast |
+| `scenarios/ga4-soak.js` | **40 VU**, 1 h — endurance (`GA4_SOAK_DURATION=15m` for a quick drill) |
+
+**Pass criteria (staging):** `page_load_ms` p95 &lt; 800 ms, `checkout_step_ms` p95 &lt; 1.5 s, `http_req_failed` &lt; 1%. Think time 3–5 s between steps (see `lib/mixed-journey.js`).
+
+```bash
+k6 run loadtest/scenarios/ga4-normal.js
+GA4_PEAK_VUS=200 k6 run loadtest/scenarios/ga4-peak.js
+k6 run loadtest/scenarios/ga4-spike.js
+GA4_SOAK_DURATION=15m k6 run loadtest/scenarios/ga4-soak.js
+```
 
 ```bash
 k6 run loadtest/scenarios/browse.js

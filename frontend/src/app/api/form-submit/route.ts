@@ -4,6 +4,8 @@
  */
 import { NextResponse } from 'next/server'
 
+import { captureServerError } from '@/lib/sentry'
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
@@ -14,7 +16,8 @@ export async function POST(request: Request) {
       success: true,
       message: formId ? `Form ${formId} received.` : 'Form submitted successfully.',
     })
-  } catch {
+  } catch (error) {
+    captureServerError(error, { flow: 'form-submit' })
     return NextResponse.json(
       { success: false, message: 'Er is iets misgegaan. Probeer het opnieuw.' },
       { status: 500 }

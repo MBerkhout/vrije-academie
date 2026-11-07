@@ -266,6 +266,18 @@ The following dynamic backends are stubbed with explicit TODOs; search for `TODO
 
 See [components.md](./components.md#deferred-work) for details.
 
+## Monitoring (Sentry)
+
+When `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` are set:
+
+- **Server/edge**: `sentry.server.config.ts`, `sentry.edge.config.ts`, `src/instrumentation.ts` (`onRequestError`).
+- **Browser**: `src/instrumentation-client.ts` (tracing; Session Replay off).
+- **Store API**: `src/lib/commerce/medusa-client.ts` propagates trace headers and tags `flow` (`checkout`, `cart`, `auth`).
+- **Capture helper**: `captureServerError` in `src/lib/sentry.ts` for route handlers; use tags, never email/PII in `extra`.
+- **PII**: `src/lib/sentry-scrub.ts` filters headers and sensitive keys in `beforeSend`.
+
+See [DEPLOYMENT.md](../../docs/DEPLOYMENT.md) § Sentry for env vars and alerts.
+
 ## Documentation
 
 - [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) - Design tokens and component usage

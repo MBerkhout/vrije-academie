@@ -1,3 +1,4 @@
+import { captureWithContext } from "../../lib/sentry"
 import type {
   AuthorizePaymentInput,
   AuthorizePaymentOutput,
@@ -173,6 +174,9 @@ class MollieKlarnaProviderService extends AbstractPaymentProvider<MollieKlarnaPr
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       this.logger_.error(`Mollie Klarna payment creation failed: ${message}`)
+      captureWithContext(error, {
+        tags: { flow: "checkout", kind: "payment", provider: "mollie-klarna" },
+      })
       throw new MedusaError(MedusaError.Types.INVALID_DATA, message)
     }
   }

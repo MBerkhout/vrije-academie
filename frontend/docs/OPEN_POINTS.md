@@ -122,13 +122,12 @@
 
 ## Monitoring & Error Tracking
 
-**Future**: Implement monitoring and error tracking.
+**Done (staging)**: Sentry on frontend + Medusa — see [README.md](./README.md) § Monitoring (Sentry) and [DEPLOYMENT.md](../../docs/DEPLOYMENT.md) § Sentry. Set DSNs and `SENTRY_ENVIRONMENT` on the server before go-live; configure alert rules in Sentry.
 
-### Options
+**Still optional**
 
-- Sentry for error tracking
-- Vercel Analytics
-- Custom logging solution
+- Vercel Analytics (not applicable on self-hosted PM2)
+- Session Replay (off by default due to checkout PII)
 
 ## Content Preview
 

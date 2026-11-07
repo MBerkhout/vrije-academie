@@ -241,6 +241,11 @@ In the repo: **Settings → Secrets and variables → Actions**
 | `SANITY_STUDIO_PROJECT_ID` | Sanity project ID (also used as the hosted studio subdomain on first deploy) |
 | `SANITY_STUDIO_DATASET` | Dataset name (e.g. `production` or `staging`) |
 | `SANITY_STUDIO_REVALIDATE_SECRET` | Bearer secret baked into hosted Studio for **Clear page cache** (same value as frontend `SANITY_STUDIO_REVALIDATE_SECRET`) |
+| `SENTRY_AUTH_TOKEN` | Optional. Org auth token for **source map upload** during `next build` (frontend). Create at [Auth Tokens](https://vrije-academie.sentry.io/settings/account/api/auth-tokens/) with `org:ci`, `project:releases`, `project:write` — then set on the server `frontend/.env` and/or this GitHub secret. |
+| `SENTRY_DSN_FRONTEND` | DSN for `vrije-academie-frontend` (for reference / future CI; staging servers still use `.env`) |
+| `SENTRY_DSN_MEDUSA` | DSN for `vrije-academie-medusa` |
+| `SENTRY_ORG` | `vrije-academie` |
+| `SENTRY_ENVIRONMENT_STAGING` | `staging` |
 
 CI also sets `SANITY_STUDIO_PREVIEW_URL` to `https://v2.vrijeacademie.nl` for the Presentation tool (bundled at deploy time). `SANITY_STUDIO_REVALIDATE_SECRET` is bundled the same way for the page ⋯ **Clear page cache** action.
 
@@ -518,7 +523,46 @@ During a run, watch server swap, PM2 RSS, and logs tagged `store-slow`, `listing
 | `api-only.js` | `http_req_duration` p95 @ 20 VU, 90 s | ~785 ms, 0% errors (post PDP cache + security deploy `f1dbcdb`) |
 | `pdp-hot-cold.js` | `pdp_hot_ms` / `pdp_cold_ms` p95, 2 min | ~821 ms / ~861 ms, 0% errors (down from ~1.2 s pre-cache; hot k6 threshold 800 ms still marginal) |
 
-Ops: `node scripts/verify-staging-revalidate.mjs` (needs `REVALIDATE_SECRET` + `PUBLISHABLE_KEY`). Patch Medusa server env: `SERVER_HOST=… REVALIDATE_SECRET=… scripts/patch-staging-revalidate-env.sh`. Sanity webhook reference: [`sanity/webhooks/storefront-revalidate.reference.json`](../sanity/webhooks/storefront-revalidate.reference.json) (add `product` to filter — CLI needs `sanity.project.webhooks` grant).
+Ops: `node scripts/verify-staging-revalidate.mjs` (needs `REVALIDATE_SECRET` + `PUBLISHABLE_KEY`). Patch Medusa server env: `SERVER_HOST=… REVALIDATE_SECRET=… scripts/patch-staging-revalidate-env.sh`. Patch Sentry on staging: `SERVER_HOST=… SENTRY_AUTH_TOKEN=… scripts/patch-staging-sentry-env.sh` (SSH as `frontend` / `medusa`; reloads PM2). Sanity webhook reference: [`sanity/webhooks/storefront-revalidate.reference.json`](../sanity/webhooks/storefront-revalidate.reference.json) (add `product` to filter — CLI needs `sanity.project.webhooks` grant).
+
+## Sentry (error tracking)
+
+Org: **vrije-academie** ([sentry.io](https://sentry.io)). Separate projects recommended: `vrije-academie-frontend` and `vrije-academie-medusa`.
+
+### Server `.env` (per app user)
+
+| Variable | Frontend | Medusa |
+|----------|----------|--------|
+| `SENTRY_DSN` | Yes | Yes |
+| `NEXT_PUBLIC_SENTRY_DSN` | Yes (browser) | — |
+| `SENTRY_ENVIRONMENT` | `staging` / `production` | same |
+| `SENTRY_RELEASE` | Set by deploy script (full git SHA) | same |
+| `SENTRY_TRACES_SAMPLE_RATE` | Optional (`1` staging, `0.2` prod default) | same |
+| `SENTRY_AUTH_TOKEN` | Build-time source maps | optional for Medusa release |
+| `SENTRY_ORG` / `SENTRY_PROJECT` | `vrije-academie` / `vrije-academie-frontend` | `vrije-academie-medusa` |
+
+Leave DSN unset locally to keep Sentry disabled in development.
+
+### Deploy / releases
+
+`frontend/scripts/deploy.sh` and `medusa/scripts/deploy.sh` export `SENTRY_RELEASE` from the git commit before `npm run build`. PM2 passes `SENTRY_RELEASE` via `ecosystem.config.cjs`.
+
+Medusa initializes Sentry from `medusa/src/instrument.ts` (imported at the top of `medusa-config.ts`) on **server** and **medusa-worker** processes.
+
+The storefront tunnels browser events via `/monitoring` (`withSentryConfig` in `next.config.js`) to reduce ad-blocker loss.
+
+### Suggested alerts (create in Sentry UI)
+
+- New issue in `production`
+- Error rate spike on project `vrije-academie-frontend` or `vrije-academie-medusa`
+- Tag `flow:checkout` or `flow:salesforce-sync`
+- Cron monitors: `process-salesforce-webhook-queue`, `refresh-store-listing-snapshots`, `refresh-event-detail-snapshots`
+
+### Verify after DSNs are set
+
+1. Trigger a test error on staging (e.g. temporary misconfiguration) and confirm events in both projects.
+2. Complete a checkout on staging and confirm linked traces (`sentry-trace` / `baggage` from storefront → Medusa `/store/*`).
+3. Confirm releases show the deploy commit SHA and source maps resolve stack frames (frontend needs `SENTRY_AUTH_TOKEN` on build).
 
 ## Files reference
 

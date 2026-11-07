@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
+import { captureWithContext } from "../../lib/sentry"
 import SalesforceSyncModuleService from "../../modules/salesforce-sync/service"
 
 const ALERT_BUCKETS = [1, 5, 25, 100] as const
@@ -59,6 +60,20 @@ export async function reportSalesforceFailure(
   logger.error(
     `[salesforce-sync] terminal failure: ${ctx.errorMessage} | entity=${ctx.entityType} medusa=${ctx.medusaId} salesforce=${ctx.salesforceId ?? ""} workflow=${ctx.workflowId} failures=${row.failure_count}`
   )
+
+  captureWithContext(new Error(ctx.errorMessage), {
+    tags: {
+      kind: "workflow",
+      flow: "salesforce-sync",
+      entity_type: ctx.entityType,
+      workflow: ctx.workflowId,
+    },
+    extra: {
+      medusa_id: ctx.medusaId,
+      salesforce_id: ctx.salesforceId ?? undefined,
+      failure_count: row.failure_count,
+    },
+  })
 
   const webhook = process.env.SALESFORCE_SYNC_ALERT_WEBHOOK_URL?.trim()
   if (!webhook || !row) return

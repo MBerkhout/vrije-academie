@@ -25,7 +25,8 @@ describe('collectCheckoutAttribution', () => {
 
   it('reads GA and Meta cookies when consent is granted', () => {
     vi.stubGlobal('Cookiebot', { consent: { marketing: true, statistics: false } })
-    document.cookie = '_ga=GA1.2.111.222; _fbp=fb.1.123'
+    document.cookie = '_ga=GA1.2.111.222'
+    document.cookie = '_fbp=fb.1.123'
     const result = collectCheckoutAttribution({ eventId: 'e1' })
     expect(result.client_id).toBe('111.222')
     expect(result.fbp).toBe('fb.1.123')

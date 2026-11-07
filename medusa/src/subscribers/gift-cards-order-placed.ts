@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import {
   ContainerRegistrationKeys,
   Modules,
@@ -14,7 +15,7 @@ import GiftCardModuleService from "../modules/gift-card/service"
  * finalize balance deduction for applied gift-card credit lines.
  * Recipient email with the Salesforce GTC code is sent after order push (Voucher__c sync).
  */
-export default async function giftCardsOnOrderPlaced({
+async function giftCardsOnOrderPlaced({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -109,3 +110,5 @@ export default async function giftCardsOnOrderPlaced({
 export const config: SubscriberConfig = {
   event: "order.placed",
 }
+
+export default sentrySubscriber("gift-cards-order-placed", giftCardsOnOrderPlaced)

@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { buildGtmSignUpPayload } from "../lib/gtm/build-sign-up-payload"
@@ -16,7 +17,7 @@ const ANALYTICS_SIGN_UP_EVENT_ID = "analytics_sign_up_event_id"
  * Server-side sign_up for Stape (website registration only).
  * Skips customers without analytics_sign_up_event_id (Salesforce import / legacy).
  */
-export default async function gtmSignUpOnCustomerCreated({
+async function gtmSignUpOnCustomerCreated({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -56,3 +57,5 @@ export default async function gtmSignUpOnCustomerCreated({
 export const config: SubscriberConfig = {
   event: "customer.created",
 }
+
+export default sentrySubscriber("gtm-sign-up-customer-created", gtmSignUpOnCustomerCreated)

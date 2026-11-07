@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { withSubscriberPerf } from "../lib/subscriber-perf"
@@ -7,7 +8,7 @@ import { isSalesforcePushSuppressed } from "../modules/salesforce-sync/utils/sup
 import { pushVariantToSalesforceWorkflowId } from "../workflows/salesforce/push-variant-salesforce"
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 
-export default async function salesforceSyncVariantCreated({
+async function salesforceSyncVariantCreated({
   event: { name, data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -29,3 +30,5 @@ export default async function salesforceSyncVariantCreated({
 export const config: SubscriberConfig = {
   event: "product-variant.created",
 }
+
+export default sentrySubscriber("salesforce-sync-variant", salesforceSyncVariantCreated)

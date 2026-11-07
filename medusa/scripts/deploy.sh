@@ -30,6 +30,7 @@ if [ -f .env ]; then
   set +a
 fi
 npm ci
+export SENTRY_RELEASE="${SENTRY_RELEASE:-$(git -C "$REPO_DIR" rev-parse HEAD)}"
 npm run build
 
 PM2_MEDUSA_INSTANCES="$(

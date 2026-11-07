@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { deleteDoc } from "../modules/sanity-sync/service"
@@ -29,9 +30,9 @@ async function syncProductToSanity({
   }
 }
 
-export default syncProductToSanity
-
 export const config: SubscriberConfig = {
   // product.created is handled by salesforce workflow (includes Sanity after SF); keep updated/deleted here.
   event: ["product.updated", "product.deleted"],
 }
+
+export default sentrySubscriber("sync-product-to-sanity", syncProductToSanity)

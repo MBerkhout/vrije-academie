@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import CatalogModuleService from "../modules/catalog/service"
@@ -35,8 +36,8 @@ async function syncCategoryToSanity({
   }
 }
 
-export default syncCategoryToSanity
-
 export const config: SubscriberConfig = {
   event: ["catalog.category.created", "catalog.category.updated", "catalog.category.deleted"],
 }
+
+export default sentrySubscriber("sync-category-to-sanity", syncCategoryToSanity)

@@ -1,3 +1,5 @@
+import "./src/instrument"
+
 import { defineConfig } from "@medusajs/utils"
 
 import {

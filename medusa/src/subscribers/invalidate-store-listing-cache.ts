@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 
 import {
   handleOrderCatalogChange,
@@ -11,7 +12,7 @@ import {
  * - product.updated → listing bust only when product is on the first PLP page
  * - order.* → registration counts only (default PLP sort is Salesforce order)
  */
-export default async function invalidateStoreListingCacheSubscriber({
+async function invalidateStoreListingCacheSubscriber({
   event,
   container,
 }: SubscriberArgs<{ id: string }>): Promise<void> {
@@ -42,3 +43,5 @@ export const config: SubscriberConfig = {
     "order.placed",
   ],
 }
+
+export default sentrySubscriber("invalidate-store-listing-cache", invalidateStoreListingCacheSubscriber)

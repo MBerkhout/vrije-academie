@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import {
   ContainerRegistrationKeys,
   Modules,
@@ -12,7 +13,7 @@ import variantEventItemLink from "../links/variant-event-item"
  * When a variant is linked to an `EventItem`, keep `manage_inventory` off so
  * carts do not reserve stock via the inventory module.
  */
-export default async function ensureEventVariantNoMedusaInventory({
+async function ensureEventVariantNoMedusaInventory({
   event: { name, data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -45,3 +46,5 @@ export default async function ensureEventVariantNoMedusaInventory({
 export const config: SubscriberConfig = {
   event: ["product-variant.created", "product-variant.updated"],
 }
+
+export default sentrySubscriber("ensure-event-variant-no-medusa-inventory", ensureEventVariantNoMedusaInventory)

@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { withSubscriberPerf } from "../lib/subscriber-perf"
@@ -8,7 +9,7 @@ import { pushProductToSalesforceWorkflowId } from "../workflows/salesforce/push-
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 
 /** `product.created` only — updates are not pushed back per project rules; Sanity handles updates. */
-export default async function salesforceSyncProductCreated({
+async function salesforceSyncProductCreated({
   event: { name, data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -30,3 +31,5 @@ export default async function salesforceSyncProductCreated({
 export const config: SubscriberConfig = {
   event: "product.created",
 }
+
+export default sentrySubscriber("salesforce-sync-product", salesforceSyncProductCreated)

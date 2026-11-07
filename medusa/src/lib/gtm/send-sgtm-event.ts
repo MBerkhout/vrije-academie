@@ -6,6 +6,14 @@ const DEFAULT_TIMEOUT_MS = 8000
 
 export type SgtmEventPayload = Record<string, unknown> & { event: string }
 
+/** Stape Data Client protocol: `?v=2&event_name=…` on the request URL. */
+export function withStapeDataClientQuery(endpoint: string, eventName: string): string {
+  const url = new URL(endpoint)
+  url.searchParams.set("v", "2")
+  url.searchParams.set("event_name", eventName)
+  return url.toString()
+}
+
 function buildRequestHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -32,7 +40,7 @@ export async function sendSgtmEvent(payload: SgtmEventPayload): Promise<void> {
     throw new Error("sGTM is not enabled")
   }
 
-  const endpoint = sgtmEndpointUrl()
+  const endpoint = withStapeDataClientQuery(sgtmEndpointUrl(), payload.event)
   const body = toStapeDataClientBody(payload)
   const headers = buildRequestHeaders()
 

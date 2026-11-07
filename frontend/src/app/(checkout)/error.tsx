@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 import { ErrorView } from '@/components/ErrorView'
 
@@ -11,7 +12,10 @@ export default function CheckoutError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error(error)
+    Sentry.withScope((scope) => {
+      scope.setTag('flow', 'checkout')
+      Sentry.captureException(error)
+    })
   }, [error])
 
   return <ErrorView onRetry={reset} digest={error.digest} />

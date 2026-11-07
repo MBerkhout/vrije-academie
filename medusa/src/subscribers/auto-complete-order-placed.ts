@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { completeOrderWorkflow } from "@medusajs/medusa/core-flows"
 
@@ -7,7 +8,7 @@ import { completeOrderWorkflow } from "@medusajs/medusa/core-flows"
  * When payment is captured the order is placed (status pending); complete it
  * immediately so order.completed subscribers run (SF sync, seat decrement).
  */
-export default async function autoCompleteOrderOnPlaced({
+async function autoCompleteOrderOnPlaced({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -34,3 +35,5 @@ export default async function autoCompleteOrderOnPlaced({
 export const config: SubscriberConfig = {
   event: "order.placed",
 }
+
+export default sentrySubscriber("auto-complete-order-placed", autoCompleteOrderOnPlaced)

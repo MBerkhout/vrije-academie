@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/order-import-metadata"
@@ -9,7 +10,7 @@ import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 /**
  * Push when order reaches completed (paid) — aligns with inventory decrement subscriber.
  */
-export default async function salesforceSyncOrderCompleted({
+async function salesforceSyncOrderCompleted({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -38,3 +39,5 @@ export default async function salesforceSyncOrderCompleted({
 export const config: SubscriberConfig = {
   event: "order.completed",
 }
+
+export default sentrySubscriber("salesforce-sync-order", salesforceSyncOrderCompleted)

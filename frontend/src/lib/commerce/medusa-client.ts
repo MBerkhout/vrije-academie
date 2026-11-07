@@ -2,6 +2,7 @@
  * Medusa implementation of Commerce client
  */
 
+import * as Sentry from '@sentry/nextjs'
 import Medusa from '@medusajs/js-sdk'
 import { isOrderVisibleInAccount } from '@/lib/commerce/account-orders'
 import { mapCartSyncErrorMessage } from '@/lib/commerce/checkout-notice'
@@ -331,12 +332,52 @@ async function enqueueSalesforceCustomerPush(): Promise<void> {
   }
 }
 
+function storeTraceHeaders(): Record<string, string> {
+  if (typeof window !== 'undefined') return {}
+  const data = Sentry.getTraceData()
+  const headers: Record<string, string> = {}
+  if (data['sentry-trace']) headers['sentry-trace'] = data['sentry-trace']
+  if (data.baggage) headers.baggage = data.baggage
+  return headers
+}
+
+function storeFlowForPath(path: string): string | undefined {
+  if (path.includes('/payment') || path.includes('prepare-checkout')) return 'checkout'
+  if (path.includes('/auth/otp')) return 'auth'
+  if (path.includes('/carts')) return 'cart'
+  return 'medusa-store'
+}
+
 async function storeFetch(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(`${BACKEND_URL}${path}`, {
-    ...init,
-    credentials: 'omit',
-    headers: { ...storeHeaders(), ...storeAuthHeaders(), ...(init?.headers ?? {}) },
-  })
+  const flow = storeFlowForPath(path)
+  try {
+    const response = await fetch(`${BACKEND_URL}${path}`, {
+      ...init,
+      credentials: 'omit',
+      headers: {
+        ...storeHeaders(),
+        ...storeAuthHeaders(),
+        ...storeTraceHeaders(),
+        ...(init?.headers ?? {}),
+      },
+    })
+    if (response.status >= 500) {
+      Sentry.withScope((scope) => {
+        if (flow) scope.setTag('flow', flow)
+        scope.setTag('store_path', path)
+        scope.setExtra('status', response.status)
+        Sentry.captureMessage(`Medusa store error: ${init?.method ?? 'GET'} ${path}`, 'error')
+      })
+    }
+    return response
+  } catch (error) {
+    Sentry.withScope((scope) => {
+      if (flow) scope.setTag('flow', flow)
+      scope.setTag('store_path', path)
+      Sentry.captureException(error)
+    })
+    throw error
+  }
 }
 
 const CUSTOMER_RETRIEVE_FIELDS = '*addresses' as const

@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import {
   ContainerRegistrationKeys,
   Modules,
@@ -14,7 +15,7 @@ import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/orde
  * (business "Product" / purchasable event instance) by each line item quantity.
  * No cart reservation — inventory module is not used for this field.
  */
-export default async function decrementAvailableQuantityOnOrderCompleted({
+async function decrementAvailableQuantityOnOrderCompleted({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
@@ -89,3 +90,5 @@ export default async function decrementAvailableQuantityOnOrderCompleted({
 export const config: SubscriberConfig = {
   event: "order.completed",
 }
+
+export default sentrySubscriber("decrement-available-quantity", decrementAvailableQuantityOnOrderCompleted)

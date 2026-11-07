@@ -3,6 +3,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 
+import { captureWithContext } from "../../../lib/sentry"
 import { emailContent, hasEmailProvider } from "../../../lib/email-content"
 import { otpValidityMinutes, type OtpPurpose } from "./otp-ttl"
 import {
@@ -100,6 +101,9 @@ export async function sendOtpEmail(
     logger.error(
       `[customer-otp] email send failed: ${err instanceof Error ? err.message : String(err)}`
     )
+    captureWithContext(err, {
+      tags: { flow: "auth", kind: "customer-otp" },
+    })
     logOtpToConsole(logger, input)
   }
 }

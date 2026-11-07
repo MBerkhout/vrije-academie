@@ -1,8 +1,10 @@
 import { authenticate, defineMiddlewares } from "@medusajs/framework/http"
 
+import { medusaSentryErrorHandler } from "./middlewares/sentry-error-handler"
 import { storeRequestTiming } from "./middlewares/store-request-timing"
 
 export default defineMiddlewares({
+  errorHandler: medusaSentryErrorHandler,
   routes: [
     {
       matcher: "/store/*",

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { commerceClient } from '@/lib/commerce'
 import { CART_COOKIE } from '@/lib/commerce/cart-cookie-name'
+import { captureServerError } from '@/lib/sentry'
 
 function isCartCompleted(cart: { completed_at?: string | null } | null): boolean {
   return Boolean(cart?.completed_at?.trim())
@@ -25,7 +26,8 @@ export async function GET() {
       return Response.json({ count: 0 })
     }
     return Response.json({ count: lineItemCount(cart) })
-  } catch {
+  } catch (error) {
+    captureServerError(error, { flow: 'cart', tags: { api: 'cart-count' } })
     return Response.json({ count: 0 })
   }
 }

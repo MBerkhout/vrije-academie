@@ -102,3 +102,20 @@ Built-in Medusa payment webhook endpoint. Mollie calls this with a payment ID; M
 ### `POST /store/events/:handle/waitlist`
 
 Body: `{ quantity, first_name, last_name, email, phone, variant_id? }`. Without `variant_id`, available only when the product is **fully sold out** (every bookable session has `available_quantity === 0`). With `variant_id`, available when that specific future session has `available_quantity === 0` (other dates may still have spots). Runs in-process (`joinEventWaitlist`) so the HTTP response waits for a Person Account push and `Registration__c`. Creates or reuses a passwordless Medusa customer (`createCustomerAccountWorkflow` already links auth — do not set `customer_id` again), pushes Person Account + `Newsletter__c` to Salesforce, and creates a `Registration__c` with `Status__c: Wachtlijst` (no order). Optional customer JWT pre-fills profile fields.
+
+## Server-side analytics (Stape / sGTM)
+
+Medusa posts JSON to `SGTM_ENDPOINT_URL` (Stape Data Client shape: `event_name`, attribution + commerce fields). Disabled when `SGTM_ENABLED=false` or URL unset.
+
+| Subscriber | Event | sGTM `event_name` | Idempotency metadata |
+|------------|-------|-------------------|----------------------|
+| `gtm-purchase-order-completed.ts` | `order.completed` | `purchase` | `order.metadata.gtm_purchase_sent_at` |
+| `gtm-refund-order-canceled.ts` | `order.canceled` | `refund` | `order.metadata.gtm_refund_sent_at` |
+| `gtm-sign-up-customer-created.ts` | `customer.created` | `sign_up` | `customer.metadata.gtm_sign_up_sent_at` |
+
+- **Purchase attribution**: `order.metadata.analytics` (from `cart.metadata.analytics` at payment step; backfilled from cart in `ensure-order-analytics.ts`). Includes `client_id`, `session_id`, `event_id`, `fbp`/`fbc`, click ids, `payment_type`, `user_agent`, `page_location`.
+- **Sign-up**: only when `customer.metadata.analytics_sign_up_event_id` is set (storefront registration).
+- **Skipped**: Salesforce-imported orders (`imported_from_salesforce`).
+- Code: `src/lib/gtm/` (`build-purchase-payload.ts`, `build-refund-payload.ts`, `build-sign-up-payload.ts`, `send-sgtm-event.ts`). Env: `medusa/.env.template`.
+
+See also [frontend ANALYTICS.md](../../frontend/docs/ANALYTICS.md).

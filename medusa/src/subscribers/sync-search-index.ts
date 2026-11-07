@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subscribers"
+import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { withSubscriberPerf } from "../lib/subscriber-perf"
@@ -20,7 +21,7 @@ async function resolveProductIdFromVariant(
 /**
  * Keep the OpenSearch unified index in sync with Medusa catalog changes.
  */
-export default async function syncSearchIndexSubscriber({
+async function syncSearchIndexSubscriber({
   event: { name, data },
   container,
 }: SubscriberArgs<{ id: string; product_id?: string }>): Promise<void> {
@@ -62,3 +63,5 @@ export const config: SubscriberConfig = {
     "product-variant.updated",
   ],
 }
+
+export default sentrySubscriber("sync-search-index", syncSearchIndexSubscriber)
