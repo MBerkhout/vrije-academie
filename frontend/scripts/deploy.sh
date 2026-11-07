@@ -25,6 +25,8 @@ if [ -f .env ]; then
   source .env
   set +a
 fi
+# Avoid partial node_modules after failed or interrupted installs (e.g. Next type-check MODULE_NOT_FOUND).
+rm -rf node_modules
 npm ci
 export DEPLOYMENT_VERSION="${DEPLOYMENT_VERSION:-$(git -C "$REPO_DIR" rev-parse --short HEAD)}"
 export SENTRY_RELEASE="${SENTRY_RELEASE:-$(git -C "$REPO_DIR" rev-parse HEAD)}"
