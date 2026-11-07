@@ -23,7 +23,7 @@ describe('sessionExternalRegistrationUrl', () => {
   it('falls back to the product-group URL', () => {
     expect(sessionExternalRegistrationUrl(variant(null), 'https://group.example')).toBeNull()
     expect(
-      sessionExternalRegistrationUrl({ id: 'v', title: 'Session' }, 'https://group.example'),
+      sessionExternalRegistrationUrl(variant(null), 'https://group.example'),
     ).toBe('https://group.example')
   })
 })

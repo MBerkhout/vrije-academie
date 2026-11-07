@@ -24,7 +24,7 @@ export interface CartItemExtras {
 }
 
 export function isVathuisCartLine(
-  extras: Pick<CartItemExtras, 'is_vathuis' | 'vathuis'> | null | undefined
+  extras: Partial<Pick<CartItemExtras, 'is_vathuis' | 'vathuis'>> | null | undefined
 ): boolean {
   return Boolean(extras?.is_vathuis || extras?.vathuis)
 }

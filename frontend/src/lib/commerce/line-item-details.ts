@@ -34,7 +34,7 @@ export type BuildLineItemDetailsOptions = {
 
 function isGiftCardPurchaseLine(
   item: Parameters<typeof isGiftCardPurchaseLineItem>[0],
-  extras?: Pick<CartItemExtras, 'product_handle'> | null
+  extras?: Partial<Pick<CartItemExtras, 'product_handle'>> | null
 ): boolean {
   return (
     isGiftCardPurchaseLineItem(item) || extras?.product_handle === DEFAULT_GIFT_CARD_HANDLE
@@ -44,7 +44,7 @@ function isGiftCardPurchaseLine(
 /** Checkout summaries: “1 ticket”, “2 tickets”, etc. Empty for cadeaubon and VA Thuis lines. */
 export function buildLineItemQuantityLabel(
   item: Pick<CartItem, 'quantity'> & Parameters<typeof isGiftCardPurchaseLineItem>[0],
-  extras?: Pick<CartItemExtras, 'product_handle' | 'is_vathuis' | 'vathuis'> | null
+  extras?: Partial<Pick<CartItemExtras, 'product_handle' | 'is_vathuis' | 'vathuis'>> | null
 ): string {
   if (isGiftCardPurchaseLine(item, extras)) return ''
   if (isVathuisCartLine(extras)) return ''

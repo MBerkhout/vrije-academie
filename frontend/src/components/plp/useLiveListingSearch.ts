@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { trackSearch } from '@/lib/analytics/events/engagement'
 
 /** Stable key for filter props excluding live search query (avoids resetting input on `q` URL sync). */
-export function listingFiltersKeyWithoutQuery<T extends { q?: string }>(state: T): string {
+export function listingFiltersKeyWithoutQuery(
+  state: { q?: string; [key: string]: unknown }
+): string {
   const { q: _q, ...rest } = state
   return JSON.stringify(rest)
 }

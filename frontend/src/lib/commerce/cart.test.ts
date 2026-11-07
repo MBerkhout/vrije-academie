@@ -88,7 +88,7 @@ describe('syncAppliedGiftCardCredits', () => {
   })
 
   it('shares one in-flight sync when header and cart refresh together', async () => {
-    let release: (cart: { id: string }) => void = () => {}
+    let release: (cart: { id: string; total?: number }) => void = () => {}
     syncGiftCardCredits.mockImplementation(
       () =>
         new Promise((resolve) => {
