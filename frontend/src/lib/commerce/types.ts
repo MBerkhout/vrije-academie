@@ -557,6 +557,7 @@ export interface CartUpdateInput {
   shipping_address?: Partial<Address>
   billing_address?: Partial<Address>
   promo_codes?: string[]
+  metadata?: Record<string, unknown>
 }
 
 export interface ProductFilters {
@@ -593,6 +594,8 @@ export interface RegisterInput {
   first_name: string
   last_name: string
   phone?: string
+  /** GA4/Meta dedupe id pushed with sign_up (server subscriber reads customer.metadata). */
+  analytics_sign_up_event_id?: string
   /** ISO date YYYY-MM-DD */
   birthdate?: string
   address?: {

@@ -13,6 +13,8 @@ import {
 import { buildEmailMismatchNotice, setCheckoutNotice } from '@/lib/commerce/checkout-notice'
 import { getDefaultCheckoutAddress } from '@/lib/commerce/checkout-profile'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
+import { collectCheckoutAttribution } from '@/lib/analytics/attribution'
+import { persistCartAnalytics } from '@/lib/analytics/cart-analytics'
 import { trackAddPaymentInfo } from '@/lib/analytics/events/ecommerce'
 import { buildUserDataFromCustomer, buildUserDataFromFields } from '@/lib/analytics/mappers/user-data'
 import { PaymentMethodTiles } from './PaymentMethodTiles'
@@ -286,14 +288,22 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
           country: 'NL',
         })
 
-      if (!isFreeCheckout && selectedMethod) {
-        trackAddPaymentInfo(
-          PAYMENT_TYPE_LABELS[selectedMethod] ?? selectedMethod,
-          cart.total,
-          userData
-        )
-      } else if (isFreeCheckout) {
-        trackAddPaymentInfo('GRATIS', cart.total, userData)
+      const paymentLabel = !isFreeCheckout && selectedMethod
+        ? (PAYMENT_TYPE_LABELS[selectedMethod] ?? selectedMethod)
+        : isFreeCheckout
+          ? 'GRATIS'
+          : undefined
+
+      const attribution = collectCheckoutAttribution({ paymentType: paymentLabel })
+      try {
+        const nextCart = await persistCartAnalytics(cart, attribution)
+        setCart(nextCart)
+      } catch {
+        // checkout can continue without server attribution
+      }
+
+      if (paymentLabel) {
+        trackAddPaymentInfo(paymentLabel, cart.total, userData)
       }
 
       if (isFreeCheckout) {

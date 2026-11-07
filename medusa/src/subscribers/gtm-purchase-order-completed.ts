@@ -6,6 +6,8 @@ import {
   hasGtmPurchaseBeenSent,
   markGtmPurchaseSent,
 } from "../lib/gtm/build-purchase-payload"
+import { ensureOrderAnalyticsFromCart } from "../lib/gtm/ensure-order-analytics"
+import { isSgtmEnabled } from "../lib/gtm/sgtm-config"
 import { sendSgtmPurchaseEventWithRetry } from "../lib/gtm/send-sgtm-event"
 import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/order-import-metadata"
 
@@ -17,7 +19,7 @@ export default async function gtmPurchaseOnOrderCompleted({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
-  if (!process.env.SGTM_ENDPOINT_URL?.trim()) {
+  if (!isSgtmEnabled()) {
     return
   }
 
@@ -36,6 +38,7 @@ export default async function gtmPurchaseOnOrderCompleted({
       return
     }
 
+    await ensureOrderAnalyticsFromCart(container, orderId)
     const payload = await buildGtmPurchasePayload(container, orderId)
     await sendSgtmPurchaseEventWithRetry(payload)
     await markGtmPurchaseSent(container, orderId)

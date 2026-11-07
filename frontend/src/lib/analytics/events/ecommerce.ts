@@ -1,4 +1,5 @@
 import { pushEvent } from '@/lib/analytics/data-layer'
+import { createEngagementEventId } from '@/lib/analytics/attribution'
 import {
   agendaItemToCommerceItem,
   eventCardToCommerceItem,
@@ -127,6 +128,7 @@ export function trackAddToCart(
   const item = eventCardToCommerceItem(event, { variant, quantity })
   pushEvent({
     event: 'add_to_cart',
+    event_id: createEngagementEventId(),
     currency: 'EUR',
     value: (item.price ?? 0) * quantity,
     items: [item],

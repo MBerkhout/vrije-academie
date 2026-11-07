@@ -1018,11 +1018,16 @@ export const medusaClient: CommerceClient = {
     if (!result || (typeof result === 'object' && 'location' in result)) {
       throw new Error('Registration succeeded but login failed')
     }
+    const signupMeta: Record<string, unknown> = {}
+    if (input.analytics_sign_up_event_id?.trim()) {
+      signupMeta.analytics_sign_up_event_id = input.analytics_sign_up_event_id.trim()
+    }
     await medusa.store.customer.create({
       email: input.email,
       first_name: input.first_name,
       last_name: input.last_name,
       ...(input.phone ? { phone: input.phone } : {}),
+      ...(Object.keys(signupMeta).length > 0 ? { metadata: signupMeta } : {}),
     })
     // Login JWT is issued before the customer row exists — refresh so actor_id is linked (same as login()).
     await medusa.auth.refresh()

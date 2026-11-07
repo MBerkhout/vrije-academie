@@ -69,14 +69,17 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const c = await commerceClient.login(email, password)
     setCustomer(c)
-    trackLogin(email)
+    trackLogin(email, 'email')
     window.dispatchEvent(new Event('va:customer-updated'))
   }, [])
 
   const register = useCallback(async (input: RegisterInput) => {
-    const c = await commerceClient.register(input)
+    const signUpEventId = trackSignUp(input.email, 'email')
+    const c = await commerceClient.register({
+      ...input,
+      analytics_sign_up_event_id: signUpEventId,
+    })
     setCustomer(c)
-    trackSignUp(input.email)
     window.dispatchEvent(new Event('va:customer-updated'))
   }, [])
 

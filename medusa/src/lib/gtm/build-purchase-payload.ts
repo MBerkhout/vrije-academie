@@ -2,16 +2,15 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { medusaOrderMoneyToCents } from "../../modules/salesforce-sync/utils/money"
+import {
+  GTM_PURCHASE_SENT_AT,
+  hasOrderMetadataFlag,
+  markOrderMetadataFlag,
+} from "./idempotency"
+import { mapOrderLinesToGtmItems, type GtmCommerceItem } from "./map-order-line-items"
+import { parseOrderAnalyticsMetadata, type OrderAnalyticsAttribution } from "./parse-analytics-metadata"
 
-type GtmCommerceItem = {
-  item_id: string
-  item_name: string
-  item_category?: string
-  item_category2?: string
-  item_variant?: string
-  price: number
-  quantity: number
-}
+export type { GtmCommerceItem }
 
 export type GtmPurchasePayload = {
   event: "purchase"
@@ -19,7 +18,18 @@ export type GtmPurchasePayload = {
   currency: string
   value: number
   tax: number
+  shipping?: number
   coupon?: string
+  payment_type?: string
+  page_location?: string
+  client_id?: string
+  session_id?: string
+  event_id?: string
+  fbp?: string
+  fbc?: string
+  gclid?: string
+  ttclid?: string
+  user_agent?: string
   user_data: {
     email?: string
     phone_number?: string
@@ -41,33 +51,23 @@ function nonEmpty(value: unknown): string | undefined {
   return trimmed || undefined
 }
 
-function itemVariantFromEventItem(eventItem: Record<string, unknown> | null | undefined): string | undefined {
-  if (!eventItem) return undefined
-  let city = nonEmpty(eventItem.city)
-  if (!city && eventItem.delivery_type === "online") city = "Online"
-  const startAt = nonEmpty(eventItem.start_at as string | undefined)
-  const parts = [city, startAt].filter(Boolean)
-  return parts.length > 0 ? parts.join(" - ") : undefined
-}
-
-function categoryFromMetadata(metadata: Record<string, unknown> | null | undefined): string | undefined {
-  const categories = metadata?.categories
-  if (!Array.isArray(categories) || categories.length === 0) return undefined
-  const first = categories[0] as { label?: string } | undefined
-  return nonEmpty(first?.label)
-}
-
-function recordTypeFromMetadata(metadata: Record<string, unknown> | null | undefined): string | undefined {
-  return (
-    nonEmpty(metadata?.product_type as string | undefined) ??
-    nonEmpty(metadata?.record_type as string | undefined)
-  )
-}
-
-function isGiftCardLine(item: Record<string, unknown>): boolean {
-  if (item.is_giftcard === true) return true
-  const meta = item.metadata as { gift_card?: unknown } | null
-  return !!meta?.gift_card
+function mergeAttribution(
+  payload: GtmPurchasePayload,
+  attribution: OrderAnalyticsAttribution
+): GtmPurchasePayload {
+  return {
+    ...payload,
+    ...(attribution.client_id ? { client_id: attribution.client_id } : {}),
+    ...(attribution.session_id ? { session_id: attribution.session_id } : {}),
+    ...(attribution.event_id ? { event_id: attribution.event_id } : {}),
+    ...(attribution.fbp ? { fbp: attribution.fbp } : {}),
+    ...(attribution.fbc ? { fbc: attribution.fbc } : {}),
+    ...(attribution.gclid ? { gclid: attribution.gclid } : {}),
+    ...(attribution.ttclid ? { ttclid: attribution.ttclid } : {}),
+    ...(attribution.user_agent ? { user_agent: attribution.user_agent } : {}),
+    ...(attribution.page_location ? { page_location: attribution.page_location } : {}),
+    ...(attribution.payment_type ? { payment_type: attribution.payment_type } : {}),
+  }
 }
 
 export async function buildGtmPurchasePayload(
@@ -85,6 +85,7 @@ export async function buildGtmPurchasePayload(
       "currency_code",
       "total",
       "tax_total",
+      "shipping_total",
       "discount_total",
       "metadata",
       "billing_address.first_name",
@@ -160,88 +161,40 @@ export async function buildGtmPurchasePayload(
   if (country) userData.country = country.toUpperCase()
 
   const itemsRaw = (order.items as Record<string, unknown>[]) ?? []
-  const items: GtmCommerceItem[] = []
-
-  for (const item of itemsRaw) {
-    const qty = Math.max(1, Number(item.quantity) || 1)
-    const unitCents = medusaOrderMoneyToCents(item.unit_price)
-
-    if (isGiftCardLine(item)) {
-      const meta = item.metadata as { gift_card?: { amount_cents?: number } } | null
-      const priceCents = meta?.gift_card?.amount_cents ?? unitCents
-      items.push({
-        item_id: "cadeaubon",
-        item_name: nonEmpty(item.title as string) ?? "Digitale cadeaubon",
-        item_category: "Cadeaubon",
-        price: centsToEur(priceCents),
-        quantity: qty,
-      })
-      continue
-    }
-
-    const variant = item.variant as Record<string, unknown> | undefined
-    const product = (variant?.product as Record<string, unknown> | undefined) ?? {}
-    const metadata = product.metadata as Record<string, unknown> | null | undefined
-    const eventItem = variant?.event_item as Record<string, unknown> | undefined
-
-    const commerceItem: GtmCommerceItem = {
-      item_id: nonEmpty(product.handle as string) ?? String(item.id),
-      item_name: nonEmpty(product.title as string) ?? nonEmpty(item.title as string) ?? "Product",
-      price: centsToEur(unitCents),
-      quantity: qty,
-    }
-
-    const category = categoryFromMetadata(metadata)
-    if (category) commerceItem.item_category = category
-    const recordType = recordTypeFromMetadata(metadata)
-    if (recordType) commerceItem.item_category2 = recordType
-    const variantLabel = itemVariantFromEventItem(eventItem)
-    if (variantLabel) commerceItem.item_variant = variantLabel
-
-    items.push(commerceItem)
-  }
+  const items = mapOrderLinesToGtmItems(itemsRaw)
 
   const totalCents = medusaOrderMoneyToCents(order.total)
   const taxCents = medusaOrderMoneyToCents(order.tax_total)
+  const shippingCents = medusaOrderMoneyToCents(order.shipping_total)
 
-  return {
+  const orderMetadata = (order.metadata ?? {}) as Record<string, unknown>
+  const attribution = parseOrderAnalyticsMetadata(orderMetadata)
+
+  const base: GtmPurchasePayload = {
     event: "purchase",
     transaction_id: transactionId,
     currency: (nonEmpty(order.currency_code as string) ?? "EUR").toUpperCase(),
     value: centsToEur(totalCents),
     tax: centsToEur(taxCents),
+    ...(shippingCents > 0 ? { shipping: centsToEur(shippingCents) } : {}),
     ...(manualCoupon ? { coupon: manualCoupon } : {}),
     user_data: userData,
     items,
   }
+
+  return mergeAttribution(base, attribution)
 }
 
 export async function hasGtmPurchaseBeenSent(
   container: MedusaContainer,
   orderId: string
 ): Promise<boolean> {
-  const orderModule = container.resolve(Modules.ORDER)
-  const order = await orderModule.retrieveOrder(orderId, {
-    select: ["id", "metadata"],
-  })
-  const metadata = (order.metadata ?? {}) as Record<string, unknown>
-  return Boolean(metadata.gtm_purchase_sent_at)
+  return hasOrderMetadataFlag(container, orderId, GTM_PURCHASE_SENT_AT)
 }
 
 export async function markGtmPurchaseSent(
   container: MedusaContainer,
   orderId: string
 ): Promise<void> {
-  const orderModule = container.resolve(Modules.ORDER)
-  const order = await orderModule.retrieveOrder(orderId, {
-    select: ["id", "metadata"],
-  })
-  const metadata = (order.metadata ?? {}) as Record<string, unknown>
-
-  await orderModule.updateOrders(orderId, {
-    metadata: {
-      ...metadata,
-      gtm_purchase_sent_at: new Date().toISOString(),
-    },
-  })
+  return markOrderMetadataFlag(container, orderId, GTM_PURCHASE_SENT_AT)
 }

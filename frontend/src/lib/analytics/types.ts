@@ -111,12 +111,14 @@ export type WaitlistSignupEvent = {
 export type LoginEvent = {
   event: 'login'
   method: string
+  event_id?: string
   user_data: Pick<UserData, 'email'>
 }
 
 export type SignUpEvent = {
   event: 'sign_up'
   method: string
+  event_id?: string
   user_data: Pick<UserData, 'email'>
 }
 
@@ -136,6 +138,7 @@ export type EcommerceEventBase = {
   currency: 'EUR'
   value: number
   items: CommerceItem[]
+  event_id?: string
 }
 
 export type AddToWishlistEvent = EcommerceEventBase & {

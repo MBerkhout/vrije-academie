@@ -1,4 +1,5 @@
 import { pushEvent } from '@/lib/analytics/data-layer'
+import { createEngagementEventId } from '@/lib/analytics/attribution'
 import type { PageType, UserData } from '@/lib/analytics/types'
 
 export function trackSearch(searchTerm: string, resultsCount: number): void {
@@ -79,20 +80,24 @@ export function trackWaitlistSignup(options: {
   })
 }
 
-export function trackLogin(email: string, method = 'email'): void {
+export function trackLogin(email: string, method = 'email', eventId?: string): void {
   pushEvent({
     event: 'login',
     method,
+    event_id: eventId ?? createEngagementEventId(),
     user_data: { email: email.trim() },
   })
 }
 
-export function trackSignUp(email: string, method = 'email'): void {
+export function trackSignUp(email: string, method = 'email', eventId?: string): string {
+  const event_id = eventId ?? createEngagementEventId()
   pushEvent({
     event: 'sign_up',
     method,
+    event_id,
     user_data: { email: email.trim() },
   })
+  return event_id
 }
 
 export function trackPasswordResetRequest(email: string): void {
