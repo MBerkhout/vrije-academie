@@ -116,6 +116,16 @@ Copy the values from local `medusa/.env` (do not commit them). Reload PM2 after 
 
 Without SMTP or SendGrid, OTP codes are logged on the Medusa server only (`[customer-otp]`).
 
+**Stape / server GTM (staging)** — add to `~/app/medusa/.env` when the server container is live (full GTM steps: [`docs/STAPE-GTM-BRIEFING.md`](./STAPE-GTM-BRIEFING.md)):
+
+| Variable | Purpose |
+|----------|---------|
+| `SGTM_ENABLED` | `true` to send `purchase` / `refund` / `sign_up` from Medusa subscribers |
+| `SGTM_ENDPOINT_URL` | Stape server URL + Data Client path, e.g. `https://gtm.example.nl/data` |
+| `SGTM_PURCHASE_SECRET` | Optional shared secret (Bearer or custom header via `SGTM_API_KEY_HEADER`) |
+
+Reload PM2 after editing. Smoke: complete a test order and check Medusa logs for `[gtm-purchase] sent`. No configuration exists in Medusa Admin—only `.env` and the GTM containers.
+
 **Smoke test (after PM2 reload):** request a storefront login OTP for a test inbox. Confirm **From** is `Vrije Academie <info@vrijeacademie.nl>` and authentication passes (SPF/DKIM/DMARC in the provider’s “show original” view). If the relay rejects the From address, allow `info@vrijeacademie.nl` on Postfix or the SMTP account.
 
 Set production URLs for `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `MEDUSA_URL`, CORS origins, database, Redis, etc.
@@ -500,13 +510,13 @@ k6 run loadtest/scenarios/browse.js
 
 During a run, watch server swap, PM2 RSS, and logs tagged `store-slow`, `listing-cache`, `event-detail-cache`. Copy `loadtest/config.env.example` → `loadtest/config.env` (gitignored).
 
-**Staging baseline (2026-03-22, laptop → v2 / medusa.vrijeacademie.nl, 20 VUs unless noted):**
+**Staging baseline (laptop → v2 / medusa.vrijeacademie.nl):**
 
 | Scenario | Metric | Result |
 |----------|--------|--------|
-| `browse.js` | `page_duration` p95 | ~737 ms (short smoke; full ramp is ~3 min) |
-| `api-only.js` | `http_req_duration` p95 @ 20 VU, 90 s | ~346 ms, 0% errors, ~40 req/s |
-| `pdp-hot-cold.js` | `pdp_hot_ms` / `pdp_cold_ms` p95, 2 min | ~1.2 s / ~991 ms, 0% errors (hot threshold 800 ms not met yet — deploy PDP `unstable_cache` + Medusa SWR, then re-run) |
+| `browse.js` | `page_duration` p95 @ 20 VU, 3 min ramp | ~98 ms HTTP / custom page metric similar; 0% errors, ~12 iter/s |
+| `api-only.js` | `http_req_duration` p95 @ 20 VU, 90 s | ~785 ms, 0% errors (post PDP cache + security deploy `f1dbcdb`) |
+| `pdp-hot-cold.js` | `pdp_hot_ms` / `pdp_cold_ms` p95, 2 min | ~821 ms / ~861 ms, 0% errors (down from ~1.2 s pre-cache; hot k6 threshold 800 ms still marginal) |
 
 Ops: `node scripts/verify-staging-revalidate.mjs` (needs `REVALIDATE_SECRET` + `PUBLISHABLE_KEY`). Patch Medusa server env: `SERVER_HOST=… REVALIDATE_SECRET=… scripts/patch-staging-revalidate-env.sh`. Sanity webhook reference: [`sanity/webhooks/storefront-revalidate.reference.json`](../sanity/webhooks/storefront-revalidate.reference.json) (add `product` to filter — CLI needs `sanity.project.webhooks` grant).
 
