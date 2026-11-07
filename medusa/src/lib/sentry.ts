@@ -63,7 +63,6 @@ export async function withCronMonitor<T>(
     maxRuntime: 10,
     failureIssueThreshold: 3,
     recoveryThreshold: 1,
-    upsert: true,
   })
 }
 
