@@ -5,6 +5,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/order-import-metadata"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { pushOrderToSalesforceWorkflowId } from "../workflows/salesforce/push-order-salesforce"
+import { salesforceIntegrationReady } from "../lib/salesforce-integration-sentry"
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 
 /**
@@ -15,7 +16,7 @@ async function salesforceSyncOrderCompleted({
   container,
 }: SubscriberArgs<{ id: string }>) {
   const sync = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
-  if (!(await sync.isIntegrationReady())) return
+  if (!(await salesforceIntegrationReady(sync, { subscriber: "salesforce-sync-order" }))) return
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const orderModule = container.resolve(Modules.ORDER)
   const id = data.id

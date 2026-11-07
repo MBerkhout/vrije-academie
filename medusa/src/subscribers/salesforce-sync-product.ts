@@ -6,6 +6,7 @@ import { withSubscriberPerf } from "../lib/subscriber-perf"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { isSalesforcePushSuppressed } from "../modules/salesforce-sync/utils/suppress-push"
 import { pushProductToSalesforceWorkflowId } from "../workflows/salesforce/push-product-salesforce"
+import { salesforceIntegrationReady } from "../lib/salesforce-integration-sentry"
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 
 /** `product.created` only — updates are not pushed back per project rules; Sanity handles updates. */
@@ -16,7 +17,7 @@ async function salesforceSyncProductCreated({
   await withSubscriberPerf(name, "salesforce-sync-product", async () => {
     if (isSalesforcePushSuppressed()) return
     const sync = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
-    if (!(await sync.isIntegrationReady())) return
+    if (!(await salesforceIntegrationReady(sync, { subscriber: "salesforce-sync-product" }))) return
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const id = data.id
     await runSalesforceWorkflow(container, pushProductToSalesforceWorkflowId, { productId: id }, {

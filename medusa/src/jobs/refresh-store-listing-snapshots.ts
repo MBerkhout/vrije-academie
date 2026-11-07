@@ -1,7 +1,5 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import * as Sentry from "@sentry/node"
-
-import { captureWithContext } from "../lib/sentry"
+import { captureWithContext, withCronMonitor } from "../lib/sentry"
 import {
   listingCacheTtlSec,
   shouldRebuildSlot,
@@ -79,8 +77,9 @@ export async function refreshStoreListingSnapshots(container: MedusaContainer): 
 }
 
 export default async function refreshStoreListingSnapshotsJob(container: MedusaContainer) {
-  await Sentry.withMonitor(
+  await withCronMonitor(
     "refresh-store-listing-snapshots",
+    "* * * * *",
     async () => {
       try {
         await refreshStoreListingSnapshots(container)
@@ -90,8 +89,7 @@ export default async function refreshStoreListingSnapshotsJob(container: MedusaC
         })
         throw error
       }
-    },
-    { schedule: { type: "crontab", value: "* * * * *" } }
+    }
   )
 }
 

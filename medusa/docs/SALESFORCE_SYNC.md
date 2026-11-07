@@ -122,7 +122,9 @@ Workflows live in `src/workflows/salesforce/`. When `REDIS_URL` is set, `medusa-
 
 Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries: 3`, state writes `maxRetries: 3`). The REST client retries **429 / 5xx** with backoff. Non-retryable Salesforce API errors fail fast to the **failure / alert** path.
 
-**Alerts** (terminal failure): structured `logger.error`, optional `SALESFORCE_SYNC_ALERT_WEBHOOK_URL`, de-duplicated buckets on `failure_count`.
+**Alerts** (terminal failure): structured `logger.error`, Sentry `captureWithContext` (`flow:salesforce-sync`, `entity_type`, `workflow`) — see [DEPLOYMENT.md](../../docs/DEPLOYMENT.md) § Sentry metric monitors for order vs non-order thresholds. Optional `SALESFORCE_SYNC_ALERT_WEBHOOK_URL` (set on production for Slack), de-duplicated buckets on `failure_count`.
+
+**Sentry signals** (production only, rate-limited): `kind:integration-not-ready` when sync subscribers run while OAuth is not configured (`salesforceIntegrationReady` in `src/lib/salesforce-integration-sentry.ts`); `kind:queue-backlog` when the webhook queue has failed rows or pending work older than 10 minutes (`reportWebhookQueueBacklogIfNeeded` after `process-salesforce-webhook-queue`). Unhandled job errors fail the cron check-in (no swallowed catch).
 
 ## Subscribers (`src/subscribers/`)
 

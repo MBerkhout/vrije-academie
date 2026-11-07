@@ -1,8 +1,7 @@
 import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import SalesforceSyncModuleService from "../../../../modules/salesforce-sync/service"
-
-const DAY_MS = 24 * 60 * 60 * 1000
+import { computeWebhookQueueStats } from "../../../../modules/salesforce-sync/utils/webhook-queue-stats"
 
 function parseStatusFilter(raw: unknown): string[] | null {
   if (typeof raw !== "string" || !raw.trim()) return null
@@ -17,36 +16,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse):
   const statusFilter = parseStatusFilter(req.query.status)
 
   const allForStats = await sync.listSalesforceWebhookEvents({}, { take: 5000 })
-  const now = Date.now()
-  const stats = {
-    pending: 0,
-    processing: 0,
-    failed: 0,
-    done: 0,
-    skipped: 0,
-    doneLast24h: 0,
-    oldestPendingAt: null as string | null,
-  }
-
-  let oldestPending: Date | null = null
-  for (const row of allForStats) {
-    const status = row.status ?? "pending"
-    if (status === "pending") {
-      stats.pending += 1
-      const received = row.received_at ? new Date(row.received_at) : null
-      if (received && (!oldestPending || received < oldestPending)) {
-        oldestPending = received
-      }
-    } else if (status === "processing") stats.processing += 1
-    else if (status === "failed") stats.failed += 1
-    else if (status === "skipped") stats.skipped += 1
-    else if (status === "done") {
-      stats.done += 1
-      const processed = row.processed_at ? new Date(row.processed_at).getTime() : 0
-      if (processed && now - processed <= DAY_MS) stats.doneLast24h += 1
-    }
-  }
-  stats.oldestPendingAt = oldestPending?.toISOString() ?? null
+  const stats = await computeWebhookQueueStats(sync)
 
   const filtered = statusFilter?.length
     ? allForStats.filter((row) => statusFilter.includes(row.status ?? ""))

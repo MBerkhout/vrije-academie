@@ -6,6 +6,7 @@ import { withSubscriberPerf } from "../lib/subscriber-perf"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { isSalesforcePushSuppressed } from "../modules/salesforce-sync/utils/suppress-push"
 import { pushVariantToSalesforceWorkflowId } from "../workflows/salesforce/push-variant-salesforce"
+import { salesforceIntegrationReady } from "../lib/salesforce-integration-sentry"
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 
 async function salesforceSyncVariantCreated({
@@ -15,7 +16,7 @@ async function salesforceSyncVariantCreated({
   await withSubscriberPerf(name, "salesforce-sync-variant", async () => {
     if (isSalesforcePushSuppressed()) return
     const sync = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
-    if (!(await sync.isIntegrationReady())) return
+    if (!(await salesforceIntegrationReady(sync, { subscriber: "salesforce-sync-variant" }))) return
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const id = data.id
     await runSalesforceWorkflow(container, pushVariantToSalesforceWorkflowId, { variantId: id }, {

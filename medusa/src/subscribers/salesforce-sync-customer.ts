@@ -5,6 +5,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { withSubscriberPerf } from "../lib/subscriber-perf"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { pushCustomerToSalesforceWorkflowId } from "../workflows/salesforce/push-customer-salesforce"
+import { salesforceIntegrationReady } from "../lib/salesforce-integration-sentry"
 import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
 
 async function salesforceSyncCustomer({
@@ -13,7 +14,7 @@ async function salesforceSyncCustomer({
 }: SubscriberArgs<{ id: string }>) {
   await withSubscriberPerf(name, "salesforce-sync-customer", async () => {
     const sync = container.resolve("salesforceSync") as InstanceType<typeof SalesforceSyncModuleService>
-    if (!(await sync.isIntegrationReady())) return
+    if (!(await salesforceIntegrationReady(sync, { subscriber: "salesforce-sync-customer" }))) return
     const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
     const id = data.id
     const isCreate = name === "customer.created"

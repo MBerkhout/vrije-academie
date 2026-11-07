@@ -557,12 +557,24 @@ Medusa initializes Sentry from `medusa/src/instrument.ts` (imported at the top o
 
 The storefront tunnels browser events via `/monitoring` (`withSentryConfig` in `next.config.js`) to reduce ad-blocker loss.
 
-### Suggested alerts (create in Sentry UI)
+### Production monitors (org `vrije-academie`)
 
-- New issue in `production`
-- Error rate spike on project `vrije-academie-frontend` or `vrije-academie-medusa`
-- Tag `flow:checkout` or `flow:salesforce-sync`
-- Cron monitors: `process-salesforce-webhook-queue`, `refresh-store-listing-snapshots`, `refresh-event-detail-snapshots`
+Configured in Sentry (email → project owner). Cron check-ins are sent only from **production `medusa-worker`** (`withCronMonitor` in `medusa/src/lib/sentry.ts`; 5 min margin, 10 min max runtime). Do not run scheduled jobs with `SENTRY_DSN` + `NODE_ENV=development` against production monitor slugs — that creates a stray `development` environment and false missed check-ins (delete that env in Sentry if it happens).
+
+**Uptime**
+
+| Monitor | URL |
+|---------|-----|
+| Storefront homepage | `https://prod.vrijeacademie.nl/` (`vrije-academie-frontend`) |
+| Medusa health | `https://medusa-prod.vrijeacademie.nl/health` (`vrije-academie-medusa`) |
+
+**Cron** (SDK check-ins, `vrije-academie-medusa`): `process-salesforce-webhook-queue`, `refresh-store-listing-snapshots`, `refresh-event-detail-snapshots`.
+
+**Metric** (environment `production`): error spikes (frontend + Medusa), `flow:checkout`, `flow:auth`, Salesforce order sync (critical on any error), non-order Salesforce sync, integration-not-ready (`kind:integration-not-ready`), webhook queue backlog (`kind:queue-backlog`), store API p95 latency (`/store/*` spans).
+
+**Issue alerts**: new issue + regression in `production`; dedicated rules for tags `flow:checkout` and `flow:salesforce-sync` (Medusa ± frontend). Metric breaches use workflow **Production: metric monitor email**.
+
+**Salesforce Slack**: set `SALESFORCE_SYNC_ALERT_WEBHOOK_URL` on production Medusa for terminal workflow failures (buckets 1/5/25/100); Sentry is the primary ops channel.
 
 ### Verify after DSNs are set
 

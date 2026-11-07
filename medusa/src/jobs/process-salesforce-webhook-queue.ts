@@ -1,28 +1,14 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import * as Sentry from "@sentry/node"
 
-import { captureWithContext } from "../lib/sentry"
+import { withCronMonitor } from "../lib/sentry"
 import { processPendingSalesforceWebhookEvents } from "../modules/salesforce-sync/process-webhook-events"
+import { reportWebhookQueueBacklogIfNeeded } from "../modules/salesforce-sync/utils/webhook-queue-sentry"
 
 export default async function processSalesforceWebhookQueueJob(container: MedusaContainer) {
-  await Sentry.withMonitor(
-    "process-salesforce-webhook-queue",
-    async () => {
-      const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-      try {
-        await processPendingSalesforceWebhookEvents(container)
-      } catch (err) {
-        logger.error(
-          `[salesforce-sync] scheduled webhook queue job failed: ${err instanceof Error ? err.message : String(err)}`
-        )
-        captureWithContext(err, {
-          tags: { kind: "job", job: "process-salesforce-webhook-queue", flow: "salesforce-sync" },
-        })
-      }
-    },
-    { schedule: { type: "crontab", value: "* * * * *" } }
-  )
+  await withCronMonitor("process-salesforce-webhook-queue", "* * * * *", async () => {
+    await processPendingSalesforceWebhookEvents(container)
+    await reportWebhookQueueBacklogIfNeeded(container)
+  })
 }
 
 /** Runs every minute; immediate fire-and-forget handles most webhook traffic. */
