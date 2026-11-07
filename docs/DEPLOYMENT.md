@@ -1,4 +1,6 @@
-# Deployment (Staging)
+# Deployment
+
+## Staging
 
 Push to the `staging` branch triggers a GitHub Actions workflow that deploys all three apps:
 
@@ -246,6 +248,10 @@ In the repo: **Settings → Secrets and variables → Actions**
 | `SENTRY_DSN_MEDUSA` | DSN for `vrije-academie-medusa` |
 | `SENTRY_ORG` | `vrije-academie` |
 | `SENTRY_ENVIRONMENT_STAGING` | `staging` |
+| `PROD_SERVER_HOST` | Production host SSH target, e.g. `prod1.vrijeacademie.nl` |
+| `PROD_SSH_DEPLOY_KEY` | Private SSH key for `frontend` and `medusa` on production (separate from staging) |
+| `SANITY_STUDIO_DATASET_PROD` | Optional. Sanity dataset for production Studio deploy; omit to reuse `SANITY_STUDIO_DATASET` |
+| `SANITY_STUDIO_REVALIDATE_SECRET_PROD` | Optional. Bearer secret for Studio **Clear page cache** on production; omit to reuse staging secret |
 
 CI also sets `SANITY_STUDIO_PREVIEW_URL` to `https://v2.vrijeacademie.nl` for the Presentation tool (bundled at deploy time). `SANITY_STUDIO_REVALIDATE_SECRET` is bundled the same way for the page ⋯ **Clear page cache** action.
 
@@ -564,11 +570,94 @@ The storefront tunnels browser events via `/monitoring` (`withSentryConfig` in `
 2. Complete a checkout on staging and confirm linked traces (`sentry-trace` / `baggage` from storefront → Medusa `/store/*`).
 3. Confirm releases show the deploy commit SHA and source maps resolve stack frames (frontend needs `SENTRY_AUTH_TOKEN` on build).
 
+## Production
+
+Push to `main` triggers [`.github/workflows/deploy-production.yml`](../.github/workflows/deploy-production.yml). Jobs mirror staging but target **prod1.vrijeacademie.nl** (`frontend` and `medusa` OS users) and reset `~/app` to `origin/main` with `DEPLOY_BRANCH=main`.
+
+| App | Public URL | Server user |
+|-----|------------|-------------|
+| Storefront | https://prod.vrijeacademie.nl | `frontend@prod1.vrijeacademie.nl` |
+| Medusa | https://medusa-prod.vrijeacademie.nl | `medusa@prod1.vrijeacademie.nl` |
+
+Sanity Studio deploy uses `SANITY_STUDIO_PREVIEW_URL=https://prod.vrijeacademie.nl`. Dataset / revalidate secrets can differ via `SANITY_STUDIO_DATASET_PROD` and `SANITY_STUDIO_REVALIDATE_SECRET_PROD` (or reuse the staging secrets).
+
+### One-time production server setup
+
+Repeat [One-time server setup](#one-time-server-setup) on prod1 with these differences:
+
+- Checkout branch **`main`** (not `staging`) in both `~/app` clones.
+- Provision **separate** Postgres and Redis on prod1; Redis must use `maxmemory-policy noeviction` (same as staging).
+- Register the production deploy SSH **public** key for GitHub Actions (`PROD_SSH_DEPLOY_KEY`).
+- Configure nginx (or equivalent) for `prod.vrijeacademie.nl` → port 3000 and `medusa-prod.vrijeacademie.nl` → port 9000.
+
+### Production environment files
+
+Run on prod1 after `~/app` exists (from either user; set output paths if needed):
+
+```bash
+cd ~/app
+STAGING_SSH_HOST=<staging-server-host> \
+  PROD_DATABASE_URL='postgresql://…' \
+  PROD_REDIS_URL='redis://127.0.0.1:…' \
+  bash scripts/prod/setup-env.sh
+```
+
+The script SSH-reads staging `~/app/*/.env`, copies integration secrets (Salesforce, SMTP, Audience Player, OpenSearch, sGTM, Sentry DSNs, etc.), generates **new** `JWT_SECRET` / `COOKIE_SECRET`, and sets production URLs (`STORE_CORS`, `MEDUSA_URL`, `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, revalidate secrets, `SENTRY_ENVIRONMENT=production`). Review **Mollie** (live vs `test_*`), Salesforce org, and Sanity webhooks/CORS for `https://prod.vrijeacademie.nl` before go-live.
+
+Set `SANITY_STUDIO_REVALIDATE_SECRET_PROD` in GitHub to the same value as `SANITY_STUDIO_REVALIDATE_SECRET` on the production frontend `.env`.
+
+### Clone Medusa data from staging
+
+Full Postgres copy brings regions, tax, API keys, admin users, promotions, and link tables (Medusa config lives in the database). Run as **`medusa`** on prod1 after production `.env` exists and `pg_dump` / `pg_restore` / `psql` are installed:
+
+```bash
+cd ~/app
+STAGING_SSH_HOST=<staging-server-host> \
+  node scripts/prod/copy-staging-to-prod.mjs --dry-run
+STAGING_SSH_HOST=<staging-server-host> \
+  node scripts/prod/copy-staging-to-prod.mjs --confirm-prod
+```
+
+The script:
+
+1. Stops `medusa` / `medusa-worker` PM2 processes.
+2. Dumps production to `~/backups/medusa-db/prod-before-staging-clone-*.dump`.
+3. Streams `pg_dump` from staging over SSH and restores with `pg_restore --clean --if-exists`.
+4. Runs `npx medusa db:migrate --execute-all-links`.
+5. Flushes Redis listing/event keys (not workflow queues).
+6. Optional `rsync` of `~/app/medusa/static/` from staging (`--skip-static` to opt out).
+7. `pm2 startOrReload` and optional `npm run search:reindex` when `OPENSEARCH_NODE` is set.
+
+Flags: `--dry-run`, `--confirm-prod` (required), `--skip-static`, `--skip-opensearch`, `--skip-redis`.
+
+**Rollback DB:** as `medusa`, with `DATABASE_URL` loaded from `.env`:
+
+```bash
+pm2 stop medusa medusa-worker
+pg_restore --clean --if-exists --no-owner --no-acl -d "$DATABASE_URL" ~/backups/medusa-db/prod-before-staging-clone-<timestamp>.dump
+pm2 startOrReload ecosystem.config.cjs
+```
+
+Then run the frontend deploy once both sides match (`DEPLOY_BRANCH=main bash ~/app/frontend/scripts/deploy.sh`).
+
+### Triggering a production deploy
+
+```bash
+git checkout main
+git merge staging   # or commit on main
+git push origin main
+```
+
+Monitor **Actions → Deploy Production**. Staging continues to deploy from `staging` independently.
+
 ## Files reference
 
 | File | Purpose |
 |------|---------|
-| `.github/workflows/deploy-staging.yml` | GitHub Actions workflow |
+| `.github/workflows/deploy-staging.yml` | GitHub Actions workflow (staging) |
+| `.github/workflows/deploy-production.yml` | GitHub Actions workflow (main → prod1) |
+| `scripts/prod/setup-env.sh` | Bootstrap production `.env` from staging over SSH |
+| `scripts/prod/copy-staging-to-prod.mjs` | Clone staging Medusa Postgres (+ static, OpenSearch reindex) |
 | `frontend/scripts/deploy.sh` | Server-side frontend deploy (sets `DEPLOYMENT_VERSION`, runs listing warm) |
 | `frontend/scripts/warm-listing-cache.sh` | Post-deploy warm for default PLP/Agenda + top PDP paths |
 | `scripts/pm2-sizing.cjs` | Host-aware PM2 instances and memory caps |
