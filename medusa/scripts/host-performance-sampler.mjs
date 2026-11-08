@@ -96,7 +96,7 @@ const probes = [
   curlProbe(process.env.PERF_PROBE_STOREFRONT_PLP ?? "https://v2.vrijeacademie.nl/ons-aanbod"),
   curlProbe(
     process.env.PERF_PROBE_MEDUSA_EVENTS ??
-      "https://medusa.vrijeacademie.nl/store/events?limit=24&sort=order",
+      "https://medusastag.vrijeacademie.nl/store/events?limit=24&sort=order",
     process.env.PERF_PROBE_MEDUSA_PUBLISHABLE_KEY
       ? [`x-publishable-api-key: ${process.env.PERF_PROBE_MEDUSA_PUBLISHABLE_KEY}`]
       : []

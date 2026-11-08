@@ -25,7 +25,7 @@ MEDUSA_OUT="${MEDUSA_OUT:-$HOME/app/medusa/.env}"
 FRONTEND_OUT="${FRONTEND_OUT:-$HOME/app/frontend/.env}"
 
 PROD_STOREFRONT="https://prod.vrijeacademie.nl"
-PROD_MEDUSA="https://medusa-prod.vrijeacademie.nl"
+PROD_MEDUSA="https://medusa.vrijeacademie.nl"
 
 ssh_cmd() {
   local user="$1"

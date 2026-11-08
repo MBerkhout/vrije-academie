@@ -5,7 +5,7 @@
  *   node scripts/verify-staging-revalidate.mjs
  */
 const base = (process.env.BASE_URL || 'https://v2.vrijeacademie.nl').replace(/\/$/, '')
-const medusa = (process.env.MEDUSA_URL || 'https://medusa.vrijeacademie.nl').replace(/\/$/, '')
+const medusa = (process.env.MEDUSA_URL || 'https://medusastag.vrijeacademie.nl').replace(/\/$/, '')
 const secret = process.env.REVALIDATE_SECRET?.trim()
 const pk = process.env.PUBLISHABLE_KEY?.trim()
 

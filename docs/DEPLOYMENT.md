@@ -102,7 +102,7 @@ After changing Medusa `.env`, reload PM2 (`pm2 startOrReload ecosystem.config.cj
 | `AUDIENCE_PLAYER_PROJECT_ID` | Optional, default `14` |
 | `AUDIENCE_PLAYER_PREVIEW_EMAIL` | Optional, default `vathuis-preview@vrijeacademie.nl` — that user must be entitled to play preview articles |
 
-Copy the values from local `medusa/.env` (do not commit them). Reload PM2 after editing. Smoke-test: `GET https://medusa.vrijeacademie.nl/store/events/art-nouveau/episodes/1-1/preview-playback` with the publishable API key should return `{ playback: { token, articleId, assetId, … } }`.
+Copy the values from local `medusa/.env` (do not commit them). Reload PM2 after editing. Smoke-test: `GET https://medusastag.vrijeacademie.nl/store/events/art-nouveau/episodes/1-1/preview-playback` with the publishable API key should return `{ playback: { token, articleId, assetId, … } }`.
 
 **Transactional email (staging)** — OTP login codes and cadeaubon mail. Add to `~/app/medusa/.env` (SMTP wins if both are set). Reload PM2 after editing. Configure SPF/DKIM/DMARC for the From domain.
 
@@ -521,7 +521,7 @@ k6 run loadtest/scenarios/browse.js
 
 During a run, watch server swap, PM2 RSS, and logs tagged `store-slow`, `listing-cache`, `event-detail-cache`. Copy `loadtest/config.env.example` → `loadtest/config.env` (gitignored).
 
-**Staging baseline (laptop → v2 / medusa.vrijeacademie.nl):**
+**Staging baseline (laptop → v2 / medusastag.vrijeacademie.nl):**
 
 | Scenario | Metric | Result |
 |----------|--------|--------|
@@ -566,7 +566,7 @@ Configured in Sentry (email → project owner). Cron check-ins are sent only fro
 | Monitor | URL |
 |---------|-----|
 | Storefront homepage | `https://prod.vrijeacademie.nl/` (`vrije-academie-frontend`) |
-| Medusa health | `https://medusa-prod.vrijeacademie.nl/health` (`vrije-academie-medusa`) |
+| Medusa health | `https://medusa.vrijeacademie.nl/health` (`vrije-academie-medusa`) |
 
 **Cron** (SDK check-ins, `vrije-academie-medusa`): `process-salesforce-webhook-queue`, `refresh-store-listing-snapshots`, `refresh-event-detail-snapshots`.
 
@@ -589,7 +589,7 @@ Push to `main` triggers [`.github/workflows/deploy-production.yml`](../.github/w
 | App | Public URL | Server user |
 |-----|------------|-------------|
 | Storefront | https://prod.vrijeacademie.nl | `frontend@prod1.vrijeacademie.nl` |
-| Medusa | https://medusa-prod.vrijeacademie.nl | `medusa@prod1.vrijeacademie.nl` |
+| Medusa | https://medusa.vrijeacademie.nl | `medusa@prod1.vrijeacademie.nl` |
 
 Sanity Studio deploy uses `SANITY_STUDIO_PREVIEW_URL=https://prod.vrijeacademie.nl`. Dataset / revalidate secrets can differ via `SANITY_STUDIO_DATASET_PROD` and `SANITY_STUDIO_REVALIDATE_SECRET_PROD` (or reuse the staging secrets).
 
@@ -600,7 +600,7 @@ Repeat [One-time server setup](#one-time-server-setup) on prod1 with these diffe
 - Checkout branch **`main`** (not `staging`) in both `~/app` clones.
 - Provision **separate** Postgres and Redis on prod1; Redis must use `maxmemory-policy noeviction` (same as staging).
 - Register the production deploy SSH **public** key for GitHub Actions (`PROD_SSH_DEPLOY_KEY`).
-- Configure nginx (or equivalent) for `prod.vrijeacademie.nl` → port 3000 and `medusa-prod.vrijeacademie.nl` → port 9000.
+- Configure nginx (or equivalent) for `prod.vrijeacademie.nl` → port 3000 and `medusa.vrijeacademie.nl` → port 9000.
 
 ### Production environment files
 
