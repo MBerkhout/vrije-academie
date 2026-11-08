@@ -20,7 +20,12 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/modules/events/migrations"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/modules/events/migrations",
+    "src/**/*.test.ts"
+  ],
   "ts-node": {
     "transpileOnly": true,
     "compilerOptions": {

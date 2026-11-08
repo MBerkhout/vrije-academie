@@ -59,14 +59,24 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     try {
       const mail = buildSmtpMail(notification, this.from_)
       const attachments = mapMailAttachmentsToResend(mail.attachments)
-      const { data, error } = await this.client_.emails.send({
+      const base = {
         from: mail.from,
         to: mail.to,
         subject: mail.subject,
-        text: mail.text,
-        html: mail.html,
-        attachments,
-      })
+        ...(attachments ? { attachments } : {}),
+      }
+      const { data, error } = await this.client_.emails.send(
+        mail.html
+          ? {
+              ...base,
+              html: mail.html,
+              ...(mail.text ? { text: mail.text } : {}),
+            }
+          : {
+              ...base,
+              text: mail.text ?? "",
+            }
+      )
 
       if (error) {
         throw new MedusaError(
