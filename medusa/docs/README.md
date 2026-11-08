@@ -167,7 +167,7 @@ Env template: `.env.template` (Sentry block). Deploy: [DEPLOYMENT.md](../../docs
 ## Documentation
 
 - [PAYMENT-MOLLIE.md](./PAYMENT-MOLLIE.md) — Mollie providers, webhooks, retry after failed payment
-- [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md) — OTP / passwordless checkout, SMTP + SendGrid
+- [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md) — OTP / passwordless checkout, Resend / SMTP / SendGrid
 - [EVENTS.md](./EVENTS.md) — module fields, availability, store filters
 - [SANITY_SYNC.md](./SANITY_SYNC.md) — Sanity mirror
 - [SALESFORCE_SYNC.md](./SALESFORCE_SYNC.md) — Salesforce connector

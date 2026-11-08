@@ -7,7 +7,24 @@ describe("resolveEmailNotificationConfig", () => {
     expect(resolveEmailNotificationConfig({})).toEqual({ kind: "none" })
   })
 
-  it("prefers SMTP over SendGrid", () => {
+  it("prefers Resend over SMTP and SendGrid", () => {
+    const config = resolveEmailNotificationConfig({
+      RESEND_API_KEY: "re_123",
+      RESEND_FROM: "Vrije Academie <info@vrijeacademie.nl>",
+      SMTP_HOST: "127.0.0.1",
+      SENDGRID_API_KEY: "SG.ignored",
+    })
+    expect(config).toEqual({
+      kind: "resend",
+      options: {
+        channels: ["email"],
+        api_key: "re_123",
+        from: "Vrije Academie <info@vrijeacademie.nl>",
+      },
+    })
+  })
+
+  it("prefers SMTP over SendGrid when Resend is unset", () => {
     const config = resolveEmailNotificationConfig({
       SMTP_HOST: "127.0.0.1",
       SMTP_PORT: "25",
@@ -25,7 +42,21 @@ describe("resolveEmailNotificationConfig", () => {
     expect(config.options.auth).toBeUndefined()
   })
 
-  it("uses SendGrid when SMTP is unset", () => {
+  it("uses Resend with default from when RESEND_FROM is unset", () => {
+    const config = resolveEmailNotificationConfig({
+      RESEND_API_KEY: "re_abc",
+    })
+    expect(config).toEqual({
+      kind: "resend",
+      options: {
+        channels: ["email"],
+        api_key: "re_abc",
+        from: "info@vrijeacademie.nl",
+      },
+    })
+  })
+
+  it("uses SendGrid when Resend and SMTP are unset", () => {
     const config = resolveEmailNotificationConfig({
       SENDGRID_API_KEY: "SG.key",
       SENDGRID_FROM: "hello@example.com",

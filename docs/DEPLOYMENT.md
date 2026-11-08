@@ -104,19 +104,21 @@ After changing Medusa `.env`, reload PM2 (`pm2 startOrReload ecosystem.config.cj
 
 Copy the values from local `medusa/.env` (do not commit them). Reload PM2 after editing. Smoke-test: `GET https://medusastag.vrijeacademie.nl/store/events/art-nouveau/episodes/1-1/preview-playback` with the publishable API key should return `{ playback: { token, articleId, assetId, … } }`.
 
-**Transactional email (staging)** — OTP login codes and cadeaubon mail. Add to `~/app/medusa/.env` (SMTP wins if both are set). Reload PM2 after editing. Configure SPF/DKIM/DMARC for the From domain.
+**Transactional email (staging)** — OTP login codes and cadeaubon mail. Add to `~/app/medusa/.env` (Resend wins if multiple providers are set). Reload PM2 after editing. Verify the From domain in Resend (or configure SPF/DKIM/DMARC for SMTP).
 
 | Variable | Purpose |
 |----------|---------|
+| `RESEND_API_KEY` | [Resend](https://resend.com) API key — preferred provider when set |
+| `RESEND_FROM` | Optional From address (default `info@vrijeacademie.nl`) — recommended `"Vrije Academie" <info@vrijeacademie.nl>` |
 | `SMTP_HOST` | SMTP hostname (`127.0.0.1` for local postfix, or the organisation relay) |
 | `SMTP_PORT` | Optional, default `587` (`25` for local postfix, `465` implies SSL) |
 | `SMTP_SECURE` | Optional, `true`/`false` (default: true only when port is 465). Does **not** disable STARTTLS. |
 | `SMTP_IGNORE_TLS` | Optional. Default `true` for `127.0.0.1`/`localhost`/`::1` so Nodemailer does not STARTTLS against local Postfix snakeoil. Set `false` to allow STARTTLS. |
 | `SMTP_USER` / `SMTP_PASS` | Optional; omit for unauthenticated localhost |
 | `SMTP_FROM` | From address — recommended `"Vrije Academie" <info@vrijeacademie.nl>` (code default `info@vrijeacademie.nl` when unset) |
-| `SENDGRID_API_KEY` / `SENDGRID_FROM` | Fallback when `SMTP_HOST` is unset |
+| `SENDGRID_API_KEY` / `SENDGRID_FROM` | Fallback when Resend and `SMTP_HOST` are unset |
 
-Without SMTP or SendGrid, OTP codes are logged on the Medusa server only (`[customer-otp]`).
+Without Resend, SMTP, or SendGrid, OTP codes are logged on the Medusa server only (`[customer-otp]`).
 
 **Stape / server GTM (staging)** — add to `~/app/medusa/.env` when the server container is live (full GTM steps: [`docs/STAPE-GTM-BRIEFING.md`](./STAPE-GTM-BRIEFING.md)):
 

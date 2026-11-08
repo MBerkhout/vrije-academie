@@ -66,12 +66,20 @@ npx medusa exec ./src/scripts/verify-legacy-password.ts -- \
 
 - 6-digit code. Login codes expire after 1 hour; password-setup codes (`set_password`) expire after 10 minutes. Max 3 requests / 15 min per email, max 5 verify attempts
 - Codes stored hashed in `customer_otp_challenge` (`customerOtp` module)
-- Email via SMTP (`SMTP_HOST`) or SendGrid (`SENDGRID_API_KEY`); otherwise logged to Medusa stdout as `[customer-otp] email → code` (dev). SMTP wins if both are set. Bodies include `text` and `html` (SendGrid only sends `html`).
+- Email via Resend (`RESEND_API_KEY`), SMTP (`SMTP_HOST`), or SendGrid (`SENDGRID_API_KEY`); otherwise logged to Medusa stdout as `[customer-otp] email → code` (dev). Resend wins when multiple providers are set. Bodies include `text` and `html`.
 - **Login OTP mail:** HTML template in `src/modules/customer-otp/templates/otp-login.email.html` (subject: *Je inlogcode voor Mijn Vrije Academie*), plus a matching plain-text part. Logo: PNG at `{STOREFRONT_PUBLIC_URL}/branding/logo-email.png` (asset in `frontend/public/branding/logo-email.png`). `set_password` OTP still uses plain text only.
 
 ### Email (optional)
 
-Set in `medusa/.env`. Prefer SMTP for the staging/production server:
+Set in `medusa/.env`. Prefer **Resend** on staging/production (verify the From domain in the Resend dashboard for SPF/DKIM):
+
+```env
+RESEND_API_KEY=re_...
+RESEND_FROM="Vrije Academie" <info@vrijeacademie.nl>
+STOREFRONT_PUBLIC_URL=https://v2.vrijeacademie.nl
+```
+
+SMTP (local relay or organisation mail server):
 
 ```env
 SMTP_HOST=127.0.0.1
@@ -97,14 +105,14 @@ SMTP_FROM="Vrije Academie" <info@vrijeacademie.nl>
 STOREFRONT_PUBLIC_URL=https://v2.vrijeacademie.nl
 ```
 
-SendGrid fallback when `SMTP_HOST` is unset:
+SendGrid fallback when Resend and `SMTP_HOST` are unset:
 
 ```env
 SENDGRID_API_KEY=...
 SENDGRID_FROM=noreply@example.com
 ```
 
-When `SMTP_HOST` is set, `medusa-config.ts` registers the custom SMTP provider (`src/providers/smtp`, nodemailer). When only `SENDGRID_API_KEY` is set, it registers `@medusajs/notification-sendgrid`. SPF/DKIM/DMARC for the From domain is required for inbox delivery. If no `SMTP_FROM` / `SENDGRID_FROM` is set, Medusa falls back to `info@vrijeacademie.nl`.
+When `RESEND_API_KEY` is set, `medusa-config.ts` registers `src/providers/resend`. Otherwise SMTP registers `src/providers/smtp` (nodemailer), or SendGrid registers `@medusajs/notification-sendgrid`. If no `RESEND_FROM` / `SMTP_FROM` / `SENDGRID_FROM` is set, Medusa falls back to `info@vrijeacademie.nl`.
 
 ## Admin (support)
 

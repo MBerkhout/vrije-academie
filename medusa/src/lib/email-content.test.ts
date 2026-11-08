@@ -30,8 +30,12 @@ describe("emailContent", () => {
 })
 
 describe("hasEmailProvider", () => {
-  it("is false without SMTP or SendGrid", () => {
+  it("is false without Resend, SMTP, or SendGrid", () => {
     expect(hasEmailProvider({})).toBe(false)
+  })
+
+  it("is true when RESEND_API_KEY is set", () => {
+    expect(hasEmailProvider({ RESEND_API_KEY: "re_x" })).toBe(true)
   })
 
   it("is true when SMTP_HOST is set", () => {

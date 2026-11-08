@@ -17,8 +17,15 @@ export type SendgridNotificationOptions = {
   from: string
 }
 
+export type ResendNotificationOptions = {
+  channels: ["email"]
+  api_key: string
+  from: string
+}
+
 export type EmailNotificationConfig =
   | { kind: "none" }
+  | { kind: "resend"; options: ResendNotificationOptions }
   | { kind: "smtp"; options: SmtpNotificationOptions }
   | { kind: "sendgrid"; options: SendgridNotificationOptions }
 
@@ -53,12 +60,27 @@ export function parseIgnoreTls(
   return isLoopbackSmtpHost(host)
 }
 
-/** SMTP takes precedence over SendGrid when both are set. */
+/** Resend takes precedence over SMTP and SendGrid when multiple are set. */
 export function resolveEmailNotificationConfig(
   env: Record<string, string | undefined> = process.env
 ): EmailNotificationConfig {
   const from =
-    env.SMTP_FROM?.trim() || env.SENDGRID_FROM?.trim() || DEFAULT_FROM
+    env.RESEND_FROM?.trim() ||
+    env.SMTP_FROM?.trim() ||
+    env.SENDGRID_FROM?.trim() ||
+    DEFAULT_FROM
+
+  const resendApiKey = env.RESEND_API_KEY?.trim()
+  if (resendApiKey) {
+    return {
+      kind: "resend",
+      options: {
+        channels: ["email"],
+        api_key: resendApiKey,
+        from,
+      },
+    }
+  }
 
   const host = env.SMTP_HOST?.trim()
   if (host) {
@@ -97,6 +119,22 @@ export function emailNotificationModule(
   env: Record<string, string | undefined> = process.env
 ): Record<string, unknown> {
   const config = resolveEmailNotificationConfig(env)
+  if (config.kind === "resend") {
+    return {
+      notification: {
+        resolve: "@medusajs/medusa/notification",
+        options: {
+          providers: [
+            {
+              resolve: "./src/providers/resend",
+              id: "resend",
+              options: config.options,
+            },
+          ],
+        },
+      },
+    }
+  }
   if (config.kind === "smtp") {
     return {
       notification: {

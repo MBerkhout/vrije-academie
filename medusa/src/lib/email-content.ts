@@ -27,5 +27,9 @@ export function emailContent(input: {
 export function hasEmailProvider(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return Boolean(env.SMTP_HOST?.trim() || env.SENDGRID_API_KEY?.trim())
+  return Boolean(
+    env.RESEND_API_KEY?.trim() ||
+      env.SMTP_HOST?.trim() ||
+      env.SENDGRID_API_KEY?.trim()
+  )
 }
