@@ -30,6 +30,9 @@ rm -rf node_modules
 npm ci
 export DEPLOYMENT_VERSION="${DEPLOYMENT_VERSION:-$(git -C "$REPO_DIR" rev-parse --short HEAD)}"
 export SENTRY_RELEASE="${SENTRY_RELEASE:-$(git -C "$REPO_DIR" rev-parse HEAD)}"
+# Build into a per-release dir so workers still serving the previous build never see a
+# half-written .next (caused "client reference manifest ... does not exist" 500s).
+export NEXT_DIST_DIR=".next-$DEPLOYMENT_VERSION-$(date +%s)"
 npm run build
 
 PM2_DESIRED_INSTANCES="$(
@@ -45,6 +48,9 @@ echo "==> startOrReload PM2 process from ecosystem.config.cjs: $PM2_APP_NAME (DE
 pm2 startOrReload ecosystem.config.cjs --update-env
 bash "$REPO_DIR/scripts/pm2-scale-cluster.sh" "$PM2_APP_NAME" "$PM2_DESIRED_INSTANCES"
 pm2 save
+
+# Keep the current and previous build (old workers drain during reload); remove the rest.
+ls -dt .next-* 2>/dev/null | tail -n +3 | xargs -r rm -rf
 
 bash "$APP_DIR/scripts/warm-listing-cache.sh"
 

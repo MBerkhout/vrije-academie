@@ -466,6 +466,8 @@ Requires `REDIS_URL` on the **Medusa** server for cross-worker sharing; without 
 
 **Frontend:** copy the same `REDIS_URL` into `~/app/frontend/.env` (distinct key prefix — does not collide with Medusa `store:listing:*` keys). Without it, local dev keeps the default in-memory cache; production should always set it when using PM2 cluster mode.
 
+**Zero-downtime frontend build:** `frontend/scripts/deploy.sh` builds into a per-release dir (`NEXT_DIST_DIR=.next-<sha>-<ts>`, read by `next.config.js` and passed to PM2 via `ecosystem.config.cjs`) instead of overwriting the live `.next`. Building in place made running workers throw `Invariant: The client reference manifest for route "/" does not exist` (random 500s on prod during deploys). The last two build dirs are kept; older ones are pruned. Redis `ECONNREFUSED :6378` bursts seen in Sentry are a separate cause — check `redis-persistent` restarts if they persist.
+
 **Post-deploy warm:** `frontend/scripts/deploy.sh` runs `scripts/warm-listing-cache.sh` after PM2 reload — best-effort `curl` of default PLP/Agenda URLs (up to 120 s each, retries) so one worker populates the shared Next hard cache and Medusa listing snapshot before traffic hits. Frontend and Medusa deploy jobs run in parallel; if Medusa is still restarting, warm may retry or warn without failing the deploy.
 
 **Optional env for immediate PLP + Agenda bust on catalog changes** (same secret on both sides):

@@ -24,6 +24,7 @@ module.exports = {
         PORT: sizing.port,
         NODE_OPTIONS: sizing.nodeOptions,
         SENTRY_RELEASE: process.env.SENTRY_RELEASE,
+        NEXT_DIST_DIR: process.env.NEXT_DIST_DIR,
       },
       kill_timeout: parseInt(process.env.PM2_KILL_TIMEOUT_MS, 10) || 5000,
       listen_timeout: parseInt(process.env.PM2_LISTEN_TIMEOUT_MS, 10) || 10000,

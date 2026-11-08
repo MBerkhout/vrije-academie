@@ -10,6 +10,8 @@ const redisUrl = process.env.REDIS_URL?.trim()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Deploys build into a per-release dir (NEXT_DIST_DIR) so running workers keep serving the old build.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   reactStrictMode: true,
   images: {
     // Next 16 defaults to [75] only; SanityImage uses 80, category thumbs 90.
