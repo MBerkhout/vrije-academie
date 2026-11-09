@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest"
 
-import { isUnchangedLinkedCustomer } from "./prepare-push-customer-step"
+import {
+  customerHasLegacyImportPending,
+  isUnchangedLinkedCustomer,
+} from "./prepare-push-customer-step"
+
+describe("customerHasLegacyImportPending", () => {
+  it("is true only when legacy_import_pending is true", () => {
+    expect(customerHasLegacyImportPending({ legacy_import_pending: true })).toBe(true)
+    expect(customerHasLegacyImportPending({ legacy_import_pending: false })).toBe(false)
+    expect(customerHasLegacyImportPending({})).toBe(false)
+    expect(customerHasLegacyImportPending(null)).toBe(false)
+  })
+})
 
 describe("isUnchangedLinkedCustomer", () => {
   const fp = '{"email":"a@b.nl"}'

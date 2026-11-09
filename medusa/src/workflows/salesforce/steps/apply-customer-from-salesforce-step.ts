@@ -143,6 +143,9 @@ export const applyCustomerFromSalesforceStep = createStep(
         ...(existing?.metadata ?? {}),
         ...(mapped.metadata ?? {}),
       }
+      if (mergedMetadata.legacy_import_pending === true) {
+        delete mergedMetadata.legacy_import_pending
+      }
 
       const clean: Record<string, unknown> = {}
       if (mapped.first_name !== undefined) clean.first_name = mapped.first_name

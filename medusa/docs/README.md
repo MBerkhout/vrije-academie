@@ -130,6 +130,15 @@ npx medusa exec ./src/scripts/backfill-cities.ts
 
 Store filter param `city[]` expects a **slug**. Facets return `{ slug, label, count }`.
 
+## Docent cleanup (duplicates)
+
+Legacy test docents (slug contains `testdocent`) can duplicate a real docent in Sanity. `cleanup-duplicate-docents.ts` deletes a docent only if its slug matches `testdocent`, it has **no linked products**, and another docent with the same name exists. Duplicates with products (both profiles, or only the test profile) are reported as `keep`. Deleting emits `people.docent.deleted`, which removes the Sanity doc `medusa-docent-<id>`; the Salesforce sync state is removed too.
+
+```bash
+npx medusa exec ./src/scripts/cleanup-duplicate-docents.ts          # report only
+npx medusa exec ./src/scripts/cleanup-duplicate-docents.ts -- --fix # apply
+```
+
 ## Region, tax & pricing (one-time per environment)
 
 Salesforce `Price__c` is imported as a **gross consumer price**. Seed the default EUR region with all EU countries, standard B2C VAT per country, and tax-inclusive EUR pricing:

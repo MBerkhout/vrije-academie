@@ -49,6 +49,26 @@ npx medusa exec ./src/scripts/import-legacy-passwords.ts -- --dry-run --file=./d
 
 Skips customers that already have a Medusa password hash.
 
+### Bulk import active legacy users (email + password)
+
+Full old-site export with columns `last_login,is_active,sfid,id,password,username,email`. Place **`users_with_passwords.csv`** in the **repo root** (gitignored — contains hashes).
+
+- Processes only rows where `is_active` is `true` (case-insensitive).
+- Creates Medusa customers with Django PBKDF2 hash in `legacyPassword` (no mail, no OTP, no Salesforce API calls).
+- Sets `customer.metadata.legacy_import_pending: true` so `customer.created` does **not** push empty names to Salesforce (push skipped until cleared).
+- Optional `sfid` (Salesforce Contact `003…`) → `salesforce_sync_state.salesforce_id` for login-time pull.
+- **First login:** password login runs legacy migration + enqueues Salesforce **pull** (profile, phone, default address). Pull clears `legacy_import_pending`.
+
+```bash
+cd medusa
+npm run legacy:import-users
+npm run legacy:import-users -- --dry-run --limit=20
+npm run legacy:import-users -- --email=you@example.com
+npm run legacy:import-users -- --file=../users_with_passwords.csv
+```
+
+Use `--email=…` to import a single account (e.g. smoke-test login before a full run). Skips rows when a Medusa customer already exists for the email or a Medusa password is already set.
+
 ### Verify a hash manually
 
 ```bash

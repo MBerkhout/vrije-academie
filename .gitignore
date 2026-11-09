@@ -43,3 +43,6 @@ coverage/
 # Temp files
 tmp/
 *.tmp
+
+# Legacy user import (contains password hashes)
+users_with_passwords.csv

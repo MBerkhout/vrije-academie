@@ -32,6 +32,13 @@ type CustomerSyncRow = {
   mapping_version?: string | null
 }
 
+/** Legacy CSV import: block SF push until first login pull fills profile from Salesforce. */
+export function customerHasLegacyImportPending(
+  metadata: Record<string, unknown> | null | undefined
+): boolean {
+  return metadata?.legacy_import_pending === true
+}
+
 /** Skip push only when Medusa already stores both SF ids and the payload fingerprint matches. */
 export function isUnchangedLinkedCustomer(
   row: CustomerSyncRow | null | undefined,
@@ -89,6 +96,22 @@ export const preparePushCustomerStep = createStep(
     const customer = customers[0]
     if (!customer) {
       throw new Error(`Customer ${input.customerId} not found`)
+    }
+
+    if (customerHasLegacyImportPending(customer.metadata as Record<string, unknown> | null)) {
+      const out: PreparePushCustomerOutput = {
+        skipped: true,
+        skipReason: "legacy_import_pending",
+        mode: row?.salesforce_id ? "update" : "create",
+        entityType: "customer",
+        medusaId: input.customerId,
+        salesforceContactId: row?.salesforce_id ?? null,
+        salesforceAccountId: row?.salesforce_account_id ?? null,
+        accountFields: {},
+        contactFields: {},
+        payloadFingerprint: "",
+      }
+      return new StepResponse(out)
     }
 
     const addresses = await customerService.listCustomerAddresses({
