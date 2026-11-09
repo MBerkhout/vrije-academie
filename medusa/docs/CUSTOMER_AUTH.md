@@ -75,6 +75,8 @@ Use `--email=…` to import a single account (e.g. smoke-test login before a ful
 
 **After deleting customers:** soft-deleted `provider_identity` rows still occupy the unique `(entity_id, provider)` index. Legacy password login then fails when migrating to Medusa scrypt (HTTP 400). Customer delete scripts hard-remove emailpass auth rows; `ensurePasswordlessAuthIdentity` also purges stale rows before create.
 
+**Stale `customer_id` on auth identity:** password login, OTP verify and password reset re-link the auth identity whenever its `customer_id` differs from the customer row for that email (not only when empty). Otherwise the JWT carries a deleted customer ID and checkout fails with `Customer with id: cus_… was not found`.
+
 ### Clear all storefront customers (ops)
 
 Removes every Medusa **customer** (soft-delete), linked auth identities, legacy password rows, OTP challenges, and customer `salesforce_sync_state`. Does **not** remove Medusa **admin** users (`user` table).

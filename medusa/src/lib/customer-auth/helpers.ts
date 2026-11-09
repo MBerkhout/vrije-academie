@@ -305,7 +305,7 @@ export async function verifyOtpAndIssueToken(
     authIdentity = await ensurePasswordlessAuthIdentity(container, normalized)
   }
 
-  if (!authIdentity.app_metadata?.customer_id) {
+  if (authIdentity.app_metadata?.customer_id !== customer.id) {
     await linkAuthIdentityToCustomer(container, authIdentity.id, customer.id)
     authIdentity = (await findAuthIdentityByEmail(container, normalized)) ?? authIdentity
   }
@@ -487,7 +487,7 @@ export async function loginWithPasswordMigration(
 
   if (login.success && login.authIdentity) {
     let authIdentity = login.authIdentity
-    if (!authIdentity.app_metadata?.customer_id) {
+    if (authIdentity.app_metadata?.customer_id !== customer.id) {
       await linkAuthIdentityToCustomer(container, authIdentity.id, customer.id)
       authIdentity = (await findAuthIdentityByEmail(container, normalized)) ?? authIdentity
     }
@@ -512,7 +512,7 @@ export async function loginWithPasswordMigration(
   if (!authIdentity) {
     authIdentity = await ensurePasswordlessAuthIdentity(container, normalized)
   }
-  if (!authIdentity.app_metadata?.customer_id) {
+  if (authIdentity.app_metadata?.customer_id !== customer.id) {
     await linkAuthIdentityToCustomer(container, authIdentity.id, customer.id)
     authIdentity = (await findAuthIdentityByEmail(container, normalized)) ?? authIdentity
   }
@@ -593,7 +593,7 @@ export async function resetCustomerPassword(
     authIdentity = await ensurePasswordlessAuthIdentity(container, normalized)
   }
 
-  if (customer && !authIdentity.app_metadata?.customer_id) {
+  if (customer && authIdentity.app_metadata?.customer_id !== customer.id) {
     await linkAuthIdentityToCustomer(container, authIdentity.id, customer.id)
   }
 
