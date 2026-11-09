@@ -15,7 +15,8 @@ export function isDoNotTrackEnabled(): boolean {
   const nav = navigator as Navigator & { msDoNotTrack?: string }
   const dnt = nav.doNotTrack ?? nav.msDoNotTrack ?? window.doNotTrack
   if (dnt == null || dnt === '') return false
-  return dnt === '1' || dnt === 'yes' || dnt === 1
+  const normalized = String(dnt).toLowerCase()
+  return normalized === '1' || normalized === 'yes'
 }
 
 export function isBotUserAgent(userAgent: string): boolean {

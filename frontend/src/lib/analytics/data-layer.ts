@@ -3,7 +3,8 @@ import type { AnalyticsEvent } from '@/lib/analytics/types'
 
 declare global {
   interface Window {
-    dataLayer?: Record<string, unknown>[]
+    /** GTM events (objects) and gtag consent commands (argument arrays). */
+    dataLayer?: unknown[]
   }
 }
 
