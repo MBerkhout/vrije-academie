@@ -1,5 +1,6 @@
 import { authenticate, defineMiddlewares } from "@medusajs/framework/http"
 
+import { detachStaleCartCustomer } from "./middlewares/detach-stale-cart-customer"
 import { medusaSentryErrorHandler } from "./middlewares/sentry-error-handler"
 import { storeRequestTiming } from "./middlewares/store-request-timing"
 
@@ -34,6 +35,11 @@ export default defineMiddlewares({
     {
       matcher: "/store/auth/set-password",
       middlewares: [authenticate("customer", ["session", "bearer"])],
+    },
+    {
+      matcher: "/store/carts/*",
+      method: ["POST"],
+      middlewares: [detachStaleCartCustomer],
     },
     {
       matcher: "/store/carts/sync",

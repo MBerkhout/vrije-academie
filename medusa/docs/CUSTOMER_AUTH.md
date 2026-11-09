@@ -77,6 +77,8 @@ Use `--email=…` to import a single account (e.g. smoke-test login before a ful
 
 **Stale `customer_id` on auth identity:** password login, OTP verify and password reset re-link the auth identity whenever its `customer_id` differs from the customer row for that email (not only when empty). Otherwise the JWT carries a deleted customer ID and checkout fails with `Customer with id: cus_… was not found`.
 
+**Stale `customer_id` on the cart:** the cart cookie survives a customer purge, and Medusa's cart update/complete workflows fail on a deleted `cart.customer_id`. Middleware `detach-stale-cart-customer` (`POST /store/carts/*`) nulls `customer_id` when that customer no longer exists, before the core handler runs.
+
 ### Clear all storefront customers (ops)
 
 Removes every Medusa **customer** (soft-delete), linked auth identities, legacy password rows, OTP challenges, and customer `salesforce_sync_state`. Does **not** remove Medusa **admin** users (`user` table).
