@@ -50,7 +50,7 @@ The hero is split into two columns:
 
 ## Newsletter card
 
-Shown when **Show newsletter** is on. With a HubSpot CTA-ID: **Inschrijven** opens a modal with the same HubSpot *web interactive* iframe as vrijeacademie.nl (image + *Blijf benieuwd!* form). The storefront wires HubSpot’s MessageChannel `HS_CTA_PARENT_INIT` handshake so the in-iframe **X** closes the modal (`HS_CTA_CLOSE_INTERACTIVE`); backdrop click and Escape still close locally. With only a form-ID: modal uses `HubSpotFormEmbed`. Otherwise: **Meld je aan** + **Aanmelden** link.
+Shown when **Show newsletter** is on. With a HubSpot CTA-ID: **Inschrijven** opens a modal with the same HubSpot *web interactive* iframe as vrijeacademie.nl (image + *Blijf benieuwd!* form). The storefront wires HubSpot’s MessageChannel `HS_CTA_PARENT_INIT` handshake on iframe `load` so the in-iframe **X** closes the modal (`HS_CTA_CLOSE_INTERACTIVE`); backdrop click and Escape still close locally. With only a form-ID: modal uses `HubSpotFormEmbed`. Otherwise: **Meld je aan** + **Aanmelden** link.
 
 ## Design Notes
 

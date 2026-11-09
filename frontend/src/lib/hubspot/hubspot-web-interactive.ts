@@ -75,8 +75,6 @@ function closeHubSpotWebInteractiveChannel(channel: MessageChannel | null) {
 /** HubSpot embed uses `*` when handing off the MessagePort (see `web-interactives-embed.js`). */
 export const HUBSPOT_WEB_INTERACTIVE_INIT_TARGET = '*' as const
 
-const HANDSHAKE_RETRY_MS = [0, 250, 800] as const
-
 export type HubSpotWebInteractiveBridge = {
   /** Call from the iframe `load` handler only (not on mount — avoids `about:blank`). */
   handshake: (iframe: HTMLIFrameElement) => void
@@ -86,7 +84,7 @@ export type HubSpotWebInteractiveBridge = {
 export function createHubSpotWebInteractiveBridge(onClose: () => void): HubSpotWebInteractiveBridge {
   let channel: MessageChannel | null = null
   let disposed = false
-  const retryTimeouts: ReturnType<typeof setTimeout>[] = []
+  let handshakeCompletedFor: HTMLIFrameElement | null = null
 
   const handlePortMessage = (event: MessageEvent<HubSpotWebInteractivePortMessage>) => {
     if (isHubSpotInteractiveCloseMessage(event.data)) onClose()
@@ -124,29 +122,18 @@ export function createHubSpotWebInteractiveBridge(onClose: () => void): HubSpotW
     }
   }
 
-  const clearRetries = () => {
-    for (const id of retryTimeouts) clearTimeout(id)
-    retryTimeouts.length = 0
-  }
-
   const handshake = (iframe: HTMLIFrameElement) => {
     if (disposed) return
-    clearRetries()
+    if (handshakeCompletedFor === iframe) return
 
-    for (const delay of HANDSHAKE_RETRY_MS) {
-      retryTimeouts.push(
-        setTimeout(() => {
-          if (disposed || !iframe.contentWindow) return
-          replaceChannel()
-          transferPort(iframe)
-        }, delay),
-      )
-    }
+    replaceChannel()
+    transferPort(iframe)
+    handshakeCompletedFor = iframe
   }
 
   const dispose = () => {
     disposed = true
-    clearRetries()
+    handshakeCompletedFor = null
     closeHubSpotWebInteractiveChannel(channel)
     channel = null
   }

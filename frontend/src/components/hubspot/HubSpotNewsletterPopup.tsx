@@ -130,14 +130,6 @@ export function HubSpotNewsletterPopup({
                   aria-label="Nieuwsbrief"
                   className="relative z-[101] w-full max-w-4xl h-[min(90vh,640px)] bg-white shadow-xl overflow-hidden rounded-lg"
                 >
-                  <button
-                    type="button"
-                    className="absolute top-3 right-3 z-[102] flex h-10 w-10 items-center justify-center rounded-full bg-white/95 font-sans text-xl leading-none text-va-gray shadow-md hover:text-va-black"
-                    aria-label="Sluiten"
-                    onClick={closePopup}
-                  >
-                    ×
-                  </button>
                   {portalId && interactiveSrc ? (
                     <iframe
                       ref={interactiveIframeRef}

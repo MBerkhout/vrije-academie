@@ -58,21 +58,17 @@ describe('createHubSpotWebInteractiveBridge', () => {
     vi.useRealTimers()
   })
 
-  it('sends HS_CTA_PARENT_INIT when handshake runs after iframe load', () => {
-    vi.useFakeTimers()
+  it('sends HS_CTA_PARENT_INIT once per iframe load', () => {
     const iframe = document.createElement('iframe')
     const postMessage = vi.fn()
     Object.defineProperty(iframe, 'contentWindow', { value: { postMessage }, configurable: true })
 
     const bridge = createHubSpotWebInteractiveBridge(() => {})
     bridge.handshake(iframe)
-    vi.advanceTimersByTime(0)
+    bridge.handshake(iframe)
 
     expect(postMessage).toHaveBeenCalledTimes(1)
     expect(postMessage.mock.calls[0]?.[0]).toEqual({ type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT })
-
-    vi.advanceTimersByTime(250)
-    expect(postMessage).toHaveBeenCalledTimes(2)
 
     bridge.dispose()
   })
