@@ -9,8 +9,3 @@ export function getGtmId(): string | null {
   const id = process.env.NEXT_PUBLIC_GTM_ID?.trim()
   return id || null
 }
-
-export function getCookieBotId(): string | null {
-  const id = process.env.NEXT_PUBLIC_COOKIE_BOT_ID?.trim()
-  return id || null
-}

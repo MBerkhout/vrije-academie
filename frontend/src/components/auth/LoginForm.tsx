@@ -179,11 +179,7 @@ export function LoginForm({ settings }: LoginFormProps) {
     return () => window.clearTimeout(timer)
   }, [otpResendCooldown])
 
-  useEffect(() => {
-    if (mode !== 'login' || loginStep !== 'auth' || hasPassword || otpSent || busy) return
-    void sendLoginOtp()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, loginStep, hasPassword, otpSent, busy])
+  // OTP is sent only when the user asks (not auto on step enter — avoids mail during legacy migration).
 
   function switchMode(next: 'login' | 'register') {
     setError(null)
@@ -419,6 +415,11 @@ export function LoginForm({ settings }: LoginFormProps) {
               Er is een eenmalig wachtwoord verstuurd naar je e-mailadres.
             </p>
           )}
+          {authMode === 'otp' && !otpSent && (
+            <p className="font-sans text-sm text-va-darkgray">
+              Vraag een verificatiecode aan of log in met je wachtwoord van de oude website.
+            </p>
+          )}
           <form onSubmit={handleLogin} noValidate className="space-y-4">
             {authMode === 'password' && (
               <div>
@@ -446,7 +447,17 @@ export function LoginForm({ settings }: LoginFormProps) {
                 </div>
               </div>
             )}
-            {authMode === 'otp' && (
+            {authMode === 'otp' && !otpSent && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void sendLoginOtp()}
+                className="w-full border border-va-lightgray-300 font-sans text-sm px-6 py-3 hover:border-va-black transition-colors disabled:opacity-60"
+              >
+                Verificatiecode versturen
+              </button>
+            )}
+            {authMode === 'otp' && otpSent && (
               <OtpCodeInput
                 label="Verificatiecode"
                 value={otpCode}
@@ -458,9 +469,11 @@ export function LoginForm({ settings }: LoginFormProps) {
               />
             )}
             {error && <p className="font-sans text-xs text-red-600">{error}</p>}
-            <button type="submit" disabled={busy} className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60">
-              {busy ? '…' : (settings.loginCtaLabel ?? 'Inloggen')}
-            </button>
+            {(authMode === 'password' || otpSent) && (
+              <button type="submit" disabled={busy} className="w-full bg-va-yellow text-va-black font-sans font-semibold text-sm px-6 py-3 hover:bg-va-yellow/90 transition-colors disabled:opacity-60">
+                {busy ? '…' : (settings.loginCtaLabel ?? 'Inloggen')}
+              </button>
+            )}
           </form>
           <div className="flex flex-wrap gap-x-6 gap-y-1 font-sans text-xs">
             {hasPassword && authMode === 'password' && (
@@ -473,11 +486,12 @@ export function LoginForm({ settings }: LoginFormProps) {
                 Eenmalig wachtwoord sturen
               </button>
             )}
-            {hasPassword && authMode === 'otp' && (
+            {authMode === 'otp' && (
               <button
                 type="button"
                 onClick={() => {
                   setAuthMode('password')
+                  setHasPassword(true)
                   setOtpCode('')
                   setError(null)
                 }}

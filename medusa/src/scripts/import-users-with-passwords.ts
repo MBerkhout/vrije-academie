@@ -102,6 +102,14 @@ type LegacyUserRow = {
   passwordHash: string
   username: string
   sfid: string
+  lastLoginMs: number
+}
+
+function parseLastLoginMs(raw: string): number {
+  const t = raw.trim()
+  if (!t) return 0
+  const ms = Date.parse(t)
+  return Number.isFinite(ms) ? ms : 0
 }
 
 export function rowsFromCsv(content: string): LegacyUserRow[] {
@@ -114,17 +122,23 @@ export function rowsFromCsv(content: string): LegacyUserRow[] {
   const activeIdx = header.indexOf("is_active")
   const usernameIdx = header.indexOf("username")
   const sfidIdx = header.indexOf("sfid")
+  const lastLoginIdx = header.indexOf("last_login")
 
   if (emailIdx < 0 || passwordIdx < 0 || activeIdx < 0) {
     return []
   }
 
-  const out: LegacyUserRow[] = []
+  const parsed: LegacyUserRow[] = []
   for (const cells of matrix.slice(1)) {
     const active = (cells[activeIdx] ?? "").trim().toLowerCase()
     if (active !== "true" && active !== "1" && active !== "yes") continue
 
-    const emailRaw = (cells[emailIdx] ?? "").trim()
+    let emailRaw = (cells[emailIdx] ?? "").trim()
+    const username = usernameIdx >= 0 ? (cells[usernameIdx] ?? "").trim() : ""
+    if (!emailRaw && username) {
+      emailRaw = username
+    }
+
     const passwordHash = (cells[passwordIdx] ?? "").trim()
     if (!emailRaw || !passwordHash.startsWith(PBKDF2_PREFIX)) continue
 
@@ -135,14 +149,26 @@ export function rowsFromCsv(content: string): LegacyUserRow[] {
       continue
     }
 
-    out.push({
+    const lastLoginMs =
+      lastLoginIdx >= 0 ? parseLastLoginMs(cells[lastLoginIdx] ?? "") : 0
+
+    parsed.push({
       email,
       passwordHash,
-      username: usernameIdx >= 0 ? (cells[usernameIdx] ?? "").trim() : "",
+      username,
       sfid: sfidIdx >= 0 ? (cells[sfidIdx] ?? "").trim() : "",
+      lastLoginMs,
     })
   }
-  return out
+
+  const byEmail = new Map<string, LegacyUserRow>()
+  for (const row of parsed) {
+    const existing = byEmail.get(row.email)
+    if (!existing || row.lastLoginMs >= existing.lastLoginMs) {
+      byEmail.set(row.email, row)
+    }
+  }
+  return [...byEmail.values()]
 }
 
 async function ensureSalesforceLink(

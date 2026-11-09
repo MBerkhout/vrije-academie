@@ -23,6 +23,17 @@ describe("import-users-with-passwords CSV", () => {
     expect(rows[0].username).toBe("alice")
   })
 
+  it("dedupes same email by latest last_login and accepts username as email", () => {
+    const content = `last_login,is_active,sfid,id,password,username,email
+,x,003A,1,pbkdf2_sha256$150000$old$oldhash=,Mick@b.nl,
+2024-06-01,TRUE,003B,2,pbkdf2_sha256$150000$new$newhash=,mick@b.nl,mick@b.nl`
+    const rows = rowsFromCsv(content)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].email).toBe("mick@b.nl")
+    expect(rows[0].passwordHash).toContain("$new$")
+    expect(rows[0].lastLoginMs).toBeGreaterThan(0)
+  })
+
   it("parseCsvRows handles embedded commas in quotes", () => {
     const matrix = parseCsvRows('"a","b,c",d\n1,2,3')
     expect(matrix).toHaveLength(2)

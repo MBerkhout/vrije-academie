@@ -21,6 +21,7 @@
     "salesforce:import-customers": "medusa exec ./src/scripts/import-salesforce-customers.ts --",
     "legacy:import-passwords": "medusa exec ./src/scripts/import-legacy-passwords.ts --",
     "legacy:import-users": "medusa exec ./src/scripts/import-users-with-passwords.ts --",
+    "customers:delete-all": "medusa exec ./src/scripts/delete-all-storefront-customers.ts --",
     "salesforce:import-one": "medusa exec ./src/scripts/import-one-productgroup.ts --",
     "salesforce:backfill-facets": "medusa exec ./src/scripts/backfill-event-item-facets.ts --",
     "salesforce:backfill-record-types": "medusa exec ./src/scripts/backfill-event-group-record-types.ts",

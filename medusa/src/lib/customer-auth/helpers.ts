@@ -17,6 +17,7 @@ import { enqueueCustomerPullFromSalesforce } from "../../modules/salesforce-sync
 import { enqueueCustomerPushToSalesforce } from "../../modules/salesforce-sync/utils/enqueue-customer-push"
 import { verifyDjangoPbkdf2Password } from "./django-pbkdf2"
 import { salesforcePersonContactIdByEmail } from "./ensure-salesforce-customer"
+import { hardDeleteEmailpassIdentitiesForEmail } from "./purge-emailpass-identity"
 
 const EMAILPASS_PROVIDER = "emailpass"
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -183,6 +184,8 @@ export async function ensurePasswordlessAuthIdentity(
   if (existing) {
     return existing
   }
+
+  await hardDeleteEmailpassIdentitiesForEmail(normalized)
 
   const auth = container.resolve(Modules.AUTH) as {
     createAuthIdentities: (data: Record<string, unknown>) => Promise<AuthIdentityShape>

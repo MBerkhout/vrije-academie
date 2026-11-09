@@ -8,7 +8,6 @@ Client-side tracking via Google Tag Manager (`dataLayer`) and server-side commer
 
 ```bash
 NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX
-NEXT_PUBLIC_COOKIE_BOT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 NEXT_PUBLIC_GTM_ENABLED=true   # set false locally to disable pushes
 NEXT_PUBLIC_SITE_URL=https://www.vrijeacademie.nl
 ```
@@ -28,14 +27,24 @@ SGTM_PURCHASE_SECRET=optional-shared-secret
 ## Architecture
 
 - [`src/lib/analytics/`](../src/lib/analytics/) — types, mappers, `pushEvent`, `track*` helpers, **`attribution.ts`** (checkout cookies / click ids)
-- [`src/components/analytics/`](../src/components/analytics/) — GTM/Cookiebot bootstrap, providers, list context
+- [`src/components/analytics/`](../src/components/analytics/) — GTM bootstrap, providers, list context
+- [`src/components/consent/`](../src/components/consent/) — cookie banner + footer “Cookie-instellingen”
+- [`src/lib/analytics/consent/`](../src/lib/analytics/consent/) — `hasConsent` cookie, Consent Mode v2 `gtag` helpers
 - [`medusa/src/lib/gtm/`](../../medusa/src/lib/gtm/) — Stape payloads, Data Client envelope (`event` → `event_name`), HTTP sender
 - **Medusa subscribers**
   - [`gtm-purchase-order-completed.ts`](../../medusa/src/subscribers/gtm-purchase-order-completed.ts) — `order.completed` → `purchase`
   - [`gtm-refund-order-canceled.ts`](../../medusa/src/subscribers/gtm-refund-order-canceled.ts) — `order.canceled` → `refund`
   - [`gtm-sign-up-customer-created.ts`](../../medusa/src/subscribers/gtm-sign-up-customer-created.ts) — `customer.created` → `sign_up` (storefront registration only)
 
-Consent defaults to **denied**; Cookiebot callbacks push `consent_update` with Consent Mode v2 fields.
+## Consent / cookie banner
+
+Same behaviour as legacy **vrijeacademie.nl**: first-party banner, cookie `hasConsent=true|false` (12 months, path `/`).
+
+1. **`GtmScripts`** — inline `beforeInteractive` script: `gtag('consent','default', … denied, wait_for_update: 500)`. If `hasConsent=true`, immediate `gtag('consent','update', … granted)` before GTM loads.
+2. **`CookieBanner`** — shown when no choice yet (not on `/privacy-en-cookiebeleid`, not for bots / DNT). Accept/reject updates `gtag` + dataLayer `consent_update`.
+3. **`hasAttributionConsent()`** — checkout reads `_ga` / Meta cookies only when `hasConsent=true`.
+
+Footer **Cookie-instellingen** clears the cookie and reopens the banner.
 
 ## Stape server container
 
@@ -76,7 +85,7 @@ On checkout payment submit (`CheckoutPaymentForm`), the storefront writes `cart.
 | Event | Where |
 |-------|--------|
 | `page_view` | `PageViewTracker` (route + `page_type`) |
-| `consent_update` | Cookiebot adapter |
+| `consent_update` | Cookie banner accept/reject + returning visitors (`AnalyticsProvider`) |
 | `search` | PLP live search, `/zoeken` |
 | `view_item_list` / `select_item` | PLP, agenda, homepage carousels (`ItemListProvider`) |
 | `view_item` | PDP / VA Thuis PDP (`ViewItemTracker`) |

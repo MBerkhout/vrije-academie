@@ -1,21 +1,22 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { collectCheckoutAttribution } from '@/lib/analytics/attribution'
 
+import { setStoredConsent, clearStoredConsent } from '@/lib/analytics/consent/storage'
+
 describe('collectCheckoutAttribution', () => {
   beforeEach(() => {
-    vi.stubGlobal('Cookiebot', undefined)
     document.cookie = ''
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    clearStoredConsent()
     sessionStorage.clear()
   })
 
   it('returns event_id and page without marketing cookies when consent is denied', () => {
-    vi.stubGlobal('Cookiebot', { consent: { marketing: false, statistics: false } })
+    setStoredConsent(false)
     const result = collectCheckoutAttribution({ paymentType: 'iDEAL', eventId: 'test-id' })
     expect(result.event_id).toBe('test-id')
     expect(result.payment_type).toBe('iDEAL')
@@ -24,7 +25,7 @@ describe('collectCheckoutAttribution', () => {
   })
 
   it('reads GA and Meta cookies when consent is granted', () => {
-    vi.stubGlobal('Cookiebot', { consent: { marketing: true, statistics: false } })
+    setStoredConsent(true)
     document.cookie = '_ga=GA1.2.111.222'
     document.cookie = '_fbp=fb.1.123'
     const result = collectCheckoutAttribution({ eventId: 'e1' })

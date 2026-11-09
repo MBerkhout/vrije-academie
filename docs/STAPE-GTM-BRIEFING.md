@@ -93,9 +93,26 @@ Events komen uit `frontend/src/lib/analytics/` (zie checklist in `frontend/docs/
    - Consent: **Add consent state** aan.
 3. **Geen** client-side `purchase` op `/bedankt` — alleen server `purchase`.
 
-### 4.3 Consent Mode v2
+### 4.3 Consent Mode v2 (web container)
 
-Cookiebot + defaults staan in de codebase; web container moet Consent Mode en tag firing aligned houden met server tags.
+De storefront zet Consent Mode **in de pagina** vóór GTM (geen Cookiebot). Geen tweede default-tag in GTM toevoegen.
+
+1. **Consent overview:** GTM Admin → Container settings → *Enable consent overview*.
+2. **Tag consent (Advanced → Consent settings):**
+
+| Tag | Vereiste consent |
+|-----|------------------|
+| GA4 Configuration / GA4 Event | `analytics_storage` (ingebouwd bij Google-tags) |
+| Google Ads / Floodlight | `ad_storage`, `ad_user_data`, `ad_personalization` |
+| Meta Pixel (Custom HTML / template) | `ad_storage` |
+| Data Tag → server | `analytics_storage` + `ad_storage`; **Add consent state** |
+| AppNexus (Custom HTML: `https://secure.adnxs.com/seg?add=29002675&t=1`) | `ad_storage` |
+
+3. **Triggers:** Custom Event op dataLayer `event`-namen (zie `frontend/docs/ANALYTICS.md`). `consent_update` is optioneel voor tags die na accept moeten firen (bijv. extra `page_view`).
+4. **Data layer variabelen:** `event_id`, `items`, `value`, `currency`, `user_data`, `ad_storage`, `analytics_storage`, `ad_user_data`, `ad_personalization`.
+5. **Geen** client-side `purchase` — alleen server (Medusa).
+
+**Server container:** Data Tag stuurt consent mee; Medusa stuurt attributie alleen als de bezoeker `hasConsent=true` had (`hasAttributionConsent`).
 
 ---
 
@@ -147,7 +164,7 @@ Bij fout: `[gtm-purchase] failed …`
 
 ### 6.3 Attribution
 
-1. Cookiebot marketing/statistics **accepted**.
+1. Cookiebanner **Akkoord** (`hasConsent=true`).
 2. Checkout betaalstap → controleer `cart.metadata.analytics` (Admin API of DB).
 3. Na `order.completed`: `order.metadata.analytics` + server payload met `client_id` / `event_id`.
 

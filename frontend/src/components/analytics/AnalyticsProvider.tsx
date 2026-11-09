@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, type ReactNode } from 'react'
-import { applyConsentDefaults, initCookiebotConsentBridge } from '@/lib/analytics/consent/cookiebot'
+import { consentStatesForChoice } from '@/lib/analytics/consent/gtag'
+import { getStoredConsent } from '@/lib/analytics/consent/storage'
+import { trackConsentUpdate } from '@/lib/analytics/events/consent'
 import { initDataLayer } from '@/lib/analytics/data-layer'
 import { OutboundLinkTracker } from '@/components/analytics/OutboundLinkTracker'
 import { PageViewTracker } from '@/components/analytics/PageViewTracker'
@@ -19,8 +21,12 @@ export function AnalyticsProvider({
 }) {
   useEffect(() => {
     initDataLayer()
-    applyConsentDefaults()
-    initCookiebotConsentBridge()
+    const stored = getStoredConsent()
+    if (stored === true) {
+      trackConsentUpdate(consentStatesForChoice(true))
+    } else if (stored === false) {
+      trackConsentUpdate(consentStatesForChoice(false))
+    }
   }, [])
 
   return (

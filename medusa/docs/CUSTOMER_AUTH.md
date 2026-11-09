@@ -21,6 +21,8 @@ Customers imported from the old site with Django password hashes → `exists: tr
 
 On successful **OTP verify** or **password login**, Medusa enqueues a Salesforce **pull** (when the customer is linked or matchable by email) so profile and address reflect the latest Contact data. Password login also calls `POST /store/customer/me/sync-from-salesforce` from the storefront client.
 
+**Pull does not write to Salesforce** — it reads the Person Account / Contact and updates Medusa (name, phone, default address). While `legacy_import_pending` is set, customer **push** to Salesforce is skipped so empty import rows cannot overwrite SF.
+
 ## Password login
 
 `POST /store/auth/login` — body `{ email, password }`, returns `{ token }`.
@@ -68,6 +70,20 @@ npm run legacy:import-users -- --file=../users_with_passwords.csv
 ```
 
 Use `--email=…` to import a single account (e.g. smoke-test login before a full run). Skips rows when a Medusa customer already exists for the email or a Medusa password is already set.
+
+**After a customer purge:** import legacy users **before** logging in on the storefront. If you log in with OTP first, `lookup` still sees Salesforce (`exists: true`, `hasPassword: false`), the UI uses OTP, and `POST /store/auth/otp/request` may create a Medusa customer from Salesforce without a legacy password — blocking `legacy:import-users` for that email until you delete that customer.
+
+**After deleting customers:** soft-deleted `provider_identity` rows still occupy the unique `(entity_id, provider)` index. Legacy password login then fails when migrating to Medusa scrypt (HTTP 400). Customer delete scripts hard-remove emailpass auth rows; `ensurePasswordlessAuthIdentity` also purges stale rows before create.
+
+### Clear all storefront customers (ops)
+
+Removes every Medusa **customer** (soft-delete), linked auth identities, legacy password rows, OTP challenges, and customer `salesforce_sync_state`. Does **not** remove Medusa **admin** users (`user` table).
+
+```bash
+npm run customers:delete-all -- --dry-run
+npm run customers:delete-all -- --confirm
+npm run customers:delete-all -- --confirm --email=one@example.com
+```
 
 ### Verify a hash manually
 

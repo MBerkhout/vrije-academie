@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { GeneralSettings, Menu, MenuItem } from '@/lib/cms'
 import { isExternalHref, resolveMenuItemHref } from '@/lib/menu-href'
 import { cn } from '@/lib/utils'
+import { CookieSettingsLink } from '@/components/consent/CookieSettingsLink'
 import { FooterKeepInformedForm } from './FooterKeepInformedForm'
 
 interface FooterProps {
@@ -328,10 +329,11 @@ export function Footer({ settings }: FooterProps) {
           </>
         ) : null}
 
-        <div className="mt-10 pt-8 border-t border-white/15">
+        <div className="mt-10 pt-8 border-t border-white/15 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-sans text-xs text-white/55">
             {formatCopyright(footer?.copyright, year)}
           </p>
+          <CookieSettingsLink className="font-sans text-xs text-left" />
         </div>
       </div>
     </footer>

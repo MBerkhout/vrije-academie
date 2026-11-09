@@ -7,6 +7,7 @@ import { buildSiteMetadata } from '@/lib/cms/seo-metadata'
 import { refreshOnPresentation } from '@/app/actions/refresh'
 import { DisableDraftMode } from '@/components/DisableDraftMode'
 import { GtmScripts } from '@/components/analytics/GtmScripts'
+import { ConsentShell } from '@/components/consent/ConsentShell'
 import './globals.css'
 
 export const metadata: Metadata = buildSiteMetadata({
@@ -25,6 +26,7 @@ export default async function RootLayout({
     <html lang="nl">
       <body>
         <GtmScripts />
+        <ConsentShell />
         {children}
         {isDraftMode && (
           <>

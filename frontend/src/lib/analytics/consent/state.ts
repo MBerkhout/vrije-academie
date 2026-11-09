@@ -1,7 +1,7 @@
-/** Whether Cookiebot allows reading marketing / analytics cookies for attribution. */
+import { getStoredConsent } from '@/lib/analytics/consent/storage'
+
+/** Whether first-party / attribution cookies may be read for checkout (accept only). */
 export function hasAttributionConsent(): boolean {
   if (typeof window === 'undefined') return false
-  const cb = window.Cookiebot?.consent
-  if (!cb) return false
-  return cb.marketing === true || cb.statistics === true
+  return getStoredConsent() === true
 }
