@@ -71,9 +71,18 @@ const PERSONS_DYNAMIC_FILTER = `_type == "person" && defined(name) &&
 /** GROQ range endpoints must be integer literals; cap matches schema max. Trim with dynamicFilters.maxItems in PersonsBlock when set. */
 const PERSONS_DYNAMIC_SLICE = '[0..199]'
 
+/** Prefer lastStartAt after Medusa product sync; fall back to startAt when lastStartAt is not mirrored yet. */
+const PRODUCT_HAS_UPCOMING_SESSION = `(coalesce(hasOnDemandSession, false) == true ||
+          (defined(lastStartAt) && lastStartAt >= now()) ||
+          (!defined(lastStartAt) && defined(startAt) && startAt >= now()))`
+
+const DOCENT_UPCOMING_ACTIVITY_CLAUSE = `(!coalesce(^.dynamicFilters.onlyWithUpcomingActivities, false) ||
+        count(*[_type == "product" && ^._id in docenten[]._ref && ${PRODUCT_HAS_UPCOMING_SESSION}]) > 0)`
+
 const DOCENT_MIRROR_FILTER = `_type == "docent" && defined(name) && defined(slug) &&
         (count(coalesce(^.dynamicFilters.subjectTags, [])) == 0 || count(coalesce(subjectTags, [])[@ in coalesce(^.dynamicFilters.subjectTags, [])]) > 0) &&
-        !(_id in coalesce(^.dynamicFilters.exclude[]._ref, []))`
+        !(_id in coalesce(^.dynamicFilters.exclude[]._ref, [])) &&
+        ${DOCENT_UPCOMING_ACTIVITY_CLAUSE}`
 
 /** Mirrored docent cap (Medusa sync); merged client-side with editorial persons. */
 const DOCENT_MIRROR_SLICE = '[0..799]'

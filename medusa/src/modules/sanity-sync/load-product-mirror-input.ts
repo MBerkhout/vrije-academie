@@ -133,6 +133,10 @@ export async function loadProductMirrorInputs(
     const earliestStartAt = startTimes.length
       ? new Date(Math.min(...startTimes)).toISOString()
       : null
+    const latestStartAt = startTimes.length
+      ? new Date(Math.max(...startTimes)).toISOString()
+      : null
+    const hasOnDemandSession = eventItems.some((ei) => !ei.start_at)
     const cities = [
       ...new Set(eventItems.map((ei) => ei.city).filter(Boolean)),
     ] as string[]
@@ -185,6 +189,8 @@ export async function loadProductMirrorInputs(
       price_from: priceFrom,
       cities,
       earliest_start_at: (earliestStartAt as string | null) ?? null,
+      latest_start_at: (latestStartAt as string | null) ?? null,
+      has_on_demand_session: hasOnDemandSession,
       badge: ctaFields.badge,
       cta_color: ctaFields.cta_color,
       cta_color_hover: ctaFields.cta_color_hover,

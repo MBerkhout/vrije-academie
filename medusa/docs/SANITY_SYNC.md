@@ -101,6 +101,10 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | `priceFrom` | min variant price in **cents** (converted from Medusa major EUR units) | No |
 | `cities` | distinct `EventItem.city` values | No |
 | `startAt` | earliest `EventItem.start_at` across all variants (compared as timestamps, not strings) | No |
+| `lastStartAt` | latest `EventItem.start_at` across all variants (used with GROQ `now()` for docent listings) | No |
+| `hasOnDemandSession` | `true` when any variant’s event item has no `start_at` (counts as always upcoming, same as storefront `isFutureSession`) | No |
+
+After deploying these fields, run `npx medusa exec ./src/scripts/sync-sanity.ts -- --entity=products` so Persons **Only docenten with upcoming activities** uses `lastStartAt` (until then the storefront may fall back to `startAt`, which is less accurate when a product has both past and future sessions).
 | `seoTitle` | `Product.metadata.salesforce_seo_title` (SF import) | No |
 | `seoDescription` | `Product.metadata.salesforce_seo_description` (SF import) | No |
 | `externalRegistrationUrl` | `Product.metadata.salesforce_external_registration_url` (SF group `External_Registration_URL__c`), else first variant `External_Registration_URL_Product__c` | No |

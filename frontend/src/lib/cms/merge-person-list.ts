@@ -18,16 +18,24 @@ export function normalizePersonListName(name: string): string {
  * Merge mirrored docenten with editorial persons. Same name → person wins (photo, bio, profile URL).
  * Result is sorted A–Z (Dutch locale).
  */
+export type MergePersonListOptions = {
+  /** When set, editorial `person` rows with type docent are kept only if their name matches a synced docent (e.g. upcoming-activities filter). */
+  restrictEditorialDocentsToSynced?: boolean
+}
+
 export function mergePersonAndSyncedDocenten(
   persons: Person[],
   synced: SyncedDocent[],
+  options?: MergePersonListOptions,
 ): Person[] {
   const map = new Map<string, Person>()
+  const syncedNameKeys = new Set<string>()
 
   for (const d of synced) {
     const name = d.name?.trim()
     if (!name) continue
     const key = normalizePersonListName(name)
+    syncedNameKeys.add(key)
     if (map.has(key)) continue
     map.set(key, {
       _id: d._id,
@@ -44,6 +52,13 @@ export function mergePersonAndSyncedDocenten(
     const name = p.name?.trim()
     if (!name) continue
     const key = normalizePersonListName(name)
+    if (
+      options?.restrictEditorialDocentsToSynced &&
+      p.personType === 'docent' &&
+      !syncedNameKeys.has(key)
+    ) {
+      continue
+    }
     const prev = map.get(key)
     map.set(key, prev ? { ...prev, ...p, _id: p._id } : p)
   }

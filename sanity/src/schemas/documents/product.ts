@@ -224,6 +224,23 @@ export const product = defineType({
       readOnly: true,
     }),
     defineField({
+      name: "lastStartAt",
+      title: "Latest start date",
+      type: "datetime",
+      group: "mirror",
+      readOnly: true,
+      description:
+        "Latest session start across variants. Used with hasOnDemandSession for docent listings (future activities).",
+    }),
+    defineField({
+      name: "hasOnDemandSession",
+      title: "Has on-demand session",
+      type: "boolean",
+      group: "mirror",
+      readOnly: true,
+      description: "True when any variant has no start date (counts as always upcoming).",
+    }),
+    defineField({
       name: "badge",
       title: "Status badge",
       type: "string",

@@ -31,8 +31,11 @@ export function PersonsBlock({ block }: { block: PersonsBlockType }) {
     block.dataSource === 'dynamic' &&
     block.dynamicFilters?.includeSyncedDocenten !== false &&
     (block.dynamicFilters?.typeTags ?? []).includes('docent')
+  const onlyUpcoming = block.dynamicFilters?.onlyWithUpcomingActivities === true
   const merged = includeSynced
-    ? mergePersonAndSyncedDocenten(fromPersons, fromSynced)
+    ? mergePersonAndSyncedDocenten(fromPersons, fromSynced, {
+        restrictEditorialDocentsToSynced: onlyUpcoming,
+      })
     : fromPersons
   const maxItems = block.dynamicFilters?.maxItems
   const persons =

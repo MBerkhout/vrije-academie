@@ -118,6 +118,14 @@ export const personsBlock = defineType({
           initialValue: true,
         }),
         defineField({
+          name: "onlyWithUpcomingActivities",
+          title: "Only docenten with upcoming activities",
+          description:
+            "When Type includes Docent: show only instructors linked to a product with a future session (or on-demand). Requires synced docenten.",
+          type: "boolean",
+          initialValue: false,
+        }),
+        defineField({
           name: "maxItems",
           title: "Max Items",
           description:

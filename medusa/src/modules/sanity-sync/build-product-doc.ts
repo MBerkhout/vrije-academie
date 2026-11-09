@@ -18,6 +18,8 @@ export type MirrorProductInput = {
   price_from?: number | null
   cities?: string[]
   earliest_start_at?: string | null
+  latest_start_at?: string | null
+  has_on_demand_session?: boolean
   badge?: string | null
   cta_color?: string | null
   cta_color_hover?: string | null
@@ -147,6 +149,8 @@ export function buildProductMirrorDoc(
     priceFrom: product.price_from ?? null,
     cities: product.cities ?? [],
     startAt: product.earliest_start_at ?? null,
+    lastStartAt: product.latest_start_at ?? null,
+    hasOnDemandSession: product.has_on_demand_session ?? false,
     badge: product.badge ?? null,
     ctaColor: product.cta_color ?? null,
     ctaColorHover: product.cta_color_hover ?? null,
@@ -197,6 +201,8 @@ export function productMirrorDocChanged(
     "priceFrom",
     "cities",
     "startAt",
+    "lastStartAt",
+    "hasOnDemandSession",
     "badge",
     "ctaColor",
     "ctaColorHover",
@@ -237,6 +243,8 @@ export const SANITY_PRODUCT_BATCH_FETCH_FIELDS = `
   priceFrom,
   cities,
   startAt,
+  lastStartAt,
+  hasOnDemandSession,
   badge,
   ctaColor,
   ctaColorHover,

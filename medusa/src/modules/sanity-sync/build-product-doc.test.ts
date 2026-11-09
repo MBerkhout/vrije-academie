@@ -7,6 +7,19 @@ import {
 } from "./build-product-doc"
 
 describe("buildProductMirrorDoc", () => {
+  it("mirrors lastStartAt and hasOnDemandSession for future-activity filtering", () => {
+    const doc = buildProductMirrorDoc({
+      id: "prod_1",
+      handle: "course",
+      title: "Course",
+      latest_start_at: "2027-06-01T10:00:00.000Z",
+      has_on_demand_session: true,
+    })
+
+    expect(doc.lastStartAt).toBe("2027-06-01T10:00:00.000Z")
+    expect(doc.hasOnDemandSession).toBe(true)
+  })
+
   it("includes linked-online slave SEO mirror fields", () => {
     const doc = buildProductMirrorDoc({
       id: "prod_1",

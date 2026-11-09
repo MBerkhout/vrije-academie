@@ -223,7 +223,7 @@ Image Block
 
 **Purpose**: Grid of **Person** documents (manual selection or dynamic filters by type/subject).
 
-**Dynamic filters**: **Type** is a unique multi-select (Docent / Team / Gastspreker). Multiple types = OR; empty = all types. **Include synced docenten** (default on): when Type includes Docent, the storefront merges editorial **Person** documents with Medusa-synced **docent** mirrors (dedupe by name; Person overrides). **Max Items** is optional (leave empty for the full merged list; max 1000 after merge).
+**Dynamic filters**: **Type** is a unique multi-select (Docent / Team / Gastspreker). Multiple types = OR; empty = all types. **Include synced docenten** (default on): when Type includes Docent, the storefront merges editorial **Person** documents with Medusa-synced **docent** mirrors (dedupe by name; Person overrides). **Only docenten with upcoming activities** (default off): when Type includes Docent, lists only mirrored docenten linked to a mirrored **product** whose latest session is still in the future (`lastStartAt >= now()`) or that has an on-demand session (`hasOnDemandSession`). Editorial Person rows of type Docent that do not match an active synced docent are omitted. Requires a recent Medusa→Sanity product sync so mirror fields exist. **Max Items** is optional (leave empty for the full merged list; max 1000 after merge).
 
 **Show bio**: Optional; when off, cards show name and role only (typical for large docent directories).
 

@@ -358,6 +358,8 @@ export interface PersonsBlock extends Block {
     exclude?: { _ref: string }[]
     /** When true (default), dynamic lists with Type Docent also load mirrored `docent` docs. */
     includeSyncedDocenten?: boolean
+    /** When true, synced docenten must be linked to a product with a future session. */
+    onlyWithUpcomingActivities?: boolean
     maxItems?: number
     sort?: 'alphabetical' | 'recently_added' | 'manual'
   }
