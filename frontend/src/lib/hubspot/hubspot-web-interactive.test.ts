@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   HUBSPOT_WEB_INTERACTIVE_CLOSE,
   HUBSPOT_WEB_INTERACTIVE_HAS_CLOSED,
+  HUBSPOT_WEB_INTERACTIVE_PARENT_INIT,
+  bindHubSpotWebInteractiveIframe,
   hubSpotWebInteractiveIframeSrc,
   hubSpotWebInteractiveOrigin,
   isHubSpotInteractiveCloseMessage,
@@ -47,5 +49,41 @@ describe('isHubSpotInteractiveCloseMessage', () => {
   it('rejects unrelated messages', () => {
     expect(isHubSpotInteractiveCloseMessage({ type: 'HS_CTA_STARTED' })).toBe(false)
     expect(isHubSpotInteractiveCloseMessage('hello')).toBe(false)
+  })
+})
+
+describe('bindHubSpotWebInteractiveIframe', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('sends HS_CTA_PARENT_INIT once when the iframe is already complete', () => {
+    const iframe = document.createElement('iframe')
+    const postMessage = vi.fn()
+    Object.defineProperty(iframe, 'contentWindow', { value: { postMessage }, configurable: true })
+    Object.defineProperty(iframe, 'contentDocument', { value: { readyState: 'complete' }, configurable: true })
+
+    const unbind = bindHubSpotWebInteractiveIframe(iframe, () => {})
+  unbind()
+
+    expect(postMessage).toHaveBeenCalledTimes(1)
+    expect(postMessage.mock.calls[0]?.[0]).toEqual({ type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT })
+    expect(postMessage.mock.calls[0]?.[2]?.[0]).toBeInstanceOf(MessagePort)
+  })
+
+  it('waits for the load event when the iframe is still loading', () => {
+    const iframe = document.createElement('iframe')
+    const postMessage = vi.fn()
+    Object.defineProperty(iframe, 'contentWindow', { value: { postMessage }, configurable: true })
+    Object.defineProperty(iframe, 'contentDocument', { value: { readyState: 'loading' }, configurable: true })
+
+    const unbind = bindHubSpotWebInteractiveIframe(iframe, () => {})
+    expect(postMessage).not.toHaveBeenCalled()
+
+    Object.defineProperty(iframe, 'contentDocument', { value: { readyState: 'complete' }, configurable: true })
+    iframe.dispatchEvent(new Event('load'))
+    expect(postMessage).toHaveBeenCalledTimes(1)
+
+    unbind()
   })
 })

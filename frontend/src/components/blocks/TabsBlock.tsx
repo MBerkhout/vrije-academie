@@ -101,14 +101,14 @@ export function TabsBlock({ block }: { block: TabsBlockType }) {
     }
   }, [inPage, tabs])
 
-  useEffect(() => {
-    if (inPage || !block.anchorNavigation || !tabs[activeIndex]) return
-    const slug = slugifyLabel(tabs[activeIndex].label)
-    const full = `${window.location.pathname}#${slug}`
-    if (window.history.replaceState) {
-      window.history.replaceState(null, '', full)
+  // Only write the hash on user clicks. Writing it from an effect on mount overwrote the
+  // incoming hash with the first tab's slug before it was applied.
+  const selectTab = (i: number) => {
+    setActiveIndex(i)
+    if (block.anchorNavigation && tabs[i] && typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${slugifyLabel(tabs[i].label)}`)
     }
-  }, [activeIndex, block.anchorNavigation, inPage, tabs])
+  }
 
   useEffect(() => {
     if (!inPage || targetIds.length === 0) return
@@ -259,7 +259,7 @@ export function TabsBlock({ block }: { block: TabsBlockType }) {
             aria-selected={isActive}
             aria-controls={`tabpanel-${slug}`}
             id={`tab-${slug}`}
-            onClick={() => setActiveIndex(i)}
+            onClick={() => selectTab(i)}
             className={cn(
               'font-sans font-semibold transition-colors',
               isSideNav

@@ -618,7 +618,7 @@ STAGING_SSH_HOST=<staging-server-host> \
   bash scripts/prod/setup-env.sh
 ```
 
-The script SSH-reads staging `~/app/*/.env`, copies integration secrets (Salesforce, SMTP, Audience Player, OpenSearch, sGTM, Sentry DSNs, etc.), generates **new** `JWT_SECRET` / `COOKIE_SECRET`, and sets production URLs (`STORE_CORS`, `MEDUSA_URL`, `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, revalidate secrets, `SENTRY_ENVIRONMENT=production`). Review **Mollie** (live vs `test_*`), Salesforce org, and Sanity webhooks/CORS for `https://prod.vrijeacademie.nl` before go-live.
+The script SSH-reads staging `~/app/*/.env`, copies integration secrets (Salesforce, SMTP, Audience Player, OpenSearch, sGTM, Sentry DSNs, **Medusa → Sanity** `SANITY_PROJECT_ID` / `SANITY_DATASET` / `SANITY_WRITE_TOKEN` / `SANITY_STUDIO_URL` / `MEDUSA_ADMIN_URL`, etc.), generates **new** `JWT_SECRET` / `COOKIE_SECRET`, and sets production URLs (`STORE_CORS`, `MEDUSA_URL`, `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, revalidate secrets, `SENTRY_ENVIRONMENT=production`). After changing Medusa `.env`, run `pm2 startOrReload ecosystem.config.cjs` in `~/app/medusa`. Review **Mollie** (live vs `test_*`), Salesforce org, and Sanity webhooks/CORS for `https://prod.vrijeacademie.nl` before go-live.
 
 Set `SANITY_STUDIO_REVALIDATE_SECRET_PROD` in GitHub to the same value as `SANITY_STUDIO_REVALIDATE_SECRET` on the production frontend `.env`.
 

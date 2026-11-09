@@ -57,34 +57,87 @@ export function isHubSpotInteractiveCloseMessage(data: unknown): boolean {
   return false
 }
 
+function closeHubSpotWebInteractiveChannel(channel: MessageChannel | null) {
+  if (!channel) return
+  channel.port1.onmessage = null
+  try {
+    channel.port1.close()
+  } catch {
+    /* already closed */
+  }
+  try {
+    channel.port2.close()
+  } catch {
+    /* already closed / transferred */
+  }
+}
+
 /**
  * HubSpot interactive iframes expect a MessageChannel `INIT` on load; the in-iframe X posts
  * `HS_CTA_CLOSE_INTERACTIVE` on that channel (not a bubbling click on the parent document).
+ *
+ * A transferred `MessagePort` can only be posted once; retries use a fresh `MessageChannel`.
  */
 export function bindHubSpotWebInteractiveIframe(
   iframe: HTMLIFrameElement,
   onClose: () => void,
 ): () => void {
-  const channel = new MessageChannel()
+  let channel: MessageChannel | null = null
+  let portTransferred = false
 
   const handlePortMessage = (event: MessageEvent<HubSpotWebInteractivePortMessage>) => {
     if (isHubSpotInteractiveCloseMessage(event.data)) onClose()
   }
 
-  channel.port1.onmessage = handlePortMessage
-
-  const connect = () => {
-    iframe.contentWindow?.postMessage({ type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT }, '*', [channel.port2])
+  const replaceChannel = () => {
+    closeHubSpotWebInteractiveChannel(channel)
+    channel = new MessageChannel()
+    portTransferred = false
+    channel.port1.onmessage = handlePortMessage
   }
 
-  iframe.addEventListener('load', connect)
-  connect()
+  const transferPortToIframe = () => {
+    if (portTransferred || !channel) return
+    const target = iframe.contentWindow
+    if (!target) return
+
+    try {
+      target.postMessage({ type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT }, '*', [channel.port2])
+      portTransferred = true
+    } catch {
+      // Second transfer on the same port throws DataCloneError — use a new channel once.
+      replaceChannel()
+      const retryTarget = iframe.contentWindow
+      if (!retryTarget || !channel) return
+      try {
+        retryTarget.postMessage({ type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT }, '*', [channel.port2])
+        portTransferred = true
+      } catch {
+        portTransferred = false
+      }
+    }
+  }
+
+  const handshake = () => {
+    replaceChannel()
+    transferPortToIframe()
+  }
+
+  const onIframeLoad = () => {
+    handshake()
+  }
+
+  if (iframe.contentDocument?.readyState === 'complete') {
+    handshake()
+  } else {
+    iframe.addEventListener('load', onIframeLoad, { once: true })
+  }
 
   return () => {
-    iframe.removeEventListener('load', connect)
-    channel.port1.onmessage = null
-    channel.port1.close()
-    channel.port2.close()
+    iframe.removeEventListener('load', onIframeLoad)
+    closeHubSpotWebInteractiveChannel(channel)
+    channel = null
+    portTransferred = false
   }
 }
 
