@@ -58,13 +58,48 @@ export function TabsBlock({ block }: { block: TabsBlockType }) {
   )
   const observerRef = useRef<IntersectionObserver | null>(null)
 
+  // Select the tab matching the URL hash (initial load, hashchange, and in-page link clicks
+  // such as footer links; Next <Link> does not fire hashchange). Independent of anchorNavigation.
   useEffect(() => {
-    if (typeof window === 'undefined' || inPage) return
-    const hash = window.location.hash.slice(1)
-    if (!hash || !block.anchorNavigation) return
-    const index = tabs.findIndex((t) => slugifyLabel(t.label) === hash)
-    if (index >= 0) setActiveIndex(index)
-  }, [block.anchorNavigation, inPage, tabs])
+    if (typeof window === 'undefined' || inPage || tabs.length === 0) return
+
+    const indexForHash = (raw: string): number => {
+      let h = raw.replace(/^#/, '')
+      try {
+        h = decodeURIComponent(h)
+      } catch {
+        /* keep raw */
+      }
+      h = anchorIdFromString(h)
+      return h ? tabs.findIndex((t) => slugifyLabel(t.label) === h) : -1
+    }
+
+    const applyHash = (raw: string) => {
+      const index = indexForHash(raw)
+      if (index < 0) return false
+      setActiveIndex(index)
+      // Hidden panels can't be scrolled to; always start at the top of the page.
+      window.scrollTo(0, 0)
+      requestAnimationFrame(() => window.scrollTo(0, 0))
+      return true
+    }
+
+    applyHash(window.location.hash)
+
+    const onHashChange = () => applyHash(window.location.hash)
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href*="#"]') as HTMLAnchorElement | null
+      if (!a || a.origin !== window.location.origin) return
+      if (a.pathname.replace(/\/$/, '') !== window.location.pathname.replace(/\/$/, '')) return
+      if (indexForHash(a.hash) >= 0) setTimeout(() => applyHash(a.hash), 0)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    document.addEventListener('click', onClick)
+    return () => {
+      window.removeEventListener('hashchange', onHashChange)
+      document.removeEventListener('click', onClick)
+    }
+  }, [inPage, tabs])
 
   useEffect(() => {
     if (inPage || !block.anchorNavigation || !tabs[activeIndex]) return

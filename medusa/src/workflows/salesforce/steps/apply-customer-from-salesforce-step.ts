@@ -193,8 +193,8 @@ export const applyCustomerFromSalesforceStep = createStep(
     const [customer] = await customerService.createCustomers([
       {
         email: mapped.email,
-        first_name: mapped.first_name ?? "Unknown",
-        last_name: mapped.last_name ?? "-",
+        ...(mapped.first_name ? { first_name: mapped.first_name } : {}),
+        ...(mapped.last_name ? { last_name: mapped.last_name } : {}),
         ...(mapped.phone ? { phone: mapped.phone } : {}),
         ...(mapped.metadata ? { metadata: mapped.metadata } : {}),
       },

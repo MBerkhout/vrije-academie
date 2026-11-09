@@ -30,8 +30,12 @@ export function MijnAccountDashboard() {
 
   if (!customer) return null
 
-  const fn = customer.first_name?.trim() ?? ''
-  const ln = customer.last_name?.trim() ?? ''
+  const clean = (v?: string | null) => {
+    const s = v?.trim() ?? ''
+    return s === '-' || s.toLowerCase() === 'unknown' ? '' : s
+  }
+  const fn = clean(customer.first_name)
+  const ln = clean(customer.last_name)
   const welcomeName = [fn, ln].filter(Boolean).join(' ').trim() || customer.email
 
   const addr = getDefaultCheckoutAddress(customer)

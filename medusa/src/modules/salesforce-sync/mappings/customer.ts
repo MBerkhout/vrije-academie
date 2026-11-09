@@ -337,8 +337,8 @@ export function customerProfileFromSalesforce(sf: SfContactShape): {
   metadata?: Record<string, unknown>
   address?: MedusaCustomerAddressShape
 } {
-  const first_name = sf.FirstName?.trim() || undefined
-  const last_name = sf.LastName?.trim() || undefined
+  const first_name = realName(sf.FirstName)
+  const last_name = realName(sf.LastName)
   const email = coalesceEmail(sf)
   const phone = coalescePhone(sf)
   const metadata = metadataFromSalesforce(sf)
@@ -353,6 +353,13 @@ export function customerProfileFromSalesforce(sf: SfContactShape): {
   }
 }
 
+/** Trimmed name, or undefined when empty or a legacy placeholder ("Unknown", "-"). */
+function realName(v?: string | null): string | undefined {
+  const s = v?.trim()
+  if (!s || s === "-" || s.toLowerCase() === "unknown") return undefined
+  return s
+}
+
 export function personAccountFieldsFromMedusa(
   c: MedusaCustomerShape,
   recordTypeId?: string
@@ -360,8 +367,13 @@ export function personAccountFieldsFromMedusa(
   const meta = c.metadata ?? {}
 
   const fields: SfPersonAccountPushShape = {
-    FirstName: c.first_name?.trim() || "Unknown",
-    LastName: c.last_name?.trim() || "-",
+    ...(realName(c.first_name) ? { FirstName: realName(c.first_name) } : {}),
+    // Salesforce requires LastName on create only; never send a placeholder on update.
+    ...(realName(c.last_name)
+      ? { LastName: realName(c.last_name) }
+      : recordTypeId
+        ? { LastName: "-" }
+        : {}),
     PersonEmail: c.email?.trim() || undefined,
   }
 
@@ -384,8 +396,8 @@ export function contactFieldsFromMedusa(c: MedusaCustomerShape): SfContactPushSh
   const meta = c.metadata ?? {}
 
   const fields: SfContactPushShape = {
-    FirstName: c.first_name?.trim() || "Unknown",
-    LastName: c.last_name?.trim() || "-",
+    ...(realName(c.first_name) ? { FirstName: realName(c.first_name) } : {}),
+    ...(realName(c.last_name) ? { LastName: realName(c.last_name) } : {}),
     Email: c.email?.trim() || undefined,
   }
 

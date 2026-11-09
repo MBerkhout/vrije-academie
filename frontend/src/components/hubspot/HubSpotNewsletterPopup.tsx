@@ -1,11 +1,16 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui'
 import { HubSpotFormEmbed } from '@/components/hubspot/HubSpotFormEmbed'
 import type { HeroNewsletterPopupConfig } from '@/lib/hubspot/resolve-hero-newsletter-popup'
-import { hubSpotWebInteractiveIframeSrc } from '@/lib/hubspot/hubspot-web-interactive'
+import {
+  bindHubSpotWebInteractiveIframe,
+  hubSpotWebInteractiveIframeSrc,
+  hubSpotWebInteractiveOrigin,
+  isHubSpotInteractiveCloseMessage,
+} from '@/lib/hubspot/hubspot-web-interactive'
 
 export function HubSpotNewsletterPopup({
   config,
@@ -16,10 +21,13 @@ export function HubSpotNewsletterPopup({
 }) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const interactiveIframeBindCleanup = useRef<(() => void) | undefined>(undefined)
   const portalId = process.env.NEXT_PUBLIC_HUBSPOT_PORTAL_ID?.trim()
   const region = process.env.NEXT_PUBLIC_HUBSPOT_REGION?.trim() || 'eu1'
 
   const [parentPageUrl, setParentPageUrl] = useState('')
+
+  const closePopup = useCallback(() => setOpen(false), [])
 
   useEffect(() => {
     setMounted(true)
@@ -28,11 +36,11 @@ export function HubSpotNewsletterPopup({
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') closePopup()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  }, [closePopup, open])
 
   useEffect(() => {
     if (!open) return
@@ -53,6 +61,39 @@ export function HubSpotNewsletterPopup({
     setOpen(true)
   }
 
+  const setInteractiveIframeRef = useCallback(
+    (iframe: HTMLIFrameElement | null) => {
+      interactiveIframeBindCleanup.current?.()
+      interactiveIframeBindCleanup.current = undefined
+      if (iframe && open && config.mode === 'interactive') {
+        interactiveIframeBindCleanup.current = bindHubSpotWebInteractiveIframe(iframe, closePopup)
+      }
+    },
+    [closePopup, config.mode, open],
+  )
+
+  useEffect(
+    () => () => {
+      interactiveIframeBindCleanup.current?.()
+      interactiveIframeBindCleanup.current = undefined
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (!open || config.mode !== 'interactive' || !portalId) return
+
+    const trustedOrigin = hubSpotWebInteractiveOrigin(portalId, region)
+
+    const onWindowMessage = (event: MessageEvent) => {
+      if (event.origin !== trustedOrigin) return
+      if (isHubSpotInteractiveCloseMessage(event.data)) closePopup()
+    }
+
+    window.addEventListener('message', onWindowMessage)
+    return () => window.removeEventListener('message', onWindowMessage)
+  }, [closePopup, config.mode, open, portalId, region])
+
   return (
     <>
       <Button type="button" variant="primary" onClick={openPopup}>
@@ -65,7 +106,7 @@ export function HubSpotNewsletterPopup({
                 type="button"
                 className="absolute inset-0 bg-black/40"
                 aria-label="Sluiten"
-                onClick={() => setOpen(false)}
+                onClick={closePopup}
               />
               {config.mode === 'interactive' ? (
                 <div
@@ -76,6 +117,7 @@ export function HubSpotNewsletterPopup({
                 >
                   {portalId && interactiveSrc ? (
                     <iframe
+                      ref={setInteractiveIframeRef}
                       src={interactiveSrc}
                       title="Nieuwsbrief"
                       aria-label="Popup CTA"
@@ -102,7 +144,7 @@ export function HubSpotNewsletterPopup({
                     <button
                       type="button"
                       className="font-sans text-sm text-va-gray hover:text-va-black shrink-0"
-                      onClick={() => setOpen(false)}
+                      onClick={closePopup}
                     >
                       Sluiten
                     </button>
