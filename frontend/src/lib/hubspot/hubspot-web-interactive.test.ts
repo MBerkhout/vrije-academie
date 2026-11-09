@@ -4,7 +4,7 @@ import {
   HUBSPOT_WEB_INTERACTIVE_CLOSE,
   HUBSPOT_WEB_INTERACTIVE_HAS_CLOSED,
   HUBSPOT_WEB_INTERACTIVE_PARENT_INIT,
-  bindHubSpotWebInteractiveIframe,
+  createHubSpotWebInteractiveBridge,
   hubSpotWebInteractiveIframeSrc,
   hubSpotWebInteractiveOrigin,
   isHubSpotInteractiveCloseMessage,
@@ -52,38 +52,29 @@ describe('isHubSpotInteractiveCloseMessage', () => {
   })
 })
 
-describe('bindHubSpotWebInteractiveIframe', () => {
+describe('createHubSpotWebInteractiveBridge', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.useRealTimers()
   })
 
-  it('sends HS_CTA_PARENT_INIT once when the iframe is already complete', () => {
+  it('sends HS_CTA_PARENT_INIT when handshake runs after iframe load', () => {
+    vi.useFakeTimers()
     const iframe = document.createElement('iframe')
     const postMessage = vi.fn()
     Object.defineProperty(iframe, 'contentWindow', { value: { postMessage }, configurable: true })
-    Object.defineProperty(iframe, 'contentDocument', { value: { readyState: 'complete' }, configurable: true })
 
-    const unbind = bindHubSpotWebInteractiveIframe(iframe, () => {})
-  unbind()
+    const bridge = createHubSpotWebInteractiveBridge(() => {})
+    bridge.handshake(iframe)
+    vi.advanceTimersByTime(0)
 
     expect(postMessage).toHaveBeenCalledTimes(1)
     expect(postMessage.mock.calls[0]?.[0]).toEqual({ type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT })
-    expect(postMessage.mock.calls[0]?.[2]?.[0]).toBeInstanceOf(MessagePort)
+
+    vi.advanceTimersByTime(250)
+    expect(postMessage).toHaveBeenCalledTimes(2)
+
+    bridge.dispose()
   })
 
-  it('waits for the load event when the iframe is still loading', () => {
-    const iframe = document.createElement('iframe')
-    const postMessage = vi.fn()
-    Object.defineProperty(iframe, 'contentWindow', { value: { postMessage }, configurable: true })
-    Object.defineProperty(iframe, 'contentDocument', { value: { readyState: 'loading' }, configurable: true })
-
-    const unbind = bindHubSpotWebInteractiveIframe(iframe, () => {})
-    expect(postMessage).not.toHaveBeenCalled()
-
-    Object.defineProperty(iframe, 'contentDocument', { value: { readyState: 'complete' }, configurable: true })
-    iframe.dispatchEvent(new Event('load'))
-    expect(postMessage).toHaveBeenCalledTimes(1)
-
-    unbind()
-  })
 })

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui'
 import { HubSpotFormEmbed } from '@/components/hubspot/HubSpotFormEmbed'
 import type { HeroNewsletterPopupConfig } from '@/lib/hubspot/resolve-hero-newsletter-popup'
 import {
-  bindHubSpotWebInteractiveIframe,
+  createHubSpotWebInteractiveBridge,
   hubSpotWebInteractiveIframeSrc,
   hubSpotWebInteractiveOrigin,
   isHubSpotInteractiveCloseMessage,
@@ -21,7 +21,9 @@ export function HubSpotNewsletterPopup({
 }) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const interactiveIframeBindCleanup = useRef<(() => void) | undefined>(undefined)
+  const interactiveIframeRef = useRef<HTMLIFrameElement>(null)
+  const interactiveBridgeRef = useRef<ReturnType<typeof createHubSpotWebInteractiveBridge> | null>(null)
+  const interactiveIframeLoaded = useRef(false)
   const portalId = process.env.NEXT_PUBLIC_HUBSPOT_PORTAL_ID?.trim()
   const region = process.env.NEXT_PUBLIC_HUBSPOT_REGION?.trim() || 'eu1'
 
@@ -61,24 +63,37 @@ export function HubSpotNewsletterPopup({
     setOpen(true)
   }
 
-  const setInteractiveIframeRef = useCallback(
-    (iframe: HTMLIFrameElement | null) => {
-      interactiveIframeBindCleanup.current?.()
-      interactiveIframeBindCleanup.current = undefined
-      if (iframe && open && config.mode === 'interactive') {
-        interactiveIframeBindCleanup.current = bindHubSpotWebInteractiveIframe(iframe, closePopup)
-      }
-    },
-    [closePopup, config.mode, open],
-  )
+  const runInteractiveHandshake = useCallback(() => {
+    const iframe = interactiveIframeRef.current
+    const bridge = interactiveBridgeRef.current
+    if (!iframe || !bridge) return
+    bridge.handshake(iframe)
+  }, [])
 
-  useEffect(
-    () => () => {
-      interactiveIframeBindCleanup.current?.()
-      interactiveIframeBindCleanup.current = undefined
-    },
-    [],
-  )
+  useEffect(() => {
+    if (!open) {
+      interactiveIframeLoaded.current = false
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open || config.mode !== 'interactive') return
+
+    const bridge = createHubSpotWebInteractiveBridge(closePopup)
+    interactiveBridgeRef.current = bridge
+    if (interactiveIframeLoaded.current) {
+      runInteractiveHandshake()
+    }
+    return () => {
+      bridge.dispose()
+      interactiveBridgeRef.current = null
+    }
+  }, [closePopup, config.mode, open, runInteractiveHandshake])
+
+  const handleInteractiveIframeLoad = useCallback(() => {
+    interactiveIframeLoaded.current = true
+    runInteractiveHandshake()
+  }, [runInteractiveHandshake])
 
   useEffect(() => {
     if (!open || config.mode !== 'interactive' || !portalId) return
@@ -115,10 +130,19 @@ export function HubSpotNewsletterPopup({
                   aria-label="Nieuwsbrief"
                   className="relative z-[101] w-full max-w-4xl h-[min(90vh,640px)] bg-white shadow-xl overflow-hidden rounded-lg"
                 >
+                  <button
+                    type="button"
+                    className="absolute top-3 right-3 z-[102] flex h-10 w-10 items-center justify-center rounded-full bg-white/95 font-sans text-xl leading-none text-va-gray shadow-md hover:text-va-black"
+                    aria-label="Sluiten"
+                    onClick={closePopup}
+                  >
+                    ×
+                  </button>
                   {portalId && interactiveSrc ? (
                     <iframe
-                      ref={setInteractiveIframeRef}
+                      ref={interactiveIframeRef}
                       src={interactiveSrc}
+                      onLoad={handleInteractiveIframeLoad}
                       title="Nieuwsbrief"
                       aria-label="Popup CTA"
                       allow="autoplay; fullscreen; clipboard-write"

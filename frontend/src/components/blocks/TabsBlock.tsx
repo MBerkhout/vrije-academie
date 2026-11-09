@@ -70,8 +70,10 @@ export function TabsBlock({ block }: { block: TabsBlockType }) {
       } catch {
         /* keep raw */
       }
-      h = anchorIdFromString(h)
-      return h ? tabs.findIndex((t) => slugifyLabel(t.label) === h) : -1
+      // Ignore leading/trailing hyphens (e.g. "#adreswijziging-" from a label with trailing space).
+      const clean = (s: string) => anchorIdFromString(s).replace(/^-+|-+$/g, '')
+      h = clean(h)
+      return h ? tabs.findIndex((t) => clean(t.label ?? '') === h) : -1
     }
 
     const applyHash = (raw: string) => {

@@ -72,18 +72,21 @@ function closeHubSpotWebInteractiveChannel(channel: MessageChannel | null) {
   }
 }
 
-/**
- * HubSpot interactive iframes expect a MessageChannel `INIT` on load; the in-iframe X posts
- * `HS_CTA_CLOSE_INTERACTIVE` on that channel (not a bubbling click on the parent document).
- *
- * A transferred `MessagePort` can only be posted once; retries use a fresh `MessageChannel`.
- */
-export function bindHubSpotWebInteractiveIframe(
-  iframe: HTMLIFrameElement,
-  onClose: () => void,
-): () => void {
+/** HubSpot embed uses `*` when handing off the MessagePort (see `web-interactives-embed.js`). */
+export const HUBSPOT_WEB_INTERACTIVE_INIT_TARGET = '*' as const
+
+const HANDSHAKE_RETRY_MS = [0, 250, 800] as const
+
+export type HubSpotWebInteractiveBridge = {
+  /** Call from the iframe `load` handler only (not on mount — avoids `about:blank`). */
+  handshake: (iframe: HTMLIFrameElement) => void
+  dispose: () => void
+}
+
+export function createHubSpotWebInteractiveBridge(onClose: () => void): HubSpotWebInteractiveBridge {
   let channel: MessageChannel | null = null
-  let portTransferred = false
+  let disposed = false
+  const retryTimeouts: ReturnType<typeof setTimeout>[] = []
 
   const handlePortMessage = (event: MessageEvent<HubSpotWebInteractivePortMessage>) => {
     if (isHubSpotInteractiveCloseMessage(event.data)) onClose()
@@ -92,53 +95,64 @@ export function bindHubSpotWebInteractiveIframe(
   const replaceChannel = () => {
     closeHubSpotWebInteractiveChannel(channel)
     channel = new MessageChannel()
-    portTransferred = false
     channel.port1.onmessage = handlePortMessage
   }
 
-  const transferPortToIframe = () => {
-    if (portTransferred || !channel) return
+  const transferPort = (iframe: HTMLIFrameElement) => {
+    if (disposed || !channel) return
     const target = iframe.contentWindow
     if (!target) return
 
     try {
-      target.postMessage({ type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT }, '*', [channel.port2])
-      portTransferred = true
+      target.postMessage(
+        { type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT },
+        HUBSPOT_WEB_INTERACTIVE_INIT_TARGET,
+        [channel.port2],
+      )
     } catch {
-      // Second transfer on the same port throws DataCloneError — use a new channel once.
       replaceChannel()
-      const retryTarget = iframe.contentWindow
-      if (!retryTarget || !channel) return
+      if (!channel) return
       try {
-        retryTarget.postMessage({ type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT }, '*', [channel.port2])
-        portTransferred = true
+        target.postMessage(
+          { type: HUBSPOT_WEB_INTERACTIVE_PARENT_INIT },
+          HUBSPOT_WEB_INTERACTIVE_INIT_TARGET,
+          [channel.port2],
+        )
       } catch {
-        portTransferred = false
+        /* port neutered */
       }
     }
   }
 
-  const handshake = () => {
-    replaceChannel()
-    transferPortToIframe()
+  const clearRetries = () => {
+    for (const id of retryTimeouts) clearTimeout(id)
+    retryTimeouts.length = 0
   }
 
-  const onIframeLoad = () => {
-    handshake()
+  const handshake = (iframe: HTMLIFrameElement) => {
+    if (disposed) return
+    clearRetries()
+
+    for (const delay of HANDSHAKE_RETRY_MS) {
+      retryTimeouts.push(
+        setTimeout(() => {
+          if (disposed || !iframe.contentWindow) return
+          replaceChannel()
+          transferPort(iframe)
+        }, delay),
+      )
+    }
   }
 
-  if (iframe.contentDocument?.readyState === 'complete') {
-    handshake()
-  } else {
-    iframe.addEventListener('load', onIframeLoad, { once: true })
-  }
-
-  return () => {
-    iframe.removeEventListener('load', onIframeLoad)
+  const dispose = () => {
+    disposed = true
+    clearRetries()
     closeHubSpotWebInteractiveChannel(channel)
     channel = null
-    portTransferred = false
   }
+
+  replaceChannel()
+  return { handshake, dispose }
 }
 
 /**
