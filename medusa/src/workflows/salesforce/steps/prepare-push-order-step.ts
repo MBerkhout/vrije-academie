@@ -4,6 +4,7 @@ import { Modules } from "@medusajs/framework/utils"
 import { loadOrderPushPayload, type OrderPushPayload } from "../../../modules/salesforce-sync/load-order-push-data"
 import { orderHeaderToSalesforce } from "../../../modules/salesforce-sync/mappings/order"
 import { SALESFORCE_DEFAULT_PRICEBOOK2_ID } from "../../../modules/salesforce-sync/utils/salesforce-config"
+import { reportPushTerminalFailure } from "../track-push-failure"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 import { isImportedSalesforceOrder } from "../../../modules/salesforce-sync/utils/order-import-metadata"
 
@@ -34,7 +35,7 @@ export const preparePushOrderStep = createStep(
         orderHeader: {},
         customerId: null,
       }
-      return new StepResponse(out)
+      return new StepResponse(out, input.orderId)
     }
 
     const orderModule = container.resolve(Modules.ORDER)
@@ -49,7 +50,7 @@ export const preparePushOrderStep = createStep(
         orderHeader: {},
         customerId: null,
       }
-      return new StepResponse(out)
+      return new StepResponse(out, input.orderId)
     }
     if (order.status !== "completed") {
       const out: PreparePushOrderOutput = {
@@ -61,7 +62,7 @@ export const preparePushOrderStep = createStep(
         orderHeader: {},
         customerId: null,
       }
-      return new StepResponse(out)
+      return new StepResponse(out, input.orderId)
     }
 
     const payload = await loadOrderPushPayload(container, input.orderId)
@@ -89,6 +90,11 @@ export const preparePushOrderStep = createStep(
       orderHeader,
       customerId: payload.customerId,
     }
-    return new StepResponse(out)
+    return new StepResponse(out, input.orderId)
+  },
+  // Runs only when the workflow fails after step retries are exhausted.
+  async (orderId: string | undefined, { container }) => {
+    if (!orderId) return
+    await reportPushTerminalFailure(container, "order", orderId, "push-order-salesforce")
   }
 )

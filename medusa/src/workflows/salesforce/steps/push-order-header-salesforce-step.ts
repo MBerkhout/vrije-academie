@@ -1,6 +1,7 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { ORDER_EXTERNAL_ID_FIELD, SF_ORDER_OBJECT } from "../../../modules/salesforce-sync/utils/salesforce-config"
+import { trackPushFailure } from "../track-push-failure"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 import {
   findSalesforceIdByExternalId,
@@ -22,7 +23,7 @@ export type PushOrderHeaderOutput = {
 
 export const pushOrderHeaderSalesforceStep = createStep(
   { name: "push-order-header-salesforce", maxRetries: 5, retryInterval: 30 },
-  async (input: PushOrderHeaderInput, { container }) => {
+  trackPushFailure("order", (i: PushOrderHeaderInput) => i.prep.medusaId, async (input: PushOrderHeaderInput, { container }) => {
     if (input.prep.skipped || !input.prep.payload) {
       return new StepResponse<PushOrderHeaderOutput>({
         skipped: true,
@@ -63,5 +64,5 @@ export const pushOrderHeaderSalesforceStep = createStep(
       skipped: false,
       salesforceOrderId,
     })
-  }
+  })
 )

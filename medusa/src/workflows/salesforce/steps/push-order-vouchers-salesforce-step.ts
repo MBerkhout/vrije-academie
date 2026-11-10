@@ -11,6 +11,7 @@ import {
   SF_VOUCHER_OBJECT,
   VOUCHER_GIFT_CARD_EXTERNAL_ID_FIELD,
 } from "../../../modules/salesforce-sync/utils/salesforce-config"
+import { trackPushFailure } from "../track-push-failure"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 import { resolvePricebookEntryId } from "../../../modules/salesforce-sync/utils/resolve-pricebook-entry"
 import { syncGiftCardCodeFromSalesforceVoucher } from "../../../lib/sync-gift-card-code-from-salesforce"
@@ -38,7 +39,7 @@ export type PushOrderVouchersOutput = {
 
 export const pushOrderVouchersSalesforceStep = createStep(
   { name: "push-order-vouchers-salesforce", maxRetries: 5, retryInterval: 30 },
-  async (input: PushOrderVouchersInput, { container }) => {
+  trackPushFailure("order", (i: PushOrderVouchersInput) => i.prep.medusaId, async (input: PushOrderVouchersInput, { container }) => {
     if (
       input.prep.skipped ||
       !input.prep.payload ||
@@ -184,5 +185,5 @@ export const pushOrderVouchersSalesforceStep = createStep(
       voucherIds,
       orderItemIds,
     })
-  }
+  })
 )

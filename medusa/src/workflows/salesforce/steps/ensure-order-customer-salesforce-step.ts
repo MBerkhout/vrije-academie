@@ -1,6 +1,7 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { firstWorkflowError } from "../../../lib/workflow-failure"
+import { trackPushFailure } from "../track-push-failure"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 import { pushCustomerToSalesforceWorkflow } from "../push-customer-salesforce"
 
@@ -19,7 +20,7 @@ export type EnsureOrderCustomerOutput = {
 
 export const ensureOrderCustomerSalesforceStep = createStep(
   { name: "ensure-order-customer-salesforce", maxRetries: 3, retryInterval: 10 },
-  async (input: EnsureOrderCustomerInput, { container }) => {
+  trackPushFailure("order", (i: EnsureOrderCustomerInput) => i.medusaId, async (input: EnsureOrderCustomerInput, { container }) => {
     if (input.skipped) {
       return new StepResponse<EnsureOrderCustomerOutput>({
         skipped: true,
@@ -39,7 +40,18 @@ export const ensureOrderCustomerSalesforceStep = createStep(
     >
     let row = await sync.getStateByMedusaId("customer", input.customerId)
 
-    if (!row?.salesforce_id || !row.salesforce_account_id) {
+    // Stored link may point to an Account deleted in Salesforce -> re-push customer.
+    let linkStale = false
+    if (row?.salesforce_id && row.salesforce_account_id) {
+      try {
+        await sync.retrieve("Account", row.salesforce_account_id, ["Id"])
+      } catch (err) {
+        if (!/NOT_FOUND|entity is deleted|entiteit is verwijderd/i.test((err as Error).message ?? "")) throw err
+        linkStale = true
+      }
+    }
+
+    if (linkStale || !row?.salesforce_id || !row.salesforce_account_id) {
       // In-process run: nested workflowEngine.run from a parent Redis workflow
       // returns before the child writes Salesforce IDs (waitlist signup 400).
       const ret = await pushCustomerToSalesforceWorkflow(container).run({
@@ -62,5 +74,5 @@ export const ensureOrderCustomerSalesforceStep = createStep(
       salesforceAccountId: row.salesforce_account_id,
       salesforceContactId: row.salesforce_id,
     })
-  }
+  })
 )

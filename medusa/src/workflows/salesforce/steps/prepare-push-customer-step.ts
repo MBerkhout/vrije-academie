@@ -145,9 +145,20 @@ export const preparePushCustomerStep = createStep(
     let salesforceAccountId = row?.salesforce_account_id ?? null
 
     if (mode === "update" && salesforceAccountId && shape.email?.trim()) {
-      const linkedEmail = await sync.getPersonAccountEmail(salesforceAccountId)
+      let linkedEmail: string | null
+      try {
+        linkedEmail = await sync.getPersonAccountEmail(salesforceAccountId)
+      } catch (err) {
+        // Linked Account was deleted in Salesforce: drop the stale link and re-create/re-link.
+        if (!/NOT_FOUND|entity is deleted|entiteit is verwijderd/i.test((err as Error).message ?? "")) throw err
+        linkedEmail = null
+        mode = "create"
+        hasSalesforceLink = false
+        salesforceContactId = null
+        salesforceAccountId = null
+      }
       const medusaEmail = sync.normalizeSalesforceEmail(shape.email)
-      if (linkedEmail && linkedEmail !== medusaEmail) {
+      if (mode === "update" && linkedEmail && linkedEmail !== medusaEmail) {
         mode = "create"
         hasSalesforceLink = false
         salesforceContactId = null

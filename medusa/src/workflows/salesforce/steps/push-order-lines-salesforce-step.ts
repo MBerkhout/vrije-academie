@@ -16,6 +16,7 @@ import {
   SF_ORDER_OBJECT,
   SALESFORCE_DISCOUNT_PRODUCT2_ID,
 } from "../../../modules/salesforce-sync/utils/salesforce-config"
+import { trackPushFailure } from "../track-push-failure"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 import { resolvePricebookEntryId } from "../../../modules/salesforce-sync/utils/resolve-pricebook-entry"
 import {
@@ -43,7 +44,7 @@ export type PushOrderLinesOutput = {
 
 export const pushOrderLinesSalesforceStep = createStep(
   { name: "push-order-lines-salesforce", maxRetries: 5, retryInterval: 30 },
-  async (input: PushOrderLinesInput, { container }) => {
+  trackPushFailure("order", (i: PushOrderLinesInput) => i.prep.medusaId, async (input: PushOrderLinesInput, { container }) => {
     if (
       input.prep.skipped ||
       !input.prep.payload ||
@@ -201,5 +202,5 @@ export const pushOrderLinesSalesforceStep = createStep(
       registrationIds,
       orderItemIds,
     })
-  }
+  })
 )

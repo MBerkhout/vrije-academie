@@ -122,6 +122,8 @@ Workflows live in `src/workflows/salesforce/`. When `REDIS_URL` is set, `medusa-
 
 Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries: 3`, state writes `maxRetries: 3`). The REST client retries **429 / 5xx** with backoff. Non-retryable Salesforce API errors fail fast to the **failure / alert** path.
 
+**Order push failure tracking:** Redis-engine retries run in the background, so the push request returns before the outcome is known. Each failed order-push step attempt writes `last_error` to the order's `salesforce_sync_state` row (`last_status: retrying`); when retries are exhausted the `prepare-push-order` compensation flips it to `error` (failure_count, Sentry, alert). Rows show on the failures page. A customer link whose Salesforce Account was deleted (`NOT_FOUND`) is treated as stale and the customer is re-created/re-linked before the order push.
+
 **Alerts** (terminal failure): structured `logger.error`, Sentry `captureWithContext` (`flow:salesforce-sync`, `entity_type`, `workflow`) — see [DEPLOYMENT.md](../../docs/DEPLOYMENT.md) § Sentry metric monitors for order vs non-order thresholds. Optional `SALESFORCE_SYNC_ALERT_WEBHOOK_URL` (set on production for Slack), de-duplicated buckets on `failure_count`.
 
 **Sentry signals** (production only, rate-limited): `kind:integration-not-ready` when sync subscribers run while OAuth is not configured (`salesforceIntegrationReady` in `src/lib/salesforce-integration-sentry.ts`); `kind:queue-backlog` when the webhook queue has failed rows or pending work older than 10 minutes (`reportWebhookQueueBacklogIfNeeded` after `process-salesforce-webhook-queue`). Unhandled job errors fail the cron check-in (no swallowed catch).
