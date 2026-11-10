@@ -13,6 +13,8 @@ const nextConfig = {
   // Deploys build into a per-release dir (NEXT_DIST_DIR) so running workers keep serving the old build.
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   reactStrictMode: true,
+  // Sitemap pre-render can fetch Sanity + Medusa; allow more than the default 60s on large catalogs.
+  staticPageGenerationTimeout: 180,
   images: {
     // Next 16 defaults to [75] only; SanityImage uses 80, category thumbs 90.
     qualities: [75, 80, 90],

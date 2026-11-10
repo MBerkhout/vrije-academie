@@ -1,21 +1,25 @@
-import { medusaClient } from '@/lib/commerce/medusa-client'
+import { getMedusaBackendUrl } from '@/lib/commerce/medusa-backend-url'
 import { getRedirects, normalizeRedirectPath } from '@/lib/redirects'
 import type { SitemapEntry } from './sitemap-queries'
 
-const CONCURRENCY = 8
+function storeHeaders(): HeadersInit {
+  const key = process.env.NEXT_PUBLIC_MEDUSA_API_KEY ?? ''
+  return key ? { 'x-publishable-api-key': key } : {}
+}
 
-async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length)
-  let next = 0
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (next < items.length) {
-        const i = next++
-        out[i] = await fn(items[i])
-      }
-    }),
-  )
-  return out
+async function fetchPublishedProductHandles(): Promise<Set<string> | null> {
+  try {
+    const res = await fetch(`${getMedusaBackendUrl()}/store/events/published-handles`, {
+      headers: storeHeaders(),
+      next: { revalidate: 300 },
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { handles?: string[] }
+    const list = data.handles ?? []
+    return new Set(list.map((h) => h.trim().toLowerCase()).filter(Boolean))
+  } catch {
+    return null
+  }
 }
 
 /** Drop entries whose URL would redirect (Sanity `redirect` documents). */
@@ -26,17 +30,15 @@ export async function dropRedirectedEntries(entries: SitemapEntry[]): Promise<Si
 
 /**
  * Drop product entries that Medusa does not serve (their PDP would 404).
+ * Uses one Medusa call (published handle set), not per-product PDP fetches.
  * Fails open: on a Medusa error the entry is kept, so an outage never empties the sitemap.
  */
 export async function dropMissingProducts(entries: SitemapEntry[]): Promise<SitemapEntry[]> {
-  const products = entries.filter((e) => e.handle)
-  const exists = await mapLimit(products, CONCURRENCY, async (e) => {
-    try {
-      return Boolean(await medusaClient.getEvent(e.handle as string))
-    } catch {
-      return true
-    }
+  const published = await fetchPublishedProductHandles()
+  if (!published) return entries
+
+  return entries.filter((e) => {
+    if (!e.handle) return true
+    return published.has(e.handle.trim().toLowerCase())
   })
-  const missing = new Set(products.filter((_, i) => !exists[i]))
-  return entries.filter((e) => !missing.has(e))
 }
