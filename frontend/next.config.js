@@ -37,6 +37,16 @@ const nextConfig = {
       },
     ]
   },
+  // iOS/Safari request these root paths regardless of <link rel="apple-touch-icon">.
+  async rewrites() {
+    return [
+      '/apple-touch-icon.png',
+      '/apple-touch-icon-precomposed.png',
+      '/apple-touch-icon-120x120.png',
+      '/apple-touch-icon-120x120-precomposed.png',
+      '/apple-touch-icon-240x240-precomposed.png',
+    ].map((source) => ({ source, destination: '/favicon/apple-touch-icon.png' }))
+  },
   ...(redisUrl
     ? {
         cacheHandler: require.resolve('./cache-incremental.cjs'),

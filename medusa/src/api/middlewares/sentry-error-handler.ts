@@ -5,6 +5,26 @@ import { captureWithContext } from "../../lib/sentry"
 
 const coreHandler = errorHandler()
 
+/**
+ * MedusaErrors carry a `type` but no HTTP status; the core handler maps these
+ * to 4xx responses (e.g. invalid promotion code -> invalid_data). Don't report them.
+ */
+const CLIENT_ERROR_TYPES = new Set([
+  "invalid_data",
+  "not_found",
+  "not_allowed",
+  "unauthorized",
+  "conflict",
+  "duplicate_error",
+  "invalid_argument",
+])
+
+function isClientMedusaError(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false
+  const type = (err as { type?: unknown }).type
+  return typeof type === "string" && CLIENT_ERROR_TYPES.has(type)
+}
+
 export function medusaSentryErrorHandler(
   err: unknown,
   req: MedusaRequest,
@@ -22,7 +42,9 @@ export function medusaSentryErrorHandler(
           "statusCode" in err &&
           typeof (err as { statusCode?: unknown }).statusCode === "number"
         ? (err as { statusCode: number }).statusCode
-        : 500
+        : isClientMedusaError(err)
+          ? 400
+          : 500
 
   const shouldCapture = statusCode >= 500 || statusCode === 0
   if (shouldCapture) {
