@@ -17,6 +17,7 @@ import {
   SF_PRODUCTGROUP_OBJECT,
 } from "../modules/salesforce-sync/mappings/productgroup"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
+import { linkedOnlineProductgroupId } from "../modules/salesforce-sync/utils/linked-online-productgroup"
 
 function arg(name: string): string | undefined {
   const p = process.argv.find((a) => a.startsWith(`${name}=`))
@@ -60,10 +61,25 @@ export default async function importOneProductgroup({ container }: ExecArgs) {
     `SELECT ${childFields} FROM ${SF_COURSE_PRODUCT_OBJECT} WHERE Productgroup__c = '${String(groupRecord.Id).replace(/'/g, "\\'")}'`
   )
 
+  const linkedId = linkedOnlineProductgroupId(groupRecord as never)
+  let linkedGroupRecord: Record<string, unknown> | null = null
+  let linkedChildRecords: Record<string, unknown>[] = []
+  if (linkedId) {
+    linkedGroupRecord = await sync.retrieve(SF_PRODUCTGROUP_OBJECT, linkedId, [
+      ...productgroupSalesforceFieldsForPull,
+    ])
+    const linkedChildResult = await sync.query<Record<string, unknown>>(
+      `SELECT ${childFields} FROM ${SF_COURSE_PRODUCT_OBJECT} WHERE Productgroup__c = '${linkedId.replace(/'/g, "\\'")}'`
+    )
+    linkedChildRecords = linkedChildResult.records ?? []
+  }
+
   const result = await importProductgroupFromSalesforce(container, {
     salesforceId,
     groupRecord: groupRecord as never,
     childRecords: childResult.records as never,
+    linkedGroupRecord,
+    linkedChildRecords,
     manual: true,
   })
 
