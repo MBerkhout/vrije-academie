@@ -15,6 +15,8 @@ const staticClient = sanityPreviewClient.withConfig({ useCdn: true, stega: { ena
 export interface SitemapEntry {
   path: string
   lastModified?: Date
+  /** Set for product PDP entries; used to verify the product exists in Medusa. */
+  handle?: string
 }
 
 interface SitemapPageRow {
@@ -148,7 +150,7 @@ export async function fetchSitemapEntries(
     })
     if (seen.has(path)) continue
     seen.add(path)
-    entries.push({ path, lastModified: toDate(row._updatedAt) })
+    entries.push({ path, lastModified: toDate(row._updatedAt), handle: row.handle })
   }
 
   for (const row of cities ?? []) {

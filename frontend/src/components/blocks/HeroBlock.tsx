@@ -33,6 +33,9 @@ export function HeroBlock({
 
   return (
     <BlockWrapper block={block}>
+      <h1 className="sr-only">
+        Vrije Academie – cursussen, lezingen en online leren over filosofie, psychologie en meer
+      </h1>
       <div
         className={cn(
           'grid lg:grid-cols-3 gap-6 md:gap-8 lg:items-stretch lg:min-h-0',
@@ -45,7 +48,7 @@ export function HeroBlock({
           autoplayInterval={block.autoplayInterval}
           className="lg:col-span-2 relative min-h-0 overflow-hidden rounded-lg h-64 md:h-96 lg:h-full lg:max-h-full"
           imageSizes={HERO_SLIDE_SIZES}
-          titleTag="h1"
+          titleTag="h2"
           creativeSlotPrefix="homepage_jumbotron"
           promotionFallbackName="Homepage banner"
           lcpImage={lcpImage}

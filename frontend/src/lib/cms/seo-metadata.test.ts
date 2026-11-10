@@ -20,7 +20,7 @@ describe('seo-metadata', () => {
   })
 
   it('buildSiteMetadata sets metadataBase from site origin', () => {
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://www.vrijeacademie.nl')
     const meta = buildSiteMetadata({ title: 'Test' })
     expect(meta.metadataBase?.toString()).toMatch(/^https?:\/\//)
     expect(meta.title).toBe('Test')
@@ -78,13 +78,13 @@ describe('seo-metadata', () => {
   })
 
   it('buildSeoMetadata uses branding logo when no image is configured', () => {
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://www.vrijeacademie.nl')
     const meta = buildSeoMetadata(null, { fallbackTitle: 'Page', path: '/about' })
     expect(meta.openGraph?.images).toEqual([DEFAULT_OG_IMAGE_ABSOLUTE])
   })
 
   it('buildSeoMetadata absolutizes default logo with NEXT_PUBLIC_STOREFRONT_PUBLIC_URL', () => {
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://www.vrijeacademie.nl')
     vi.stubEnv('NEXT_PUBLIC_STOREFRONT_PUBLIC_URL', 'https://v2.vrijeacademie.nl')
     const meta = buildSeoMetadata(null, { fallbackTitle: 'Page', path: '/' })
     expect(meta.openGraph?.images).toEqual([DEFAULT_OG_IMAGE_ABSOLUTE])
@@ -132,7 +132,7 @@ describe('seo-metadata', () => {
   })
 
   it('noIndexMetadata applies utility robots directive', () => {
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://www.vrijeacademie.nl')
     expect(noIndexMetadata('Login')).toMatchObject({
       title: 'Login',
       robots: NOINDEX_ROBOTS,

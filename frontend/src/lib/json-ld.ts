@@ -16,7 +16,7 @@ import { plpProductPath } from '@/lib/routes'
 
 export const SCHEMA_ORG = 'https://schema.org' as const
 
-const DEFAULT_SITE_ORIGIN = 'https://vrijeacademie.nl'
+const DEFAULT_SITE_ORIGIN = 'https://www.vrijeacademie.nl'
 /** Where `/public` assets are served until production cutover — keep in sync with Medusa `STOREFRONT_PUBLIC_URL`. */
 export const DEFAULT_STOREFRONT_PUBLIC_ORIGIN = 'https://v2.vrijeacademie.nl'
 export const ORG_NAME = 'Vrije Academie' as const
@@ -25,6 +25,10 @@ export const ORGANIZATION_ID_FRAGMENT = '#organization' as const
 /** Canonical site origin (no trailing slash). */
 export function getSiteOrigin(): string {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '')
+  // The bare domain redirects to www; never emit it in canonicals/sitemap/schema.
+  if (raw === 'https://vrijeacademie.nl' || raw === 'http://vrijeacademie.nl') {
+    return DEFAULT_SITE_ORIGIN
+  }
   return raw || DEFAULT_SITE_ORIGIN
 }
 
@@ -104,10 +108,43 @@ export function buildOrganizationEntity(): {
   }
 }
 
+/** Keep the number, drop labels and stray trailing/leading punctuation such as "(". */
 function extractPhoneNumber(phone?: string | null): string | undefined {
   if (!phone?.trim()) return undefined
-  const match = phone.match(/[\d][\d\s\-().]{6,}/)
-  return match?.[0]?.replace(/\s+/g, ' ').trim()
+  const match = phone.match(/\+?\d[\d\s\-().]{5,}/)
+  if (!match) return undefined
+  const cleaned = match[0]
+    .replace(/\s+/g, ' ')
+    .replace(/[\s\-.(]+$/, '')
+    .trim()
+  // Drop an unbalanced trailing ")" too
+  const open = (cleaned.match(/\(/g) ?? []).length
+  const close = (cleaned.match(/\)/g) ?? []).length
+  const result = close > open ? cleaned.replace(/\)+$/, '').trim() : cleaned
+  return result || undefined
+}
+
+/** Parse "Street 1, 1234 AB City" (or newline separated) into a PostalAddress. */
+function buildPostalAddress(raw?: string | null): Record<string, unknown> | undefined {
+  const text = raw?.trim()
+  if (!text) return undefined
+  const parts = text
+    .split(/[\n,]+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+  const cityIndex = parts.findIndex((part) => /^\d{4}\s?[A-Za-z]{2}\b/.test(part))
+  if (cityIndex === -1) {
+    return { '@type': 'PostalAddress', streetAddress: parts.join(', '), addressCountry: 'NL' }
+  }
+  const match = parts[cityIndex].match(/^(\d{4}\s?[A-Za-z]{2})\s*(.*)$/)!
+  const street = parts.slice(0, cityIndex).join(', ')
+  return {
+    '@type': 'PostalAddress',
+    ...(street && { streetAddress: street }),
+    postalCode: match[1].replace(/\s+/, ' ').toUpperCase(),
+    ...(match[2] && { addressLocality: match[2] }),
+    addressCountry: 'NL',
+  }
 }
 
 function resolveOrganizationLogo(settings?: GeneralSettings | null): string | undefined {
@@ -139,7 +176,8 @@ export function buildOrganizationJsonLd(
   const logo = resolveOrganizationLogo(settings)
   const sameAs = resolveOrganizationSameAs(settings)
   const telephone =
-    org?.telephone?.trim() || extractPhoneNumber(contact?.phone) || undefined
+    extractPhoneNumber(org?.telephone) || extractPhoneNumber(contact?.phone) || undefined
+  const address = buildPostalAddress(contact?.address)
   const email = org?.email?.trim() || contact?.email?.trim() || undefined
 
   return {
@@ -149,7 +187,7 @@ export function buildOrganizationJsonLd(
     name: org?.legalName?.trim() || ORG_NAME,
     url: getSiteOrigin(),
     ...(logo && { logo }),
-    ...(contact?.address?.trim() && { address: contact.address.trim() }),
+    ...(address && { address }),
     ...(telephone && { telephone }),
     ...(email && { email }),
     ...(sameAs && { sameAs }),

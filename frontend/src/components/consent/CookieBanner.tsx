@@ -95,9 +95,9 @@ export function CookieBanner() {
           />
         </div>
         <div className="space-y-3 px-6 py-5 font-sans text-sm leading-relaxed">
-          <h1 id={titleId} className="text-lg font-bold text-va-black">
+          <h2 id={titleId} className="text-lg font-bold text-va-black">
             Mogen we cookies gebruiken?
-          </h1>
+          </h2>
           <p className="text-va-black/85">
             Door op &quot;Akkoord&quot; te klikken sta je ons toe om cookies te gebruiken op onze
             website om onze winkel te verbeteren en te personaliseren en voor analytische

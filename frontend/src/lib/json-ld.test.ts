@@ -17,7 +17,7 @@ import {
 
 describe('json-ld', () => {
   it('getStorefrontPublicOrigin prefers NEXT_PUBLIC_STOREFRONT_PUBLIC_URL', () => {
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://www.vrijeacademie.nl')
     vi.stubEnv('NEXT_PUBLIC_STOREFRONT_PUBLIC_URL', 'https://v2.vrijeacademie.nl')
     expect(getStorefrontPublicOrigin()).toBe('https://v2.vrijeacademie.nl')
     expect(absolutizeStorefrontPublicUrl('/branding/logo.svg')).toBe(
@@ -27,7 +27,7 @@ describe('json-ld', () => {
   })
 
   it('getStorefrontPublicOrigin defaults to v2 when canonical is production', () => {
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://vrijeacademie.nl')
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://www.vrijeacademie.nl')
     expect(getStorefrontPublicOrigin()).toBe(DEFAULT_STOREFRONT_PUBLIC_ORIGIN)
     vi.unstubAllEnvs()
   })
@@ -53,7 +53,13 @@ describe('json-ld', () => {
     expect(schema['@id']).toBe(getOrganizationId())
     expect(schema.name).toBe('Vrije Academie B.V.')
     expect(schema.email).toBe('info@vrijeacademie.nl')
-    expect(schema.address).toBe('Herengracht 368, 1016 CH Amsterdam')
+    expect(schema.address).toEqual({
+      '@type': 'PostalAddress',
+      streetAddress: 'Herengracht 368',
+      postalCode: '1016 CH',
+      addressLocality: 'Amsterdam',
+      addressCountry: 'NL',
+    })
     expect(schema.telephone).toBe('088 - 518 5000')
     expect(schema.sameAs).toEqual(['https://facebook.com/va'])
   })

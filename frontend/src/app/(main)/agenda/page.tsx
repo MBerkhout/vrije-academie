@@ -19,7 +19,7 @@ import { PlpHeader } from '@/components/plp/PlpHeader'
 import { PlpTabs } from '@/components/plp/PlpTabs'
 import { AgendaLiveListing } from '@/components/agenda/AgendaLiveListing'
 import { JsonLd } from '@/components/common/JsonLd'
-import { buildCollectionPageJsonLd, buildItemListJsonLd } from '@/lib/json-ld'
+import { buildCollectionPageJsonLd, buildItemListJsonLd, getSiteOrigin } from '@/lib/json-ld'
 import { PLP_BASE_PATH, plpProductPath } from '@/lib/routes'
 import { productTypePluralsFromCms } from '@/lib/plp-product-types'
 
@@ -32,6 +32,7 @@ interface AgendaPageProps {
 export async function generateMetadata(): Promise<Metadata> {
   const siteName = 'Vrije Academie'
   return {
+    alternates: { canonical: `${getSiteOrigin()}/agenda` },
     title: `Agenda – ${siteName}`,
     description: `Bekijk alle aankomende activiteiten van ${siteName} op datum.`,
   }
