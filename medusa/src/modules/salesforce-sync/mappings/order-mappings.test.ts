@@ -23,6 +23,7 @@ describe("order Salesforce mappings", () => {
       pricebookEntryId: "01uxx",
       product2Id: "01txx",
       vaProductId: "a04xx",
+      quantity: 1,
       unitPriceCents: 8900,
       registrationId: "a01xx",
       productLabel: "Studiedag",
@@ -59,6 +60,7 @@ describe("order Salesforce mappings", () => {
       accountId: "001xx",
       contactId: "003xx",
       vaProductId: "a04xx",
+      quantity: 1,
       lineTotalCents: 8800,
       unitPriceCents: 8900,
       participantEmail: "a@b.nl",
@@ -69,6 +71,38 @@ describe("order Salesforce mappings", () => {
     expect(fields.EmailParticipant__c).toBe("a@b.nl")
     expect(fields.Origin__c).toBeUndefined()
     expect(fields.Medusa_Registration_Id__c).toBeUndefined()
+  })
+
+  it("aggregates quantity on product OrderItem and Registration", () => {
+    delete process.env.SALESFORCE_MEDUSA_CUSTOM_FIELDS
+    const product = productOrderItemFields({
+      externalId: "oi_1",
+      orderId: "801xx",
+      pricebookEntryId: "01uxx",
+      product2Id: "01txx",
+      vaProductId: "a04xx",
+      quantity: 2,
+      unitPriceCents: 5000,
+      registrationId: "a01xx",
+      productLabel: "Workshop",
+    })
+    expect(product.Quantity).toBe(2)
+    expect(product.UnitPrice).toBe(50)
+
+    const reg = registrationToSalesforce({
+      externalId: "reg_1",
+      orderId: "801xx",
+      accountId: "001xx",
+      contactId: "003xx",
+      vaProductId: "a04xx",
+      quantity: 2,
+      lineTotalCents: 9000,
+      unitPriceCents: 5000,
+    })
+    expect(reg.Number_Of_People__c).toBe(2)
+    expect(reg.Total_Quantity__c).toBe(2)
+    expect(reg.Amount__c).toBe(90)
+    expect(reg.Unit_Price__c).toBe(50)
   })
 
   it("sets Order header Product / Inschrijving lookups", () => {

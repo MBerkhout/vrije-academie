@@ -25,13 +25,13 @@ import { ensureProductSessionOptionValues } from "./import-productgroup"
 
 function makeContainer(opts: {
   optionRows?: unknown[]
-  createProductOptionValues?: ReturnType<typeof vi.fn>
+  updateProductOptionValuesOnProduct?: ReturnType<typeof vi.fn>
 }) {
-  const graph = vi
-    .fn()
-    .mockResolvedValue({ data: [{ id: "prod_1", options: opts.optionRows ?? [] }] })
-  const productModule = opts.createProductOptionValues
-    ? { createProductOptionValues: opts.createProductOptionValues }
+  const graph = vi.fn().mockResolvedValue({
+    data: [{ id: "prod_1", options: opts.optionRows ?? [] }],
+  })
+  const productModule = opts.updateProductOptionValuesOnProduct
+    ? { updateProductOptionValuesOnProduct: opts.updateProductOptionValuesOnProduct }
     : {}
   const container = {
     resolve: (key: string) => (key === "query" ? { graph } : productModule),
@@ -39,11 +39,7 @@ function makeContainer(opts: {
   return { container: container as never, graph }
 }
 
-const option = {
-  id: "opt_1",
-  title: "Sessie",
-  values: [{ id: "v1", value: "A" }],
-}
+const option = { id: "opt_1", title: "Sessie" }
 
 describe("ensureProductSessionOptionValues", () => {
   beforeEach(() => {
@@ -51,41 +47,38 @@ describe("ensureProductSessionOptionValues", () => {
     updateProductsWorkflow.mockClear()
   })
 
-  it("creates only the missing option values via the product module", async () => {
-    const create = vi.fn().mockResolvedValue([])
+  it("creates and links the option values on the product via the product module", async () => {
+    const update = vi.fn().mockResolvedValue(undefined)
     const { container, graph } = makeContainer({
       optionRows: [option],
-      createProductOptionValues: create,
+      updateProductOptionValuesOnProduct: update,
     })
 
     await ensureProductSessionOptionValues(container, "prod_1", "Sessie", ["A", "B", "B", "C"])
 
     expect(graph).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entity: "product",
-        filters: { id: "prod_1" },
-      })
+      expect.objectContaining({ entity: "product", filters: { id: "prod_1" } })
     )
-    expect(create).toHaveBeenCalledWith([
-      { option_id: "opt_1", value: "B" },
-      { option_id: "opt_1", value: "C" },
-    ])
+    expect(update).toHaveBeenCalledWith({
+      product_id: "prod_1",
+      product_option_id: "opt_1",
+      add: [{ value: "A" }, { value: "B" }, { value: "C" }],
+    })
     expect(updateProductsWorkflow).not.toHaveBeenCalled()
   })
 
-  it("does nothing when all values already exist, no values are given or the option is missing", async () => {
-    const create = vi.fn()
-    const a = makeContainer({ optionRows: [option], createProductOptionValues: create })
-    await ensureProductSessionOptionValues(a.container, "prod_1", "Sessie", ["A"])
+  it("does nothing when no values are given or the option is missing", async () => {
+    const update = vi.fn()
+    const a = makeContainer({ optionRows: [option], updateProductOptionValuesOnProduct: update })
     await ensureProductSessionOptionValues(a.container, "prod_1", "Sessie", [])
-    const b = makeContainer({ optionRows: [], createProductOptionValues: create })
+    const b = makeContainer({ optionRows: [], updateProductOptionValuesOnProduct: update })
     await ensureProductSessionOptionValues(b.container, "prod_1", "Sessie", ["Z"])
 
-    expect(create).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
     expect(updateProductsWorkflow).not.toHaveBeenCalled()
   })
 
-  it("falls back to updateProductsWorkflow with the merged values when the module has no createProductOptionValues", async () => {
+  it("falls back to updateProductsWorkflow when the module has no updateProductOptionValuesOnProduct", async () => {
     const { container } = makeContainer({ optionRows: [option] })
 
     await ensureProductSessionOptionValues(container, "prod_1", "Sessie", ["B"])
@@ -94,7 +87,7 @@ describe("ensureProductSessionOptionValues", () => {
     expect(run).toHaveBeenCalledWith({
       input: {
         selector: { id: ["prod_1"] },
-        update: { options: [{ title: "Sessie", values: ["A", "B"] }] },
+        update: { options: [{ title: "Sessie", values: ["B"] }] },
       },
     })
   })

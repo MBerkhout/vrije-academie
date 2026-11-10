@@ -26,6 +26,7 @@ export type ProductLineInput = {
   pricebookEntryId: string
   product2Id: string
   vaProductId: string
+  quantity: number
   unitPriceCents: number
   registrationId: string
   productLabel: string
@@ -73,7 +74,7 @@ export function productOrderItemFields(input: ProductLineInput): Partial<SfOrder
     ...medusaOrderItemId(input.externalId),
     OrderId: input.orderId,
     PricebookEntryId: input.pricebookEntryId,
-    Quantity: 1,
+    Quantity: input.quantity,
     UnitPrice: centsToMajorEur(input.unitPriceCents),
     vaProduct__c: input.vaProductId,
     Registration__c: input.registrationId,

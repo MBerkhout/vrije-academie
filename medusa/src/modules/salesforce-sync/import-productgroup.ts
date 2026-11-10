@@ -154,34 +154,31 @@ export async function ensureProductSessionOptionValues(
   // `product_option` has no `product_id` filter in Medusa 2.x; read options via the product.
   const { data: productRows } = await query.graph({
     entity: "product",
-    fields: ["id", "options.id", "options.title", "options.values.id", "options.values.value"],
+    fields: ["id", "options.id", "options.title"],
     filters: { id: productId },
   })
-  const options = (productRows?.[0]?.options ?? []) as {
-    id?: string
-    title?: string
-    values?: { value?: string }[]
-  }[]
+  const options = (productRows?.[0]?.options ?? []) as { id?: string; title?: string }[]
   const option = options.find((o) => o.title === optionName)
   if (!option?.id) return
 
-  const existingValues = (option.values ?? [])
-    .map((v) => v.value)
-    .filter((v): v is string => typeof v === "string" && v.length > 0)
-  const existing = new Set(existingValues)
-  const missing = [...new Set(values)].filter((v) => !existing.has(v))
-  if (!missing.length) return
-
+  const unique = [...new Set(values)]
   const productModule = container.resolve(Modules.PRODUCT) as unknown as {
-    createProductOptionValues?: (
-      data: { option_id: string; value: string }[]
-    ) => Promise<unknown>
+    updateProductOptionValuesOnProduct?: (data: {
+      product_id: string
+      product_option_id: string
+      add: { value: string }[]
+    }) => Promise<unknown>
   }
 
-  if (typeof productModule.createProductOptionValues === "function") {
-    await productModule.createProductOptionValues(
-      missing.map((value) => ({ option_id: option.id!, value }))
-    )
+  // Creates missing option values and links all of them to the product (the
+  // product_product_option_value pivot decides which values a variant may use).
+  // Values already linked are skipped by Medusa.
+  if (typeof productModule.updateProductOptionValuesOnProduct === "function") {
+    await productModule.updateProductOptionValuesOnProduct({
+      product_id: productId,
+      product_option_id: option.id,
+      add: unique.map((value) => ({ value })),
+    })
     return
   }
 
@@ -189,12 +186,7 @@ export async function ensureProductSessionOptionValues(
     input: {
       selector: { id: [productId] },
       update: {
-        options: [
-          {
-            title: optionName,
-            values: [...existingValues, ...missing],
-          },
-        ],
+        options: [{ title: optionName, values: unique }],
         // `options` is no longer in the typed update input as of Medusa 2.22; kept as fallback.
       } as Record<string, unknown>,
     },

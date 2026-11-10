@@ -126,7 +126,7 @@ describe('sessionTableAvailabilityPresentation', () => {
   })
 
   it('shows the orange count when the session is Bijna vol', () => {
-    const almostFull = sessionTableAvailabilityPresentation(13, 50)
+    const almostFull = sessionTableAvailabilityPresentation(8, 30)
     expect(almostFull.label).not.toBe('Beschikbaar')
     expect(almostFull.className).toContain('text-va-orange')
   })
@@ -156,6 +156,8 @@ describe('isAlmostFullAvailability', () => {
   it('flips at 30% remaining for capacity 15', () => {
     expect(isAlmostFullAvailability({ available_quantity: 5, capacity: 15 })).toBe(true)
     expect(isAlmostFullAvailability({ available_quantity: 6, capacity: 15 })).toBe(false)
+    expect(isAlmostFullAvailability({ available_quantity: 11, capacity: 50 })).toBe(false)
+    expect(isAlmostFullAvailability({ available_quantity: 10, capacity: 50 })).toBe(true)
   })
 })
 

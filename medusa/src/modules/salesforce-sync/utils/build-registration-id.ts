@@ -9,23 +9,21 @@ export function buildWaitlistRegistrationExternalId(
 /** Stable external id for Registration__c.Medusa_Registration_Id__c */
 export function buildRegistrationExternalId(
   orderId: string,
-  lineItemId: string,
-  seatIndex: number
+  lineItemId: string
 ): string {
-  return `${orderId}:${lineItemId}:${seatIndex}`
+  return `${orderId}:${lineItemId}`
 }
 
 export function buildOrderItemExternalId(
   orderId: string,
   lineItemId: string,
-  kind: "product" | "discount" | "giftcard_purchase" | "voucher_redemption",
-  seatIndex?: number
+  kind: "product" | "discount" | "giftcard_purchase" | "voucher_redemption"
 ): string {
-  if (kind === "product" && seatIndex != null) {
-    return `${orderId}:${lineItemId}:product:${seatIndex}`
+  if (kind === "product") {
+    return `${orderId}:${lineItemId}:product`
   }
-  if (kind === "discount" && seatIndex != null) {
-    return `${orderId}:${lineItemId}:discount:${seatIndex}`
+  if (kind === "discount") {
+    return `${orderId}:${lineItemId}:discount`
   }
   return `${orderId}:${lineItemId}:${kind}`
 }

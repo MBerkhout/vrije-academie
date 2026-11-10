@@ -322,6 +322,9 @@ export type SessionCtaTone = 'sold_out' | 'almost_full' | 'open'
 /** When capacity is unknown, match legacy agenda rule (≤ 3 spots remaining). */
 export const ALMOST_FULL_FALLBACK_REMAINING_THRESHOLD = 3
 
+/** More than this many spots left is always "Beschikbaar", even if ≤ 30% of capacity. */
+export const ALMOST_FULL_MAX_REMAINING = 10
+
 /** 30% of capacity, rounded up — "Bijna vol" when remaining seats are at or below this. */
 export function almostFullRemainingThreshold(capacity: number): number | null {
   if (!Number.isFinite(capacity) || capacity <= 0) return null
@@ -339,7 +342,7 @@ export function isAlmostFullAvailability(input: {
   if (threshold === null) {
     return remaining <= ALMOST_FULL_FALLBACK_REMAINING_THRESHOLD
   }
-  return remaining <= threshold
+  return remaining <= threshold && remaining <= ALMOST_FULL_MAX_REMAINING
 }
 
 /** Session-row CTA state (0 = waitlist; bijna vol = ≤ 30% capacity remaining). */

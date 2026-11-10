@@ -28,6 +28,7 @@ export type RegistrationLineContext = {
   accountId: string
   contactId: string
   vaProductId: string
+  quantity: number
   lineTotalCents: number
   unitPriceCents: number
   participantEmail?: string | null
@@ -76,12 +77,12 @@ export function registrationToSalesforce(input: RegistrationLineContext): Partia
     vaProduct__c: input.vaProductId,
     Status__c: "Ingeschreven",
     WebOrder__c: true,
-    Number_Of_People__c: 1,
+    Number_Of_People__c: input.quantity,
     Total_Price__c: price,
     Amount__c: price,
     Unit_Price__c: unit,
     Total_Net_Price__c: price,
-    Total_Quantity__c: 1,
+    Total_Quantity__c: input.quantity,
     EmailParticipant__c: input.participantEmail ?? undefined,
   }
 }

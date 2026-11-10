@@ -19,7 +19,7 @@ const ENTITY_VARIANT = "variant"
 
 export type OrderPushEventSeat = {
   lineItemId: string
-  seatIndex: number
+  quantity: number
   registrationExternalId: string
   productLineExternalId: string
   discountLineExternalId: string | null
@@ -206,53 +206,42 @@ export async function loadOrderPushPayload(
     const qty = Math.max(1, toNumber(item.quantity))
     const unitPriceCents = medusaOrderMoneyToCents(item.unit_price)
     const discountTotal = lineDiscountCents(item)
-    const discountPerSeat = qty > 0 ? Math.round(discountTotal / qty) : 0
     const productLabel =
       (item.title as string) || (vaRow.Name as string) || "Product"
 
-    for (let seatIndex = 0; seatIndex < qty; seatIndex++) {
-      const registrationExternalId = buildRegistrationExternalId(
-        orderId,
-        String(item.id),
-        seatIndex
-      )
-      const productLineExternalId = buildOrderItemExternalId(
-        orderId,
-        String(item.id),
-        "product",
-        seatIndex
-      )
-      const discountLineExternalId =
-        discountPerSeat > 0
-          ? buildOrderItemExternalId(orderId, String(item.id), "discount", seatIndex)
-          : null
+    const lineItemId = String(item.id)
+    const registrationExternalId = buildRegistrationExternalId(orderId, lineItemId)
+    const productLineExternalId = buildOrderItemExternalId(orderId, lineItemId, "product")
+    const discountLineExternalId =
+      discountTotal > 0
+        ? buildOrderItemExternalId(orderId, lineItemId, "discount")
+        : null
 
-      eventSeats.push({
-        lineItemId: String(item.id),
-        seatIndex,
-        registrationExternalId,
-        productLineExternalId,
-        discountLineExternalId,
-        variantId,
-        vaProductId,
-        product2Id,
-        unitPriceCents,
-        discountCents: discountPerSeat,
-        promotionCode,
-        productLabel,
-        productStartAt: isPreRecorded
-          ? toIsoString(orderCreatedAt)
-          : ((eventItem?.start_at as string) ??
-            (vaRow.Start_date_time__c as string) ??
-            null),
-        productEndAt: isPreRecorded
-          ? toIsoString(vathuisEndAt)
-          : ((eventItem?.end_at as string) ?? (vaRow.End_date_time__c as string) ?? null),
-        productCity:
-          (eventItem?.city as string) ?? (vaRow.Product_City__c as string) ?? null,
-        lineTotalCents: Math.max(0, unitPriceCents - discountPerSeat),
-      })
-    }
+    eventSeats.push({
+      lineItemId,
+      quantity: qty,
+      registrationExternalId,
+      productLineExternalId,
+      discountLineExternalId,
+      variantId,
+      vaProductId,
+      product2Id,
+      unitPriceCents,
+      discountCents: discountTotal,
+      promotionCode,
+      productLabel,
+      productStartAt: isPreRecorded
+        ? toIsoString(orderCreatedAt)
+        : ((eventItem?.start_at as string) ??
+          (vaRow.Start_date_time__c as string) ??
+          null),
+      productEndAt: isPreRecorded
+        ? toIsoString(vathuisEndAt)
+        : ((eventItem?.end_at as string) ?? (vaRow.End_date_time__c as string) ?? null),
+      productCity:
+        (eventItem?.city as string) ?? (vaRow.Product_City__c as string) ?? null,
+      lineTotalCents: Math.max(0, unitPriceCents * qty - discountTotal),
+    })
   }
 
   const gift = container.resolve(GIFT_CARD_MODULE) as InstanceType<typeof GiftCardModuleService>

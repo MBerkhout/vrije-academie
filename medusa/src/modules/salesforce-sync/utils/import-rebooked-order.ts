@@ -389,7 +389,7 @@ export async function importRebookedOrder(
   })
   const lineItemId = orderWithItems.items?.[0]?.id
   if (lineItemId && analysis.newRegistration.Id) {
-    const registrationExternalId = buildRegistrationExternalId(medusaOrderId, lineItemId, 0)
+    const registrationExternalId = buildRegistrationExternalId(medusaOrderId, lineItemId)
     await ensureSyncState(sync, "order", medusaOrderId, salesforceOrderId)
     await ensureSyncState(
       sync,
