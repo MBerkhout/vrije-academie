@@ -33,6 +33,9 @@ if (dsn && !(globalThis as Record<string, unknown>)[globalKey]) {
     dsn,
     environment: sentryEnvironment(),
     release: process.env.SENTRY_RELEASE?.trim() || undefined,
+    // pg@8 DeprecationWarning emitted by Medusa/MikroORM internals under concurrent queries
+    // (captured via console.error); not actionable in app code, fails only in pg@9.
+    ignoreErrors: [/Calling client\.query\(\) when the client is already executing a query/],
     tracesSampleRate: tracesSampleRate(),
     profileSessionSampleRate: profilesSampleRate(),
     integrations: [

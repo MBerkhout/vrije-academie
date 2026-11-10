@@ -9,6 +9,28 @@ function storeHeaders(): HeadersInit {
   return PUBLISHABLE_KEY ? { 'x-publishable-api-key': PUBLISHABLE_KEY } : {}
 }
 
+/** One request for many orders (account order list). Missing orders are omitted. */
+export async function fetchCheckoutConfirmationsBatch(
+  orderIds: string[]
+): Promise<Record<string, CheckoutConfirmationPayload>> {
+  const ids = [...new Set(orderIds.map((id) => id.trim()).filter(Boolean))].slice(0, 50)
+  if (ids.length === 0) return {}
+
+  const qs = new URLSearchParams()
+  for (const id of ids) qs.append('order_id', id)
+
+  const res = await fetch(`${MEDUSA_BACKEND_URL}/store/checkout/confirmation/batch?${qs}`, {
+    headers: storeHeaders(),
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new Error('Kon bestellingen niet ophalen')
+
+  const data = (await res.json()) as {
+    confirmations?: Record<string, CheckoutConfirmationPayload>
+  }
+  return data.confirmations ?? {}
+}
+
 export async function fetchCheckoutConfirmation(params: {
   orderId?: string | null
   cartId?: string | null

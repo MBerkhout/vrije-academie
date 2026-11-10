@@ -19,6 +19,7 @@ async function resolveHandpickedEvents(block: ProductRowBlockType) {
 
   return resolveProductRowEvents(handles, {
     hideWithoutUpcomingSessions: hideWithoutUpcomingSessions(block),
+    batchRequests: true,
   })
 }
 

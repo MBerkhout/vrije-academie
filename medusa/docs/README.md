@@ -169,6 +169,7 @@ When `SENTRY_DSN` is set, `src/instrument.ts` loads via `medusa-config.ts` (serv
 - **Background**: subscribers wrapped with `sentrySubscriber`; scheduled jobs use `withCronMonitor` (`src/lib/sentry.ts`; production `medusa-worker` only, with margin/failure thresholds); Salesforce workflow failures call `captureWithContext` in `workflows/salesforce/report-failure.ts`.
 - **Salesforce ops**: `salesforceIntegrationReady` / `kind:integration-not-ready`; webhook `kind:queue-backlog` after `process-salesforce-webhook-queue` (`webhook-queue-sentry.ts`).
 - **Helpers**: `captureWithContext` / `captureMessageWithContext` in `src/lib/sentry.ts` — use tags (`flow`, `kind`), no PII in `extra`.
+- **Ignored noise**: the pg@8 `client.query() when the client is already executing a query` DeprecationWarning (from Medusa/MikroORM internals, captured via `console.error`) is dropped via `ignoreErrors` in `src/instrument.ts`; revisit when upgrading to pg@9.
 - **Checkout/payments**: Mollie Klarna and OTP email failures are captured with `flow: checkout` / `auth`.
 
 Env template: `.env.template` (Sentry block). Deploy: [DEPLOYMENT.md](../../docs/DEPLOYMENT.md) § Sentry.

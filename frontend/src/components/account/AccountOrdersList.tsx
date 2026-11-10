@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AccountOrderCard } from '@/components/account/AccountOrderCard'
 import { commerceClient } from '@/lib/commerce'
 import type { CheckoutConfirmationPayload } from '@/lib/commerce/checkout-confirmation-types'
-import { fetchCheckoutConfirmation } from '@/lib/commerce/fetch-checkout-confirmation'
+import { fetchCheckoutConfirmationsBatch } from '@/lib/commerce/fetch-checkout-confirmation'
 import type { Order, OrderHistoryImportStatus } from '@/lib/commerce/types'
 import { defaultMessages } from '@/lib/i18n/messages'
 
@@ -32,19 +32,13 @@ export function AccountOrdersList() {
 
   const loadOrders = useCallback(async () => {
     const { orders: list } = await commerceClient.listCustomerOrders({ limit: 50 })
-    const enriched = await Promise.all(
-      list.map(async (order) => {
-        try {
-          const confirmation = await fetchCheckoutConfirmation({ orderId: order.id })
-          return {
-            order,
-            confirmation: confirmation.status === 'ready' ? confirmation : null,
-          }
-        } catch {
-          return { order, confirmation: null }
-        }
-      })
+    const confirmations = await fetchCheckoutConfirmationsBatch(list.map((o) => o.id)).catch(
+      () => ({}) as Record<string, CheckoutConfirmationPayload>
     )
+    const enriched = list.map((order) => {
+      const confirmation = confirmations[order.id]
+      return { order, confirmation: confirmation?.status === 'ready' ? confirmation : null }
+    })
     setRows(enriched)
   }, [])
 

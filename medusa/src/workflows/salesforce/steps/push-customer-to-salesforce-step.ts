@@ -5,6 +5,7 @@ import {
   SF_PERSON_ACCOUNT_OBJECT,
   splitAccountPushFields,
 } from "../../../modules/salesforce-sync/mappings/customer"
+import { filterFieldsForConnectedOrg } from "../../../modules/salesforce-sync/utils/salesforce-describe-fields"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 
 import type { PreparePushCustomerOutput } from "./prepare-push-customer-step"
@@ -81,6 +82,14 @@ export const pushCustomerToSalesforceStep = createStep(
     const svc = container.resolve("salesforceSync") as InstanceType<
       typeof SalesforceSyncModuleService
     >
+
+    // Drop fields that don't exist / aren't writable in the connected org (e.g. Newsletter__c missing on Account).
+    const writeMode = input.mode === "create" ? "create" : "update"
+    input = {
+      ...input,
+      accountFields: await filterFieldsForConnectedOrg(SF_PERSON_ACCOUNT_OBJECT, input.accountFields, writeMode),
+      contactFields: await filterFieldsForConnectedOrg(SF_CONTACT_OBJECT, input.contactFields, writeMode),
+    }
 
     const expectedEmail =
       typeof input.accountFields.PersonEmail === "string"

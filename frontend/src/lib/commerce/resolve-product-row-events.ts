@@ -4,6 +4,8 @@ import { commerceClient } from '@/lib/commerce'
 export interface ResolveProductRowEventsOptions {
   /** Default true — omit products not on Ons aanbod (no upcoming session). */
   hideWithoutUpcomingSessions?: boolean
+  /** Server-only: share one by-handles request across all blocks of a page render. */
+  batchRequests?: boolean
 }
 
 function normalizeHandle(handle: string): string {
@@ -23,7 +25,10 @@ export async function resolveProductRowEvents(
 
   const hideWithoutUpcomingSessions = options?.hideWithoutUpcomingSessions !== false
 
-  const fromListing = await commerceClient.getEventsByHandles(ordered).catch(() => [] as EventCard[])
+  const fetchListing = options?.batchRequests
+    ? (await import('./batched-events-by-handles')).getEventsByHandlesBatched
+    : commerceClient.getEventsByHandles.bind(commerceClient)
+  const fromListing = await fetchListing(ordered).catch(() => [] as EventCard[])
 
   if (hideWithoutUpcomingSessions) {
     return ordered
