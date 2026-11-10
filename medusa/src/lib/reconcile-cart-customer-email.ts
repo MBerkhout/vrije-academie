@@ -43,18 +43,45 @@ export async function reconcileCartCustomerWithEmail(
   }
 
   const customerModule = container.resolve(Modules.CUSTOMER) as {
-    retrieveCustomer: (id: string, config?: { select?: string[] }) => Promise<{ id: string; email?: string | null }>
+    retrieveCustomer: (
+      id: string,
+      config?: { select?: string[] }
+    ) => Promise<{ id: string; email?: string | null; has_account?: boolean | null }>
+    listCustomers: (
+      filters: Record<string, unknown>,
+      config?: Record<string, unknown>
+    ) => Promise<{ id: string }[]>
   }
 
   let linkedEmail: string | null = null
+  let linkedIsGuest = false
   try {
-    const linked = await customerModule.retrieveCustomer(customerId, { select: ["id", "email"] })
+    const linked = await customerModule.retrieveCustomer(customerId, {
+      select: ["id", "email", "has_account"],
+    })
     linkedEmail = linked.email ?? null
+    linkedIsGuest = linked.has_account === false
   } catch {
     linkedEmail = null
   }
 
   if (linkedEmail && normalizeEmail(linkedEmail) === normalizeEmail(cartEmail)) {
+    // Guest customer (created when the email was entered) vs. an account registered
+    // later with the same email: orders must land on the account, which holds the
+    // address and Salesforce link. Core only creates the guest, never re-links.
+    if (linkedIsGuest) {
+      const [account] = await customerModule.listCustomers(
+        { email: normalizeEmail(cartEmail), has_account: true },
+        { select: ["id"], take: 1 }
+      )
+      if (account?.id && account.id !== customerId) {
+        const we = container.resolve(Modules.WORKFLOW_ENGINE)
+        await we.run(transferCartCustomerWorkflowId, {
+          input: { id: cartId, customer_id: account.id },
+        })
+        return { changed: true, reason: "guest_transferred_to_account" }
+      }
+    }
     return { changed: false }
   }
 

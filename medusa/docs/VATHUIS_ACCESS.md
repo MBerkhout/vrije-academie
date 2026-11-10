@@ -24,7 +24,7 @@ Subscriber: `src/subscribers/vathuis-access-order-completed.ts` on `order.comple
 
 Skips gift-card lines. Only products with `event_group.record_type === 'vathuis'` and `metadata.vathuis.purchase_mode === 'bundle_only'`.
 
-**Customer vs order email:** entitlements use the Medusa customer that matches **`order.email`** when that differs from `order.customer_id` (checkout logged in as one account while the cart email was another). `POST /store/carts/:id/prepare-checkout` runs `reconcileCartCustomerWithEmail` so the cart is attached to the email account before payment when possible.
+**Customer vs order email:** entitlements use the Medusa customer that matches **`order.email`** when that differs from `order.customer_id` (checkout logged in as one account while the cart email was another). `POST /store/carts/:id/prepare-checkout` runs `reconcileCartCustomerWithEmail` so the cart is attached to the email account before payment when possible. It also moves a cart linked to a **guest** customer (`has_account=false`, created by core when the email is entered) to the registered account with the same email, so the order, address and Salesforce Contact/Account use the account. To repair an existing order: `npx medusa exec ./src/scripts/fix-order-guest-customer.ts -- <order_id> [--apply]` (dry run without `--apply`).
 
 **Repair a mis-assigned order:** `npx medusa exec ./src/scripts/repair-vathuis-access-for-order.ts -- --order-id=<id>` re-runs the grant/reassign logic.
 

@@ -40,4 +40,38 @@ describe("reconcileCartCustomerWithEmail", () => {
     expect(transfer).not.toHaveBeenCalled()
     expect(updateCarts).not.toHaveBeenCalled()
   })
+
+  it("transfers a guest-linked cart to the registered account with the same email", async () => {
+    const transfer = vi.fn()
+    const container = {
+      resolve: (key: string) => {
+        if (key === "query") {
+          return {
+            graph: vi.fn().mockResolvedValue({
+              data: [{ id: "cart_1", email: "buyer@example.com", customer_id: "cus_guest" }],
+            }),
+          }
+        }
+        if (key === "customer") {
+          return {
+            retrieveCustomer: vi.fn().mockResolvedValue({
+              id: "cus_guest",
+              email: "buyer@example.com",
+              has_account: false,
+            }),
+            listCustomers: vi.fn().mockResolvedValue([{ id: "cus_account" }]),
+          }
+        }
+        if (key === "workflows") return { run: transfer }
+        throw new Error(`unexpected ${key}`)
+      },
+    }
+
+    const result = await reconcileCartCustomerWithEmail(container as never, "cart_1")
+    expect(result.reason).toBe("guest_transferred_to_account")
+    expect(transfer).toHaveBeenCalledWith(
+      expect.anything(),
+      { input: { id: "cart_1", customer_id: "cus_account" } }
+    )
+  })
 })
