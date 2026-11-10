@@ -10,7 +10,10 @@ import {
   SF_PRODUCTGROUP_OBJECT,
 } from "../mappings/productgroup"
 import { formatSoqlDateTime } from "./import-context"
-import { linkedOnlineProductgroupId } from "./linked-online-productgroup"
+import {
+  linkedOnlineProductgroupId,
+  mergeProductgroupChildRows,
+} from "./linked-online-productgroup"
 import { chunkArray, queryAllSalesforce } from "./query-all-salesforce"
 
 const SOQL_IN_CHUNK = 200
@@ -195,4 +198,21 @@ export function linkedRecordsForGroup(
   const linkedChildRecords = linkedId ? prefetch.childrenByGroupId.get(linkedId) ?? [] : []
 
   return { children, linkedGroupRecord, linkedChildRecords }
+}
+
+/** Direct + linked-online children merged the same way as `importProductgroupFromSalesforce`. */
+export function mergedChildrenForImportGuard(
+  prefetch: ProductgroupImportPrefetch,
+  group: SfProductgroupShape
+): SfCourseProductShape[] {
+  const { children, linkedGroupRecord, linkedChildRecords } = linkedRecordsForGroup(
+    prefetch,
+    group
+  )
+  return mergeProductgroupChildRows(
+    children,
+    group.Productgroup_Record_Type_Developer_Name__c,
+    linkedChildRecords,
+    linkedGroupRecord?.Productgroup_Record_Type_Developer_Name__c
+  ).map((row) => row.child)
 }

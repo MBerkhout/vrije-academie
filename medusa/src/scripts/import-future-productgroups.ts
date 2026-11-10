@@ -31,6 +31,7 @@ import {
 import {
   linkedRecordsForGroup,
   mergeSalesforceIdsIntoPrefetch,
+  mergedChildrenForImportGuard,
   prefetchProductgroupsForImport,
 } from "../modules/salesforce-sync/utils/prefetch-productgroups-for-import"
 import { runPool } from "../modules/salesforce-sync/utils/run-pool"
@@ -123,7 +124,7 @@ export default async function importFutureProductgroups({ container }: ExecArgs)
     for (const group of prefetch.groups) {
       if (!group.Id) continue
 
-      const { children } = linkedRecordsForGroup(prefetch, group)
+      const children = mergedChildrenForImportGuard(prefetch, group)
 
       const shouldImport = shouldEnqueueBulkProductgroup(
         {

@@ -449,6 +449,8 @@ Webhooks enqueue product group pulls with `manual: false`, including **update** 
 - `Latest_Product_Start_Date__c` is in the past, or
 - all child `Start_date_time__c` values are in the past (when latest start is unset) (`skipReason: past_dates`).
 
+**Exception (before the date checks):** any child with no city or city **Online** and no `Start_date_time__c` still imports (undated online session). Merged **linked-online** children count toward this guard.
+
 **Exceptions:** VAthuis record types (`Lezingen_Thuis`, `Thuis_College`) always import when visible (on-demand). Bulk CLI also includes online-only groups (see `shouldBulkImportProductgroup`).
 
 Manual CLI/API imports **ignore** the date guard, not **Zichtbaar op Website**. Logic: `shouldImportProductgroup()` in `src/modules/salesforce-sync/utils/future-import-guard.ts`.

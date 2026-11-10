@@ -8,6 +8,7 @@ import {
 } from "./future-import-guard"
 
 const future = new Date(Date.now() + 86_400_000).toISOString()
+const past = new Date(Date.now() - 86_400_000).toISOString()
 
 describe("shouldImportProductgroup visibility", () => {
   it("does not import a hidden group even for manual CLI/API", () => {
@@ -48,6 +49,69 @@ describe("shouldImportProductgroup visibility", () => {
             Id: "a04a",
             Visible_On_Website__c: false,
             RecordType: { DeveloperName: "Externe_Verhuur" },
+            Start_date_time__c: future,
+          },
+        ],
+        manual: false,
+      })
+    ).toBe(true)
+  })
+
+  it("imports when an undated online child remains after past physical sessions", () => {
+    expect(
+      shouldImportProductgroup({
+        group: {
+          Visible_on_website__c: true,
+          Latest_Product_Start_Date__c: past,
+        },
+        children: [
+          {
+            Id: "a04offline",
+            Product_City__c: "Amsterdam",
+            Start_date_time__c: past,
+          },
+          {
+            Id: "a04online",
+            Product_City__c: "Online",
+            Start_date_time__c: null,
+          },
+        ],
+        manual: false,
+      })
+    ).toBe(true)
+  })
+
+  it("imports online-only groups with no child start dates", () => {
+    expect(
+      shouldImportProductgroup({
+        group: {
+          Visible_on_website__c: true,
+          Latest_Product_Start_Date__c: null,
+        },
+        children: [
+          { Id: "a04online", Product_City__c: null, Start_date_time__c: null },
+        ],
+        manual: false,
+      })
+    ).toBe(true)
+  })
+
+  it("still imports hybrid groups with a future physical start", () => {
+    expect(
+      shouldImportProductgroup({
+        group: {
+          Visible_on_website__c: true,
+          Latest_Product_Start_Date__c: future,
+        },
+        children: [
+          {
+            Id: "a04offline",
+            Product_City__c: "Amsterdam",
+            Start_date_time__c: future,
+          },
+          {
+            Id: "a04online",
+            Product_City__c: "Online",
             Start_date_time__c: future,
           },
         ],

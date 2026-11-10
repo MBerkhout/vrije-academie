@@ -23,6 +23,8 @@ export function shouldImportProductgroup(input: FutureImportGuardInput): boolean
     return true
   }
 
+  if (hasUndatedOnlineLikeChild(input.children)) return true
+
   const now = Date.now()
 
   if (input.group.Latest_Product_Start_Date__c) {
@@ -38,11 +40,18 @@ export function shouldImportProductgroup(input: FutureImportGuardInput): boolean
   return Math.max(...childStarts) >= now
 }
 
+function isOnlineLikeChild(c: SfCourseProductShape): boolean {
+  const city = c.Product_City__c?.trim()
+  return !city || isOnlineCityLabel(city)
+}
+
+/** Online session without `Start_date_time__c` (live stream / on-demand window, not tied to a physical date). */
+function hasUndatedOnlineLikeChild(children: SfCourseProductShape[]): boolean {
+  return children.some((c) => isOnlineLikeChild(c) && !c.Start_date_time__c)
+}
+
 function isOnlineOnlyProductgroup(children: SfCourseProductShape[]): boolean {
-  return (
-    children.length > 0 &&
-    children.every((c) => !c.Product_City__c?.trim() || isOnlineCityLabel(c.Product_City__c))
-  )
+  return children.length > 0 && children.every(isOnlineLikeChild)
 }
 
 /** Bulk CLI: import future groups, VAthuis on-demand, linked-online parents/slaves, or online-only. */
