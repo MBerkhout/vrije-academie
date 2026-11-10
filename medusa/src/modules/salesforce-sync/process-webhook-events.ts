@@ -203,6 +203,15 @@ async function runPullForEntity(
   }
 
   const apply = extractWebhookApplyResult(ret)
+  // A step that throws is retried in the background (maxRetries) and `run` returns without a
+  // result or error. Never record that as done: the import has not been applied.
+  if (entityType === "productgroup" && !apply) {
+    return {
+      outcome: "failed",
+      entityType,
+      error: "productgroup pull did not complete (apply step failed and is retrying)",
+    }
+  }
   const pullOutcome = webhookOutcomeFromApply(apply)
   const resolvedMedusaId = pullOutcome.medusaId ?? extractMedusaIdFromRun(ret) ?? medusaId
 

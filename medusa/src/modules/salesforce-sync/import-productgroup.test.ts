@@ -27,7 +27,9 @@ function makeContainer(opts: {
   optionRows?: unknown[]
   createProductOptionValues?: ReturnType<typeof vi.fn>
 }) {
-  const graph = vi.fn().mockResolvedValue({ data: opts.optionRows ?? [] })
+  const graph = vi
+    .fn()
+    .mockResolvedValue({ data: [{ id: "prod_1", options: opts.optionRows ?? [] }] })
   const productModule = opts.createProductOptionValues
     ? { createProductOptionValues: opts.createProductOptionValues }
     : {}
@@ -60,8 +62,8 @@ describe("ensureProductSessionOptionValues", () => {
 
     expect(graph).toHaveBeenCalledWith(
       expect.objectContaining({
-        entity: "product_option",
-        filters: { product_id: "prod_1", title: "Sessie" },
+        entity: "product",
+        filters: { id: "prod_1" },
       })
     )
     expect(create).toHaveBeenCalledWith([

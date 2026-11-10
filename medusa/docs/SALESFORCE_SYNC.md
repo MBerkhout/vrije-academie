@@ -409,6 +409,10 @@ curl -X POST /admin/salesforce/productgroups/import -d '{"salesforce_id":"a05Mz0
 
 Mappings: `src/modules/salesforce-sync/mappings/productgroup.ts`, `course-product.ts`. Core logic: `import-productgroup.ts`.
 
+### Stuck imports (`last_status = retrying`)
+
+The pull workflow's apply step retries in the background, so a failing import used to return no result and the webhook row was marked `done`. The webhook worker now marks such a `productgroup` pull as `failed` with `did not complete`. Symptom of a stuck import: new sessions missing on the PDP and `salesforce_sync_state.last_status = 'retrying'` with an expired `incoming_lock_until`. To see the real error, call `importProductgroupFromSalesforce` in a script (see `src/scripts/debug-import-parent.ts`), then re-pull with `npm run salesforce:pull -- --type=productgroup --action=pull --salesforce-id=<id>`. Fixed cause (Nov 2026): `ensureProductSessionOptionValues` filtered `product_option` by `product_id`, which Medusa rejects; it now reads options via the product.
+
 ### Linked Online Productgroup (`Linked_Online_Productgroup__c`)
 
 Some offline product groups (e.g. studiedag) reference a separate **`vaProductgroup__c`** for Zoom sessions (`Online Lezing` / `Live_College`). On import:

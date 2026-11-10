@@ -151,14 +151,18 @@ export async function ensureProductSessionOptionValues(
     }) => Promise<{ data?: Record<string, unknown>[] }>
   }
 
-  const { data: optionRows } = await query.graph({
-    entity: "product_option",
-    fields: ["id", "title", "values.id", "values.value"],
-    filters: { product_id: productId, title: optionName },
+  // `product_option` has no `product_id` filter in Medusa 2.x; read options via the product.
+  const { data: productRows } = await query.graph({
+    entity: "product",
+    fields: ["id", "options.id", "options.title", "options.values.id", "options.values.value"],
+    filters: { id: productId },
   })
-  const option = optionRows?.[0] as
-    | { id?: string; values?: { value?: string }[] }
-    | undefined
+  const options = (productRows?.[0]?.options ?? []) as {
+    id?: string
+    title?: string
+    values?: { value?: string }[]
+  }[]
+  const option = options.find((o) => o.title === optionName)
   if (!option?.id) return
 
   const existingValues = (option.values ?? [])
