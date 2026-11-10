@@ -92,7 +92,7 @@ export function buildCartLineItemDetailBlocks(
   const ops = options ?? {}
   const blocks: LineItemDetailBlock[] = []
 
-  const sessionLines = sessionLinesFromExtras(extras)
+  const sessionLines = isVathuisCartLine(extras) ? [] : sessionLinesFromExtras(extras)
   if (sessionLines.length > 0) {
     blocks.push({ kind: 'session', lines: sessionLines })
   }

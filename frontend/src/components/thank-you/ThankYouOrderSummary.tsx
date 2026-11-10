@@ -49,10 +49,13 @@ function itemToExtras(item: CheckoutConfirmationItem): CartItemExtras {
 export function ThankYouOrderItems({
   items,
   linkToProduct = false,
+  activeVathuisHandles,
 }: {
   items: CheckoutConfirmationItem[]
   /** When true, title and thumbnail link to the product PDP (e.g. Mijn account → Aankopen). */
   linkToProduct?: boolean
+  /** When set, the VA Thuis watch CTA only renders for handles with active (non-expired) access. */
+  activeVathuisHandles?: ReadonlySet<string>
 }) {
   if (!items.length) return null
 
@@ -67,7 +70,9 @@ export function ThankYouOrderItems({
         const thumbnail = resolveLineItemThumbnail(cartItem, extras)
         const productHref = linkToProduct ? productHrefForItem(item) : null
         const watchHref =
-          item.is_vathuis && item.product_handle
+          item.is_vathuis &&
+          item.product_handle &&
+          (!activeVathuisHandles || activeVathuisHandles.has(item.product_handle))
             ? vathuisProductPath(item.product_handle)
             : null
 

@@ -35,9 +35,11 @@ function orderItemsFallback(items: OrderItem[] | undefined): CheckoutConfirmatio
 export function AccountOrderCard({
   order,
   confirmation,
+  activeVathuisHandles,
 }: {
   order: Order
   confirmation: CheckoutConfirmationPayload | null
+  activeVathuisHandles: ReadonlySet<string>
 }) {
   const t = defaultMessages.accountPage
   const items =
@@ -76,7 +78,11 @@ export function AccountOrderCard({
 
       {items.length > 0 ? (
         <div className="mt-4">
-          <ThankYouOrderItems items={items} linkToProduct />
+          <ThankYouOrderItems
+            items={items}
+            linkToProduct
+            activeVathuisHandles={activeVathuisHandles}
+          />
         </div>
       ) : (
         <div className="mt-2 text-va-black">

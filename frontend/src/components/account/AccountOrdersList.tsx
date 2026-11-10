@@ -26,6 +26,9 @@ export function AccountOrdersList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [importStatus, setImportStatus] = useState<OrderHistoryImportStatus | null>(null)
+  const [activeVathuisHandles, setActiveVathuisHandles] = useState<ReadonlySet<string>>(
+    () => new Set()
+  )
 
   const loadOrders = useCallback(async () => {
     const { orders: list } = await commerceClient.listCustomerOrders({ limit: 50 })
@@ -49,12 +52,16 @@ export function AccountOrdersList() {
     let cancelled = false
     void (async () => {
       try {
-        const [status] = await Promise.all([
+        const [status, access] = await Promise.all([
           commerceClient.getOrderHistoryImportStatus(),
+          commerceClient.listVathuisAccess().catch(() => []),
           loadOrders(),
         ])
         if (!cancelled) {
           setImportStatus(status)
+          setActiveVathuisHandles(
+            new Set(access.filter((item) => !item.isExpired).map((item) => item.productHandle))
+          )
           setError(false)
         }
       } catch {
@@ -130,7 +137,12 @@ export function AccountOrdersList() {
       ) : (
         <ul className="space-y-4">
           {rows.map(({ order, confirmation }) => (
-            <AccountOrderCard key={order.id} order={order} confirmation={confirmation} />
+            <AccountOrderCard
+              key={order.id}
+              order={order}
+              confirmation={confirmation}
+              activeVathuisHandles={activeVathuisHandles}
+            />
           ))}
         </ul>
       )}

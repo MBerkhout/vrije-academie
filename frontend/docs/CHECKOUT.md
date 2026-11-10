@@ -111,7 +111,7 @@ Once the order is confirmed the URL is updated to `/bedankt?order={order.id}&tok
 
 **Layout — two columns (lg+):**
 - **Left:** success icon + "Bedankt voor je aankoop, {firstName}" + "Je ontvangt een bevestiging op {email}" + ordernummer (Salesforce, when known) + participation notices (zaal vs online, based on `event_item.delivery_type`) + "Vragen? Neem contact op" (phone + email from `generalSettings.footer.contact`).
-- **Right:** order summary card (items + totals). Line details use `buildLineItemQuantityLabel`: **“1 ticket” / “N tickets”** only for regular (non–VA Thuis, non–cadeaubon) products. VA Thuis items show a "Bekijk VAthuis video" CTA to the product page.
+- **Right:** order summary card (items + totals). Line details use `buildLineItemQuantityLabel`: **“1 ticket” / “N tickets”** only for regular (non–VA Thuis, non–cadeaubon) products. VA Thuis items never show session date/time/location (only episode count, play time and docenten) and show a "Bekijk VAthuis video" CTA to the product page. On `/mijn-account/aankopen` the CTA only renders while the customer still has active access (`listVathuisAccess`, non-expired handles via `activeVathuisHandles`).
 
 **Below (full width):** VAthuis recommendations. Heading: "Duik alvast in {category} met onze online cursussen" (first catalog category of purchased products). CTA: "Alles van {category} online bekijken" → `/va-thuis/ons-aanbod?category={slug}`; fallback "Ontdek VAthuis online". Shows up to 4 cards; for VAthuis orders uses similar-products logic with fallback to top catalog items.
 
