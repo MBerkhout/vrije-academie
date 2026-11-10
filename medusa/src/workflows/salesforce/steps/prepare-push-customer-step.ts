@@ -185,7 +185,15 @@ export const preparePushCustomerStep = createStep(
       }
     }
 
-    if (mode === "update" && isUnchangedLinkedCustomer(row, payloadFingerprint, input.isCreate)) {
+    // A re-link (stale/changed ids) must be persisted, so only skip when the stored ids still match.
+    const linkUnchanged =
+      salesforceContactId === (row?.salesforce_id ?? null) &&
+      salesforceAccountId === (row?.salesforce_account_id ?? null)
+    if (
+      mode === "update" &&
+      linkUnchanged &&
+      isUnchangedLinkedCustomer(row, payloadFingerprint, input.isCreate)
+    ) {
       const out: PreparePushCustomerOutput = {
         skipped: true,
         skipReason: "unchanged",
