@@ -597,7 +597,7 @@ Push to `main` triggers [`.github/workflows/deploy-production.yml`](../.github/w
 | Storefront | https://prod.vrijeacademie.nl | `frontend@prod1.vrijeacademie.nl` |
 | Medusa | https://medusa.vrijeacademie.nl | `medusa@prod1.vrijeacademie.nl` |
 
-Sanity Studio deploy uses `SANITY_STUDIO_PREVIEW_URL=https://prod.vrijeacademie.nl`. Dataset / revalidate secrets can differ via `SANITY_STUDIO_DATASET_PROD` and `SANITY_STUDIO_REVALIDATE_SECRET_PROD` (or reuse the staging secrets).
+Sanity Studio deploy uses `SANITY_STUDIO_PREVIEW_URL=https://www.vrijeacademie.nl`. Dataset / revalidate secrets can differ via `SANITY_STUDIO_DATASET_PROD` and `SANITY_STUDIO_REVALIDATE_SECRET_PROD` (or reuse the staging secrets).
 
 ### One-time production server setup
 

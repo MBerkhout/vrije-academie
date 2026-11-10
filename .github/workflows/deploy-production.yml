@@ -36,7 +36,7 @@ jobs:
           SANITY_AUTH_TOKEN: ${{ secrets.SANITY_AUTH_TOKEN }}
           SANITY_STUDIO_PROJECT_ID: ${{ secrets.SANITY_STUDIO_PROJECT_ID }}
           SANITY_STUDIO_DATASET: ${{ secrets.SANITY_STUDIO_DATASET_PROD || secrets.SANITY_STUDIO_DATASET }}
-          SANITY_STUDIO_PREVIEW_URL: https://prod.vrijeacademie.nl
+          SANITY_STUDIO_PREVIEW_URL: https://www.vrijeacademie.nl
           SANITY_STUDIO_REVALIDATE_SECRET: ${{ secrets.SANITY_STUDIO_REVALIDATE_SECRET_PROD || secrets.SANITY_STUDIO_REVALIDATE_SECRET }}
 
       - name: Deploy schema
