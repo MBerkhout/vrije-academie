@@ -4,9 +4,19 @@ export type SObjectFieldDescribe = {
   name: string
   createable: boolean
   updateable: boolean
+  label?: string
+  type?: string
 }
 
-type DescribeResponse = { fields?: SObjectFieldDescribe[] }
+type DescribeResponse = {
+  fields?: Array<{
+    name: string
+    createable?: boolean
+    updateable?: boolean
+    label?: string
+    type?: string
+  }>
+}
 
 const describeCache = new Map<string, SObjectFieldDescribe[]>()
 
@@ -26,6 +36,8 @@ export async function loadSObjectFieldDescribe(
       name: f.name,
       createable: !!f.createable,
       updateable: !!f.updateable,
+      label: typeof f.label === "string" ? f.label : undefined,
+      type: typeof f.type === "string" ? f.type : undefined,
     }))
     describeCache.set(sobject, fields)
     return fields
@@ -71,6 +83,18 @@ export async function soqlFieldList(
   if (!describe) return candidates.join(", ")
   const names = new Set(describe.map((f) => f.name))
   return candidates.filter((f) => names.has(f)).join(", ")
+}
+
+/** Fields whose API name or label matches (for SOQL/debug). */
+export function filterSObjectFieldsByPattern(
+  fields: SObjectFieldDescribe[],
+  pattern: RegExp
+): SObjectFieldDescribe[] {
+  return fields.filter(
+    (f) =>
+      pattern.test(f.name) ||
+      (typeof f.label === "string" && pattern.test(f.label))
+  )
 }
 
 /** Test helper */

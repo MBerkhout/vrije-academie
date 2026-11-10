@@ -8,10 +8,19 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { normalizeGiftCardCode } from "../lib/gift-card-code"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
+import { SF_VOUCHER_OBJECT } from "../modules/salesforce-sync/utils/salesforce-config"
 import {
+  filterSObjectFieldsByPattern,
+  loadSObjectFieldDescribe,
+} from "../modules/salesforce-sync/utils/salesforce-describe-fields"
+import {
+  buildVoucherSoqlSelect,
   fetchSalesforceVoucherByCode,
   isSalesforceGiftcardVoucher,
+  isSalesforceVoucherMarkedExpired,
+  mapSalesforceVoucherStatus,
   salesforceVoucherBalanceCents,
+  salesforceVoucherExpiresAt,
 } from "../modules/salesforce-sync/utils/fetch-salesforce-voucher"
 import { resolveVoucherCustomerCode } from "../modules/salesforce-sync/utils/salesforce-voucher-code"
 
@@ -37,6 +46,15 @@ export default async function inspectSalesforceVoucher({ container }: ExecArgs) 
   }
 
   const normalized = normalizeGiftCardCode(raw)
+  const soqlSelect = await buildVoucherSoqlSelect(sync)
+  const describe = await loadSObjectFieldDescribe(SF_VOUCHER_OBJECT)
+  const voucherFieldHints = describe
+    ? filterSObjectFieldsByPattern(
+        describe,
+        /expir|eind|valid|remaining|bedrag|amount|status|actief/i
+      ).map((f) => ({ name: f.name, label: f.label, type: f.type }))
+    : []
+
   const voucher = await fetchSalesforceVoucherByCode(sync, normalized)
   if (!voucher) {
     logger.error(`[salesforce:inspect-voucher] No Voucher__c for ${normalized}`)
@@ -53,9 +71,14 @@ export default async function inspectSalesforceVoucher({ container }: ExecArgs) 
       {
         input: raw,
         normalized,
+        soqlSelect,
+        voucherFieldHints,
         voucher,
         customerCode,
         balanceCents: salesforceVoucherBalanceCents(voucher),
+        mappedStatus: mapSalesforceVoucherStatus(voucher),
+        isExpiredFlag: isSalesforceVoucherMarkedExpired(voucher),
+        expiresAt: salesforceVoucherExpiresAt(voucher),
         isGiftcard: isSalesforceGiftcardVoucher(voucher),
       },
       null,

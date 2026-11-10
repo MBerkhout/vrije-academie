@@ -6,11 +6,13 @@ import { GIFT_CARD_MODULE } from "../modules/gift-card"
 import GiftCardModuleService from "../modules/gift-card/service"
 import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import {
+  buildVoucherSoqlSelect,
   fetchSalesforceVoucherByCode,
   type SalesforceVoucherRecord,
   isSalesforceGiftcardVoucher,
   mapSalesforceVoucherStatus,
   salesforceVoucherBalanceCents,
+  salesforceVoucherExpiresAt,
 } from "../modules/salesforce-sync/utils/fetch-salesforce-voucher"
 import { SF_VOUCHER_OBJECT } from "../modules/salesforce-sync/utils/salesforce-config"
 
@@ -28,15 +30,9 @@ async function fetchVoucherForGiftCard(
   const link = await sync.getStateByMedusaId("voucher", card.id)
   if (link?.salesforce_id) {
     try {
-      const row = await sync.retrieve(SF_VOUCHER_OBJECT, link.salesforce_id, [
-        "Id",
-        "Name",
-        "Code__c",
-        "Type__c",
-        "Original_Amount__c",
-        process.env.SALESFORCE_VOUCHER_REMAINING_FIELD?.trim() || "Remaining_Amount__c",
-        process.env.SALESFORCE_VOUCHER_STATUS_FIELD?.trim() || "Status__c",
-      ])
+      const select = await buildVoucherSoqlSelect(sync)
+      const retrieveFields = select.split(",").map((s) => s.trim()).filter(Boolean)
+      const row = await sync.retrieve(SF_VOUCHER_OBJECT, link.salesforce_id, retrieveFields)
       return row as SalesforceVoucherRecord
     } catch {
       /* fall back to code lookup */
@@ -75,10 +71,25 @@ export async function refreshGiftCardBalanceFromSalesforce(
   const sfBalanceCents = salesforceVoucherBalanceCents(voucher)
   const localBalance = Number(card.balance)
   const nextBalance = reconcileGiftCardBalanceWithSalesforce(localBalance, sfBalanceCents)
-  const status = mapSalesforceVoucherStatus(voucher)
-  const nextStatus = nextBalance <= 0 ? "depleted" : status
+  const mappedStatus = mapSalesforceVoucherStatus(voucher)
+  const nextStatus =
+    mappedStatus === "expired"
+      ? "expired"
+      : nextBalance <= 0
+        ? "depleted"
+        : mappedStatus
+  const expiresAt = salesforceVoucherExpiresAt(voucher)
 
-  if (nextBalance !== localBalance || (nextBalance <= 0 && card.status === "active")) {
+  const statusChanged = nextStatus !== card.status
+  const expiresChanged =
+    expiresAt != null && expiresAt !== (card.expires_at ?? null)
+
+  if (
+    nextBalance !== localBalance ||
+    statusChanged ||
+    expiresChanged ||
+    (nextBalance <= 0 && card.status === "active")
+  ) {
     logger.info(
       `[gift-card] Salesforce balance sync ${card.code}: ${localBalance} → ${nextBalance} cents (voucher ${voucher.Id})`
     )
@@ -86,6 +97,7 @@ export async function refreshGiftCardBalanceFromSalesforce(
       id: card.id,
       balance: nextBalance,
       status: nextStatus,
+      ...(expiresAt ? { expires_at: expiresAt } : {}),
     })
     return (await gift.listGiftCards({ id: card.id }))[0] ?? card
   }

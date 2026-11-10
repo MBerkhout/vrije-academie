@@ -28,7 +28,8 @@ fi
 # Avoid partial node_modules after failed or interrupted installs (e.g. Next type-check MODULE_NOT_FOUND).
 rm -rf node_modules
 npm ci
-export DEPLOYMENT_VERSION="${DEPLOYMENT_VERSION:-$(git -C "$REPO_DIR" rev-parse --short HEAD)}"
+# Always use the new git SHA — never inherit DEPLOYMENT_VERSION from .env (would pin Redis cache namespace).
+export DEPLOYMENT_VERSION="$(git -C "$REPO_DIR" rev-parse --short HEAD)"
 export SENTRY_RELEASE="${SENTRY_RELEASE:-$(git -C "$REPO_DIR" rev-parse HEAD)}"
 # Build into a per-release dir so workers still serving the previous build never see a
 # half-written .next (caused "client reference manifest ... does not exist" 500s).
@@ -53,5 +54,6 @@ pm2 save
 ls -dt .next-* 2>/dev/null | tail -n +3 | xargs -r rm -rf
 
 bash "$APP_DIR/scripts/warm-listing-cache.sh"
+bash "$APP_DIR/scripts/rebuild-cache.sh"
 
 echo "==> Frontend deploy complete"

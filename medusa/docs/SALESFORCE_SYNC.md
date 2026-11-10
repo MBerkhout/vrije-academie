@@ -307,7 +307,7 @@ Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push
 | Promotion discount | discount `OrderItem` | Negative `UnitPrice`, `ProductName__c: Korting`, `Discount_Code__c`, same `Registration__c` |
 | Gift card purchase | `OrderItem` + `Voucher__c` | `Giftcard_*` fields; voucher sync state `entity_type: voucher`. Medusa schrijft **geen** Medusa-hex naar `Code__c`. Na upsert: GTC uit `Voucher__c.Code__c` of `Name` → `gift_card.code` + ontvanger-mail. |
 | Gift card redemption | voucher `OrderItem` | negative amount, `Voucher__c` lookup; `Discount_Code__c` = opgeslagen code (`GTC-…` of `GIFT-…`). Lookup fallback: `Code__c` of `Name`. |
-| Gift card redeem (store) | Medusa `gift_card` | Onbekende code → lazy import uit `Voucher__c` ([`explore-gift-card-from-salesforce.ts`](../src/lib/explore-gift-card-from-salesforce.ts)); geen bulk sync van alle vouchers. |
+| Gift card redeem (store) | Medusa `gift_card` | Onbekende code → lazy import uit `Voucher__c` ([`explore-gift-card-from-salesforce.ts`](../src/lib/explore-gift-card-from-salesforce.ts)); geen bulk sync van alle vouchers. `Is_Expired__c` op de voucher → Medusa status `expired` (blokkeert verzilvering). |
 
 **Requirements:** customer must exist in Medusa (checkout login); event variants must have been imported from Salesforce (`salesforce_sync_state` variant → `vaProduct__c`). Amounts: order graph fields (`unit_price`, `total`, adjustments) are in **major EUR**; the loader converts to cents, then mappings write SF major units (`centsToMajorEur`). When `order.total` is `0` in the graph API, the loader derives the total from line items.
 

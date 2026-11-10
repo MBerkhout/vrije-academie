@@ -2,6 +2,8 @@ import type { MetadataRoute } from 'next'
 import { getSiteOrigin } from '@/lib/json-ld'
 import { isNoIndexSite } from '@/lib/cms/seo-metadata'
 
+export const revalidate = 3600
+
 export default function robots(): MetadataRoute.Robots {
   if (isNoIndexSite()) {
     return {

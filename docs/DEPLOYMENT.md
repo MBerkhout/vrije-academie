@@ -415,7 +415,7 @@ PLP (`GET /store/events`) and Agenda (`GET /store/agenda`) use **denormalized li
 | Worker rebuild | `medusa/src/jobs/refresh-store-listing-snapshots.ts` | Every minute on `medusa-worker`: rebuild dirty or aged snapshots (Redis lock per slot); revalidates Next PLP after PLP rebuild |
 | Frontend PLP hard cache | `frontend/src/lib/plp/cached-default-listing.ts` | `unstable_cache` (120 s) for unfiltered `/ons-aanbod` with `sort=order` or `sort=start_date`; bust via `POST /api/revalidate/plp` |
 | Frontend Agenda hard cache | `frontend/src/lib/agenda/cached-default-listing.ts` | `unstable_cache` (120 s) for unfiltered `/agenda` with `sort=start_date` or `sort=start_date_desc`; bust via the same `POST /api/revalidate/plp` (`agenda-default` tag) |
-| Frontend Next data cache | `frontend/cache-incremental.cjs` + `next.config.js` | When `REDIS_URL` is set, `cacheHandler` stores `unstable_cache` / ISR entries in Redis (`next:storefront:` prefix) so all PM2 workers share one hard cache; `cacheMaxMemorySize: 0` disables per-worker duplicates. `DEPLOYMENT_VERSION` (git SHA on deploy) isolates entries per release. |
+| Frontend Next data cache | `frontend/cache-incremental.cjs` + `next.config.js` | When `REDIS_URL` is set, `cacheHandler` stores `unstable_cache` / ISR entries in Redis (`next:storefront:` prefix) so all PM2 workers share one hard cache; `cacheMaxMemorySize: 0` disables per-worker duplicates. `DEPLOYMENT_VERSION` (git short SHA set only by `deploy.sh`) isolates entries per release — **do not** set `DEPLOYMENT_VERSION` in server `.env` or an old namespace can survive deploys. |
 
 **PLP/Agenda/VA Thuis/registration-counts snapshots**: Redis stores the blob + separate `:built_at` key (`LISTING_SNAPSHOT_VERSION` 6). API `loadCached` is **memory-first** (compares tiny `built_at` before loading the blob). Rebuilds run on **`medusa-worker`** only; invalidation sets `store:listing:dirty:*`. Only a true cold start (no Redis blob) blocks on the API.
 
@@ -470,11 +470,13 @@ Requires `REDIS_URL` on the **Medusa** server for cross-worker sharing; without 
 
 **Post-deploy warm:** `frontend/scripts/deploy.sh` runs `scripts/warm-listing-cache.sh` after PM2 reload — best-effort `curl` of default PLP/Agenda URLs (up to 120 s each, retries) so one worker populates the shared Next hard cache and Medusa listing snapshot before traffic hits. Frontend and Medusa deploy jobs run in parallel; if Medusa is still restarting, warm may retry or warn without failing the deploy.
 
+**Post-deploy cache rebuild (no downtime):** `deploy.sh` then runs `scripts/rebuild-cache.sh`, which `POST`s to `/api/revalidate/all` with `Bearer REVALIDATE_SECRET` (queues batched `revalidatePath` for every sitemap + chrome path, including `/sitemap.xml` and `/robots.txt`) and warms those metadata routes plus `/`. The endpoint returns immediately; existing cached pages keep serving until the next request regenerates them. On the server: `cd ~/app/frontend && npm run cache:rebuild` (requires `REVALIDATE_SECRET` in `.env` and a running PM2 app). Optional: `STOREFRONT_WARM_URL` (same as listing warm).
+
 **Optional env for immediate PLP + Agenda bust on catalog changes** (same secret on both sides):
 
 | Service | Variable | Example |
 |---------|----------|---------|
-| Frontend | `REVALIDATE_SECRET` | random string |
+| Frontend | `REVALIDATE_SECRET` | random string (also used by `POST /api/revalidate/all` and `npm run cache:rebuild`) |
 | Medusa | `STOREFRONT_REVALIDATE_PLP_URL` | `https://v2.vrijeacademie.nl/api/revalidate/plp` |
 | Medusa | `STOREFRONT_REVALIDATE_SECRET` | same as `REVALIDATE_SECRET` |
 
@@ -674,8 +676,9 @@ Monitor **Actions → Deploy Production**. Staging continues to deploy from `sta
 | `.github/workflows/deploy-production.yml` | GitHub Actions workflow (main → prod1) |
 | `scripts/prod/setup-env.sh` | Bootstrap production `.env` from staging over SSH |
 | `scripts/prod/copy-staging-to-prod.mjs` | Clone staging Medusa Postgres (+ static, OpenSearch reindex) |
-| `frontend/scripts/deploy.sh` | Server-side frontend deploy (sets `DEPLOYMENT_VERSION`, runs listing warm) |
+| `frontend/scripts/deploy.sh` | Server-side frontend deploy (sets `DEPLOYMENT_VERSION` from git SHA, listing warm, cache rebuild) |
 | `frontend/scripts/warm-listing-cache.sh` | Post-deploy warm for default PLP/Agenda + top PDP paths |
+| `frontend/scripts/rebuild-cache.sh` | Post-deploy full ISR queue + warm sitemap/robots/homepage (`npm run cache:rebuild`) |
 | `scripts/pm2-sizing.cjs` | Host-aware PM2 instances and memory caps |
 | `scripts/pm2-scale-cluster.sh` | Align running PM2 cluster size after deploy |
 | `loadtest/` | k6 load test scenarios |

@@ -218,7 +218,7 @@ If `SANITY_API_READ_TOKEN` is missing, `/api/draft` returns 503 with a helpful e
 - **PDP fallbacks** — editorial `seo` → Salesforce mirror (`seoTitle` / `seoDescription`) → commerce event title/description.
 - **Utility routes** — account, checkout, cart, login, search, and dev pages use `noIndexMetadata()` (`robots: noindex, nofollow`).
 - **Staging (`v2.vrijeacademie.nl`)** — when `NEXT_PUBLIC_SITE_URL` is that host, all pages get `noindex, nofollow`, `robots.txt` disallows `/` (no sitemap), and `sitemap.xml` is empty. Requests to that host also send `X-Robots-Tag: noindex, nofollow` (`next.config.js`). `images.qualities` is `[75, 80, 90]` (Next 16 defaults to `[75]` only).
-- **Sitemap & robots** — `app/sitemap.ts` (Sanity pages, categories, products, cities + static routes; skips `noIndex` and **linked-online slaves**) and `app/robots.ts` (disallows private paths, links sitemap). Slave PDP paths are still included in full storefront cache revalidation. Revalidates hourly.
+- **Sitemap & robots** — `app/sitemap.ts` (Sanity pages, categories, products, cities + static routes; skips `noIndex` and **linked-online slaves**) and `app/robots.ts` (disallows private paths, links sitemap). Both revalidate hourly; full ISR refresh (deploy or `npm run cache:rebuild` → `POST /api/revalidate/all`) also busts them via `STOREFRONT_SEO_PATHS`. Slave PDP paths are still included in full storefront cache revalidation.
 - **JSON-LD** — `src/lib/json-ld.ts` builders + `src/lib/cms/page-structured-data.ts` for CMS `WebPage` / `FAQPage`. Sitewide `Organization` + `WebSite` in `(main)/layout.tsx`. PDP uses `buildPdpEventOrCourseJsonLd()` with commerce + Sanity SEO overrides. Tests: `src/lib/json-ld.test.ts`.
 
 ## i18n Readiness

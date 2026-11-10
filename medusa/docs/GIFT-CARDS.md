@@ -36,7 +36,7 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 ## Verzilvering (saldo)
 
 - Bij toepassen: `createCartCreditLinesWorkflow` met `reference: "gift_card"` en metadata (`gift_card_id`, `code`, `cart_id`). Het bedrag is het **btw-inclusieve** cart-totaal (`items.is_tax_inclusive` moet in de refetch zitten, anders telt Medusa de Salesforce-brutoprijs als netto en telt btw erbij op). **`gift_card.balance` en transacties zijn centen**; cart/order credit lines zijn **major EUR** — zie [`gift-card-apply-amount.ts`](../src/lib/gift-card-apply-amount.ts).
-- **Salesforce explore**: staat de code niet in Medusa (`gift_card`), dan zoekt [`resolve-gift-card-by-code.ts`](../src/lib/resolve-gift-card-by-code.ts) `Voucher__c` op (`Code__c` / `Name`), importeert of ververst een rij, en koppelt `salesforce_sync_state` (`entity_type: voucher`). Gebruikt o.a. `Remaining_Amount__c` (override: `SALESFORCE_VOUCHER_REMAINING_FIELD`) en `Original_Amount__c`. Werkt voor legacy cadeaubonnen die alleen in Salesforce bestaan.
+- **Salesforce explore**: staat de code niet in Medusa (`gift_card`), dan zoekt [`resolve-gift-card-by-code.ts`](../src/lib/resolve-gift-card-by-code.ts) `Voucher__c` op (`Code__c` / `Name`), importeert of ververst een rij, en koppelt `salesforce_sync_state` (`entity_type: voucher`). SOQL-velden worden via Salesforce **describe** gefilterd (geen `INVALID_FIELD`-fallback meer naar kale basis). Verlopen: checkboxveld uit describe (bijv. label “Is Expired”) → status `expired`. Saldo: `Remaining_Amount__c` / `Amount__c` (override: `SALESFORCE_VOUCHER_REMAINING_FIELD`). Werkt voor legacy cadeaubonnen die alleen in Salesforce bestaan.
 - **Salesforce saldo-check**: bestaat de kaart al lokaal, dan haalt [`refresh-gift-card-from-salesforce.ts`](../src/lib/refresh-gift-card-from-salesforce.ts) vóór toepassen het resterende saldo uit Salesforce op. Medusa balance wordt **alleen verlaagd** als SF lager is (andere kanalen); nooit verhoogd (website-redempties die nog niet in SF staan). Uitzetten: `SALESFORCE_VOUCHER_SYNC_BALANCE=false`.
 - Reservering: rijen `gift_card_transaction` met `type: reserve` (saldo wordt pas bij order geboekt).
 - Bij **`order.placed`**: subscriber [`gift-cards-order-placed.ts`](../src/subscribers/gift-cards-order-placed.ts) roept `finalizeRedemption` aan (reserve weg, `balance` omlaag, `type: redemption`; bedrag = credit line major → centen).
@@ -64,7 +64,7 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 - `GIFT_CARD_EXPIRY_YEARS` — optioneel, default `2`
 - `SALESFORCE_VOUCHER_REMAINING_FIELD` — optioneel, default `Remaining_Amount__c` (saldo bij import)
 - `SALESFORCE_VOUCHER_STATUS_FIELD` — optioneel, default `Status__c`
-- `SALESFORCE_VOUCHER_EXPIRY_FIELD` — optioneel; anders `Expiration_Date__c` / `Valid_Until__c`
+- `SALESFORCE_VOUCHER_EXPIRY_FIELD` — optioneel; anders `Expiration_Date__c` / `Valid_Until__c` / `Einddatum__c`
 - `SALESFORCE_VOUCHER_EXTRA_FIELDS` — optioneel, extra SOQL-velden (comma-separated)
 - `SALESFORCE_VOUCHER_SYNC_BALANCE=false` — geen saldo-sync met Salesforce vóór toepassen
 - E-mail (cadeaubon naar ontvanger): zelfde Resend/SMTP/SendGrid als OTP — zie [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md#email-optional)

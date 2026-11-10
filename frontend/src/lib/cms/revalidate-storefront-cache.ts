@@ -25,6 +25,11 @@ export const STOREFRONT_CHROME_PATHS = [
   '/mijn-account/voorkeuren',
 ] as const
 
+/** Metadata routes regenerated on full storefront cache rebuild (deploy / POST /api/revalidate/all). */
+export const STOREFRONT_SEO_PATHS = ['/sitemap.xml', '/robots.txt'] as const
+
+const STOREFRONT_EXTRA_PATHS = [...STOREFRONT_CHROME_PATHS, ...STOREFRONT_SEO_PATHS] as const
+
 export const REVALIDATE_BATCH_SIZE = 50
 export const REVALIDATE_BATCH_DELAY_MS = 100
 
@@ -38,7 +43,7 @@ export function categoryPublishRevalidatePaths(slug: string | undefined): string
 
 export function mergeStorefrontPaths(
   sitemapPaths: string[],
-  extraPaths: readonly string[] = STOREFRONT_CHROME_PATHS,
+  extraPaths: readonly string[] = STOREFRONT_EXTRA_PATHS,
 ): string[] {
   return [...new Set([...sitemapPaths, ...extraPaths])]
 }

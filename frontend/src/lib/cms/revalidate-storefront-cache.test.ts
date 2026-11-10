@@ -7,6 +7,7 @@ import {
   REVALIDATE_BATCH_DELAY_MS,
   REVALIDATE_BATCH_SIZE,
   STOREFRONT_CHROME_PATHS,
+  STOREFRONT_SEO_PATHS,
 } from './revalidate-storefront-cache'
 import * as sitemapQueries from './sitemap-queries'
 
@@ -34,6 +35,13 @@ describe('revalidate-storefront-cache', () => {
   it('mergeStorefrontPaths includes all chrome paths by default', () => {
     const merged = mergeStorefrontPaths(['/'])
     for (const path of STOREFRONT_CHROME_PATHS) {
+      expect(merged).toContain(path)
+    }
+  })
+
+  it('mergeStorefrontPaths includes sitemap and robots by default', () => {
+    const merged = mergeStorefrontPaths(['/'])
+    for (const path of STOREFRONT_SEO_PATHS) {
       expect(merged).toContain(path)
     }
   })

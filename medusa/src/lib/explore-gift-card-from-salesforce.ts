@@ -93,6 +93,7 @@ export async function exploreGiftCardFromSalesforce(
       code: customerCode,
       initial_value: Math.max(Number(card.initial_value), initialCents),
       expires_at: expiresAt,
+      status,
       recipient_name: card.recipient_name || recipientName,
       recipient_email: card.recipient_email || recipientEmail,
     })

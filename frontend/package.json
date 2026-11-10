@@ -10,7 +10,8 @@
     "lint": "next lint",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "cache:rebuild": "bash scripts/rebuild-cache.sh"
   },
   "keywords": [
     "nextjs",
