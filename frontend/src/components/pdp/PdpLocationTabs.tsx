@@ -172,12 +172,17 @@ export function PdpLocationTabs({
   const cities = Object.keys(groups).sort((a, b) =>
     a.localeCompare(b, 'nl', { sensitivity: 'base' }),
   )
-  const showDate = shouldShowEventDates({
-    delivery_types: [
-      ...new Set(variants.map((v) => v.event_item?.delivery_type).filter(Boolean)),
-    ] as string[],
-    variants,
-  })
+  // Online-only products (e.g. live online lectures) also have a meaningful date on the PDP,
+  // so show it whenever any online session has a start date. Not for VAthuis (on-demand).
+  const isVathuis = Boolean(event.vathuis) || event.purchase_mode === 'bundle_only'
+  const showDate =
+    (!isVathuis && onlineVariants.some((v) => Boolean(v.event_item?.start_at))) ||
+    shouldShowEventDates({
+      delivery_types: [
+        ...new Set(variants.map((v) => v.event_item?.delivery_type).filter(Boolean)),
+      ] as string[],
+      variants,
+    })
 
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('both')
   const [activeCity, setActiveCity] = useState(() =>
