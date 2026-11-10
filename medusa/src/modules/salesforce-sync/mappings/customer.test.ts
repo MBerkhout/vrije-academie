@@ -5,6 +5,7 @@ import {
   CUSTOMER_METADATA_KEYS,
   customerProfileFromSalesforce,
   personAccountFieldsFromMedusa,
+  postalCodeToSalesforce,
   type MedusaCustomerShape,
 } from "./customer"
 
@@ -38,5 +39,17 @@ describe("customer pull salutation", () => {
       Salutation__c: "Geachte heer/mevrouw",
     })
     expect(profile.metadata?.[CUSTOMER_METADATA_KEYS.salutation]).toBe("Geachte heer/mevrouw")
+  })
+})
+
+describe("postalCodeToSalesforce", () => {
+  it("uppercases and compacts Dutch postcodes", () => {
+    expect(postalCodeToSalesforce("2334cp", "nl")).toBe("2334CP")
+    expect(postalCodeToSalesforce(" 2334 cp ", "NL")).toBe("2334CP")
+  })
+  it("leaves other countries and invalid values untouched", () => {
+    expect(postalCodeToSalesforce("1000", "be")).toBe("1000")
+    expect(postalCodeToSalesforce("abc", "nl")).toBe("abc")
+    expect(postalCodeToSalesforce("", "nl")).toBeUndefined()
   })
 })

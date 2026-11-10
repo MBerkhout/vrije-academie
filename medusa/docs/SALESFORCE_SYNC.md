@@ -92,7 +92,7 @@ npm run salesforce:backfill-ids
 
 Do **not** bulk-push Medusa products to `Product2` — that would create duplicate Product2 rows. `salesforce:backfill-ids` PATCHes `Medusa_Product_Id__c` on `vaProductgroup__c` and `Medusa_Variant_Id__c` on `vaProduct__c` from `salesforce_sync_state`. Later single imports write those ids back as well (skipped during bulk import because `SALESFORCE_SUPPRESS_PUSH=1`; run backfill afterwards).
 
-Fields: `Medusa_Order_Id__c` on `Order` (plus display id / email / status / total cents), `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` / `Medusa_Product_Group_Id__c` on `Product2`, same product/variant id fields on `vaProductgroup__c` / `vaProduct__c`. Until those exist, leave the flag unset/false: payloads use standard SF fields only; Medusa stores the linked Salesforce Id in `salesforce_sync_state` (re-push updates the header; line items may duplicate without external ids). **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce).
+Fields: `Medusa_Order_Id__c` on `Order` (plus display id / email / status / total cents), `Medusa_Order_Item_Id__c` on `OrderItem`, `Medusa_Registration_Id__c` on `Registration__c`, optional `Medusa_Gift_Card_Id__c` on `Voucher__c`, `Medusa_Product_Id__c` / `Medusa_Variant_Id__c` / `Medusa_Product_Group_Id__c` on `Product2`, same product/variant id fields on `vaProductgroup__c` / `vaProduct__c`. Until those exist, leave the flag unset/false: payloads use standard SF fields only; Medusa stores the linked Salesforce Id in `salesforce_sync_state` (re-push updates the header; line items may duplicate without external ids). **Customers** use Person Accounts matched by Salesforce **Contact Id** in `salesforce_sync_state` (no Medusa id field in Salesforce). Dutch postcodes are sent as `1000AA` (`postalCodeToSalesforce`): Salesforce rejects `2334cp` / `2334 CP` with a validation error, which fails the whole Account/Contact push so the address never arrives.
 3. **Inbound webhook**: Flow or Apex `POST` to `{MEDUSA_URL}/hooks/salesforce` with header `X-Salesforce-Webhook-Secret: <same as env>` and JSON body:
 
 ```json
@@ -147,7 +147,9 @@ Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries
 | `GET` | `/admin/salesforce/webhook-queue` | Queue stats + recent events |
 | `POST` | `/admin/salesforce/webhook-queue/process` | Drain pending webhook rows now |
 | `POST` | `/admin/salesforce/webhook-queue/:id/retry` | Reset one event to `pending` and re-process |
-| `POST` | `/store/customer/me/sync-from-salesforce` | Authenticated; enqueue SF → Medusa pull after password login |
+| `POST` | `/store/customer/me/sync-from-salesforce` | Authenticated; enqueue SF → Medusa pull after password login (+ order history import) |
+| `GET` | `/store/customer/me/order-history-import` | Authenticated; order history import progress |
+| `POST` | `/store/customer/me/order-history-import` | Authenticated; re-queue order history import |
 | `GET` | `/admin/salesforce/customers/:id` | Status JSON |
 | `POST` | `/admin/salesforce/customers/:id/push` \| `/pull` | Manual run |
 | `POST` | `/admin/salesforce/products/import` | Body `{ salesforce_id }` — create Medusa product from Product2 |
@@ -340,11 +342,26 @@ npm run salesforce:import-rebooked-order -- --salesforce-id=801...
 
 Logic: `utils/import-rebooked-order.ts`. Webhook: unlinked `Order` updates attempt omboeking import before `no_linked_medusa_row`.
 
+### Order history → mijn-account (Salesforce → Medusa)
+
+On login (after customer pull), Medusa enqueues **`import-order-history-salesforce`** for that customer: **read-only** SOQL, newest activated orders first, paginated. Creates display-only Medusa orders (`imported_from_salesforce: true`) with snapshot line items (no `variant_id`), Salesforce order date on `order.created_at`, and `salesforce_order_number` for mijn-account. Re-logins are idempotent (`salesforce_sync_state` per SF Order id); when `sf_order_history_status=done`, only orders with `SystemModstamp >= sf_order_history_synced_at` are checked (delta).
+
+**Skipped:** draft/cancelled SF orders; lines with `Registration__c.Status__c = Geannuleerd`; already-linked orders (website checkout). **VA Thuis:** active bundles grant `customer_vathuis_access` when SF order date + 3 months is still in the future and the product is still published in Medusa. **No SF writes**, no seat decrement, no GTM/gift-card/mail side effects (subscribers skip imported orders).
+
+Store: `GET /store/customer/me/order-history-import` (poll progress), `POST` to re-queue. Customer metadata: `sf_order_history_status`, `sf_order_history_imported`, `sf_order_history_total`, `sf_order_history_synced_at`.
+
+```bash
+npm run salesforce:import-order-history -- --email=user@example.com
+npm run salesforce:import-order-history -- --all --dry-run --limit=10
+npm run salesforce:import-order-history -- --customer-id=cus_... --force
+```
+
+Logic: `utils/import-salesforce-order-history.ts`, `import-salesforce-history-order.ts`, `map-salesforce-order-lines.ts`. Workflow: `import-order-history-salesforce`.
+
 ## Out of scope (current)
 
 - Pull **variant** from Salesforce into Medusa (product-level import only; product groups import variants via `vaProduct__c`).
 - Bidirectional product sync; admin UI for editing mappings.
-- Full Salesforce → Medusa order sync (only omboeking import + linked-order header stub pull).
 - Medusa tax-region wiring for Salesforce product VAT (stored as metadata only for now). **Store tax:** `npm run seed:region` seeds all EU countries, standard B2C VAT per country, `tp_system` on every tax region, and EUR **tax-inclusive** price preference (Salesforce gross prices are not surcharged).
 
 ## Product group import (`vaProductgroup__c`)

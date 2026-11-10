@@ -1,16 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AccountOrderCard } from '@/components/account/AccountOrderCard'
 import { commerceClient } from '@/lib/commerce'
 import type { CheckoutConfirmationPayload } from '@/lib/commerce/checkout-confirmation-types'
 import { fetchCheckoutConfirmation } from '@/lib/commerce/fetch-checkout-confirmation'
-import type { Order } from '@/lib/commerce/types'
+import type { Order, OrderHistoryImportStatus } from '@/lib/commerce/types'
 import { defaultMessages } from '@/lib/i18n/messages'
 
 type OrderRow = {
   order: Order
   confirmation: CheckoutConfirmationPayload | null
+}
+
+const POLL_MS = 4000
+
+function isImportActive(status: OrderHistoryImportStatus['status']): boolean {
+  return status === 'pending' || status === 'running'
 }
 
 export function AccountOrdersList() {
@@ -19,27 +25,36 @@ export function AccountOrdersList() {
   const [rows, setRows] = useState<OrderRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [importStatus, setImportStatus] = useState<OrderHistoryImportStatus | null>(null)
+
+  const loadOrders = useCallback(async () => {
+    const { orders: list } = await commerceClient.listCustomerOrders({ limit: 50 })
+    const enriched = await Promise.all(
+      list.map(async (order) => {
+        try {
+          const confirmation = await fetchCheckoutConfirmation({ orderId: order.id })
+          return {
+            order,
+            confirmation: confirmation.status === 'ready' ? confirmation : null,
+          }
+        } catch {
+          return { order, confirmation: null }
+        }
+      })
+    )
+    setRows(enriched)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
     void (async () => {
       try {
-        const { orders: list } = await commerceClient.listCustomerOrders({ limit: 50 })
-        const enriched = await Promise.all(
-          list.map(async (order) => {
-            try {
-              const confirmation = await fetchCheckoutConfirmation({ orderId: order.id })
-              return {
-                order,
-                confirmation: confirmation.status === 'ready' ? confirmation : null,
-              }
-            } catch {
-              return { order, confirmation: null }
-            }
-          })
-        )
+        const [status] = await Promise.all([
+          commerceClient.getOrderHistoryImportStatus(),
+          loadOrders(),
+        ])
         if (!cancelled) {
-          setRows(enriched)
+          setImportStatus(status)
           setError(false)
         }
       } catch {
@@ -54,7 +69,23 @@ export function AccountOrdersList() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [loadOrders])
+
+  useEffect(() => {
+    if (!importStatus || !isImportActive(importStatus.status)) return
+
+    const id = window.setInterval(() => {
+      void (async () => {
+        const status = await commerceClient.getOrderHistoryImportStatus()
+        setImportStatus(status)
+        if (!isImportActive(status.status)) {
+          await loadOrders()
+        }
+      })()
+    }, POLL_MS)
+
+    return () => window.clearInterval(id)
+  }, [importStatus?.status, loadOrders])
 
   if (loading) {
     return (
@@ -64,23 +95,45 @@ export function AccountOrdersList() {
     )
   }
 
-  if (error) {
-    return (
-      <p className="font-sans text-sm text-va-darkgray">
-        {t.ordersError}
-      </p>
-    )
-  }
-
-  if (rows.length === 0) {
-    return <p className="font-sans text-sm text-va-darkgray">{t.ordersEmpty}</p>
-  }
+  const showImportBanner =
+    importStatus != null && isImportActive(importStatus.status)
 
   return (
-    <ul className="space-y-4">
-      {rows.map(({ order, confirmation }) => (
-        <AccountOrderCard key={order.id} order={order} confirmation={confirmation} />
-      ))}
-    </ul>
+    <div className="space-y-4">
+      {showImportBanner ? (
+        <div
+          className="rounded-none border border-va-lightgray bg-va-lightgray/40 p-4 font-sans text-sm text-va-black"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="font-medium">{t.ordersImportInProgress}</p>
+          {importStatus.total != null && importStatus.total > 0 ? (
+            <p className="mt-1 text-va-darkgray">
+              {t.ordersImportProgress
+                .replace('{imported}', String(importStatus.imported))
+                .replace('{total}', String(importStatus.total))}
+            </p>
+          ) : (
+            <p className="mt-1 text-va-darkgray">{t.ordersImportInProgressHint}</p>
+          )}
+        </div>
+      ) : null}
+
+      {importStatus?.status === 'failed' ? (
+        <p className="font-sans text-sm text-va-darkgray">{t.ordersImportFailed}</p>
+      ) : null}
+
+      {error ? (
+        <p className="font-sans text-sm text-va-darkgray">{t.ordersError}</p>
+      ) : rows.length === 0 ? (
+        <p className="font-sans text-sm text-va-darkgray">{t.ordersEmpty}</p>
+      ) : (
+        <ul className="space-y-4">
+          {rows.map(({ order, confirmation }) => (
+            <AccountOrderCard key={order.id} order={order} confirmation={confirmation} />
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }

@@ -20,7 +20,11 @@ import {
   isMolliePaymentFailed,
 } from "./mollie-payment-status"
 import { resolveSalesforceOrderNumber } from "./resolve-salesforce-order-number"
-import { salesforceOrderNumberFromMetadata } from "../modules/salesforce-sync/utils/order-import-metadata"
+import {
+  ORDER_SALESFORCE_TOTAL_AMOUNT,
+  isImportedSalesforceOrder,
+  salesforceOrderNumberFromMetadata,
+} from "../modules/salesforce-sync/utils/order-import-metadata"
 
 function getTokenSecret(): string {
   return (
@@ -321,12 +325,14 @@ async function enrichOrderItems(
   const categorySlugs = new Set<string>()
 
   const items = lineItems.map((item) => {
+    const lineMeta = (item.metadata as Record<string, unknown> | undefined) ?? {}
     const variant = (item.variant as Record<string, unknown> | undefined) ?? {}
     const product = (variant.product as Record<string, unknown> | undefined) ?? {}
     const metadata = (product.metadata as Record<string, unknown> | undefined) ?? null
     const eventItem = (variant.event_item as Record<string, unknown> | undefined) ?? null
     const productId = product.id as string | undefined
-    const isVathuis = isVathuisProduct(metadata)
+    const isVathuis =
+      isVathuisProduct(metadata) || lineMeta.is_vathuis === true
 
     if (productId) purchasedProductIds.push(productId)
     if (isVathuis) {
@@ -355,7 +361,21 @@ async function enrichOrderItems(
 
     const instructorNames = eventItem?.instructor_name
       ? [String(eventItem.instructor_name).trim()].filter(Boolean)
-      : docentsByProductId[productId ?? ""] ?? []
+      : lineMeta.sf_instructor
+        ? [String(lineMeta.sf_instructor).trim()].filter(Boolean)
+        : docentsByProductId[productId ?? ""] ?? []
+
+    const softHandle =
+      typeof lineMeta.product_handle === "string" ? lineMeta.product_handle : null
+    const snapshotEvent =
+      !eventItem && (lineMeta.sf_session_start_at || lineMeta.sf_city)
+        ? {
+            delivery_type: null,
+            start_at: lineMeta.sf_session_start_at ?? null,
+            end_at: null,
+            city: lineMeta.sf_city ?? null,
+          }
+        : null
 
     return {
       id: item.id,
@@ -364,7 +384,7 @@ async function enrichOrderItems(
       unit_price: unitCents,
       total: totalCents,
       thumbnail: (item.thumbnail as string | null) ?? (product.thumbnail as string | null) ?? null,
-      product_handle: (product.handle as string | null) ?? null,
+      product_handle: (product.handle as string | null) ?? softHandle,
       is_vathuis: isVathuis,
       event_item: eventItem
         ? {
@@ -373,7 +393,7 @@ async function enrichOrderItems(
             end_at: eventItem.end_at ?? null,
             city: eventItem.city ?? null,
           }
-        : null,
+        : snapshotEvent,
       vathuis,
       instructor_names: instructorNames,
     }
@@ -541,10 +561,20 @@ export async function buildCheckoutConfirmation(
     similarToHandle: enriched.orderIsVathuis ? enriched.firstVathuisHandle : null,
   })
 
-  const totalMajor = parseMoney(order.total)
+  let totalMajor = parseMoney(order.total)
   const subtotalMajor = parseMoney(order.subtotal)
-  const discountMajor = parseMoney(order.discount_total)
+  let discountMajor = parseMoney(order.discount_total)
   const taxMajor = parseMoney(order.tax_total)
+  if (isImportedSalesforceOrder(orderMetadata)) {
+    const sfTotal = orderMetadata?.[ORDER_SALESFORCE_TOTAL_AMOUNT]
+    if (typeof sfTotal === "number" && Number.isFinite(sfTotal)) {
+      totalMajor = sfTotal
+    }
+    const sfDiscount = orderMetadata?.sf_discount_total_major
+    if (typeof sfDiscount === "number" && Number.isFinite(sfDiscount)) {
+      discountMajor = sfDiscount
+    }
+  }
   const taxRate = extractTaxRatePercent(order)
 
   const shippingAddr = order.shipping_address as Record<string, unknown> | undefined

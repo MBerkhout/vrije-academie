@@ -5,6 +5,8 @@ import {
   handleOrderCatalogChange,
   handleProductCatalogChange,
 } from "../lib/store-listing-invalidation"
+import { Modules } from "@medusajs/framework/utils"
+import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/order-import-metadata"
 
 /**
  * Smart cache busting for PLP hard cache (10 min) and event detail cache.
@@ -30,6 +32,14 @@ async function invalidateStoreListingCacheSubscriber({
   }
 
   if (name === "order.completed" || name === "order.placed") {
+    const orderId = event.data?.id
+    if (orderId) {
+      const orderModule = container.resolve(Modules.ORDER)
+      const order = await orderModule.retrieveOrder(orderId, { select: ["id", "metadata"] })
+      if (isImportedSalesforceOrder(order.metadata as Record<string, unknown> | null)) {
+        return
+      }
+    }
     await handleOrderCatalogChange()
   }
 }

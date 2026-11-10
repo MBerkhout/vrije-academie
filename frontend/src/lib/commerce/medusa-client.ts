@@ -32,6 +32,7 @@ import type {
   EventListResult,
   VathuisFilters,
   VathuisListResult,
+  OrderHistoryImportStatus,
   VathuisAccessItem,
   VathuisAccessStatus,
   VathuisPlaybackConfig,
@@ -1320,6 +1321,22 @@ export const medusaClient: CommerceClient = {
     } catch {
       return null
     }
+  },
+
+  async getOrderHistoryImportStatus(): Promise<OrderHistoryImportStatus> {
+    const res = await storeFetch('/store/customer/me/order-history-import')
+    if (!res.ok) {
+      return {
+        status: 'idle',
+        imported: 0,
+        total: null,
+        error: null,
+        startedAt: null,
+        syncedAt: null,
+      }
+    }
+    const data = (await res.json()) as OrderHistoryImportStatus
+    return data
   },
 
   async listCustomerOrders(options?: { limit?: number; offset?: number }): Promise<{

@@ -29,6 +29,10 @@ export default defineMiddlewares({
       middlewares: [authenticate("customer", ["session", "bearer"])],
     },
     {
+      matcher: "/store/customer/me/order-history-import",
+      middlewares: [authenticate("customer", ["session", "bearer"])],
+    },
+    {
       matcher: "/store/customer/me/push-to-salesforce",
       middlewares: [authenticate("customer", ["session", "bearer"])],
     },

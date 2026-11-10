@@ -5,6 +5,11 @@ import {
   type CheckoutConfirmationItem,
   type CheckoutConfirmationPayload,
 } from '@/lib/commerce/checkout-confirmation-types'
+
+function isImportedSalesforceOrder(metadata: Order['metadata']): boolean {
+  if (!metadata || typeof metadata !== 'object') return false
+  return metadata.imported_from_salesforce === true
+}
 import type { Order, OrderItem } from '@/lib/commerce/types'
 import { ThankYouOrderItems, ThankYouOrderTotals } from '@/components/thank-you/ThankYouOrderSummary'
 import { grossMerchandiseTotalCents } from '@/lib/commerce/vat'
@@ -47,9 +52,15 @@ export function AccountOrderCard({
     credit_line_total: 0,
   })
   const orderNumber = salesforceOrderNumberFromConfirmation(confirmation)
+  const imported = isImportedSalesforceOrder(order.metadata)
 
   return (
     <li className="border border-va-lightgray bg-white p-4 rounded-none font-sans text-sm">
+      {imported ? (
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-va-darkgray">
+          {t.ordersImportedLabel}
+        </p>
+      ) : null}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
         {orderNumber ? (
           <span className="font-medium text-va-black">

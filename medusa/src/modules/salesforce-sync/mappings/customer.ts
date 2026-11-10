@@ -186,13 +186,28 @@ function applyBirthdateFromMedusa(
   else fields.Birthdate = birthdate
 }
 
+/**
+ * Salesforce validates Dutch postcodes as `1000AA` (digits + uppercase letters, no space);
+ * a value like `2334cp` or `2334 CP` makes the whole Account/Contact update fail.
+ */
+export function postalCodeToSalesforce(
+  postal: string | null | undefined,
+  countryCode: string | null | undefined
+): string | undefined {
+  const trimmed = postal?.trim()
+  if (!trimmed) return undefined
+  if (countryCode?.trim().toLowerCase() !== "nl") return trimmed
+  const compact = trimmed.replace(/\s+/g, "").toUpperCase()
+  return /^\d{4}[A-Z]{2}$/.test(compact) ? compact : trimmed
+}
+
 function applyMedusaAddressToAccountFields(
   fields: SfPersonAccountPushShape,
   addr: MedusaCustomerAddressShape | null | undefined
 ): void {
   const street = addr?.address_1?.trim()
   const city = addr?.city?.trim()
-  const postal = addr?.postal_code?.trim()
+  const postal = postalCodeToSalesforce(addr?.postal_code, addr?.country_code)
   const country = medusaCountryToSalesforce(addr?.country_code)
   if (!street && !city && !postal && !country) return
 
@@ -408,7 +423,8 @@ export function contactFieldsFromMedusa(c: MedusaCustomerShape): SfContactPushSh
   const addr = c.address
   if (addr?.address_1?.trim()) fields.MailingStreet = addr.address_1.trim()
   if (addr?.city?.trim()) fields.MailingCity = addr.city.trim()
-  if (addr?.postal_code?.trim()) fields.MailingPostalCode = addr.postal_code.trim()
+  const contactPostal = postalCodeToSalesforce(addr?.postal_code, addr?.country_code)
+  if (contactPostal) fields.MailingPostalCode = contactPostal
   const country = medusaCountryToSalesforce(addr?.country_code)
   if (country) fields.MailingCountry = country
 

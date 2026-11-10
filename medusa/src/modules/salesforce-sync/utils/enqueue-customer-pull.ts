@@ -4,6 +4,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import SalesforceSyncModuleService from "../service"
 import { pullCustomerFromSalesforceWorkflowId } from "../../../workflows/salesforce/pull-customer-salesforce"
 import { runSalesforceWorkflow } from "../../../workflows/salesforce/report-failure"
+import { enqueueOrderHistoryImportFromSalesforce } from "./enqueue-order-history-import"
 
 /** Idempotent sync-state row before pull (login + sync-from-salesforce can run in parallel). */
 export async function ensureCustomerPullSyncState(
@@ -79,4 +80,10 @@ export async function enqueueCustomerPullFromSalesforce(
     { eventGroupId: customerId, entityType: "customer", medusaId: customerId }
   )
   logger.info(`[salesforce-sync] enqueued login pull customer ${customerId} ← SF ${salesforceId}`)
+
+  void enqueueOrderHistoryImportFromSalesforce(container, customerId).catch((err) => {
+    logger.warn(
+      `[sf-order-history] enqueue failed for ${customerId}: ${err instanceof Error ? err.message : String(err)}`
+    )
+  })
 }

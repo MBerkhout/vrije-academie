@@ -11,12 +11,12 @@ import { runSalesforceWorkflow } from "../workflows/salesforce/report-failure"
  * push it (so the Contact gets the account's address).
  *
  * Dry run by default.
- *   npx medusa exec ./src/scripts/fix-order-guest-customer.ts -- <order_id> [--apply]
+ *   npx medusa exec ./src/scripts/fix-order-guest-customer.ts <order_id> [apply]
  */
 export default async function fixOrderGuestCustomer({ container, args }: ExecArgs) {
   const orderId = args.find((a) => a.startsWith("order_"))
-  const apply = args.includes("--apply")
-  if (!orderId) throw new Error("Usage: ... -- <order_id> [--apply]")
+  const apply = args.includes("--apply") || args.includes("apply")
+  if (!orderId) throw new Error("Usage: ... <order_id> [apply]")
 
   const orderModule = container.resolve(Modules.ORDER)
   const customerModule = container.resolve(Modules.CUSTOMER)
@@ -47,7 +47,7 @@ export default async function fixOrderGuestCustomer({ container, args }: ExecArg
     `SF link: guest=${guestState?.salesforce_id ?? "none"} account=${accountState?.salesforce_id ?? "none"}`
   )
   if (!apply) {
-    console.log("Dry run. Re-run with --apply to make changes.")
+    console.log("Dry run. Re-run with the extra arg apply to make changes.")
     return
   }
 

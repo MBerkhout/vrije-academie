@@ -2,6 +2,10 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { Modules } from "@medusajs/framework/utils"
 
 import { orderMapping } from "../../../modules/salesforce-sync/mappings/order"
+import {
+  ORDER_HIDDEN_FROM_ACCOUNT,
+  isImportedSalesforceOrder,
+} from "../../../modules/salesforce-sync/utils/order-import-metadata"
 
 export type ApplyOrderFromSfInput = {
   medusaId: string
@@ -23,6 +27,21 @@ export const applyOrderFromSalesforceStep = createStep(
     }
 
     const orderModule = container.resolve(Modules.ORDER)
+    const existing = await orderModule.retrieveOrder(input.medusaId, { select: ["id", "metadata"] })
+    const metadata = (existing.metadata ?? {}) as Record<string, unknown>
+
+    const sfStatus = String((input.record as { Status?: string }).Status ?? "").trim()
+    if (isImportedSalesforceOrder(metadata) && sfStatus && sfStatus !== "Activated") {
+      await orderModule.updateOrders(input.medusaId, {
+        metadata: {
+          ...metadata,
+          [ORDER_HIDDEN_FROM_ACCOUNT]: true,
+          sf_cancelled_in_salesforce: true,
+        },
+      })
+      return new StepResponse<{ updated: boolean }>({ updated: true })
+    }
+
     await orderModule.updateOrders({ id: input.medusaId }, clean)
     return new StepResponse<{ updated: boolean }>({ updated: true })
   }

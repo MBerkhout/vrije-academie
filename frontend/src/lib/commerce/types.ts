@@ -151,6 +151,15 @@ export interface VathuisBundleInfo {
   } | null
 }
 
+export type OrderHistoryImportStatus = {
+  status: 'idle' | 'pending' | 'running' | 'done' | 'failed'
+  imported: number
+  total: number | null
+  error: string | null
+  startedAt: string | null
+  syncedAt: string | null
+}
+
 export interface VathuisAccessItem {
   productId: string
   productHandle: string
@@ -527,6 +536,7 @@ export interface CommerceClient {
   getOrder(orderId: string): Promise<Order | null>
   /** Logged-in customer orders (store API). */
   listCustomerOrders(options?: { limit?: number; offset?: number }): Promise<{ orders: Order[]; count: number }>
+  getOrderHistoryImportStatus(): Promise<OrderHistoryImportStatus>
   /** VA Thuis entitlements for the logged-in customer. */
   listVathuisAccess(): Promise<VathuisAccessItem[]>
   getVathuisAccess(handle: string): Promise<VathuisAccessStatus>

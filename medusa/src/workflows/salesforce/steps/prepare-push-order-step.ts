@@ -5,6 +5,7 @@ import { loadOrderPushPayload, type OrderPushPayload } from "../../../modules/sa
 import { orderHeaderToSalesforce } from "../../../modules/salesforce-sync/mappings/order"
 import { SALESFORCE_DEFAULT_PRICEBOOK2_ID } from "../../../modules/salesforce-sync/utils/salesforce-config"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
+import { isImportedSalesforceOrder } from "../../../modules/salesforce-sync/utils/order-import-metadata"
 
 export type PreparePushOrderInput = { orderId: string }
 
@@ -37,7 +38,19 @@ export const preparePushOrderStep = createStep(
     }
 
     const orderModule = container.resolve(Modules.ORDER)
-    const order = await orderModule.retrieveOrder(input.orderId)
+    const order = await orderModule.retrieveOrder(input.orderId, { select: ["id", "status", "metadata"] })
+    if (isImportedSalesforceOrder(order.metadata as Record<string, unknown> | null)) {
+      const out: PreparePushOrderOutput = {
+        skipped: true,
+        skipReason: "imported_from_salesforce",
+        entityType: "order",
+        medusaId: input.orderId,
+        payload: null,
+        orderHeader: {},
+        customerId: null,
+      }
+      return new StepResponse(out)
+    }
     if (order.status !== "completed") {
       const out: PreparePushOrderOutput = {
         skipped: true,

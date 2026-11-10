@@ -2,6 +2,7 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework/subsc
 import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
+import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/order-import-metadata"
 import { VATHUIS_ACCESS_MODULE } from "../modules/vathuis-access"
 import type VathuisAccessModuleService from "../modules/vathuis-access/service"
 
@@ -19,7 +20,11 @@ async function vathuisAccessOrderCompleted({
   >
 
   const orderId = data.id
-  const order = await orderModule.retrieveOrder(orderId)
+  const order = await orderModule.retrieveOrder(orderId, { select: ["id", "status", "metadata"] })
+  if (isImportedSalesforceOrder(order.metadata as Record<string, unknown> | null)) {
+    logger.info(`[vathuis-access] skip imported Salesforce order ${orderId}`)
+    return
+  }
   if (order.status !== "completed") {
     logger.info(`[vathuis-access] skip order ${orderId} status=${order.status}`)
     return

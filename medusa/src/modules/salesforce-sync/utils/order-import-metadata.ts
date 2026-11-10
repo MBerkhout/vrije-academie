@@ -7,6 +7,8 @@ export const ORDER_REPLACES_ORDER_ID = "replaces_order_id"
 export const ORDER_REPLACES_SALESFORCE_ORDER_ID = "replaces_salesforce_order_id"
 export const ORDER_REPLACED_BY_SALESFORCE_ORDER_ID = "replaced_by_salesforce_order_id"
 export const ORDER_REPLACED_BY_MEDUSA_ORDER_ID = "replaced_by_medusa_order_id"
+export const ORDER_SALESFORCE_ORDER_DATE = "salesforce_order_date"
+export const ORDER_SALESFORCE_TOTAL_AMOUNT = "salesforce_total_amount"
 
 export const REBOOKED_REGISTRATION_STATUS = "Omgeboekt"
 
@@ -41,13 +43,22 @@ export function salesforceOrderNumberFromMetadata(
 export function buildImportedOrderMetadata(input: {
   salesforceOrderId: string
   salesforceOrderNumber?: string | null
+  salesforceOrderDate?: string | null
+  salesforceTotalAmount?: number | null
   replacesSalesforceOrderId?: string | null
   replacesMedusaOrderId?: string | null
 }): Record<string, unknown> {
   const orderNumber = input.salesforceOrderNumber?.trim()
+  const orderDate = input.salesforceOrderDate?.trim()
+  const total =
+    typeof input.salesforceTotalAmount === "number" && Number.isFinite(input.salesforceTotalAmount)
+      ? input.salesforceTotalAmount
+      : null
   return {
     [ORDER_IMPORTED_FROM_SALESFORCE]: true,
     [ORDER_SALESFORCE_ORDER_ID]: input.salesforceOrderId,
+    ...(orderDate ? { [ORDER_SALESFORCE_ORDER_DATE]: orderDate } : {}),
+    ...(total != null ? { [ORDER_SALESFORCE_TOTAL_AMOUNT]: total } : {}),
     ...(orderNumber ? { [ORDER_SALESFORCE_ORDER_NUMBER]: orderNumber } : {}),
     ...(input.replacesSalesforceOrderId
       ? { [ORDER_REPLACES_SALESFORCE_ORDER_ID]: input.replacesSalesforceOrderId }

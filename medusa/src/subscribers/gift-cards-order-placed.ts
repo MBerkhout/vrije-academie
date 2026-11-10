@@ -9,6 +9,7 @@ import { GIFT_CARD_REFERENCE } from "../lib/gift-card-cart"
 import { medusaMajorToCents } from "../lib/medusa-price-to-cents"
 import { GIFT_CARD_MODULE } from "../modules/gift-card"
 import GiftCardModuleService from "../modules/gift-card/service"
+import { isImportedSalesforceOrder } from "../modules/salesforce-sync/utils/order-import-metadata"
 
 /**
  * On order.placed: issue gift cards for purchased lines with metadata.gift_card,
@@ -26,7 +27,13 @@ async function giftCardsOnOrderPlaced({
 
   const order = await orderModule.retrieveOrder(orderId, {
     relations: ["items", "credit_lines"],
+    select: ["id", "metadata", "items", "credit_lines"],
   })
+
+  if (isImportedSalesforceOrder(order.metadata as Record<string, unknown> | null)) {
+    logger.info(`[gift-card] skip imported Salesforce order ${orderId}`)
+    return
+  }
 
   const items = order.items ?? []
   for (const line of items) {

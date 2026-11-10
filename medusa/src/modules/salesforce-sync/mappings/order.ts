@@ -159,6 +159,8 @@ export const orderMapping: FieldMap<MedusaOrderPushShape, SfOrderShape> = {
     "Medusa_Order_Status__c",
     "Medusa_Order_Total_Cents__c",
     "Description",
+    "Status",
+    "EffectiveDate",
   ],
   toSalesforce: orderHeaderToSalesforce,
   fromSalesforce: (sf) => ({
