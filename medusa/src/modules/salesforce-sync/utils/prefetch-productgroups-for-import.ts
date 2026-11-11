@@ -83,7 +83,7 @@ export async function prefetchProductgroupsForImport(
   let groups: SfProductgroupShape[]
 
   if (options.since) {
-    const sinceLiteral = `'${formatSoqlDateTime(options.since)}'`
+    const sinceLiteral = formatSoqlDateTime(options.since)
     const modifiedGroups = await queryAllSalesforce<SfProductgroupShape>(
       `SELECT ${groupFields} FROM ${SF_PRODUCTGROUP_OBJECT} WHERE SystemModstamp >= ${sinceLiteral} ORDER BY Name`
     )

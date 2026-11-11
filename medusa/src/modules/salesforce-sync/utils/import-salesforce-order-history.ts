@@ -27,6 +27,13 @@ function escapeSoql(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
 }
 
+/** SOQL dateTime literals must be unquoted ISO 8601. */
+function toSoqlDateTime(value: string): string {
+  const d = new Date(value.trim())
+  if (Number.isNaN(d.getTime())) throw new Error(`Invalid delta date: ${value}`)
+  return d.toISOString()
+}
+
 async function resolveCustomerSalesforceAccountId(
   sync: InstanceType<typeof SalesforceSyncModuleService>,
   customerId: string,
@@ -71,7 +78,7 @@ async function countActivatedOrders(
   deltaSince?: string | null
 ): Promise<number> {
   const sinceClause = deltaSince?.trim()
-    ? ` AND SystemModstamp >= '${escapeSoql(deltaSince.trim())}'`
+    ? ` AND SystemModstamp >= ${toSoqlDateTime(deltaSince)}`
     : ""
   const q = await sync.query<{ expr0?: number }>(
     `SELECT COUNT() FROM ${SF_ORDER_OBJECT} WHERE AccountId = '${escapeSoql(accountId)}' AND Status = 'Activated'${sinceClause}`
@@ -86,7 +93,7 @@ async function fetchOrderPage(
   deltaSince?: string | null
 ): Promise<SfHistoryOrderHeader[]> {
   const sinceClause = deltaSince?.trim()
-    ? ` AND SystemModstamp >= '${escapeSoql(deltaSince.trim())}'`
+    ? ` AND SystemModstamp >= ${toSoqlDateTime(deltaSince)}`
     : ""
   const soql = `SELECT Id, OrderNumber, AccountId, EffectiveDate, CreatedDate, TotalAmount, Status, SystemModstamp,
     BillingStreet, BillingCity, BillingPostalCode, BillingCountry,

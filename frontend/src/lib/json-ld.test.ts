@@ -104,6 +104,7 @@ describe('json-ld', () => {
       instructors: [{ id: '1', slug: 'jan', name: 'Jan Docent', photo_url: null }],
     })
 
+    if (!schema) throw new Error('expected schema')
     expect(schema['@type']).toBe('Course')
     expect(schema.name).toBe('Kunst cursus')
     expect(schema.provider).toEqual({ '@id': getOrganizationId() })
@@ -144,6 +145,7 @@ describe('json-ld', () => {
       ],
     })
 
+    if (!schema) throw new Error('expected schema')
     expect(schema['@type']).toBe('Event')
     expect(schema.eventAttendanceMode).toBe('https://schema.org/MixedEventAttendanceMode')
     expect(schema.endDate).toBe('2026-09-01T16:00:00.000Z')
