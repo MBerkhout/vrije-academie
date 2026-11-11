@@ -2,19 +2,26 @@
  * Read-only: describe Favourite__c and resolved field layout.
  *   npm run salesforce:inspect-favourite
  */
+import type { ExecArgs } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import {
   clearFavouriteFieldLayoutCache,
   resolveFavouriteFieldLayout,
   SF_FAVOURITE_OBJECT,
 } from "../modules/salesforce-sync/mappings/favourite"
 import { sfRequest } from "../modules/salesforce-sync/client/rest"
-import { salesforceAuthMode } from "../modules/salesforce-sync/utils/is-configured"
+import SalesforceSyncModuleService from "../modules/salesforce-sync/service"
 import { clearSalesforceDescribeCache } from "../modules/salesforce-sync/utils/salesforce-describe-fields"
 
-export default async function inspectFavouriteDescribe() {
-  const mode = salesforceAuthMode()
-  if (!mode) {
-    console.log("[inspect-favourite] Salesforce not configured — skip")
+export default async function inspectFavouriteDescribe({ container }: ExecArgs) {
+  const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+  const sync = container.resolve("salesforceSync") as InstanceType<
+    typeof SalesforceSyncModuleService
+  >
+
+  if (!(await sync.isIntegrationReady())) {
+    logger.error("[inspect-favourite] Salesforce not configured (OAuth or env credentials)")
     return
   }
 

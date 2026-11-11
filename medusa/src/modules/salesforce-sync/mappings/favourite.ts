@@ -79,6 +79,7 @@ export async function resolveFavouriteFieldLayout(): Promise<FavouriteFieldLayou
     ]),
     accountField: pickReferenceField(fields, "Account", ["Account__c", "Account_Lookup__c"]),
     productgroupField: pickReferenceField(fields, SF_PRODUCTGROUP_OBJECT, [
+      "vaProductGroup__c",
       "vaProductgroup__c",
       "Productgroup__c",
       "Product_Group__c",

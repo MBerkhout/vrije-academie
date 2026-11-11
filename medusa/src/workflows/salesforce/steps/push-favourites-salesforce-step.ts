@@ -46,16 +46,16 @@ export const pushFavouritesSalesforceStep = createStep(
         accountId = row?.salesforce_account_id?.trim() || null
       }
 
-      if (!contactId) {
+      if (!contactId && !accountId) {
         throw new Error(
-          `Customer ${input.customerId} has no Salesforce Contact — cannot sync Favourite__c`
+          `Customer ${input.customerId} has no Salesforce Person Account link — cannot sync Favourite__c`
         )
       }
 
       const result = await syncFavouritesToSalesforce(
         container,
         input.customerId,
-        contactId,
+        contactId ?? "",
         accountId
       )
 

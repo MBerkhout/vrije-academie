@@ -23,11 +23,11 @@ export async function POST(
 
   const sfIds = await resolveCustomerSalesforceIds(req.scope, customerId, email)
   let favouritesMerged: string[] | undefined
-  if (sfIds?.contactId) {
+  if (sfIds && (sfIds.contactId || sfIds.accountId)) {
     const pulled = await pullFavouritesFromSalesforce(
       req.scope,
       customerId,
-      sfIds.contactId,
+      sfIds.contactId ?? "",
       sfIds.accountId
     )
     favouritesMerged = pulled.mergedHandles
