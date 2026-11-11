@@ -386,12 +386,14 @@ function buildPersonEntity(person: {
 function buildOfferFromPrice(
   priceCents: number,
   inStock: boolean,
+  offerUrl?: string,
 ): Record<string, unknown> {
   return {
     '@type': 'Offer',
     price: schemaPriceFromCents(priceCents),
     priceCurrency: 'EUR',
     availability: schemaInStockUrl(inStock),
+    ...(offerUrl && { url: absolutizeUrl(offerUrl) }),
   }
 }
 
@@ -465,8 +467,13 @@ function buildCourseInstances(
 
 function resolvePrimaryEventLocation(
   event: PdpEventForJsonLd,
+  productPath?: string,
 ): Record<string, unknown> | undefined {
-  const variantWithLocation = event.variants?.find((variant) => variant.event_item)
+  const variants = event.variants ?? []
+  const offlineVariant = variants.find(
+    (variant) => variant.event_item?.delivery_type === 'offline',
+  )
+  const variantWithLocation = offlineVariant ?? variants.find((variant) => variant.event_item)
   const fromVariant = variantWithLocation
     ? buildPlaceFromVariant(variantWithLocation)
     : undefined
@@ -476,7 +483,35 @@ function resolvePrimaryEventLocation(
     return { '@type': 'Place', name: event.cities[0] }
   }
 
-  return { '@type': 'VirtualLocation', url: getSiteOrigin() }
+  const hasOnline = event.delivery_types?.some(
+    (type) => type === 'online' || type === 'pre_recorded',
+  )
+  if (hasOnline) {
+    return {
+      '@type': 'VirtualLocation',
+      url: absolutizeUrl(productPath ?? '/'),
+    }
+  }
+
+  return undefined
+}
+
+/** Google Event rich results need at least one schedulable session with startDate. */
+function resolveEventStartDate(event: PdpEventForJsonLd): string | undefined {
+  if (event.earliest_start_at) return event.earliest_start_at
+  const starts = (event.variants ?? [])
+    .map((variant) => variant.event_item?.start_at)
+    .filter((value): value is string => Boolean(value))
+  if (!starts.length) return undefined
+  return starts.sort()[0]
+}
+
+function canEmitEventJsonLd(
+  event: PdpEventForJsonLd,
+  productPath?: string,
+): boolean {
+  if (!resolveEventStartDate(event)) return false
+  return Boolean(resolvePrimaryEventLocation(event, productPath))
 }
 
 function resolveEventEndDate(event: PdpEventForJsonLd): string | undefined {
@@ -519,10 +554,15 @@ export function buildPdpEventOrCourseJsonLd(
   handle: string,
   event: PdpEventForJsonLd,
   options: PdpJsonLdOptions = {},
-): Record<string, unknown> {
+): Record<string, unknown> | null {
   const isCourse =
     options.forceCourse || event.record_type === 'collegereeks' || !event.record_type
   const path = options.productPath ?? plpProductPath(handle)
+
+  if (!isCourse && !canEmitEventJsonLd(event, path)) {
+    return null
+  }
+
   const fields = resolveProductSchemaFields(options.seo, event)
   const instructors = event.instructors?.map(buildPersonEntity)
   const courseInstances = buildCourseInstances(event.variants)
@@ -543,19 +583,19 @@ export function buildPdpEventOrCourseJsonLd(
     else if (instructors && instructors.length > 1) base.instructor = instructors
     if (courseInstances?.length) base.hasCourseInstance = courseInstances
     if (event.price_from != null) {
-      base.offers = buildOfferFromPrice(event.price_from, inStock)
+      base.offers = buildOfferFromPrice(event.price_from, inStock, path)
     }
   } else {
     base.organizer = buildOrganizationReference()
-    base.startDate = event.earliest_start_at ?? undefined
+    base.startDate = resolveEventStartDate(event)
     base.endDate = resolveEventEndDate(event)
-    base.location = resolvePrimaryEventLocation(event)
+    base.location = resolvePrimaryEventLocation(event, path)
     const attendanceMode = resolveEventAttendanceMode(event.delivery_types)
     if (attendanceMode) base.eventAttendanceMode = attendanceMode
     if (instructors?.length === 1) base.performer = instructors[0]
     else if (instructors && instructors.length > 1) base.performer = instructors
     if (event.price_from != null) {
-      base.offers = buildOfferFromPrice(event.price_from, inStock)
+      base.offers = buildOfferFromPrice(event.price_from, inStock, path)
     }
   }
 

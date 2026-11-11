@@ -978,6 +978,7 @@ export const medusaClient: CommerceClient = {
       throw new Error('OTP_VERIFY_NO_TOKEN')
     }
     setStoredJwt(data.token)
+    await enqueueSalesforceCustomerSync(email)
     return customerAfterToken(email)
   },
 
@@ -996,6 +997,7 @@ export const medusaClient: CommerceClient = {
       throw new Error('REGISTER_NO_TOKEN')
     }
     setStoredJwt(data.token)
+    await enqueueSalesforceCustomerSync(input.email)
     return customerAfterToken(input.email)
   },
 
@@ -1035,9 +1037,8 @@ export const medusaClient: CommerceClient = {
       throw new Error('LOGIN_NO_TOKEN')
     }
     setStoredJwt(data.token)
-    const customer = await customerAfterToken(email)
-    void enqueueSalesforceCustomerSync(email)
-    return customer
+    await enqueueSalesforceCustomerSync(email)
+    return customerAfterToken(email)
   },
 
   async logout(): Promise<void> {
@@ -1096,9 +1097,8 @@ export const medusaClient: CommerceClient = {
     } else if (birthdate) {
       void enqueueSalesforceCustomerPush()
     }
-    const customer = await customerAfterToken(input.email)
-    void enqueueSalesforceCustomerSync(input.email)
-    return customer
+    await enqueueSalesforceCustomerSync(input.email)
+    return customerAfterToken(input.email)
   },
 
   async updateCustomerProfile(input: CustomerProfileUpdateInput): Promise<Customer> {

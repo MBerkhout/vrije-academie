@@ -3,8 +3,10 @@ import { Modules } from "@medusajs/framework/utils"
 import type { ICustomerModuleService } from "@medusajs/framework/types"
 
 import { enqueueCustomerPullFromSalesforce } from "../../../../../modules/salesforce-sync/utils/enqueue-customer-pull"
+import { pullFavouritesFromSalesforce } from "../../../../../modules/salesforce-sync/utils/pull-favourites-from-salesforce"
+import { resolveCustomerSalesforceIds } from "../../../../../modules/salesforce-sync/utils/resolve-customer-salesforce-ids"
 
-/** POST /store/customer/me/sync-from-salesforce — refresh profile from Salesforce after login. */
+/** POST /store/customer/me/sync-from-salesforce — refresh profile + favourites from Salesforce after login. */
 export async function POST(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
@@ -19,6 +21,21 @@ export async function POST(
     return
   }
 
+  const sfIds = await resolveCustomerSalesforceIds(req.scope, customerId, email)
+  let favouritesMerged: string[] | undefined
+  if (sfIds?.contactId) {
+    const pulled = await pullFavouritesFromSalesforce(
+      req.scope,
+      customerId,
+      sfIds.contactId,
+      sfIds.accountId
+    )
+    favouritesMerged = pulled.mergedHandles
+  }
+
   await enqueueCustomerPullFromSalesforce(req.scope, customerId, email)
-  res.status(202).json({ queued: true })
+  res.status(202).json({
+    queued: true,
+    ...(favouritesMerged ? { favourites_handles: favouritesMerged } : {}),
+  })
 }

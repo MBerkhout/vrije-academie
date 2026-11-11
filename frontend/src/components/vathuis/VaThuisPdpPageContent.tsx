@@ -59,7 +59,7 @@ export async function VaThuisPdpPageContent({ handle }: { handle: string }) {
 
   return (
     <PdpAnalytics event={event} pageType="vathuis">
-      <JsonLd data={structuredData} />
+      {structuredData ? <JsonLd data={structuredData} /> : null}
 
       <div className="pb-16">
         <div className={CONTAINER_CLASS}>

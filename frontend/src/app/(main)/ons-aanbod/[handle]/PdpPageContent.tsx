@@ -70,7 +70,7 @@ export async function PdpPageContent({
 
   return (
     <PdpAnalytics event={event}>
-      <JsonLd data={structuredData} />
+      {structuredData ? <JsonLd data={structuredData} /> : null}
 
       <div className="pb-16">
         <div className={CONTAINER_CLASS}>

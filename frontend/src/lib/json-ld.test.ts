@@ -113,6 +113,7 @@ describe('json-ld', () => {
       price: '125.00',
       priceCurrency: 'EUR',
       availability: 'https://schema.org/InStock',
+      url: expect.stringContaining('/ons-aanbod/kunst-cursus'),
     })
   })
 
@@ -147,6 +148,31 @@ describe('json-ld', () => {
     expect(schema.eventAttendanceMode).toBe('https://schema.org/MixedEventAttendanceMode')
     expect(schema.endDate).toBe('2026-09-01T16:00:00.000Z')
     expect(schema.organizer).toEqual({ '@id': getOrganizationId() })
+    expect(schema?.startDate).toBe('2026-09-01T10:00:00.000Z')
+    expect(schema?.location).toMatchObject({ '@type': 'Place' })
+  })
+
+  it('buildPdpEventOrCourseJsonLd returns null for Event without schedulable session', () => {
+    expect(
+      buildPdpEventOrCourseJsonLd('oude-lezing', {
+        title: 'Oude lezing',
+        record_type: 'lezing',
+        delivery_types: ['offline'],
+        price_from: 1750,
+        min_available_quantity: 0,
+        variants: [],
+      }),
+    ).toBeNull()
+  })
+
+  it('buildPdpEventOrCourseJsonLd keeps Course without variants', () => {
+    const schema = buildPdpEventOrCourseJsonLd('college', {
+      title: 'College',
+      record_type: 'collegereeks',
+      price_from: 9900,
+      min_available_quantity: 1,
+    })
+    expect(schema?.['@type']).toBe('Course')
   })
 
   it('buildBreadcrumbListJsonLd and buildItemListJsonLd keep list positions', () => {

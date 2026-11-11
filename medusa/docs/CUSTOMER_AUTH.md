@@ -19,7 +19,7 @@ Salesforce-only emails → `exists: true`, `hasPassword: false` → storefront O
 
 Customers imported from the old site with Django password hashes → `exists: true`, `hasPassword: true` → password login (see [Legacy password migration](#legacy-password-migration)).
 
-On successful **OTP verify** or **password login**, Medusa enqueues a Salesforce **pull** (when the customer is linked or matchable by email) so profile and address reflect the latest Contact data. Password login also calls `POST /store/customer/me/sync-from-salesforce` from the storefront client. That pull path also enqueues **full Salesforce order history import** (background workflow; poll `GET /store/customer/me/order-history-import` on mijn-account).
+On successful **OTP verify** or **password login**, the storefront **awaits** `POST /store/customer/me/sync-from-salesforce` before loading the customer. That route merges Salesforce **`Favourite__c`** rows into `customer.metadata.va_wishlist` (union with existing handles), then enqueues a Salesforce **profile pull** (when linked or matchable by email) and **full order history import** (background; poll `GET /store/customer/me/order-history-import` on mijn-account).
 
 **Pull does not write to Salesforce** — it reads the Person Account / Contact and updates Medusa (name, phone, default address). While `legacy_import_pending` is set, customer **push** to Salesforce is skipped so empty import rows cannot overwrite SF.
 

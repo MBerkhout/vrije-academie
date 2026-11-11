@@ -238,7 +238,21 @@ export function WaitlistModal({ open, onClose, handle, title, variantId }: Waitl
           </p>
         ) : (
           <>
-            <p className="font-sans text-sm text-va-gray mb-5 leading-relaxed">{t.waitlistIntro}</p>
+            <div className="font-sans text-sm text-va-gray mb-5 space-y-3 leading-relaxed">
+              <p>{t.waitlistIntro}</p>
+              <p>
+                <span className="font-bold text-va-black">{t.waitlistIntroPlekVrijLabel}</span>{' '}
+                {t.waitlistIntroPlekVrij}
+              </p>
+              <p>
+                <span className="font-bold text-va-black">{t.waitlistIntroExtraDatumLabel}</span>{' '}
+                {t.waitlistIntroExtraDatum}
+              </p>
+              <p>
+                <span className="font-bold text-va-black">{t.waitlistIntroAfmeldenLabel}</span>{' '}
+                {t.waitlistIntroAfmelden}
+              </p>
+            </div>
             <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
               <ValidatedInput
                 name="quantity"

@@ -133,6 +133,7 @@ Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries
 | File | Event(s) | Action |
 |------|-----------|--------|
 | `salesforce-sync-customer.ts` | `customer.created`, `customer.updated` | Enqueue Person Account push (skips unchanged profile/address; respects incoming lock) |
+| `salesforce-sync-favourites.ts` | `customer.updated` | Enqueue push `Favourite__c` rows when `metadata.va_wishlist` changed (`sf_favourites_hash` fingerprint; skips incoming lock) |
 | `salesforce-sync-order.ts` | `order.completed` (status `completed`) | Enqueue push order |
 | `salesforce-sync-product.ts` | `product.created` | Enqueue push product (+ Sanity in workflow) |
 | `salesforce-sync-variant.ts` | `product-variant.created` | Enqueue push variant (+ Sanity in workflow) |
@@ -149,7 +150,7 @@ Steps use **retries** (e.g. SF upsert `maxRetries: 5`, apply-from-SF `maxRetries
 | `GET` | `/admin/salesforce/webhook-queue` | Queue stats + recent events |
 | `POST` | `/admin/salesforce/webhook-queue/process` | Drain pending webhook rows now |
 | `POST` | `/admin/salesforce/webhook-queue/:id/retry` | Reset one event to `pending` and re-process |
-| `POST` | `/store/customer/me/sync-from-salesforce` | Authenticated; enqueue SF → Medusa pull after password login (+ order history import) |
+| `POST` | `/store/customer/me/sync-from-salesforce` | Authenticated; inline pull `Favourite__c` → `metadata.va_wishlist`, then enqueue SF → Medusa profile pull (+ order history import) |
 | `GET` | `/store/customer/me/order-history-import` | Authenticated; order history import progress |
 | `POST` | `/store/customer/me/order-history-import` | Authenticated; re-queue order history import |
 | `GET` | `/admin/salesforce/customers/:id` | Status JSON |
@@ -311,6 +312,7 @@ Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push
 | Order header | `Order` | `Website_Order__c`, `Order_Origin__c: Website`, `Payment_Method__c` (`IDEAL`, `CREDITCARD`, `PAYPAL`, `BANCONTACT`, `GIFTCARD`, `KLARNA`, `GRATIS`), `Ideal_Transaction_Id__c` (Mollie). After lines: `Product__c` (vaProduct), `Registration__c`, `Product2__c` from the first seat (Lightning header lookups). After activate: **`OrderNumber`** → Medusa order metadata `salesforce_order_number` (storefront `/bedankt` + confirmation API). |
 | Event cart line | `Registration__c` + product `OrderItem` | One inschrijving + one product line per Medusa line item; `Number_Of_People__c`, `Total_Quantity__c`, and `OrderItem.Quantity` match cart **quantity** (not one row per seat). Links `vaProduct__c` via variant sync state; `Status__c: Ingeschreven`; `Order_Item__c` points at the product `OrderItem`. Writable name on the line is `ProductName__c` (`Product_Name__c` / `Is_Discount__c` are formulas). |
 | Waitlist signup (sold-out session or product) | `Registration__c` only | `POST /store/events/:handle/waitlist` (optional `variant_id`) — no order; `Status__c: Wachtlijst`; `Number_Of_People__c`; customer `Newsletter__c` pushed when `metadata.sf_newsletter` is true. Signup is an in-process function (`lib/waitlist/join-event-waitlist.ts`) so Person Account push finishes before `Registration__c` is created. Nested waitlist workflows returned before Salesforce IDs existed. |
+| Storefront wishlist (heart / bewaard) | `Favourite__c` | Medusa `customer.metadata.va_wishlist` (product handles). **Push:** `customer.updated` → workflow `push-favourites-salesforce` (Contact + `vaProductgroup__c` junction rows; fingerprint `metadata.sf_favourites_hash`). **Pull:** login `POST /store/customer/me/sync-from-salesforce` merges SF favourites with existing handles (union). Lookup API names resolved from org describe (`mappings/favourite.ts`). Inspect: `npm run salesforce:inspect-favourite`. |
 | Promotion discount | discount `OrderItem` | Negative `UnitPrice`, `ProductName__c: Korting`, `Discount_Code__c`, same `Registration__c` |
 | Gift card purchase | `OrderItem` + `Voucher__c` | `Giftcard_*` fields; voucher sync state `entity_type: voucher`. Medusa schrijft **geen** Medusa-hex naar `Code__c`. Na upsert: GTC uit `Voucher__c.Code__c` of `Name` → `gift_card.code` + ontvanger-mail. |
 | Gift card redemption | voucher `OrderItem` | negative amount, `Voucher__c` lookup; `Discount_Code__c` = opgeslagen code (`GTC-…` of `GIFT-…`). Lookup fallback: `Code__c` of `Name`. |

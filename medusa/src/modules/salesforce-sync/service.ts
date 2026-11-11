@@ -239,6 +239,13 @@ class SalesforceSyncModuleService extends MedusaService({
     return { id }
   }
 
+  /** DELETE /sobjects/{sobject}/{id} */
+  async deleteRecord(sobject: string, id: string): Promise<void> {
+    this.ensureOAuthLoaderRegistered()
+    const path = `/sobjects/${encodeURIComponent(sobject)}/${encodeURIComponent(id)}`
+    await sfRequest("DELETE", path)
+  }
+
   async findContactIdByEmail(email: string): Promise<string | null> {
     const escaped = email.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
     const q = await this.query<{ Id: string }>(

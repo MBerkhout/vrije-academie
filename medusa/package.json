@@ -31,6 +31,7 @@
     "salesforce:inspect-order": "medusa exec ./src/scripts/inspect-salesforce-order.ts --",
     "salesforce:import-voucher": "medusa exec ./src/scripts/import-salesforce-voucher.ts --",
     "salesforce:inspect-voucher": "medusa exec ./src/scripts/inspect-salesforce-voucher.ts --",
+    "salesforce:inspect-favourite": "medusa exec ./src/scripts/inspect-favourite-describe.ts",
     "salesforce:import-rebooked-order": "medusa exec ./src/scripts/import-salesforce-rebooked-order.ts --",
     "salesforce:import-order-history": "medusa exec ./src/scripts/import-salesforce-order-history.ts --",
     "salesforce:create-fields": "medusa exec ./src/scripts/create-salesforce-medusa-fields.ts --",
