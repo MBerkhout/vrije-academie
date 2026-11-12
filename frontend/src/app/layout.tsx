@@ -26,7 +26,7 @@ export default async function RootLayout({
     <html lang="nl">
       <body>
         <GtmScripts />
-        <ConsentShell />
+        <ConsentShell suppressInDraftMode={isDraftMode} />
         {children}
         {isDraftMode && (
           <>

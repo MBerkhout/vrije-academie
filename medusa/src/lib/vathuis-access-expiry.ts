@@ -18,6 +18,19 @@ export function vathuisAccessExpiresAt(grantedAt: Date): Date {
   return addCalendarMonths(grantedAt, VATHUIS_ACCESS_MONTHS)
 }
 
+/**
+ * Effective expiry: at least 3 months from grant, or later if Salesforce sets Audience_Player_Valid_Until__c.
+ */
+export function vathuisAccessExpiresAtWithOverride(
+  grantedAt: Date,
+  audiencePlayerValidUntil: string | Date | null | undefined
+): Date {
+  const baseline = vathuisAccessExpiresAt(grantedAt)
+  const override = parseIsoDate(audiencePlayerValidUntil)
+  if (!override) return baseline
+  return override.getTime() > baseline.getTime() ? override : baseline
+}
+
 export function toIsoString(date: Date): string {
   return date.toISOString()
 }

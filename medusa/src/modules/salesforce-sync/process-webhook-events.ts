@@ -517,24 +517,32 @@ export async function processPendingSalesforceWebhookEvents(
       await finalizeEventRow(sync, row, result, maxAttempts)
     })
 
+    const sanityBatchJobs: Promise<unknown>[] = []
     if (collectors.productIds.size) {
-      await batchSyncProductsToSanity([...collectors.productIds], container)
+      sanityBatchJobs.push(
+        batchSyncProductsToSanity([...collectors.productIds], container)
+      )
     }
     if (
       collectors.docentIds.size ||
       collectors.catalogCategoryIds.size ||
       collectors.nativeCategoryIds.size
     ) {
-      await batchSyncRelatedEntitiesToSanity(container, {
-        catalogCategoryIds: [...collectors.catalogCategoryIds],
-        nativeCategoryIds: [...collectors.nativeCategoryIds],
-        docentIds: [...collectors.docentIds],
-        onError: (entity, id, err) => {
-          logger.warn(
-            `[salesforce-sync] webhook batch sanity ${entity} ${id}: ${err.message}`
-          )
-        },
-      })
+      sanityBatchJobs.push(
+        batchSyncRelatedEntitiesToSanity(container, {
+          catalogCategoryIds: [...collectors.catalogCategoryIds],
+          nativeCategoryIds: [...collectors.nativeCategoryIds],
+          docentIds: [...collectors.docentIds],
+          onError: (entity, id, err) => {
+            logger.warn(
+              `[salesforce-sync] webhook batch sanity ${entity} ${id}: ${err.message}`
+            )
+          },
+        })
+      )
+    }
+    if (sanityBatchJobs.length) {
+      await Promise.all(sanityBatchJobs)
     }
   })
 

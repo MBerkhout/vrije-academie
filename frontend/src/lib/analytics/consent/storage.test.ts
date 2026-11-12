@@ -32,6 +32,12 @@ describe('consent storage', () => {
     expect(getStoredConsent()).toBe(false)
   })
 
+  it('falls back to session storage when cookie is unavailable', () => {
+    setStoredConsent(true)
+    document.cookie = ''
+    expect(getStoredConsent()).toBe(true)
+  })
+
   it('clears stored consent', () => {
     setStoredConsent(true)
     clearStoredConsent()

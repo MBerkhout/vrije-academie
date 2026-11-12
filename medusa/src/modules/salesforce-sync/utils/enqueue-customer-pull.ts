@@ -5,6 +5,7 @@ import SalesforceSyncModuleService from "../service"
 import { pullCustomerFromSalesforceWorkflowId } from "../../../workflows/salesforce/pull-customer-salesforce"
 import { runSalesforceWorkflow } from "../../../workflows/salesforce/report-failure"
 import { enqueueOrderHistoryImportFromSalesforce } from "./enqueue-order-history-import"
+import { syncAudiencePlayerValidUntilForCustomer } from "./sync-audience-player-valid-until"
 
 /** Idempotent sync-state row before pull (login + sync-from-salesforce can run in parallel). */
 export async function ensureCustomerPullSyncState(
@@ -66,10 +67,21 @@ export async function enqueueCustomerPullFromSalesforce(
     await ensureCustomerPullSyncState(sync, customerId, salesforceId)
   }
 
+  const enqueueAudiencePlayerValidUntilSync = () => {
+    void syncAudiencePlayerValidUntilForCustomer(container, customerId, email).catch((err) => {
+      logger.warn(
+        `[vathuis-access] Audience_Player_Valid_Until sync failed for ${customerId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      )
+    })
+  }
+
   if (!salesforceId) {
     logger.debug(
       `[salesforce-sync] login pull skipped — no Salesforce Contact for customer ${customerId}`
     )
+    enqueueAudiencePlayerValidUntilSync()
     return
   }
 
@@ -86,4 +98,6 @@ export async function enqueueCustomerPullFromSalesforce(
       `[sf-order-history] enqueue failed for ${customerId}: ${err instanceof Error ? err.message : String(err)}`
     )
   })
+
+  enqueueAudiencePlayerValidUntilSync()
 }

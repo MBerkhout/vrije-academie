@@ -38,9 +38,11 @@ import {
 interface BlockRendererProps {
   block: Block
   tone?: 'default' | 'onDark'
+  /** CMS page path (e.g. `/` or `/architectuur`) — used for homepage-only hero semantics. */
+  pagePath?: string
 }
 
-export function BlockRenderer({ block, tone = 'default' }: BlockRendererProps) {
+export function BlockRenderer({ block, tone = 'default', pagePath }: BlockRendererProps) {
   switch (block._type) {
     case 'eventList':
       return <EventList block={block as any} />
@@ -74,7 +76,13 @@ export function BlockRenderer({ block, tone = 'default' }: BlockRendererProps) {
             priority
           />
         ) : undefined
-      return <HeroBlock block={heroBlock} lcpImage={lcpImage} />
+      return (
+        <HeroBlock
+          block={heroBlock}
+          lcpImage={lcpImage}
+          showHomepageSiteH1={pagePath === '/'}
+        />
+      )
     }
     case 'bannerSliderBlock':
       return <BannerSliderBlock block={block as BannerSliderBlockType} />

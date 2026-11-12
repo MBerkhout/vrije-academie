@@ -20,6 +20,7 @@ export type SfRegistrationShape = {
   EmailParticipant__c?: string | null
   Order_Item__c?: string
   Total_Quantity__c?: number
+  Audience_Player_Valid_Until__c?: string | null
 }
 
 export type RegistrationLineContext = {

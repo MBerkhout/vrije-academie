@@ -363,11 +363,13 @@ async function storeFetch(path: string, init?: RequestInit): Promise<Response> {
       },
     })
     if (response.status >= 500) {
+      const method = init?.method ?? 'GET'
       Sentry.withScope((scope) => {
         if (flow) scope.setTag('flow', flow)
         scope.setTag('store_path', path)
         scope.setExtra('status', response.status)
-        Sentry.captureMessage(`Medusa store error: ${init?.method ?? 'GET'} ${path}`, 'error')
+        scope.setFingerprint(['medusa-store', method, path, String(response.status)])
+        Sentry.captureMessage(`Medusa store error: ${method} ${path}`, 'error')
       })
     }
     return response

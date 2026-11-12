@@ -99,6 +99,7 @@ async function fetchOrderPage(
     BillingStreet, BillingCity, BillingPostalCode, BillingCountry,
     (SELECT Id, ProductName__c, UnitPrice, TotalPrice, Quantity, vaProduct__c, Registration__c,
       Registration__r.Status__c,
+      Registration__r.Audience_Player_Valid_Until__c,
       vaProduct__r.Name, vaProduct__r.Start_date_time__c, vaProduct__r.Product_City__c,
       vaProduct__r.Account_Teacher__r.Name, vaProduct__r.ProductGroup__r.Name,
       Product2.Name

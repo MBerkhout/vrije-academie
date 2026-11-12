@@ -49,7 +49,7 @@ export default async function Home() {
           <JsonLd key={schema['@type'] as string} data={schema} />
         ))}
       {blocks.map((block) => (
-        <BlockRenderer key={block._key ?? block._id} block={block} />
+        <BlockRenderer key={block._key ?? block._id} block={block} pagePath="/" />
       ))}
     </div>
   )

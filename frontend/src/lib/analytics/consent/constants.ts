@@ -1,6 +1,9 @@
 /** Shared with legacy vrijeacademie.nl CookiesEuBanner — same name/value for cutover. */
 export const HAS_CONSENT_COOKIE_NAME = 'hasConsent'
 
+/** Tab-scoped fallback when `hasConsent` cannot persist (e.g. preview iframe). */
+export const HAS_CONSENT_SESSION_KEY = 'va_hasConsent'
+
 /** 12 months in seconds (legacy banner used ms expiry). */
 export const HAS_CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365
 

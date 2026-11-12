@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { addCalendarMonths, isAccessActive, vathuisAccessExpiresAt } from "./vathuis-access-expiry"
+import {
+  addCalendarMonths,
+  isAccessActive,
+  vathuisAccessExpiresAt,
+  vathuisAccessExpiresAtWithOverride,
+} from "./vathuis-access-expiry"
 
 describe("vathuis-access-expiry", () => {
   it("adds calendar months with day clamping", () => {
@@ -15,6 +20,26 @@ describe("vathuis-access-expiry", () => {
     const expires = vathuisAccessExpiresAt(start)
     expect(expires.getUTCMonth()).toBe(6)
     expect(expires.getUTCDate()).toBe(10)
+  })
+
+  it("uses 3 months when valid-until is null", () => {
+    const start = new Date("2026-04-10T10:00:00.000Z")
+    const expires = vathuisAccessExpiresAtWithOverride(start, null)
+    expect(expires.getTime()).toBe(vathuisAccessExpiresAt(start).getTime())
+  })
+
+  it("uses 3 months when valid-until is earlier", () => {
+    const start = new Date("2026-04-10T10:00:00.000Z")
+    const earlier = new Date("2026-05-01T00:00:00.000Z")
+    const expires = vathuisAccessExpiresAtWithOverride(start, earlier)
+    expect(expires.getTime()).toBe(vathuisAccessExpiresAt(start).getTime())
+  })
+
+  it("extends when valid-until is later than 3 months", () => {
+    const start = new Date("2026-04-10T10:00:00.000Z")
+    const later = new Date("2027-01-15T23:59:59.000Z")
+    const expires = vathuisAccessExpiresAtWithOverride(start, later)
+    expect(expires.getTime()).toBe(later.getTime())
   })
 
   it("detects active access", () => {

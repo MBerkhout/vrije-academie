@@ -37,10 +37,15 @@ export function captureMessageWithContext(
   })
 }
 
+function medusaSentryEnvironment(): string {
+  return process.env.SENTRY_ENVIRONMENT?.trim() || process.env.NODE_ENV || "development"
+}
+
 function shouldSendCronCheckIn(): boolean {
   if (!process.env.SENTRY_DSN?.trim()) return false
-  const env = process.env.SENTRY_ENVIRONMENT?.trim() || process.env.NODE_ENV
+  const env = medusaSentryEnvironment()
   if (env !== "production") return false
+  if (/staging/i.test(env)) return false
   const workerMode = process.env.MEDUSA_WORKER_MODE
   if (workerMode && workerMode !== "worker") return false
   return true

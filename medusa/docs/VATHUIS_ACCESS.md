@@ -1,6 +1,6 @@
 # VA Thuis purchase access
 
-Customers who buy a VA Thuis bundle get **3 calendar months** of access to all episodes, counted from the order completion date.
+Customers who buy a VA Thuis bundle get **at least 3 calendar months** of access to all episodes, counted from the order completion date. When Salesforce sets `Registration__c.Audience_Player_Valid_Until__c` on the enrollment, access lasts until **the later of** (order date + 3 months) and that date.
 
 ## Data model
 
@@ -14,7 +14,7 @@ Table: `customer_vathuis_access`
 | `product_handle` | Denormalized for listing |
 | `order_id` / `order_line_item_id` | Source order line (idempotency) |
 | `granted_at` | Order `created_at` when access was granted |
-| `expires_at` | `granted_at + 3 months` |
+| `expires_at` | `max(granted_at + 3 months, Registration.Audience_Player_Valid_Until__c)` when set |
 
 One row per `(customer_id, product_id)`. Repurchasing the same bundle extends `expires_at` to `max(existing, new_grant + 3 months)`.
 
@@ -22,7 +22,9 @@ One row per `(customer_id, product_id)`. Repurchasing the same bundle extends `e
 
 Subscriber: `src/subscribers/vathuis-access-order-completed.ts` on `order.completed` (skips `imported_from_salesforce` orders).
 
-**Salesforce order history import:** `grantVathuisFromImportedOrder` (`src/modules/salesforce-sync/utils/grant-vathuis-from-imported-order.ts`) runs after each imported history order when the SF order date + 3 months is still active and line metadata links a published VA Thuis product.
+**Salesforce order history import:** `grantVathuisFromImportedOrder` (`src/modules/salesforce-sync/utils/grant-vathuis-from-imported-order.ts`) runs after each imported history order when line access is still active (3 months or `Audience_Player_Valid_Until__c`) and line metadata links a published VA Thuis product.
+
+**Login / Salesforce sync:** `syncAudiencePlayerValidUntilForCustomer` (`src/modules/salesforce-sync/utils/sync-audience-player-valid-until.ts`) runs on customer login via `enqueueCustomerPullFromSalesforce`. It reads all account registrations with `Audience_Player_Valid_Until__c` and extends or creates `customer_vathuis_access` rows (covers web checkout orders and registrations updated after import).
 
 Skips gift-card lines. Only products with `event_group.record_type === 'vathuis'` and `metadata.vathuis.purchase_mode === 'bundle_only'`.
 

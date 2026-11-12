@@ -63,7 +63,7 @@ export default async function SlugPage({ params }: PageProps) {
           const blockKey = hasTitleOptions
             ? `${blockId}-${b.titleSize ?? ''}-${b.titleAlignment ?? ''}-${b.subtitle ?? ''}-${b.showTitleDivider ? '1' : '0'}`
             : blockId
-          return <BlockRenderer key={blockKey} block={block} />
+          return <BlockRenderer key={blockKey} block={block} pagePath={`/${slug}`} />
         })
       ) : (
         <div className={CONTAINER_CLASS}>

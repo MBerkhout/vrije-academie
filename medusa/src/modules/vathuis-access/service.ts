@@ -13,6 +13,7 @@ import {
   parseIsoDate,
   toIsoString,
   vathuisAccessExpiresAt,
+  vathuisAccessExpiresAtWithOverride,
 } from "../../lib/vathuis-access-expiry"
 import { resolveVathuisEntitlementCustomerId } from "../../lib/vathuis-entitlement-customer"
 import { CustomerVathuisAccess } from "./models/customer-vathuis-access"
@@ -308,6 +309,80 @@ class VathuisAccessModuleService extends MedusaService({
     }
 
     return granted
+  }
+
+  /**
+   * Extend or create VA Thuis access from Registration__c.Audience_Player_Valid_Until__c (login sync).
+   */
+  async applyValidUntilOverride(input: {
+    customerId: string
+    productId: string
+    productHandle: string
+    productTitle: string | null
+    variantId: string
+    audiencePlayerValidUntil: string | Date
+    grantedAt?: Date
+    salesforceRegistrationId: string
+    orderId?: string | null
+    orderLineItemId?: string | null
+  }): Promise<boolean> {
+    const grantedAt = input.grantedAt ?? new Date()
+    const newExpiresAt = vathuisAccessExpiresAtWithOverride(
+      grantedAt,
+      input.audiencePlayerValidUntil
+    )
+    if (!isAccessActive(toIsoString(newExpiresAt))) return false
+
+    const placeholderOrderId = `sf-reg:${input.salesforceRegistrationId}`
+    const orderId = input.orderId?.trim() || placeholderOrderId
+    const orderLineItemId = input.orderLineItemId?.trim() || placeholderOrderId
+    const grantedAtIso = toIsoString(grantedAt)
+    const newExpiresIso = toIsoString(newExpiresAt)
+
+    const existingForProduct = await this.listCustomerVathuisAccesses(
+      { customer_id: input.customerId, product_id: input.productId },
+      { take: 1 }
+    )
+    const current = existingForProduct[0]
+
+    if (current) {
+      const currentExpires = parseIsoDate(current.expires_at)
+      if (currentExpires && currentExpires.getTime() >= newExpiresAt.getTime()) {
+        return false
+      }
+      const mergedExpires =
+        currentExpires && currentExpires.getTime() > newExpiresAt.getTime()
+          ? currentExpires
+          : newExpiresAt
+
+      await this.updateCustomerVathuisAccesses({
+        id: current.id,
+        variant_id: input.variantId,
+        expires_at: toIsoString(mergedExpires),
+        product_handle: input.productHandle,
+        product_title: input.productTitle,
+        ...(input.orderId?.trim() && input.orderLineItemId?.trim()
+          ? {
+              order_id: orderId,
+              order_line_item_id: orderLineItemId,
+            }
+          : {}),
+      })
+      return true
+    }
+
+    await this.createCustomerVathuisAccesses({
+      customer_id: input.customerId,
+      product_id: input.productId,
+      product_handle: input.productHandle,
+      product_title: input.productTitle,
+      variant_id: input.variantId,
+      order_id: orderId,
+      order_line_item_id: orderLineItemId,
+      granted_at: grantedAtIso,
+      expires_at: newExpiresIso,
+    })
+    return true
   }
 
   async listForCustomer(

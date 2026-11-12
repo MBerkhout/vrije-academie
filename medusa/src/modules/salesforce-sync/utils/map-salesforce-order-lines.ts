@@ -20,7 +20,10 @@ export type SfHistoryOrderItemRow = SfLineTitleInput & {
   Quantity?: number
   vaProduct__c?: string
   Registration__c?: string
-  Registration__r?: { Status__c?: string | null } | null
+  Registration__r?: {
+    Status__c?: string | null
+    Audience_Player_Valid_Until__c?: string | null
+  } | null
   vaProduct__r?: {
     Name?: string | null
     Start_date_time__c?: string | null
@@ -60,7 +63,7 @@ function isDiscountLine(row: SfHistoryOrderItemRow): boolean {
   return qty < 0 || unit < 0 || name === "korting"
 }
 
-async function resolveSoftProduct(
+export async function resolveSoftProduct(
   container: MedusaContainer,
   vaProductId: string | null
 ): Promise<{ productId: string | null; handle: string | null; isVathuis: boolean; variantId: string | null }> {
@@ -161,6 +164,8 @@ export async function mapSalesforceOrderLines(
         sf_city: row.vaProduct__r?.Product_City__c ?? null,
         sf_instructor: row.vaProduct__r?.Account_Teacher__r?.Name ?? null,
         sf_registration_status: regStatus ?? null,
+        sf_audience_player_valid_until:
+          row.Registration__r?.Audience_Player_Valid_Until__c?.trim() || null,
       },
     })
   }

@@ -37,6 +37,18 @@ export default defineMiddlewares({
       middlewares: [authenticate("customer", ["session", "bearer"])],
     },
     {
+      matcher: "/store/customer/me/vathuis-access",
+      middlewares: [authenticate("customer", ["session", "bearer"])],
+    },
+    {
+      matcher: "/store/customer/me/vathuis-access/:handle",
+      middlewares: [authenticate("customer", ["session", "bearer"])],
+    },
+    {
+      matcher: "/store/customer/me/vathuis-access/:handle/episodes/:episodeKey/embed",
+      middlewares: [authenticate("customer", ["session", "bearer"])],
+    },
+    {
       matcher: "/store/auth/set-password",
       middlewares: [authenticate("customer", ["session", "bearer"])],
     },

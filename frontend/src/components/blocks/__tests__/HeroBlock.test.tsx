@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { HeroBlock } from '../HeroBlock'
 import type { HeroBlock as HeroBlockType } from '@/lib/cms'
+import { HOMEPAGE_SR_ONLY_H1 } from '@/lib/cms/homepage-seo'
 
 const baseBlock: HeroBlockType = {
   _id: 'hero-1',
@@ -13,6 +14,22 @@ const baseBlock: HeroBlockType = {
   topPanelTitle: 'Top panel',
   slides: [],
 }
+
+describe('HeroBlock sr-only site H1', () => {
+  it('renders sr-only H1 when showHomepageSiteH1 is true', () => {
+    render(<HeroBlock block={baseBlock} showHomepageSiteH1 />)
+    expect(screen.getByRole('heading', { level: 1, hidden: true })).toHaveTextContent(
+      HOMEPAGE_SR_ONLY_H1,
+    )
+  })
+
+  it('does not render sr-only H1 by default', () => {
+    render(<HeroBlock block={baseBlock} />)
+    expect(
+      screen.queryByRole('heading', { level: 1, hidden: true, name: HOMEPAGE_SR_ONLY_H1 }),
+    ).not.toBeInTheDocument()
+  })
+})
 
 describe('HeroBlock newsletter card', () => {
   it('shows Meld je aan when newsletterEnabled is unset', () => {

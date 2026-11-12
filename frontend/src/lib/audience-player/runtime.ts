@@ -9,6 +9,23 @@ export type AudiencePlayerInstance = {
   destroy: () => void
 }
 
+function disposeVideoJsInContainer(
+  videojs: typeof import('video.js').default,
+  container: HTMLElement
+): void {
+  const el = container.querySelector('.video-js,video')
+  if (!el) return
+  try {
+    const player = videojs.getPlayer(el)
+    if (player && !player.isDisposed()) {
+      player.off('error')
+      player.dispose()
+    }
+  } catch {
+    // Player may already be torn down by embed-player / React unmount.
+  }
+}
+
 let modulesPromise: Promise<AudiencePlayerModules> | null = null
 
 /** Preload video.js + embed-player so play() can run soon after a user click. */
@@ -50,5 +67,15 @@ export async function mountAndPlayAudiencePlayer(
     continueFromPreviousPosition: true,
   })
 
-  return embedPlayer
+  const upstreamDestroy =
+    typeof (embedPlayer as { destroy?: () => void }).destroy === 'function'
+      ? () => (embedPlayer as { destroy: () => void }).destroy()
+      : null
+
+  return {
+    destroy() {
+      disposeVideoJsInContainer(videojs, container)
+      upstreamDestroy?.()
+    },
+  }
 }

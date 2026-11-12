@@ -7,7 +7,7 @@ import {
   isAccessActive,
   parseIsoDate,
   toIsoString,
-  vathuisAccessExpiresAt,
+  vathuisAccessExpiresAtWithOverride,
 } from "../../../lib/vathuis-access-expiry"
 import { ORDER_SALESFORCE_ORDER_DATE } from "./order-import-metadata"
 import { salesforceEffectiveDateToGrantInstant } from "./salesforce-order-effective-date"
@@ -36,9 +36,6 @@ export async function grantVathuisFromImportedOrder(
   const grantedAt =
     parseIsoDate(typeof sfDate === "string" ? sfDate : null) ??
     salesforceEffectiveDateToGrantInstant(null, order.created_at as string)
-  const expiresAt = vathuisAccessExpiresAt(grantedAt)
-  if (!isAccessActive(toIsoString(expiresAt), new Date())) return 0
-
   let granted = 0
   const items = order.items ?? []
 
@@ -49,6 +46,13 @@ export async function grantVathuisFromImportedOrder(
     const handle =
       typeof lineMeta.product_handle === "string" ? lineMeta.product_handle.trim() : ""
     if (!productId || !handle) continue
+
+    const validUntilMeta = lineMeta.sf_audience_player_valid_until
+    const expiresAt = vathuisAccessExpiresAtWithOverride(
+      grantedAt,
+      typeof validUntilMeta === "string" ? validUntilMeta : null
+    )
+    if (!isAccessActive(toIsoString(expiresAt), new Date())) continue
 
     const variantId =
       typeof lineMeta.sf_variant_id === "string" && lineMeta.sf_variant_id.trim()

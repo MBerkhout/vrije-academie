@@ -8,6 +8,7 @@ import {
   sentryRelease,
   sentryTracesSampleRate,
 } from '@/lib/sentry-env'
+import { filterSentryEvent, SENTRY_CLIENT_IGNORE_ERRORS } from '@/lib/sentry-filter'
 import { scrubSentryEvent } from '@/lib/sentry-scrub'
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN?.trim()
@@ -20,11 +21,12 @@ if (dsn) {
     tracesSampleRate: sentryTracesSampleRate(),
     integrations: [Sentry.browserTracingIntegration()],
     tracePropagationTargets: medusaTracePropagationTargets(),
-    ignoreErrors: [
-      'ResizeObserver loop',
-      'Non-Error promise rejection captured',
-    ],
-    beforeSend: scrubSentryEvent,
+    ignoreErrors: SENTRY_CLIENT_IGNORE_ERRORS,
+    beforeSend(event, hint) {
+      const filtered = filterSentryEvent(event, hint)
+      if (!filtered) return null
+      return scrubSentryEvent(filtered)
+    },
   })
 }
 

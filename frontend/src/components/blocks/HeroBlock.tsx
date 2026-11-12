@@ -8,6 +8,7 @@ import { ImageSlideStage } from '@/components/blocks/ImageSlideStage'
 import { HubSpotNewsletterPopup } from '@/components/hubspot/HubSpotNewsletterPopup'
 import { resolveHeroNewsletterPopup } from '@/lib/hubspot/resolve-hero-newsletter-popup'
 import { getTitleTag, getTitleSizeClass, cleanBlockValue, type HeroBlock as HeroBlockType } from '@/lib/cms'
+import { HOMEPAGE_SR_ONLY_H1 } from '@/lib/cms/homepage-seo'
 import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
 
@@ -16,10 +17,13 @@ const HERO_SLIDE_SIZES = '(max-width: 1024px) 100vw, 66vw'
 export function HeroBlock({
   block,
   lcpImage,
+  showHomepageSiteH1 = false,
 }: {
   block: HeroBlockType
   /** Server-rendered LCP image for slide 0 (from BlockRenderer). */
   lcpImage?: ReactNode
+  /** When true, render the sr-only site H1 (homepage only). */
+  showHomepageSiteH1?: boolean
 }) {
   const slides = block.slides ?? []
   const Tag = getTitleTag(block.topPanelTitleSize ?? 'h2')
@@ -33,9 +37,7 @@ export function HeroBlock({
 
   return (
     <BlockWrapper block={block}>
-      <h1 className="sr-only">
-        Vrije Academie – cursussen, lezingen en online leren over filosofie, psychologie en meer
-      </h1>
+      {showHomepageSiteH1 ? <h1 className="sr-only">{HOMEPAGE_SR_ONLY_H1}</h1> : null}
       <div
         className={cn(
           'grid lg:grid-cols-3 gap-6 md:gap-8 lg:items-stretch lg:min-h-0',
