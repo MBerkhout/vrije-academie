@@ -1,6 +1,6 @@
 import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
-import { requireCustomerActorId } from "../../../lib/require-customer-actor"
+import { requireCustomerActorId } from "../../../../lib/require-customer-actor"
 import { VATHUIS_ACCESS_MODULE } from "../../../../../modules/vathuis-access"
 import type VathuisAccessModuleService from "../../../../../modules/vathuis-access/service"
 

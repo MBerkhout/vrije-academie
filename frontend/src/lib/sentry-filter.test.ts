@@ -5,6 +5,7 @@ import { filterSentryEvent } from '@/lib/sentry-filter'
 
 function eventWithFrames(frames: { filename?: string }[]): ErrorEvent {
   return {
+    type: undefined,
     exception: {
       values: [
         {
@@ -38,6 +39,7 @@ describe('filterSentryEvent', () => {
 
   it('downgrades medusa network errors to warning', () => {
     const event: ErrorEvent = {
+      type: undefined,
       transaction: '/mijn-account',
       exception: {
         values: [{ type: 'TypeError', value: 'Load failed (medusa.vrijeacademie.nl)' }],
