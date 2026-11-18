@@ -147,7 +147,8 @@ export const personsBlock = defineType({
     defineField({
       name: "showBio",
       title: "Show bio",
-      description: "When off, cards show name and role only (useful for long docent directories).",
+      description:
+        "When on, bio appears on hover (desktop) or in a tap-to-open dialog (mobile). When off, cards show name and role only.",
       type: "boolean",
       group: "content",
       initialValue: true,

@@ -148,8 +148,16 @@ const COLUMNS_BLOCK_COLUMN_FIELDS = `
 const INLINE_COLUMNS_BLOCK_COLUMNS = `"columns": @.columns[] {${COLUMNS_BLOCK_COLUMN_FIELDS}
         }`
 
+const INLINE_TEXT_BLOCK_FIELDS = `content[] ${PT_BLOCK},
+        "contentWidth": @.width`
+
 /** Shared inner for tab `blocks[]` and in-page nav `inPageNavContent[]` (inline object blocks). */
 const TAB_PANEL_NESTED_BLOCKS_INNER = `            ...select(
+              @._type == "textBlock" => {
+                ...@,
+                ${INLINE_PAGE_BLOCK_LAYOUT},
+                ${INLINE_TEXT_BLOCK_FIELDS}
+              },
               @._type == "categoriesBlock" => {
                 ...@,
                 ${INLINE_PAGE_BLOCK_LAYOUT},
@@ -238,6 +246,11 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
         ...@,
         ${INLINE_PAGE_BLOCK_LAYOUT},
         ${VIDEO_BLOCK_MEDIA}
+      },
+      @._type == "textBlock" => {
+        ...@,
+        ${INLINE_PAGE_BLOCK_LAYOUT},
+        ${INLINE_TEXT_BLOCK_FIELDS}
       },
       @._type == "productRowBlock" => {
         ...@,

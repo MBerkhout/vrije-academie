@@ -1,19 +1,14 @@
 'use client'
 
-import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
 import { PortableText } from '@/components/cms/PortableText'
-import { SanityImage } from '@/components/cms/SanityImage'
+import { PersonCard } from '@/components/blocks/PersonCard'
 import { Button, Input } from '@/components/ui'
 import { getTitleTag, getTitleSizeClass, type Person, type PersonsBlock as PersonsBlockType } from '@/lib/cms'
 import { mergePersonAndSyncedDocenten } from '@/lib/cms/merge-person-list'
 import { plpTeacherHref } from '@/lib/routes'
 import { cn } from '@/lib/utils'
-
-function isRenderablePhotoUrl(url: string | null | undefined): url is string {
-  return !!url && /^https?:\/\//i.test(url)
-}
 
 function normalizeSearch(s: string) {
   return s.trim().toLocaleLowerCase('nl-NL').replace(/\s+/g, ' ')
@@ -106,44 +101,24 @@ export function PersonsBlock({ block }: { block: PersonsBlockType }) {
               const slug = (person as { slug?: string }).slug?.trim()
               const listingHref =
                 profileUrl?.trim() || (slug ? plpTeacherHref(slug) : undefined)
+              const listingLabel = profileUrl?.trim() ? 'Profiel' : 'Activiteiten'
               return (
-                <article key={(person as { _id?: string })._id} className="border border-va-lightgray rounded p-4">
-                  <div className="flex gap-4">
-                    {photo ? (
-                      <div className="h-[126px] w-[100px] flex-shrink-0 overflow-hidden rounded">
-                        <SanityImage source={photo} width={100} height={126} aspectRatio="" />
-                      </div>
-                    ) : isRenderablePhotoUrl(photoUrl) ? (
-                      <div className="relative h-[126px] w-[100px] flex-shrink-0 overflow-hidden rounded">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- mirrored Salesforce/Medusa URLs */}
-                        <img
-                          src={photoUrl}
-                          alt=""
-                          className="h-full w-full object-cover"
-                          width={100}
-                          height={126}
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className="flex h-[126px] w-[100px] flex-shrink-0 items-center justify-center rounded bg-va-lightgray"
-                        aria-hidden
-                      >
-                        <span className="text-va-gray text-xl">?</span>
-                      </div>
-                    )}
-                    <div>
-                      <h3 className={cn(getTitleSizeClass('h3'), 'font-sans font-semibold text-va-black')}>{name}</h3>
-                      {role && <p className="text-sm text-va-gray">{role}</p>}
-                      {showBio && bio && <p className="text-sm text-va-darkgray mt-2">{bio}</p>}
-                      {listingHref && (
-                        <Link href={listingHref} className="text-va-orange underline text-sm mt-1 inline-block">
-                          {profileUrl?.trim() ? 'Profiel' : 'Activiteiten'}
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </article>
+                <PersonCard
+                  key={(person as { _id?: string })._id}
+                  person={{
+                    _id: (person as { _id?: string })._id,
+                    name,
+                    role,
+                    bio,
+                    photo,
+                    photoUrl,
+                    profileUrl,
+                    slug,
+                  }}
+                  showBio={showBio}
+                  listingHref={listingHref}
+                  listingLabel={listingLabel}
+                />
               )
             })}
           </div>

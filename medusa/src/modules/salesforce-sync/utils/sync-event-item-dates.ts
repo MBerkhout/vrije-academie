@@ -46,14 +46,36 @@ export async function syncEventItemDatesForChild(
 
   const existingBySfId = new Map(existing.map((row) => [row.salesforce_id, row]))
 
+  // A reservation may already exist under another event item (e.g. moved in Salesforce);
+  // salesforce_id is globally unique, so look those up and re-link instead of creating.
+  const missingIds = [...desiredIds].filter((id) => !existingBySfId.has(id))
+  if (missingIds.length > 0) {
+    const elsewhere = await events.listEventItemDates(
+      { salesforce_id: missingIds },
+      { take: missingIds.length }
+    )
+    for (const row of elsewhere) {
+      existingBySfId.set(row.salesforce_id, row)
+    }
+  }
+
+  const seen = new Set<string>()
   for (const patch of desired) {
+    // Guard against duplicate reservation ids within one payload
+    if (seen.has(patch.salesforce_id)) continue
+    seen.add(patch.salesforce_id)
+
     const current = existingBySfId.get(patch.salesforce_id)
     if (current) {
-      if (eventItemDateEquals(current as unknown as Record<string, unknown>, patch)) {
+      if (
+        current.event_item_id === eventItemId &&
+        eventItemDateEquals(current as unknown as Record<string, unknown>, patch)
+      ) {
         continue
       }
       await events.updateEventItemDates({
         id: current.id,
+        event_item_id: eventItemId,
         ...patch,
       })
       continue
