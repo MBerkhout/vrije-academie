@@ -9,6 +9,7 @@ import { clearCartId, dispatchCartUpdated, getCartId } from '@/lib/commerce/cart
 import { fetchCheckoutConfirmation } from '@/lib/commerce/fetch-checkout-confirmation'
 import type { CheckoutConfirmationPayload } from '@/lib/commerce/checkout-confirmation-types'
 import { defaultMessages } from '@/lib/i18n/messages'
+import { trackPurchase } from '@/lib/analytics'
 
 const POLL_MS = 1200
 const MAX_POLLS = 45
@@ -239,6 +240,14 @@ export function ThankYouPageContent({ contact = {} }: { contact?: ThankYouContac
       if (timer) clearTimeout(timer)
     }
   }, [orderFromUrl, tokenFromUrl, sessionFromUrl, router])
+
+  const purchaseTracked = useRef(false)
+  useEffect(() => {
+    const purchase = payload?.purchase_analytics
+    if (!purchase || purchaseTracked.current) return
+    purchaseTracked.current = true
+    trackPurchase(purchase)
+  }, [payload])
 
   const order = payload?.order
   const isReady = Boolean(payload?.order)

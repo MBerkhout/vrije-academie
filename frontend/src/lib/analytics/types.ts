@@ -253,6 +253,20 @@ export type AddPaymentInfoEvent = {
   user_data?: UserData
 }
 
+export type PurchaseEvent = {
+  event: 'purchase'
+  transaction_id: string
+  currency: string
+  value: number
+  tax: number
+  shipping?: number
+  coupon?: string
+  payment_type?: string
+  event_id?: string
+  items: CommerceItem[]
+  user_data?: UserData
+}
+
 export type CheckoutStepViewEvent = {
   event: 'checkout_step_view'
   step: number
@@ -315,6 +329,7 @@ export type AnalyticsEvent =
   | ApplyCouponEvent
   | BeginCheckoutEvent
   | AddPaymentInfoEvent
+  | PurchaseEvent
   | CheckoutStepViewEvent
   | FormErrorEvent
   | ViewAccountEvent

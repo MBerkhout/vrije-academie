@@ -1,0 +1,215 @@
+{
+  "versionDetail": {
+    "architecture": "darwin-arm64",
+    "cliVersion": "@salesforce/cli/2.158.7",
+    "nodeVersion": "node-v26.6.0",
+    "osVersion": "Darwin 25.5.0",
+    "rootPath": "/opt/homebrew/lib/node_modules/@salesforce/cli",
+    "shell": "zsh",
+    "pluginVersions": [
+      "@oclif/plugin-autocomplete 4.0.6 (core)",
+      "@oclif/plugin-commands 5.0.9 (core)",
+      "@oclif/plugin-help 7.0.6 (core)",
+      "@oclif/plugin-not-found 4.0.7 (core)",
+      "@oclif/plugin-plugins 7.0.13 (core)",
+      "@oclif/plugin-search 2.0.10 (core)",
+      "@oclif/plugin-update 5.0.10 (core)",
+      "@oclif/plugin-version 3.0.7 (core)",
+      "@oclif/plugin-warn-if-update-available 4.0.5 (core)",
+      "@oclif/plugin-which 4.0.6 (core)",
+      "@salesforce/cli 2.158.7 (core)",
+      "agent 2.2.4 (core)",
+      "apex 4.4.7 (core)",
+      "api 2.0.28 (core)",
+      "auth 6.0.5 (core)",
+      "data 5.1.26 (core)",
+      "deploy-retrieve 4.3.2 (core)",
+      "info 4.0.24 (core)",
+      "limits 4.0.6 (core)",
+      "marketplace 2.0.25 (core)",
+      "org 7.0.13 (core)",
+      "packaging 3.0.17 (core)",
+      "schema 4.0.16 (core)",
+      "settings 3.0.23 (core)",
+      "sobject 2.0.22 (core)",
+      "telemetry 4.2.4 (core)",
+      "templates 57.6.0 (core)",
+      "trust 4.1.0 (core)",
+      "user 6.0.11 (core)"
+    ]
+  },
+  "sfdxEnvVars": [],
+  "sfEnvVars": [
+    [
+      "SF_AUTOUPDATE_DISABLE",
+      "true"
+    ],
+    [
+      "SF_DISABLE_AUTOUPDATE",
+      "true"
+    ],
+    [
+      "SF_UPDATE_INSTRUCTIONS",
+      "Use \"npm update --global @salesforce/cli\" to update npm-based installations."
+    ]
+  ],
+  "proxyEnvVars": [],
+  "cliConfig": {
+    "arch": "arm64",
+    "bin": "sf",
+    "binAliases": [
+      "sfdx"
+    ],
+    "cacheDir": "/Users/mickberkhout/Library/Caches/sf",
+    "channel": "stable",
+    "configDir": "/Users/mickberkhout/.config/sf",
+    "dataDir": "/Users/mickberkhout/.local/share/sf",
+    "dirname": "sf",
+    "flexibleTaxonomy": true,
+    "home": "/Users/mickberkhout",
+    "isSingleCommandCLI": false,
+    "name": "@salesforce/cli",
+    "nsisCustomization": "scripts/nsis.nsi",
+    "platform": "darwin",
+    "root": "/opt/homebrew/lib/node_modules/@salesforce/cli",
+    "shell": "zsh",
+    "theme": {
+      "bin": "blueBright",
+      "command": "blueBright",
+      "dollarSign": "green",
+      "flag": "green",
+      "flagDefaultValue": "blueBright",
+      "flagOptions": "blueBright",
+      "flagRequired": "red",
+      "sectionHeader": "blue",
+      "topic": "blueBright",
+      "json": {
+        "brace": "whiteBright",
+        "bracket": "whiteBright",
+        "comma": "green",
+        "key": "blueBright",
+        "string": "greenBright",
+        "number": "blue",
+        "boolean": "redBright",
+        "null": "blackBright"
+      }
+    },
+    "topicSeparator": " ",
+    "updateConfig": {
+      "node": {
+        "options": [
+          "--no-deprecation"
+        ]
+      },
+      "s3": {
+        "bucket": "dfc-data-production",
+        "host": "https://developer.salesforce.com",
+        "templates": {
+          "target": {
+            "baseDir": "<%- bin %>",
+            "manifest": "<%- channel === 'stable' ? '' : 'channels/' + channel + '/' %><%- platform %>-<%- arch %>",
+            "unversioned": "<%- channel === 'stable' ? '' : 'channels/' + channel + '/' %><%- bin %>-<%- platform %>-<%- arch %><%- ext %>",
+            "versioned": "<%- channel === 'stable' ? '' : 'channels/' + channel + '/' %><%- bin %>-v<%- version %>/<%- bin %>-v<%- version %>-<%- platform %>-<%- arch %><%- ext %>"
+          },
+          "vanilla": {
+            "baseDir": "<%- bin %>",
+            "manifest": "<%- channel === 'stable' ? '' : 'channels/' + channel + '/' %>version",
+            "unversioned": "<%- channel === 'stable' ? '' : 'channels/' + channel + '/' %><%- bin %><%- ext %>",
+            "versioned": "<%- channel === 'stable' ? '' : 'channels/' + channel + '/' %><%- bin %>-v<%- version %>/<%- bin %>-v<%- version %><%- ext %>"
+          }
+        }
+      }
+    },
+    "userAgent": "@salesforce/cli/2.158.7 darwin-arm64 node-v26.6.0",
+    "valid": true,
+    "version": "2.158.7",
+    "warned": false,
+    "windows": false,
+    "_base": "@oclif/core@5.1.11",
+    "_commands": {},
+    "_topics": {},
+    "commandPermutations": {
+      "validPermutations": {}
+    },
+    "pluginLoader": {
+      "options": {
+        "plugins": {},
+        "root": "/opt/homebrew/lib/node_modules/@salesforce/cli/dist"
+      },
+      "errors": [],
+      "plugins": {},
+      "pluginsProvided": true
+    },
+    "topicPermutations": {
+      "validPermutations": {}
+    },
+    "nodeEngine": ">=22.0.0"
+  },
+  "pluginSpecificData": {
+    "@salesforce/plugin-deploy-retrieve": [
+      {}
+    ],
+    "@salesforce/plugin-auth": [
+      {
+        "isUsingGenericKeychain": false,
+        "sfCryptoV2Support": false,
+        "cryptoVersion": "unknown"
+      }
+    ]
+  },
+  "diagnosticResults": [
+    {
+      "testName": "salesforcedx plugin isn’t installed",
+      "status": "pass"
+    },
+    {
+      "testName": "you don't have any linked plugins",
+      "status": "pass"
+    },
+    {
+      "testName": "[@salesforce/plugin-deploy-retrieve] sourceApiVersion matches apiVersion",
+      "status": "warn"
+    },
+    {
+      "testName": "[@salesforce/plugin-trust] can ping: https://registry.npmjs.org",
+      "status": "pass"
+    },
+    {
+      "testName": "[@salesforce/plugin-trust] can ping: https://registry.yarnpkg.com",
+      "status": "pass"
+    },
+    {
+      "testName": "[@salesforce/plugin-trust] can ping: https://registry.npmjs.org/",
+      "status": "pass"
+    },
+    {
+      "testName": "using latest or latest-rc CLI version",
+      "status": "pass"
+    },
+    {
+      "testName": "can access: https://test.salesforce.com",
+      "status": "pass"
+    },
+    {
+      "testName": "[@salesforce/plugin-auth] CLI supports v2 crypto",
+      "status": "fail"
+    },
+    {
+      "testName": "can access: https://appexchange.salesforce.com/services/data",
+      "status": "pass"
+    },
+    {
+      "testName": "can access: https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-win32-x64-buildmanifest",
+      "status": "pass"
+    }
+  ],
+  "suggestions": [
+    "Check https://github.com/forcedotcom/cli/issues for CLI issues posted by the community.",
+    "Check http://status.salesforce.com for general Salesforce availability and performance.",
+    "Neither sourceApiVersion nor apiVersion are defined. The commands that deploy and retrieve source use the max apiVersion of the target org in this case. The issue isn't a problem, as long as it's the behavior you actually want.",
+    "using npm registry https://registry.npmjs.org/ from npm config",
+    "Your current installation of Salesforce CLI, including all the plugins you've linked and installed, doesn't yet support v2 crypto. All plugins and libraries must use at least version 6.7.0 of `@salesforce/core` to support v2 crypto. You're generally still able to successfully authenticate with your current CLI installation, but not if you generate a v2 crypto key."
+  ],
+  "logFilePaths": [],
+  "commandExitCode": 0
+}

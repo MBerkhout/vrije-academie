@@ -50,7 +50,7 @@ Rebuilds all commerce docs (products, categories, cities, docenten) and Sanity p
 
 - **Products:** subscriber on `product.*`, `product-variant.*`
 - **Catalog / people:** subscriber on `catalog.category.*`, `catalog.city.*`, `people.docent.*`
-- **Salesforce import:** re-indexes product after `importProductgroupFromSalesforce`. The import busts listing cache first, then indexes. Incremental product reindex loads VA Thuis from the database (not the listing snapshot), so a stale Redis/PM2 cache cannot delete the OpenSearch doc.
+- **Salesforce import:** re-indexes product after `importProductgroupFromSalesforce`. The import busts listing cache first, then indexes. Incremental product reindex loads VA Thuis from the database (not the listing snapshot), so a stale Redis/PM2 cache cannot delete the OpenSearch doc. Other published products missing from the cached snapshot (e.g. just republished) are looked up in a fresh uncached PLP build before any delete.
 - **Sanity pages/persons/categories:** `POST /hooks/sanity-search` (configure Sanity publish webhook). Category updates re-index the matching OpenSearch `category-{medusaId}` doc (title, description, image, SEO).
 
 ## Document fields (products)

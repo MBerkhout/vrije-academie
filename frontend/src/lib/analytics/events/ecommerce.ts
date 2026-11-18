@@ -9,6 +9,8 @@ import { buildCartEcommercePayload } from '@/lib/analytics/mappers/cart'
 import { centsToEur } from '@/lib/analytics/mappers/money'
 import type { AgendaItem, Cart, EventCard, EventVariant } from '@/lib/commerce/types'
 import type { ItemListContext, UserData } from '@/lib/analytics/types'
+import type { PurchaseAnalytics } from '@/lib/commerce/checkout-confirmation-types'
+import { clearCheckoutEventId } from '@/lib/analytics/event-id'
 import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
 
 export function trackAddToWishlist(event: EventCard): void {
@@ -210,6 +212,22 @@ export function trackAddPaymentInfo(
     payment_type: paymentType,
     ...(userData ? { user_data: userData } : {}),
   })
+}
+
+/**
+ * Browser `purchase` on /bedankt. Uses the order's transaction_id + event_id so GA4 / Meta
+ * deduplicate against the server (Stape) purchase. Fires once per order per browser session.
+ */
+export function trackPurchase(purchase: PurchaseAnalytics): void {
+  const storageKey = `va_purchase_tracked_${purchase.transaction_id}`
+  try {
+    if (sessionStorage.getItem(storageKey)) return
+    sessionStorage.setItem(storageKey, '1')
+  } catch {
+    // sessionStorage unavailable: fire anyway
+  }
+  pushEvent({ event: 'purchase', ...purchase })
+  clearCheckoutEventId()
 }
 
 export function trackCheckoutStepView(step: number, stepName: string): void {

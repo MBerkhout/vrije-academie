@@ -120,7 +120,11 @@ export async function getCachedStoreEventDetail(
     redisIsEventDetailDirty(handle),
   ])
 
-  if (cached === EVENT_DETAIL_NOT_FOUND) return null
+  if (cached === EVENT_DETAIL_NOT_FOUND) {
+    // A dirty flag means the product changed since the 404 was cached (e.g. republished): rebuild now.
+    if (dirty) return buildBlocking(scope, handle)
+    return null
+  }
 
   if (cached && typeof cached === "object") {
     logEventDetail(handle, "hit")

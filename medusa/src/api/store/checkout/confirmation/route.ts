@@ -30,6 +30,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
       cart_id,
       payment_session_id,
       token,
+      include_purchase_analytics: true,
     })
     res.setHeader("Cache-Control", "private, no-store")
     res.status(payload.status === "ready" ? 200 : 202).json(payload)

@@ -20,6 +20,7 @@ import {
   isMolliePaymentFailed,
 } from "./mollie-payment-status"
 import { resolveSalesforceOrderNumber } from "./resolve-salesforce-order-number"
+import { buildGtmPurchasePayload, type GtmPurchasePayload } from "./gtm/build-purchase-payload"
 import {
   ORDER_SALESFORCE_TOTAL_AMOUNT,
   isImportedSalesforceOrder,
@@ -143,6 +144,36 @@ export type CheckoutConfirmationResult = {
   vathuis_recommendations: Record<string, unknown>[]
   /** HMAC token for re-visiting the page: /bedankt?order={id}&token={view_token} */
   view_token?: string
+  /** Browser `purchase` payload (same transaction_id/event_id as the sGTM event). Single-order route only. */
+  purchase_analytics?: BrowserPurchaseAnalytics | null
+}
+
+export type BrowserPurchaseAnalytics = Pick<
+  GtmPurchasePayload,
+  "transaction_id" | "currency" | "value" | "tax" | "shipping" | "coupon" | "payment_type" | "event_id" | "user_data" | "items"
+>
+
+async function buildBrowserPurchaseAnalytics(
+  scope: MedusaContainer,
+  orderId: string
+): Promise<BrowserPurchaseAnalytics | null> {
+  try {
+    const p = await buildGtmPurchasePayload(scope, orderId)
+    return {
+      transaction_id: p.transaction_id,
+      currency: p.currency,
+      value: p.value,
+      tax: p.tax,
+      ...(p.shipping != null ? { shipping: p.shipping } : {}),
+      ...(p.coupon ? { coupon: p.coupon } : {}),
+      ...(p.payment_type ? { payment_type: p.payment_type } : {}),
+      ...(p.event_id ? { event_id: p.event_id } : {}),
+      user_data: p.user_data,
+      items: p.items,
+    }
+  } catch {
+    return null
+  }
 }
 
 /** Payment session statuses that indicate the payment definitively failed. */
@@ -459,7 +490,13 @@ async function recoverPaidCart(scope: MedusaContainer, cartId: string): Promise<
 
 export async function buildCheckoutConfirmation(
   scope: MedusaContainer,
-  input: { order_id?: string; cart_id?: string; payment_session_id?: string; token?: string }
+  input: {
+    order_id?: string
+    cart_id?: string
+    payment_session_id?: string
+    token?: string
+    include_purchase_analytics?: boolean
+  }
 ): Promise<CheckoutConfirmationResult> {
   let orderId = input.order_id?.trim() || null
 
@@ -602,5 +639,8 @@ export async function buildCheckoutConfirmation(
     primary_category: enriched.primaryCategory,
     vathuis_recommendations: vathuisRecommendations,
     view_token: generateViewToken(orderId),
+    ...(input.include_purchase_analytics
+      ? { purchase_analytics: await buildBrowserPurchaseAnalytics(scope, orderId) }
+      : {}),
   }
 }

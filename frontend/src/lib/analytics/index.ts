@@ -41,6 +41,7 @@ export {
   trackApplyCoupon,
   trackBeginCheckout,
   trackAddPaymentInfo,
+  trackPurchase,
   trackCheckoutStepView,
   trackVideoStart,
   trackVideoProgress,

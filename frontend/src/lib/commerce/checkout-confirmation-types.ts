@@ -1,5 +1,6 @@
 import type { CartItemExtras } from '@/lib/commerce/cart-item-extras'
 import type { EventCard } from '@/lib/commerce/types'
+import type { CommerceItem, UserData } from '@/lib/analytics/types'
 
 export type CheckoutConfirmationOrder = {
   id: string
@@ -43,6 +44,21 @@ export type CheckoutConfirmationPayload = {
   vathuis_recommendations: EventCard[]
   /** HMAC token for revisiting the page: /bedankt?order={id}&token={view_token} */
   view_token?: string
+  /** Same transaction_id / event_id as the server `purchase` (dedupe in GA4 / Meta). */
+  purchase_analytics?: PurchaseAnalytics | null
+}
+
+export type PurchaseAnalytics = {
+  transaction_id: string
+  currency: string
+  value: number
+  tax: number
+  shipping?: number
+  coupon?: string
+  payment_type?: string
+  event_id?: string
+  user_data?: UserData
+  items: CommerceItem[]
 }
 
 export function salesforceOrderNumberFromConfirmation(

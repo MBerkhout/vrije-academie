@@ -1,7 +1,10 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { createClient } from "@sanity/client"
 
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import {
+  buildPlpSnapshot,
   getPlpListingSnapshot,
   loadPublishedVathuisProductRow,
 } from "../../lib/store-listing-snapshot"
@@ -250,6 +253,20 @@ export default class SearchModuleService {
       // Bypass the VA Thuis listing cache: webhooks often reindex before the
       // snapshot includes the new bundle (or against a stale cluster worker).
       row = (await loadPublishedVathuisProductRow(scope, productId)) ?? undefined
+    }
+    if (!row) {
+      // Listing snapshot is rebuilt by the worker after cache invalidation, so a just-published
+      // product is missing from it. Build a fresh (uncached) snapshot before deleting the doc.
+      const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+      const { data } = await query.graph({
+        entity: "product",
+        fields: ["id", "status"],
+        filters: { id: productId },
+      })
+      if ((data?.[0] as { status?: string } | undefined)?.status === "published") {
+        const fresh = await buildPlpSnapshot(scope)
+        row = fresh.list.find((p: Record<string, unknown>) => String(p.id) === productId)
+      }
     }
     if (!row) {
       await this.deleteDoc(`product-${productId}`)

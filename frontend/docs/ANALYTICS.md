@@ -52,7 +52,7 @@ Recommended: **Stape Data Client** receiving JSON POSTs from Medusa (`event_name
 
 In the **web** GTM container, forward browser events to the server container with the same `event_id` where both fire (`login`, `sign_up`, `add_to_cart`). Configure GA4 and Meta CAPI tags on the server container; hash `user_data` server-side.
 
-**Do not** fire a client-side `purchase` on `/bedankt` — use the Medusa server event only.
+`purchase` is sent from **both** the browser and the server. `/bedankt` (`ThankYouPageContent`) calls `trackPurchase()` once the order is `ready`, using `purchase_analytics` from `GET /store/checkout/confirmation` (built by Medusa with the same `buildGtmPurchasePayload` as the server event). Both events share `transaction_id` (`VA-{display_id}`) and `event_id` (from `cart.metadata.analytics`), so GA4 / Meta deduplicate them — configure the web and server tags to use these ids. The browser event fires once per order per session (`sessionStorage` key `va_purchase_tracked_{transaction_id}`) and clears the checkout `event_id`.
 
 ### Attribution → purchase
 
@@ -62,7 +62,7 @@ On checkout payment submit (`CheckoutPaymentForm`), the storefront writes `cart.
 
 | Event | Primary source |
 |-------|----------------|
-| `purchase` | **Server** (Medusa) |
+| `purchase` | **Browser** (`/bedankt`) + **Server** (Medusa), shared `transaction_id` + `event_id` |
 | `refund` | **Server** (order canceled) |
 | `sign_up` | **Browser** + **Server** (shared `event_id` on registration) |
 | `add_to_cart`, `login`, `view_item`, `begin_checkout` | **Browser** (`event_id` on cart/login/sign_up for dedupe) |
@@ -93,7 +93,7 @@ On checkout payment submit (`CheckoutPaymentForm`), the storefront writes `cart.
 | `view_cart` / cart mutations | `CartView` |
 | `begin_checkout` | `ProceedCta` |
 | `add_payment_info` | `CheckoutPaymentForm` submit |
-| `purchase` | **server** Medusa → Stape only |
+| `purchase` | `ThankYouPageContent` (`trackPurchase`) + **server** Medusa → Stape |
 | `refund` | **server** Medusa → Stape (`order.canceled`) |
 | `add_to_wishlist` | `useWishlist` |
 | `view_promotion` / `select_promotion` | `HeroBlock` |
