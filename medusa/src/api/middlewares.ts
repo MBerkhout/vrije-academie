@@ -2,6 +2,7 @@ import { authenticate, defineMiddlewares } from "@medusajs/framework/http"
 
 import { detachStaleCartCustomer } from "./middlewares/detach-stale-cart-customer"
 import { medusaSentryErrorHandler } from "./middlewares/sentry-error-handler"
+import { rejectImpersonationSensitiveRoutes } from "./middlewares/reject-impersonation-sensitive-routes"
 import { storeRequestTiming } from "./middlewares/store-request-timing"
 
 export default defineMiddlewares({
@@ -10,6 +11,20 @@ export default defineMiddlewares({
     {
       matcher: "/store/*",
       middlewares: [storeRequestTiming],
+    },
+    {
+      matcher: "/auth/token/refresh",
+      method: ["POST"],
+      middlewares: [rejectImpersonationSensitiveRoutes],
+    },
+    {
+      matcher: "/store/auth/set-password",
+      middlewares: [rejectImpersonationSensitiveRoutes],
+    },
+    {
+      matcher: "/store/auth/otp/request",
+      method: "POST",
+      middlewares: [rejectImpersonationSensitiveRoutes],
     },
     {
       matcher: "/store/events/*/waitlist",

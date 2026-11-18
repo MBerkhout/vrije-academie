@@ -1,4 +1,5 @@
 import type { DeliveryType } from "../../events/types"
+import type { SfReservationsSubquery } from "./course-product-reservation"
 import { isVathuisRecordType } from "../clients/audience-player"
 import {
   ALMOST_FULL_FALLBACK_REMAINING_THRESHOLD,
@@ -41,8 +42,12 @@ export type SfCourseProductShape = {
   External_Registration_URL_Product__c?: string | null
   /** Zichtbaar op Website on the child occurrence. Unchecked (`false`) → skip this session. */
   Visible_On_Website__c?: boolean | null
+  Zoom_Link__c?: string | null
+  Link_Zoom_Recording__c?: string | null
   RecordType?: { DeveloperName?: string | null; Name?: string | null } | null
   SystemModstamp?: string | null
+  /** Subquery `Reservations__r` (collegereeks lesson dates). */
+  Reservations__r?: SfReservationsSubquery | null
 }
 
 export const SF_COURSE_PRODUCT_OBJECT = "vaProduct__c"
@@ -91,10 +96,19 @@ export const courseProductSalesforceFieldsForPull = [
   "Main_Teacher_Name__c",
   "External_Registration_URL_Product__c",
   "Visible_On_Website__c",
+  "Zoom_Link__c",
+  "Link_Zoom_Recording__c",
   "RecordType.DeveloperName",
   "RecordType.Name",
   "SystemModstamp",
 ] as const
+
+/** SOQL subquery for lesson reservations on each `vaProduct__c` row. */
+export const courseProductReservationsSubquery = `(SELECT Id, B25__Title__c, B25__Start__c, B25__End__c, Sequence__c, Type_Of_Session__c, First_Last_Session__c, Room__r.Name, Address__c, Teacher__r.Name, Teacher__c, Substitute__c, B25__Status__r.Name FROM Reservations__r ORDER BY B25__Start__c ASC)` as const
+
+export function courseProductSalesforceSelectClause(): string {
+  return [...courseProductSalesforceFieldsForPull, courseProductReservationsSubquery].join(",")
+}
 
 /** Gross price in EUR (Medusa v2 major currency units, e.g. 19.5). */
 export function courseProductPriceAmount(sf: SfCourseProductShape): number {

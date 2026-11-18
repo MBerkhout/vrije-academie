@@ -29,6 +29,11 @@ async function syncDocentToSanity({
   try {
     const [docent] = await people.listDocents({ id: docentId })
     if (!docent) return
+    if (docent.is_active === false) {
+      await deleteDoc(`medusa-docent-${docentId}`)
+      logger.info(`[sanity-sync] removed inactive docent ${docentId} from Sanity`)
+      return
+    }
     await mirrorDocent({
       ...docent,
       subject_tags: Array.isArray(docent.subject_tags)

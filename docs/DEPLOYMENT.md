@@ -565,7 +565,9 @@ The storefront tunnels browser events via `/monitoring` (`withSentryConfig` in `
 
 ### Production monitors (org `vrije-academie`)
 
-Configured in Sentry (email → project owner). Cron check-ins are sent only from **production `medusa-worker`** (`withCronMonitor` in `medusa/src/lib/sentry.ts`; 5 min margin, 10 min max runtime). Staging must use `SENTRY_ENVIRONMENT=staging` and must **not** send cron check-ins (no `medusa-worker` cron monitors on staging, or ignore/archive those issues in Sentry). Do not run scheduled jobs with `SENTRY_DSN` + `NODE_ENV=development` against production monitor slugs — that creates a stray `development` environment and false missed check-ins (delete that env in Sentry if it happens).
+Configured in Sentry (email → project owner). Cron check-ins are sent only from **production `medusa-worker`** (`withCronMonitor` in `medusa/src/lib/sentry.ts`; 5 min margin, 10 min max runtime). Staging must use `SENTRY_ENVIRONMENT=staging` and must **not** send cron check-ins. If staging ever sent check-ins, delete the **`staging`** environment on each cron monitor in Sentry (Crons → monitor → Environments) so missed check-ins do not alert; production is the only tracked env. Do not run scheduled jobs with `SENTRY_DSN` + `NODE_ENV=development` against production monitor slugs — that creates a stray `development` environment and false missed check-ins (delete that env in Sentry if it happens).
+
+Storefront client noise: `frontend/src/lib/sentry-filter.ts` drops benign aborted fetches to `medusa.vrijeacademie.nl` (except checkout). Va-thuis **Audience Player** teardown is ordered in `frontend/src/lib/audience-player/runtime.ts` (upstream `destroy` before video.js `dispose`) to avoid video.js `ended` / `el_` races on account pages.
 
 **Uptime**
 

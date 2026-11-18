@@ -60,7 +60,11 @@ export function AudiencePlayerEmbed({
 
     return () => {
       cancelled = true
-      playerRef.current?.destroy()
+      try {
+        playerRef.current?.destroy()
+      } catch {
+        // Teardown is best-effort; runtime.destroy() already swallows known video.js races.
+      }
       playerRef.current = null
       // Video.js injects DOM outside React; clear it so unmount does not throw removeChild.
       host.replaceChildren()

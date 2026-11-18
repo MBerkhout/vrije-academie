@@ -2,7 +2,7 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 
 import CatalogModuleService from "../catalog/service"
 import PeopleModuleService from "../people/service"
-import { mirrorCategory, mirrorDocent } from "./service"
+import { deleteDoc, mirrorCategory, mirrorDocent } from "./service"
 import { syncProductCategoryById } from "./sync-product-category-by-id"
 
 export type BatchSyncRelatedEntitiesResult = {
@@ -71,6 +71,10 @@ export async function batchSyncRelatedEntitiesToSanity(
       try {
         const [docent] = await people.listDocents({ id: docentId })
         if (!docent) continue
+        if (docent.is_active === false) {
+          await deleteDoc(`medusa-docent-${docentId}`)
+          continue
+        }
         await mirrorDocent({
           ...docent,
           subject_tags: Array.isArray(docent.subject_tags)

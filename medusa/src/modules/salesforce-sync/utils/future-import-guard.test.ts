@@ -96,6 +96,30 @@ describe("shouldImportProductgroup visibility", () => {
     ).toBe(true)
   })
 
+  it("imports when linked-online children have future dates but group Latest start is past", () => {
+    expect(
+      shouldImportProductgroup({
+        group: {
+          Visible_on_website__c: true,
+          Latest_Product_Start_Date__c: past,
+        },
+        children: [
+          {
+            Id: "a04offline",
+            Product_City__c: "Amsterdam",
+            Start_date_time__c: past,
+          },
+          {
+            Id: "a04online",
+            Product_City__c: "Online",
+            Start_date_time__c: future,
+          },
+        ],
+        manual: false,
+      })
+    ).toBe(true)
+  })
+
   it("still imports hybrid groups with a future physical start", () => {
     expect(
       shouldImportProductgroup({

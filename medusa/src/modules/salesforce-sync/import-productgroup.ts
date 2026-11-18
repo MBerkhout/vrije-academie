@@ -31,6 +31,11 @@ import {
   courseProductVariantTitle,
   inferDeliveryType,
 } from "./mappings/course-product"
+import {
+  courseProductLiveUrl,
+  courseProductRecordingUrl,
+} from "./mappings/course-product-reservation"
+import { syncEventItemDatesForChild } from "./utils/sync-event-item-dates"
 import type { SfProductgroupShape } from "./mappings/productgroup"
 import {
   mapSalesforceRecordType,
@@ -322,6 +327,8 @@ async function upsertEventItemForVariant(
     catalog_city_id: facetIds.catalog_city_id,
     catalog_location_id: facetIds.catalog_location_id,
     docent_id: facetIds.docent_id,
+    live_url: courseProductLiveUrl(child),
+    recording_url: courseProductRecordingUrl(child),
   }
 
   const { data: existing } = await query.graph({
@@ -331,6 +338,7 @@ async function upsertEventItemForVariant(
   })
   const row = existing?.[0] as { event_item?: Record<string, unknown> } | undefined
   const existingItem = row?.event_item
+  let eventItemId: string | undefined = existingItem?.id as string | undefined
 
   if (existingItem?.id) {
     const unchanged =
@@ -347,7 +355,9 @@ async function upsertEventItemForVariant(
       existingItem.instructor_salesforce_id === patch.instructor_salesforce_id &&
       existingItem.catalog_city_id === patch.catalog_city_id &&
       existingItem.catalog_location_id === patch.catalog_location_id &&
-      existingItem.docent_id === patch.docent_id
+      existingItem.docent_id === patch.docent_id &&
+      existingItem.live_url === patch.live_url &&
+      existingItem.recording_url === patch.recording_url
 
     if (!unchanged) {
       await events.updateEventItems({
@@ -358,10 +368,19 @@ async function upsertEventItemForVariant(
   } else {
     const eventItem = await events.createEventItems(patch)
     if (!eventItem?.id) throw new Error("Failed to create event item")
+    eventItemId = eventItem.id
     await link.create({
       [Modules.PRODUCT]: { product_variant_id: variantId },
       events: { event_item_id: eventItem.id },
     })
+  }
+
+  if (eventItemId) {
+    await syncEventItemDatesForChild(
+      events,
+      eventItemId,
+      child as Record<string, unknown>
+    )
   }
 
   await productModule.updateProductVariants(variantId, { manage_inventory: false })

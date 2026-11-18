@@ -1,6 +1,6 @@
 # Medusa ↔ Salesforce sync
 
-Two-way connector for **Customers** (`Contact`), **Orders** (`Order` + `OrderItem`), standard **Products** (`Product2`, optional `PricebookEntry`), and **product groups** (`vaProductgroup__c` + child `vaProduct__c`). Mappings are **TypeScript-only** under `src/modules/salesforce-sync/mappings/`.
+Two-way connector for **Customers** (`Contact`), **Orders** (`Order` + `OrderItem`), standard **Products** (`Product2`, optional `PricebookEntry`), and **product groups** (`vaProductgroup__c` + child `vaProduct__c`). Child pulls include **`Reservations__r`** (`B25__Reservation__c` lesson rows) and WebinarGeek URLs (`Zoom_Link__c`, `Link_Zoom_Recording__c`) — see `course-product.ts` / `course-product-reservation.ts`. Mappings are **TypeScript-only** under `src/modules/salesforce-sync/mappings/`.
 
 Sanity: on **product** and **variant** **push**, the Salesforce upsert runs first; **Sanity mirror** runs in the same workflow after a successful SF step. `product.created` is handled by the Salesforce push path; `product.updated` / `product.deleted` still go through `sync-product-to-sanity`.
 
@@ -205,7 +205,37 @@ The **Connected App callback URL** in Salesforce must match `SALESFORCE_OAUTH_CA
 
 If `SALESFORCE_OAUTH_CALLBACK_URL` is set, `MEDUSA_URL` is not required for OAuth (still needed for Mollie webhooks etc.).
 
-## CLI
+## Salesforce CLI (`sf`)
+
+Optional for **ad-hoc SOQL**, opening records in the browser, and metadata work. **Medusa** (`npm run salesforce:*`) uses its own auth (JWT / refresh token in `.env` or Admin **Connect to Salesforce**) — logging in with `sf` does not configure the backend.
+
+**Install (macOS):**
+
+```bash
+npm install -g @salesforce/cli
+sf --version
+sf doctor
+```
+
+**Log in:**
+
+```bash
+# Sandbox
+sf org login web --alias va-sandbox --instance-url https://test.salesforce.com --set-default
+
+# Production
+sf org login web --alias va-prod --instance-url https://login.salesforce.com --set-default
+```
+
+```bash
+sf org list
+sf org open
+sf data query --query "SELECT Id, Name FROM vaProductgroup__c LIMIT 5"
+```
+
+Switch default org: `sf config set target-org va-sandbox`.
+
+## Medusa sync CLI
 
 ```bash
 npm run salesforce:probe
@@ -302,10 +332,15 @@ Salesforce **Person Accounts** (`Contact` + `Account`, `IsPersonAccount = true`)
 | `Customer push for … did not complete (failed or still retrying)` | Nested `push-customer-salesforce` failed or is retrying (60s interval). Check `pm2 logs medusa-worker` for `push-customer-salesforce` — e.g. `[INVALID_FIELD_FOR_INSERT_UPDATE]` on a field the connected user cannot write. |
 | Customer sync row has fingerprint but no `salesforce_id` | Person Account was found by email but an old “unchanged” skip prevented saving ids; fixed by only skipping when both ids are already stored. Re-push the order or customer. |
 | Order stuck in **Draft** in Salesforce | `activate-order-salesforce` failed — grant the connected user **Activate Orders** (`Orders activeren`), then admin **Push** on the order. |
+| Invoice / Order has address; Person Account empty; AFAS fails | Customer push skipped or Medusa had no default shipping address. Fixed by `sync-order-address-to-person-account` on push; re-push the order (see Orders § Person Account address). |
 
 ## Orders (Medusa → Salesforce)
 
-Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push-order-salesforce` — ensure customer Person Account → **Order** (Draft) → **Registration__c** + **OrderItem** lines → **Voucher__c** (gift cards) → activate Order.
+Push runs on **`order.completed`** (paid / zero-total checkout). Workflow: `push-order-salesforce` — ensure customer Person Account → **sync order billing to Person Account when empty** (AFAS) → **Order** (Draft) → **Registration__c** + **OrderItem** lines → **Voucher__c** (gift cards) → activate Order.
+
+**Person Account address (AFAS):** The order header always gets `Billing*` / `Shipping*` from the Medusa order. AFAS reads the **Person Account** mailing address. After `ensure-order-customer`, step `sync-order-address-to-person-account` copies order `billing_address` onto the linked Account (`PersonMailing*` + `Billing*` + `Shipping*`) and Contact `Mailing*` **only when** the account has no complete address yet (street + city + postal). Existing account addresses are not overwritten. Customer push can still skip as `unchanged` while the account was empty — this step closes that gap.
+
+**Remediation (invoice on Order but AFAS errors):** From `Invoice__c` in Salesforce, open the related **Order** (`Website_Order__c` or Medusa id in the description), then re-push from Medusa: `npm run salesforce:push -- --type=order --action=push --id=order_...` (or `--display-id=N`). That runs the address sync before the order header. Confirm `PersonMailing*` on the participant Account, then re-trigger AFAS from Salesforce if needed.
 
 | Medusa | Salesforce object | Notes |
 |--------|-------------------|--------|
@@ -385,7 +420,7 @@ Imported groups that **are** visible are **published**. `EventGroup.show_in_plp`
 
 **Pricing:** Salesforce gross price is source of truth (`Price__c` on each `vaProduct__c`, e.g. `26.5` is already incl. VAT; `Net_Price__c` is the formula `Price__c / (1 + VAT_Rate__r.VAT_Percentage__c)` and is not imported). Medusa stores that gross amount. Prices are **tax-inclusive**; run `npm run seed:region` so Medusa extracts VAT instead of adding it on top. Cart refetches that compute `total` (gift cards, checkout) must select `items.is_tax_inclusive`. Omitting it makes Medusa treat the gross price as net and add the product-type rate (for example BTW laag 9%) on top; that inflated amount is what gets pushed as the Salesforce voucher `UnitPrice`. Order product lines still send `Price__c` as `UnitPrice`; Salesforce then derives `OrderItem.Total_Net_Price__c` as `UnitPrice / (1 + VAT_Percentage__c)`.
 
-**Organization:** imported products are linked to the **default sales channel**, get a Medusa **product type** from `Productgroup_Record_Type_Developer_Name__c` (e.g. `Lezing`), and **categories** from `Productgroup_Subject__c` (native Medusa categories + catalog category links for storefront/Sanity). **Docenten** are resolved from `Highlighted_Teacher__c` (+ `Highlighted_Teacher__r.Name` when readable); when the related Account is not accessible, the name is parsed from `Samenvatting__c` / `Productgroup_Description__c` (e.g. “Frederike Upmeijer”). Linked via `product-docenten`; sync state entity type `docent`. Per-session city, location, and docent are stored on each `EventItem` as `catalog_city_id`, `catalog_location_id`, and `docent_id` (resolved during import via `resolveEventItemFacetIdsFromSalesforce`). Logic: `utils/link-docent-from-salesforce.ts`.
+**Organization:** imported products are linked to the **default sales channel**, get a Medusa **product type** from `Productgroup_Record_Type_Developer_Name__c` (e.g. `Lezing`), and **categories** from `Productgroup_Subject__c` (native Medusa categories + catalog category links for storefront/Sanity). **Docenten** are resolved from `Highlighted_Teacher__c` (+ `Highlighted_Teacher__r.Name` when readable); when the related Account is not accessible, the name is parsed from `Samenvatting__c` / `Productgroup_Description__c` (e.g. “Frederike Upmeijer”). Linked via `product-docenten`; sync state entity type `docent`. Teacher Person Accounts: **`Visible_on_website__c`** (**Weergeven op de site**) → Medusa `docent.is_active` and Sanity mirror removal when unchecked (same null/missing-stays-visible rule as product groups). Account `create`/`update` webhooks run `pull-docent-salesforce`; delete soft-archives (`is_active=false`). Backfill after deploy: `npm run salesforce:backfill-docent-visibility` then `npm run cache:flush`. Per-session city, location, and docent are stored on each `EventItem` as `catalog_city_id`, `catalog_location_id`, and `docent_id` (resolved during import via `resolveEventItemFacetIdsFromSalesforce`). Logic: `utils/link-docent-from-salesforce.ts`, `utils/fetch-teacher-account.ts`.
 
 **External registration (reizen):** Medusa stores the product-group URL as `metadata.salesforce_external_registration_url` (`External_Registration_URL__c`) and each child URL on the variant (`External_Registration_URL_Product__c`). Sanity `externalRegistrationUrl` is the group URL, or the first child URL when the group field is empty. Storefront: `GET /store/events/:handle` exposes `external_registration_url` on the event and on each variant (child URL, else group). PDP session **Direct inschrijven** opens that variant’s URL; the booking panel does the same when all sessions share one URL.
 
@@ -451,10 +486,9 @@ Storefront: `GET /store/events/:handle` exposes `purchase_mode`, `bundle_variant
 Webhooks enqueue product group pulls with `manual: false`, including **update** of a Salesforce group that is not in Medusa yet (treated as auto-import). Import is **skipped** when:
 
 - `Visible_on_website__c` is unchecked on the group, or the group is **Externe verhuur** (`skipReason: not_visible_on_website` — including manual CLI/API; already-imported products are drafted). Hidden children do not hide a visible group. Bulk CLI still **enqueues** already-imported hidden groups so they are removed from the storefront.
-- `Latest_Product_Start_Date__c` is in the past, or
-- all child `Start_date_time__c` values are in the past (when latest start is unset) (`skipReason: past_dates`).
+- all child `Start_date_time__c` values are in the past **and** `Latest_Product_Start_Date__c` is not in the future (`skipReason: past_dates`). A past group rollup alone does **not** skip when merged children (including **linked-online** `vaProduct__c` rows) still have future starts.
 
-**Exception (before the date checks):** any child with no city or city **Online** and no `Start_date_time__c` still imports (undated online session). Merged **linked-online** children count toward this guard.
+**Exception (before the date checks):** any child with no city or city **Online** and no `Start_date_time__c` still imports (undated online session). Merged **linked-online** children count toward the child-date check.
 
 **Exceptions:** VAthuis record types (`Lezingen_Thuis`, `Thuis_College`) always import when visible (on-demand). Bulk CLI also includes online-only groups (see `shouldBulkImportProductgroup`).
 

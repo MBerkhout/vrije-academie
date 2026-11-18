@@ -13,7 +13,7 @@ import {
 
 export type { OtpPurpose }
 
-const PURPOSE_SUBJECT: Record<OtpPurpose, string> = {
+const PURPOSE_SUBJECT: Record<Exclude<OtpPurpose, "impersonate">, string> = {
   login: "Je inlogcode voor Mijn Vrije Academie",
   set_password: "Bevestig je wachtwoord — Vrije Academie",
 }

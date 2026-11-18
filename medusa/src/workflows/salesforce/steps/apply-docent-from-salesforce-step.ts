@@ -1,6 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-import PeopleModuleService from "../../../modules/people/service"
 import { ensureDocentFromSalesforceTeacher } from "../../../modules/salesforce-sync/utils/link-docent-from-salesforce"
 import { fetchTeacherAccountProfile } from "../../../modules/salesforce-sync/utils/fetch-teacher-account"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
@@ -33,15 +32,10 @@ export const applyDocentFromSalesforceStep = createStep(
       bio: profile.bio,
       photoUrl: profile.photoUrl,
       role: profile.role,
+      visibleOnWebsite: profile.visibleOnWebsite,
     })
     if (!medusaId) {
       throw new Error(`Could not upsert docent for Account ${input.salesforceId}`)
-    }
-
-    const people = container.resolve("people") as InstanceType<typeof PeopleModuleService>
-    const docent = await people.retrieveDocent(medusaId)
-    if (docent.is_active === false) {
-      await people.updateDocents({ id: medusaId, is_active: true })
     }
 
     return new StepResponse({

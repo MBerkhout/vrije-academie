@@ -260,7 +260,7 @@ export default function DevComponentsPage() {
                 categories: [{ id: 'c2', slug: 'filosofie', label: 'Filosofie' }],
                 cities: [],
                 delivery_types: ['online'],
-                earliest_start_at: null,
+                earliest_start_at: new Date(Date.now() + 10 * 86400000).toISOString(),
                 price_from: 2500,
                 min_available_quantity: 0,
                 badge: 'ON DEMAND',

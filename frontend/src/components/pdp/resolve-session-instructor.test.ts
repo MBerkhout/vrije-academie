@@ -29,12 +29,12 @@ describe('normalizeInstructorName', () => {
 describe('resolveSessionInstructor', () => {
   it('matches session labels that include a salutation', () => {
     expect(
-      resolveSessionInstructor('mevr. Birgitte Mommers', [isolde, birgitte], null)?.id
+      resolveSessionInstructor('mevr. Birgitte Mommers', [isolde, birgitte])?.id
     ).toBe('1')
   })
 
-  it('falls back to featured then first instructor', () => {
-    expect(resolveSessionInstructor(null, [isolde], birgitte)?.id).toBe('2')
-    expect(resolveSessionInstructor(null, [], birgitte)?.id).toBe('1')
+  it('returns null when the session has no instructor name', () => {
+    expect(resolveSessionInstructor(null, [isolde])).toBeNull()
+    expect(resolveSessionInstructor('   ', [isolde])).toBeNull()
   })
 })

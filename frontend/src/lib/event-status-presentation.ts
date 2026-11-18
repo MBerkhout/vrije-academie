@@ -14,7 +14,8 @@ import { productCtaBarFromEvent, textColorForHexBackground } from '@/lib/product
  * - PLP tile low-stock footnote vs sold-out (`plpListingStockPresentation`)
  * - PDP session table availability cell (`sessionTableAvailabilityPresentation`)
  * - PDP session CTA tone (`sessionCtaTone`, `bookingPanelPrimaryCtaTone`, `isAlmostFullAvailability`)
- * - PLP card delivery icon + date visibility (`plpEventDeliveryTypeDisplay`, `shouldShowEventDates`)
+ * - PLP card delivery icon + date visibility (`plpEventDeliveryTypeDisplay`, `shouldShowEventDates`;
+ *   online-only live lectures show a date when `earliest_start_at` is set; VA Thuis / on-demand without a date do not)
  *
  * Add new keyword → style mappings for product badges here; keep order in
  * `PRODUCT_BADGE_RULES` meaningful (first matching rule wins).
@@ -103,13 +104,11 @@ type EventDateInput = Pick<EventCard, 'delivery_types' | 'variants'>
 
 /**
  * Whether to show session dates on PLP cards and PDP session tables.
- * Hidden for online-only products, and for hybrid products whose on-site
- * sessions are all in the past (only online remains).
+ * Shown for online-only live lectures when the API provides `earliest_start_at`.
+ * Hidden for hybrid products whose on-site sessions are all in the past (only online remains).
  */
 export function shouldShowEventDates({ delivery_types, variants }: EventDateInput): boolean {
   const types = delivery_types ?? []
-
-  if (types.length === 1 && types[0] === 'online') return false
 
   const hasOnline = types.includes('online')
   const hasOffline = types.includes('offline')

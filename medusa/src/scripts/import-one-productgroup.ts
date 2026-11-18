@@ -9,7 +9,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { importProductgroupFromSalesforce } from "../modules/salesforce-sync/import-productgroup"
 import {
-  courseProductSalesforceFieldsForPull,
+  courseProductSalesforceSelectClause,
   SF_COURSE_PRODUCT_OBJECT,
 } from "../modules/salesforce-sync/mappings/course-product"
 import {
@@ -56,7 +56,7 @@ export default async function importOneProductgroup({ container }: ExecArgs) {
     return
   }
 
-  const childFields = courseProductSalesforceFieldsForPull.join(",")
+  const childFields = courseProductSalesforceSelectClause()
   const childResult = await sync.query<Record<string, unknown>>(
     `SELECT ${childFields} FROM ${SF_COURSE_PRODUCT_OBJECT} WHERE Productgroup__c = '${String(groupRecord.Id).replace(/'/g, "\\'")}'`
   )

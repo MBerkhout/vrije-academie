@@ -9,6 +9,26 @@ export type AudiencePlayerInstance = {
   destroy: () => void
 }
 
+/** video.js / embed-player can throw if stop/destroy runs after the tech element is gone. */
+function isKnownPlayerTeardownError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const msg = error.message
+  return (
+    /reading 'ended'/.test(msg) ||
+    /evaluating 'this\.el_/.test(msg) ||
+    /Cannot read properties of null/.test(msg)
+  )
+}
+
+function safeCall(fn: (() => void) | null): void {
+  if (!fn) return
+  try {
+    fn()
+  } catch (error) {
+    if (!isKnownPlayerTeardownError(error)) throw error
+  }
+}
+
 function disposeVideoJsInContainer(
   videojs: typeof import('video.js').default,
   container: HTMLElement
@@ -72,10 +92,15 @@ export async function mountAndPlayAudiencePlayer(
       ? () => (embedPlayer as { destroy: () => void }).destroy()
       : null
 
+  let destroyed = false
+
   return {
     destroy() {
-      disposeVideoJsInContainer(videojs, container)
-      upstreamDestroy?.()
+      if (destroyed) return
+      destroyed = true
+      // Upstream stop() must run before video.js dispose(); reverse order caused Sentry FRONTEND-15/16.
+      safeCall(upstreamDestroy)
+      safeCall(() => disposeVideoJsInContainer(videojs, container))
     },
   }
 }

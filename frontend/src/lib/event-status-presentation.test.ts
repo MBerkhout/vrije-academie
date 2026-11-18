@@ -15,10 +15,78 @@ import {
   PDP_WAITLIST_CTA_CLASS,
   PDP_ALMOST_FULL_CTA_CLASS,
   sessionTableAvailabilityPresentation,
+  shouldShowEventDates,
 } from './event-status-presentation'
 
 const futureStart = '2099-06-01T10:00:00.000Z'
 const pastStart = '2020-01-01T10:00:00.000Z'
+
+describe('shouldShowEventDates', () => {
+  it('is true for online-only products', () => {
+    expect(
+      shouldShowEventDates({
+        delivery_types: ['online'],
+        variants: [],
+      }),
+    ).toBe(true)
+  })
+
+  it('is true for offline products', () => {
+    expect(
+      shouldShowEventDates({
+        delivery_types: ['offline'],
+        variants: [
+          {
+            id: 'v1',
+            title: 'Session',
+            event_item: {
+              id: 'ei1',
+              delivery_type: 'offline',
+              available_quantity: 10,
+              capacity: 20,
+              start_at: futureStart,
+              is_free_trial: false,
+            },
+          },
+        ],
+      }),
+    ).toBe(true)
+  })
+
+  it('is false when hybrid and all offline sessions are past', () => {
+    expect(
+      shouldShowEventDates({
+        delivery_types: ['online', 'offline'],
+        variants: [
+          {
+            id: 'v1',
+            title: 'Past offline',
+            event_item: {
+              id: 'ei1',
+              delivery_type: 'offline',
+              available_quantity: 10,
+              capacity: 20,
+              start_at: pastStart,
+              is_free_trial: false,
+            },
+          },
+          {
+            id: 'v2',
+            title: 'Future online',
+            event_item: {
+              id: 'ei2',
+              delivery_type: 'online',
+              available_quantity: 10,
+              capacity: 20,
+              start_at: futureStart,
+              is_free_trial: false,
+            },
+          },
+        ],
+      }),
+    ).toBe(false)
+  })
+})
 
 describe('eventEligibleForPlpListing', () => {
   it('is false when there are no session variants', () => {

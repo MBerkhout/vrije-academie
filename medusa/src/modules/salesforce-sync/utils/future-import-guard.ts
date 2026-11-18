@@ -28,7 +28,9 @@ export function shouldImportProductgroup(input: FutureImportGuardInput): boolean
   const now = Date.now()
 
   if (input.group.Latest_Product_Start_Date__c) {
-    return new Date(input.group.Latest_Product_Start_Date__c).getTime() >= now
+    const groupLatest = new Date(input.group.Latest_Product_Start_Date__c).getTime()
+    if (groupLatest >= now) return true
+    // Rollup can lag behind merged linked-online children — still evaluate child starts.
   }
 
   const childStarts = input.children

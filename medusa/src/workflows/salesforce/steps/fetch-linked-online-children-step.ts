@@ -1,7 +1,7 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import {
-  courseProductSalesforceFieldsForPull,
+  courseProductSalesforceSelectClause,
   SF_COURSE_PRODUCT_OBJECT,
 } from "../../../modules/salesforce-sync/mappings/course-product"
 import type { SfProductgroupShape } from "../../../modules/salesforce-sync/mappings/productgroup"
@@ -42,7 +42,7 @@ export const fetchLinkedOnlineChildrenSalesforceStep = createStep(
     const groupResult = await sync.query<Record<string, unknown>>(groupSoql)
     const linkedGroupRecord = groupResult.records[0] ?? null
 
-    const childFields = courseProductSalesforceFieldsForPull.join(",")
+    const childFields = courseProductSalesforceSelectClause()
     const childSoql = `SELECT ${childFields} FROM ${SF_COURSE_PRODUCT_OBJECT} WHERE Productgroup__c = '${linkedId.replace(/'/g, "\\'")}' ORDER BY Start_date_time__c ASC`
     const childResult = await sync.query<Record<string, unknown>>(childSoql)
 

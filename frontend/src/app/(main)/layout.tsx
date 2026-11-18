@@ -6,6 +6,7 @@ import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider'
 import { ListingReturnScroll } from '@/components/plp/ListingReturnScroll'
 import { JsonLd } from '@/components/common/JsonLd'
 import { buildOrganizationJsonLd, buildWebSiteJsonLd } from '@/lib/json-ld'
+import { ImpersonationBanner } from '@/components/account/ImpersonationBanner'
 
 /** Header/footer come from generalSettings; keep in sync with page ISR. */
 export const revalidate = 60
@@ -22,6 +23,7 @@ export default async function MainLayout({
       <AnalyticsProvider>
         <JsonLd data={buildOrganizationJsonLd(settings)} />
         <JsonLd data={buildWebSiteJsonLd()} />
+        <ImpersonationBanner />
         <Header settings={settings} />
         <ListingReturnScroll />
         <main className="min-h-screen has-[[data-compact-main]]:min-h-0">{children}</main>

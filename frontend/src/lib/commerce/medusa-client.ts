@@ -76,6 +76,11 @@ import {
   normalizeStoreCart,
 } from './normalize-store-money'
 import { vatPercentFromCartLike } from './vat'
+import {
+  clearImpersonationSession,
+  markImpersonationSessionActive,
+} from './impersonation'
+import { MEDUSA_JWT_STORAGE_KEY } from './medusa-jwt-storage'
 
 const CART_RETRIEVE_QUERY = {
   fields: [
@@ -230,9 +235,6 @@ function normalizeEventFacets(raw: unknown): EventFacets {
 
 const BACKEND_URL = getMedusaBackendUrl()
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_API_KEY ?? ''
-
-/** Must match @medusajs/js-sdk default when using jwt + local storage. */
-const MEDUSA_JWT_STORAGE_KEY = 'medusa_auth_token'
 
 function getStoredJwt(): string | null {
   if (typeof window === 'undefined') return null
@@ -1043,7 +1045,31 @@ export const medusaClient: CommerceClient = {
     return customerAfterToken(email)
   },
 
+  async exchangeImpersonation(code: string): Promise<Customer> {
+    const res = await storeFetch('/store/auth/impersonate/exchange', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error((data as { message?: string }).message ?? 'IMPERSONATION_FAILED')
+    }
+    const data = await res.json()
+    if (!data.token || typeof data.token !== 'string') {
+      throw new Error('IMPERSONATION_NO_TOKEN')
+    }
+    setStoredJwt(data.token)
+    markImpersonationSessionActive()
+    const customer = await retrieveAuthenticatedCustomer()
+    if (!customer) {
+      throw new Error('IMPERSONATION_CUSTOMER_LOAD_FAILED')
+    }
+    return customer
+  },
+
   async logout(): Promise<void> {
+    clearImpersonationSession()
     await medusa.auth.logout()
   },
 

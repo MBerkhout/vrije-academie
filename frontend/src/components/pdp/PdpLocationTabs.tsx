@@ -7,6 +7,10 @@ import { addVariantToCart } from '@/lib/commerce/cart'
 import { trackFilterChange } from '@/lib/analytics/events/ecommerce'
 import type { EventCard, EventInstructor, EventVariant } from '@/lib/commerce/types'
 import { PdpInstructorHoverCard } from '@/components/pdp/PdpInstructorHoverCard'
+import {
+  PdpSessionDatesHoverCard,
+  sessionDatesFromEventItem,
+} from '@/components/pdp/PdpSessionDatesHoverCard'
 import { resolveSessionInstructor } from '@/components/pdp/resolve-session-instructor'
 import type { GeneralSettings } from '@/lib/cms/types'
 import {
@@ -122,33 +126,44 @@ function filterVariantsByDeliveryAndCity(
   return [...onlineVariants, ...filteredOffline]
 }
 
-function sessionInstructorLabel(
-  eventItem: EventVariant['event_item'],
-  instructors: EventInstructor[],
-  featured?: EventInstructor | null
-): string | null {
+function sessionInstructorLabel(eventItem: EventVariant['event_item']): string | null {
+  return eventItem?.instructor_name?.trim() || null
+}
+
+function SessionDateCell({
+  eventItem,
+  className,
+}: {
+  eventItem: EventVariant['event_item']
+  className?: string
+}) {
+  const startAt = eventItem?.start_at
+  if (!startAt) return <span className={className}>—</span>
+  const label = formatDateWeekdayLong(startAt)
+  const dates = sessionDatesFromEventItem(eventItem)
   return (
-    eventItem?.instructor_name?.trim() ||
-    instructors[0]?.name?.trim() ||
-    featured?.name?.trim() ||
-    null
+    <PdpSessionDatesHoverCard
+      dates={dates}
+      primaryStartAt={startAt}
+      className={className}
+    >
+      {label}
+    </PdpSessionDatesHoverCard>
   )
 }
 
 function SessionInstructorName({
   eventItem,
   instructors,
-  featured,
   className,
 }: {
   eventItem: EventVariant['event_item']
   instructors: EventInstructor[]
-  featured?: EventInstructor | null
   className?: string
 }) {
-  const label = sessionInstructorLabel(eventItem, instructors, featured)
+  const label = sessionInstructorLabel(eventItem)
   if (!label) return <span className={className}>—</span>
-  const profile = resolveSessionInstructor(eventItem?.instructor_name, instructors, featured)
+  const profile = resolveSessionInstructor(eventItem?.instructor_name, instructors)
   return <PdpInstructorHoverCard name={label} instructor={profile} className={className} />
 }
 
@@ -512,7 +527,6 @@ export function PdpLocationTabs({
               const price = minVariantPriceCents(variant)
               const city = sessionCityLabel(ei, isOnline)
               const venue = sessionVenueLine(ei, isOnline)
-              const instructor = sessionInstructorLabel(ei, profiles, event.featured_instructor)
 
               return (
                 <li key={variant.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 py-6 text-sm">
@@ -527,21 +541,18 @@ export function PdpLocationTabs({
                         <p className="leading-snug text-va-gray">{venue}</p>
                       ) : null}
                       {showDate && ei?.start_at ? (
-                        <p className="text-va-black">{formatDateWeekdayLong(ei.start_at)}</p>
+                        <SessionDateCell eventItem={ei} className="text-va-black" />
                       ) : null}
                       {ei?.start_at ? (
                         <p className="text-va-gray">
                           {formatTimeRange(ei.start_at, ei.end_at, { separator: ' tot ' })}
                         </p>
                       ) : null}
-                      {instructor ? (
-                        <SessionInstructorName
-                          eventItem={ei}
-                          instructors={profiles}
-                          featured={event.featured_instructor}
-                          className="text-va-gray"
-                        />
-                      ) : null}
+                      <SessionInstructorName
+                        eventItem={ei}
+                        instructors={profiles}
+                        className="text-va-gray"
+                      />
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2 text-right">
@@ -609,7 +620,7 @@ export function PdpLocationTabs({
                       </td>
                       {showDate && (
                         <td className="py-4 pr-4 align-middle">
-                          {ei?.start_at ? formatDateWeekdayLong(ei.start_at) : '—'}
+                          {ei?.start_at ? <SessionDateCell eventItem={ei} /> : '—'}
                         </td>
                       )}
                       <td className="py-4 pr-4 align-middle text-va-gray">
@@ -619,7 +630,6 @@ export function PdpLocationTabs({
                         <SessionInstructorName
                           eventItem={ei}
                           instructors={profiles}
-                          featured={event.featured_instructor}
                         />
                       </td>
                       <td className="py-4 pr-4 align-middle font-medium">

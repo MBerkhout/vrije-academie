@@ -159,8 +159,11 @@ When `RESEND_API_KEY` is set, `medusa-config.ts` registers `src/providers/resend
 On the customer detail page in Medusa Admin (`/app/customers/:id`), the **Account access** widget lets staff:
 
 - View whether the customer has a password (`hasPassword`)
+- **Log in as customer** — opens the storefront in a new tab with a short-lived customer session (JWT ~1h) via a one-time handoff code (60s TTL, not emailed). Does **not** read or change the customer password. Confirm dialog warns that writes (wishlist, addresses, checkout) are real and may sync to Salesforce. Requires `STOREFRONT_PUBLIC_URL` in `medusa/.env` for the correct storefront origin (falls back to `https://v2.vrijeacademie.nl` when unset).
 - **Generate verification code** — creates a new 6-digit login OTP, shown once in Admin (not emailed). Customer uses it on the storefront OTP login flow. Same 1 hour TTL and verify-attempt limits as storefront login OTP; admin generation bypasses the storefront 3/15 min request cap.
 - **Reset password** — set a temporary password (default) or a custom password (min. 8 chars). Shown once in Admin. Clears any legacy Django hash.
+
+**Impersonation safety:** handoff code is single-use and stored hashed; JWT includes `app_metadata.impersonated_by` (admin user id). Impersonation sessions cannot refresh the token or call `set_password` / `set_password` OTP. Medusa logs `[impersonation] issue|exchange` with admin, customer and IP; optional `customer.metadata.last_impersonated_at` / `last_impersonated_by` on exchange. Storefront shows an amber banner and `POST /store/auth/impersonate/exchange` does not run Salesforce login sync.
 
 Admin API (authenticated admin session, same as other `/admin/*` routes):
 
@@ -168,7 +171,12 @@ Admin API (authenticated admin session, same as other `/admin/*` routes):
 |-------|--------|----------|
 | `/admin/customer-auth/:id` | GET | `{ email, hasPassword }` |
 | `/admin/customer-auth/:id/otp` | POST | `{ code, expires_at }` |
+| `/admin/customer-auth/:id/impersonate` | POST | `{ code, url, expires_at }` — `url` is storefront `/impersonate#code=…` |
 | `/admin/customer-auth/:id/reset-password` | POST | `{ password }` — body `{ password? }` optional |
+
+Store handoff (no admin auth):
+
+| `/store/auth/impersonate/exchange` | POST | `{ token }` — body `{ code }` |
 
 CLI fallback (ops / scripts):
 

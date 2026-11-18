@@ -6,6 +6,7 @@ import {
   GROQ_SANITY_IMAGE_FIELDS_WITH_DIMENSIONS,
   GROQ_SANITY_PERSON_PHOTO_FIELDS_WITH_URL,
 } from './groq-image-projection'
+import { GROQ_PORTABLE_TEXT_BLOCK } from './groq-portable-text-projection'
 import type { ProductSeoSource } from './seo-metadata'
 import type { SEO } from './types'
 
@@ -196,7 +197,7 @@ export const getCategoryBySlug = cache(async (slug: string): Promise<CategoryOpt
 
 // ── PDP editorial extras ──────────────────────────────────────────────────────
 
-const PT_BLOCK = `{ _type, _key, children[] { _key, _type, text, marks }, markDefs[] { _key, _type, href, buttonType, label, url }, listItem, style }`
+const PT_BLOCK = GROQ_PORTABLE_TEXT_BLOCK
 
 const PDP_BLOCK_LAYOUT = `"_id": coalesce(@._id, @._key),
     "marginTop": coalesce(@.layout.marginTop, "0"),

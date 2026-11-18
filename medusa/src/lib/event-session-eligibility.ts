@@ -69,6 +69,45 @@ export function futureOfflineSessionsForListing(
   return eventItems.filter((ei) => isFutureOfflineSession(ei, nowMs))
 }
 
+function futureOnlineSessionsForListing(
+  eventItems: EventItemListingRow[],
+  now: Date = new Date()
+): EventItemListingRow[] {
+  const nowMs = now.getTime()
+  return eventItems.filter((ei) => {
+    if (ei.delivery_type !== "online") return false
+    return isFutureSession(ei, nowMs)
+  })
+}
+
+function earliestStartAtFromSessions(
+  sessions: EventItemListingRow[]
+): string | null {
+  const starts = sessions
+    .map((ei) => ei.start_at)
+    .filter((start): start is string => Boolean(start))
+    .sort()
+  return starts[0] ?? null
+}
+
+/**
+ * Earliest future session start for PLP cards and sort=start_date.
+ * Prefers on-site sessions; falls back to live online when there is no future offline session.
+ * Ignores sessions without start_at (on-demand / VA Thuis).
+ */
+export function earliestStartAtForPlpListing(
+  eventItems: EventItemListingRow[],
+  now: Date = new Date()
+): string | null {
+  const offlineEarliest = earliestStartAtFromSessions(
+    futureOfflineSessionsForListing(eventItems, now)
+  )
+  if (offlineEarliest) return offlineEarliest
+  return earliestStartAtFromSessions(
+    futureOnlineSessionsForListing(eventItems, now)
+  )
+}
+
 /** Future bookable sessions (available_quantity > 0) for PLP listing aggregates. */
 export function futureAvailableSessionsForListing(
   eventItems: EventItemListingRow[],

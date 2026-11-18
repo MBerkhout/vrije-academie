@@ -1,10 +1,11 @@
 import type { SfCourseProductShape } from "../mappings/course-product"
 import type { SfProductgroupShape } from "../mappings/productgroup"
 import { stableStringify } from "./deep-equal"
+import { reservationFingerprintSlice } from "../mappings/course-product-reservation"
 import { courseProductRecordTypeDeveloperName } from "./visible-on-website"
 
 /** Bump when Medusa-side mapping changes (forces re-import / invalidates skip-unchanged). */
-export const MEDUSA_FACET_SYNC_VERSION = 5
+export const MEDUSA_FACET_SYNC_VERSION = 6
 
 const GROUP_FINGERPRINT_KEYS = [
   "Name",
@@ -63,6 +64,8 @@ const CHILD_FINGERPRINT_KEYS = [
   "Audience_Player_Article_Id__c",
   "External_Registration_URL_Product__c",
   "Visible_On_Website__c",
+  "Zoom_Link__c",
+  "Link_Zoom_Recording__c",
 ] as const
 
 function pickKeys<K extends string>(
@@ -89,6 +92,10 @@ export function productgroupImportFingerprint(
       .map((c) => ({
         ...pickKeys(c as Record<string, unknown>, CHILD_FINGERPRINT_KEYS),
         record_type: courseProductRecordTypeDeveloperName(c),
+        reservations: (c.Reservations__r as { records?: unknown[] } | undefined)?.records
+          ?.map((r) => reservationFingerprintSlice(r as Parameters<typeof reservationFingerprintSlice>[0]))
+          .filter(Boolean)
+          .sort((a, b) => String(a!.Id).localeCompare(String(b!.Id))),
       }))
       .sort((a, b) => String(a.Id).localeCompare(String(b.Id))),
   }

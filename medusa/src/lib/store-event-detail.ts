@@ -24,6 +24,10 @@ import {
   isVathuisUnlimitedAvailability,
   VATHUIS_UNLIMITED_AVAILABILITY,
 } from "./vathuis-availability"
+import {
+  publicSessionDatesByEventItemId,
+  stripPrivateEventItemFields,
+} from "./event-item-session-dates"
 
 export const EVENT_DETAIL_NOT_FOUND = "__404__"
 
@@ -47,35 +51,6 @@ function toStoreInstructor(docent: Record<string, unknown>): StoreInstructor {
     photo_url: typeof docent.photo_url === "string" ? docent.photo_url : null,
     bio: typeof docent.bio === "string" ? decodeHtmlEntities(docent.bio) : null,
   }
-}
-
-function resolveFeaturedInstructor(
-  productInstructors: StoreInstructor[],
-  sessionInstructors: StoreInstructor[],
-  variants: Record<string, unknown>[]
-): StoreInstructor | null {
-  if (productInstructors.length > 0) return productInstructors[0]
-
-  const sessionById = new Map(sessionInstructors.map((docent) => [docent.id, docent]))
-  const earliestDocentId = variants
-    .map((variant) => {
-      const eventItem = variant.event_item as Record<string, unknown> | undefined
-      const docentId = eventItem?.docent_id
-      if (typeof docentId !== "string" || !docentId) return null
-      return {
-        docentId,
-        startAt: typeof eventItem.start_at === "string" ? eventItem.start_at : null,
-      }
-    })
-    .filter(Boolean)
-    .sort((a, b) => {
-      const aTime = a!.startAt ? new Date(a!.startAt).getTime() : Number.POSITIVE_INFINITY
-      const bTime = b!.startAt ? new Date(b!.startAt).getTime() : Number.POSITIVE_INFINITY
-      return aTime - bTime
-    })[0]?.docentId
-
-  if (!earliestDocentId) return null
-  return sessionById.get(earliestDocentId) ?? null
 }
 
 function dayPart(startAt: string | null | undefined): string | null {
@@ -178,11 +153,6 @@ export async function buildStoreEventDetail(
   )
 
   const instructors = [...productInstructors, ...sessionInstructors]
-  const featuredInstructor = resolveFeaturedInstructor(
-    productInstructors,
-    sessionInstructors,
-    variants
-  )
   const highlightedTeacherSfId =
     typeof productMetadata?.salesforce_highlighted_teacher_id === "string"
       ? productMetadata.salesforce_highlighted_teacher_id.trim()
@@ -251,15 +221,32 @@ export async function buildStoreEventDetail(
         ? variants[0]
         : null
 
+  const sessionDatesByEventItemId = await publicSessionDatesByEventItemId(
+    scope,
+    eventItems.map((ei) => String(ei.id)).filter(Boolean)
+  )
+
   return {
     ...productFields,
     ...ctaFields,
     variants: variants.map((v) => {
       const eventItem = v.event_item as Record<string, unknown> | undefined
+      const strippedEventItem = eventItem ? stripPrivateEventItemFields(eventItem) : undefined
+      const sessionDates =
+        eventItem?.id != null ? sessionDatesByEventItemId.get(String(eventItem.id)) : undefined
       const normalizedEventItem =
-        unlimitedAvailability && eventItem
-          ? { ...eventItem, available_quantity: VATHUIS_UNLIMITED_AVAILABILITY }
-          : eventItem
+        unlimitedAvailability && strippedEventItem
+          ? {
+              ...strippedEventItem,
+              available_quantity: VATHUIS_UNLIMITED_AVAILABILITY,
+              ...(sessionDates?.length ? { dates: sessionDates } : {}),
+            }
+          : strippedEventItem
+            ? {
+                ...strippedEventItem,
+                ...(sessionDates?.length ? { dates: sessionDates } : {}),
+              }
+            : undefined
       const { metadata: variantMetadata, ...variantFields } = v as Record<string, unknown> & {
         metadata?: Record<string, unknown> | null
       }
@@ -282,7 +269,6 @@ export async function buildStoreEventDetail(
     has_free_trial_group: eventGroup?.has_free_trial ?? false,
     categories,
     instructors,
-    featured_instructor: featuredInstructor,
     highlighted_instructor: highlightedInstructor,
     cities,
     delivery_types: deliveryTypes,

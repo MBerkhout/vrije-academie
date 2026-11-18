@@ -1,3 +1,4 @@
+import { isSalesforceVisibleOnWebsite } from "../../../lib/salesforce-visible-on-website"
 import { stripHtmlToPlainText } from "../mappings/productgroup"
 import type SalesforceSyncModuleService from "../service"
 import { isUsablePhotoUrl } from "./photo-url"
@@ -14,6 +15,7 @@ export const TEACHER_ACCOUNT_FIELDS = [
   "PersonEmail",
   "PersonTitle",
   "Email__c",
+  "Visible_on_website__c",
 ] as const
 
 export type TeacherAccountProfile = {
@@ -24,6 +26,8 @@ export type TeacherAccountProfile = {
   role: string | null
   website: string | null
   email: string | null
+  /** False when Salesforce **Weergeven op de site** is unchecked. */
+  visibleOnWebsite: boolean
 }
 
 function firstUsablePhoto(...candidates: unknown[]): string | null {
@@ -33,6 +37,10 @@ function firstUsablePhoto(...candidates: unknown[]): string | null {
     }
   }
   return null
+}
+
+export function teacherVisibleOnWebsiteFromAccount(row: Record<string, unknown>): boolean {
+  return isSalesforceVisibleOnWebsite(row.Visible_on_website__c)
 }
 
 export function teacherBioFromAccount(row: Record<string, unknown>): string | null {
@@ -72,6 +80,7 @@ export async function fetchTeacherAccountProfile(
       role: typeof row.PersonTitle === "string" ? row.PersonTitle.trim() || null : null,
       website: typeof row.Website === "string" ? row.Website.trim() || null : null,
       email,
+      visibleOnWebsite: teacherVisibleOnWebsiteFromAccount(row),
     }
   } catch {
     return null

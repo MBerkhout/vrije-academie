@@ -87,6 +87,8 @@ export function CustomerAuthPanel(props: { customerId: string }) {
   const [resetBusy, setResetBusy] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetResult, setResetResult] = useState<string | null>(null)
+  const [impersonateOpen, setImpersonateOpen] = useState(false)
+  const [impersonateBusy, setImpersonateBusy] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -146,6 +148,26 @@ export function CustomerAuthPanel(props: { customerId: string }) {
     setResetResult(null)
   }
 
+  const startImpersonation = async () => {
+    setImpersonateBusy(true)
+    setError(null)
+    try {
+      const res = await fetch(`/admin/customer-auth/${customerId}/impersonate`, {
+        method: "POST",
+        credentials: "include",
+      })
+      const json = (await res.json()) as { url?: string; message?: string }
+      if (!res.ok || !json.url) {
+        setError(json.message ?? "Could not start impersonation")
+        return
+      }
+      window.open(json.url, "_blank", "noopener,noreferrer")
+      setImpersonateOpen(false)
+    } finally {
+      setImpersonateBusy(false)
+    }
+  }
+
   const submitReset = async () => {
     setResetBusy(true)
     setResetError(null)
@@ -179,7 +201,8 @@ export function CustomerAuthPanel(props: { customerId: string }) {
       <div className="flex flex-col gap-1">
         <Heading level="h2">Account access</Heading>
         <Text size="small" className="text-ui-fg-subtle">
-          Generate a one-time login code or reset the customer password for support.
+          Open the storefront as this customer, generate a one-time login code, or reset the password
+          for support.
         </Text>
       </div>
 
@@ -207,6 +230,14 @@ export function CustomerAuthPanel(props: { customerId: string }) {
           <div className="flex flex-wrap gap-2">
             <Button
               size="small"
+              variant="primary"
+              type="button"
+              onClick={() => setImpersonateOpen(true)}
+            >
+              Log in as customer
+            </Button>
+            <Button
+              size="small"
               variant="secondary"
               type="button"
               disabled={otpBusy}
@@ -228,6 +259,46 @@ export function CustomerAuthPanel(props: { customerId: string }) {
           ) : null}
         </>
       ) : null}
+
+      <Drawer open={impersonateOpen} onOpenChange={(open) => !open && setImpersonateOpen(false)}>
+        <Drawer.Content>
+          <Drawer.Header>
+            <Drawer.Title>Log in as customer</Drawer.Title>
+          </Drawer.Header>
+          <Drawer.Body>
+            <div className="flex flex-col gap-4">
+              <Text size="small" className="text-ui-fg-subtle">
+                Opens the storefront in a new tab with a short-lived session (about 1 hour). The
+                customer password is not changed. Changes you make (addresses, wishlist, checkout)
+                are real and may sync to Salesforce.
+              </Text>
+              <Text size="small" className="text-ui-fg-subtle">
+                Use a separate browser profile or incognito if you are logged into the storefront as
+                yourself — the customer session replaces the current one in that browser.
+              </Text>
+              <div className="flex gap-2">
+                <Button
+                  size="small"
+                  variant="primary"
+                  type="button"
+                  disabled={impersonateBusy}
+                  onClick={() => void startImpersonation()}
+                >
+                  {impersonateBusy ? "Opening…" : "Confirm and open storefront"}
+                </Button>
+                <Button
+                  size="small"
+                  variant="secondary"
+                  type="button"
+                  onClick={() => setImpersonateOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Drawer.Body>
+        </Drawer.Content>
+      </Drawer>
 
       <Drawer open={resetOpen} onOpenChange={(open) => !open && closeReset()}>
         <Drawer.Content>

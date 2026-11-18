@@ -115,6 +115,8 @@ Authenticated via `useCustomer()` (same Medusa JWT session as the header). Guest
 
 **Layout**: `src/app/(main)/mijn-account/layout.tsx` wraps routes in `MijnAccountShell` (`src/components/account/MijnAccountShell.tsx`): loading state, login prompt when logged out, otherwise a **left sidebar nav** (horizontal scroll below `lg`) and main content, with **logout** at the bottom of the sidebar (redirects to `/login`). On mobile/tablet, the nav keeps left alignment with the page container, **bleeds to the right viewport edge** (`max-lg:-mr-4`), adds **trailing space after the last tab** when scrolled (`max-lg:pr-4`), and uses **`scrollbar-va`**.
 
+**Admin impersonation**: Medusa Admin **Log in as customer** opens `/impersonate#code=…` (client page, `noindex`). The page exchanges the code via `POST /store/auth/impersonate/exchange`, stores the JWT in `localStorage`, sets `sessionStorage.va_impersonation_active`, and redirects to `/mijn-account`. `ImpersonationBanner` in the main layout shows while active; logout clears the flag and token. See `medusa/docs/CUSTOMER_AUTH.md`.
+
 **Routes**
 
 | Path | Purpose |

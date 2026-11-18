@@ -35,4 +35,8 @@ export const EventItem = model.define("event_item", {
   instructor_name: model.text().nullable(),
   /** Salesforce Account id for the teacher (`Account_Teacher__c` on `vaProduct__c`). */
   instructor_salesforce_id: model.text().nullable(),
+  /** WebinarGeek/Castr live link (`vaProduct__c.Zoom_Link__c`). Storefront-private until my-account. */
+  live_url: model.text().nullable(),
+  /** Watch-back link (`vaProduct__c.Link_Zoom_Recording__c`). Storefront-private until my-account. */
+  recording_url: model.text().nullable(),
 })

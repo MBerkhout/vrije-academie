@@ -41,6 +41,13 @@ export const productRowBlock = defineType({
       components: { input: createButtonSelectInput([...TITLE_SIZE_OPTIONS]) },
     }),
     defineField({
+      name: "introText",
+      title: "Introtext",
+      type: "portableText",
+      group: "content",
+      description: "Optional intro shown between the title and the product cards.",
+    }),
+    defineField({
       name: "sourceType",
       title: "Source",
       type: "string",

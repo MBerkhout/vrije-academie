@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  accountHasCompleteMailingAddress,
   contactFieldsFromMedusa,
+  contactMailingFieldsFromAddress,
   CUSTOMER_METADATA_KEYS,
   customerProfileFromSalesforce,
+  medusaAddressUsableForSalesforce,
+  personAccountAddressFieldsFromMedusaShape,
   personAccountFieldsFromMedusa,
   postalCodeToSalesforce,
   type MedusaCustomerShape,
@@ -39,6 +43,55 @@ describe("customer pull salutation", () => {
       Salutation__c: "Geachte heer/mevrouw",
     })
     expect(profile.metadata?.[CUSTOMER_METADATA_KEYS.salutation]).toBe("Geachte heer/mevrouw")
+  })
+})
+
+describe("order address helpers", () => {
+  const addr = {
+    address_1: "Keizersgracht 1",
+    postal_code: "1015aa",
+    city: "Amsterdam",
+    country_code: "nl",
+  }
+
+  it("personAccountAddressFieldsFromMedusaShape normalizes NL postcodes", () => {
+    const fields = personAccountAddressFieldsFromMedusaShape(addr)
+    expect(fields.PersonMailingPostalCode).toBe("1015AA")
+    expect(fields.PersonMailingStreet).toBe("Keizersgracht 1")
+    expect(fields.Same_account_address__c).toBe(true)
+  })
+
+  it("contactMailingFieldsFromAddress matches mailing subset", () => {
+    expect(contactMailingFieldsFromAddress(addr)).toEqual({
+      MailingStreet: "Keizersgracht 1",
+      MailingCity: "Amsterdam",
+      MailingPostalCode: "1015AA",
+      MailingCountry: "Netherlands",
+    })
+  })
+
+  it("medusaAddressUsableForSalesforce requires street and postal", () => {
+    expect(medusaAddressUsableForSalesforce(addr)).toBe(true)
+    expect(medusaAddressUsableForSalesforce({ address_1: "x" })).toBe(false)
+    expect(medusaAddressUsableForSalesforce(null)).toBe(false)
+  })
+
+  it("accountHasCompleteMailingAddress accepts PersonMailing or Billing fallbacks", () => {
+    expect(
+      accountHasCompleteMailingAddress({
+        PersonMailingStreet: "A",
+        PersonMailingCity: "B",
+        PersonMailingPostalCode: "1234AB",
+      })
+    ).toBe(true)
+    expect(
+      accountHasCompleteMailingAddress({
+        BillingStreet: "A",
+        BillingCity: "B",
+        BillingPostalCode: "1234AB",
+      })
+    ).toBe(true)
+    expect(accountHasCompleteMailingAddress({ PersonMailingStreet: "A" })).toBe(false)
   })
 })
 

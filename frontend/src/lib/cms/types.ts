@@ -191,6 +191,7 @@ export interface ProductRowBlock extends Block {
   _type: 'productRowBlock'
   title?: string
   titleSize?: 'h1' | 'h2' | 'h3' | 'h4'
+  introText?: PortableTextBlock[]
   sourceType?: 'handpicked' | 'automated' | 'personalized'
   products?: ProductRowProductRef[]
   automatedFeed?: 'bestsellers' | 'newest'

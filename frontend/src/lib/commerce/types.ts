@@ -78,8 +78,6 @@ export interface EventCard {
   tags?: { id: string; value: string }[]
   categories?: { id: string; slug: string; label: string }[]
   instructors?: EventInstructor[]
-  /** Product-linked docent or docent of the earliest future session (session table hover). */
-  featured_instructor?: EventInstructor | null
   /** Highlighted docent from Salesforce `Highlighted_Teacher__c` (PDP booking panel). */
   highlighted_instructor?: EventInstructor | null
   teachers?: { id: string; slug: string; name: string }[]
@@ -199,6 +197,8 @@ export interface EventVariant {
     /** Per-variant instructor from Salesforce child `Account_Teacher__c`. */
     instructor_name?: string | null
     instructor_salesforce_id?: string | null
+    /** All lesson dates for collegereeks (from Salesforce Reservations__r). PDP hover only. */
+    dates?: { start_at: string; end_at?: string | null }[]
   } | null
 }
 
@@ -508,6 +508,8 @@ export interface CommerceClient {
   joinWaitlist(handle: string, input: JoinWaitlistInput): Promise<void>
   getAuthStatus(): Promise<{ hasPassword: boolean }>
   login(email: string, password: string): Promise<Customer>
+  /** Admin handoff: exchange one-time code for a short-lived customer JWT. */
+  exchangeImpersonation(code: string): Promise<Customer>
   logout(): Promise<void>
   getCustomer(): Promise<Customer | null>
   register(input: RegisterInput): Promise<Customer>

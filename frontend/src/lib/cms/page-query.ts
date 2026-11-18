@@ -13,6 +13,7 @@ import {
   GROQ_SANITY_IMAGE_FIELDS_WITH_DIMENSIONS,
   GROQ_SANITY_PERSON_PHOTO_FIELDS,
 } from './groq-image-projection'
+import { GROQ_PORTABLE_TEXT_BLOCK } from './groq-portable-text-projection'
 
 /** Layout flattening for blocks stored inline on `page.blocks`. */
 const INLINE_PAGE_BLOCK_LAYOUT = `"_id": coalesce(@._id, @._key),
@@ -29,7 +30,7 @@ const INLINE_PAGE_BLOCK_LAYOUT = `"_id": coalesce(@._id, @._key),
         "backgroundColor": coalesce(@.layout.backgroundColor, "none"),
         "htmlAnchor": @.layout.htmlAnchor`
 
-const PT_BLOCK = `{ _type, _key, children[] { _key, _type, text, marks }, markDefs[] { _key, _type, href, buttonType, label, url }, listItem, style }`
+const PT_BLOCK = GROQ_PORTABLE_TEXT_BLOCK
 
 /** Resolved MP4 + poster for videoBlock (file assets need asset->). */
 const VIDEO_BLOCK_MEDIA = `videoFile { asset-> { url, mimeType } },
@@ -241,6 +242,7 @@ export const PAGE_QUERY = `*[_type == "page" && slug.current == $slug][0] {
       @._type == "productRowBlock" => {
         ...@,
         ${INLINE_PAGE_BLOCK_LAYOUT},
+        "introText": @.introText[] ${PT_BLOCK},
         "products": products[]-> { _id, handle, title }
       },
       @._type == "editorialCardsBlock" => {

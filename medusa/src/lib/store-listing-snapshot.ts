@@ -22,10 +22,13 @@ import {
   loadFacetEntitiesForEventItems,
   locationsByEventItemId,
   mergeCityRefsForProduct,
-  mergeDocentenForProduct,
+  isStorefrontActiveDocent,
+  docentenForEventItem,
+  listingDocentenForProduct,
   uniqueLocationsForVariants,
 } from "./event-item-facet-links"
 import {
+  earliestStartAtForPlpListing,
   futureAvailableSessionsForListing,
   futureOfflineSessionsForListing,
   filterVariantsWithFutureSessions,
@@ -298,7 +301,7 @@ export async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListi
   const docentByProduct: Record<string, unknown[]> = {}
   for (const row of docLinksAll ?? []) {
     const r = row as { product_id?: string; docent?: unknown }
-    if (!r.product_id || !r.docent) continue
+    if (!r.product_id || !r.docent || !isStorefrontActiveDocent(r.docent)) continue
     ;(docentByProduct[r.product_id] ??= []).push(r.docent)
   }
 
@@ -323,11 +326,10 @@ export async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListi
       listingNow
     )
 
-    const earliestStartAt =
-      futureOfflineItems
-        .map((ei) => (ei as { start_at?: string }).start_at)
-        .filter(Boolean)
-        .sort()[0] ?? null
+    const earliestStartAt = earliestStartAtForPlpListing(
+      eventItems as Parameters<typeof earliestStartAtForPlpListing>[0],
+      listingNow
+    )
 
     const cities = mergeCityRefsForProduct(
       uniqueCityRefsFromEventItems(futureOfflineItems, cityLabelMap),
@@ -378,7 +380,7 @@ export async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListi
       record_type: eventGroupByProduct[id]?.record_type ?? null,
       product_type: (p.type as { value?: string } | null | undefined)?.value ?? null,
       categories: categoryByProduct[id] ?? [],
-      docenten: mergeDocentenForProduct(
+      docenten: listingDocentenForProduct(
         docentByProduct[id] ?? [],
         variants as Array<{ event_item?: { id?: string } | null }>,
         docentByEventItem
@@ -486,11 +488,26 @@ export async function buildAgendaSnapshot(scope: MedusaContainer): Promise<Agend
   const docentByProduct: Record<string, unknown[]> = {}
   for (const row of docLinksAll ?? []) {
     const r = row as { product_id?: string; docent?: unknown }
-    if (!r.product_id || !r.docent) continue
+    if (!r.product_id || !r.docent || !isStorefrontActiveDocent(r.docent)) continue
     ;(docentByProduct[r.product_id] ??= []).push(r.docent)
   }
 
   const snapshotBuiltAt = Date.now()
+
+  const allAgendaVariants = (products ?? []).flatMap((product) => {
+    const p = product as Record<string, unknown>
+    return filterStorefrontVisibleVariants(
+      (p.variants ?? []) as Array<Record<string, unknown> & { metadata?: Record<string, unknown> | null }>
+    ).filter(
+      (v) =>
+        !isSalesforceExterneVerhuur(
+          p.title as string | undefined,
+          (v.title as string | undefined) ?? null,
+          eventGroupByProduct[p.id as string]?.record_type
+        )
+    )
+  })
+  const { docentById } = await loadFacetEntitiesForEventItems(scope, allAgendaVariants)
 
   const items = (products ?? []).flatMap((product) => {
     const p = product as Record<string, unknown>
@@ -505,7 +522,7 @@ export async function buildAgendaSnapshot(scope: MedusaContainer): Promise<Agend
         )
     )
     const categories = categoryByProduct[p.id as string] ?? []
-    const docenten = docentByProduct[p.id as string] ?? []
+    const productDocenten = docentByProduct[p.id as string] ?? []
     const productTagValues = ((p.tags ?? []) as { value?: string }[])
       .map((t) => (t?.value ?? "").toString())
       .filter(Boolean)
@@ -547,7 +564,11 @@ export async function buildAgendaSnapshot(scope: MedusaContainer): Promise<Agend
           record_type: eventGroupByProduct[p.id as string]?.record_type ?? null,
           product_type: (p.type as { value?: string } | null | undefined)?.value ?? null,
           categories,
-          docenten,
+          docenten: docentenForEventItem(
+            ei as { id?: string; docent_id?: string | null },
+            productDocenten,
+            docentById
+          ),
           tags: (Array.isArray(p.tags) ? p.tags : []) as unknown[],
           has_exclusief_tag: hasExclusiefTag,
           badge: ctaFields.badge,
@@ -738,7 +759,7 @@ export async function buildVathuisSnapshot(scope: MedusaContainer): Promise<Vath
   const docentByProduct: Record<string, unknown[]> = {}
   for (const row of docLinksAll ?? []) {
     const r = row as { product_id?: string; docent?: unknown }
-    if (!r.product_id || !r.docent) continue
+    if (!r.product_id || !r.docent || !isStorefrontActiveDocent(r.docent)) continue
     ;(docentByProduct[r.product_id] ??= []).push(r.docent)
   }
 
@@ -813,7 +834,7 @@ export async function loadPublishedVathuisProductRow(
     .filter((category): category is NonNullable<typeof category> => Boolean(category))
   const docenten = (docLinks ?? [])
     .map((row) => (row as { docent?: unknown }).docent)
-    .filter(Boolean)
+    .filter((docent): docent is NonNullable<typeof docent> => Boolean(docent) && isStorefrontActiveDocent(docent))
 
   return toVathuisListingRow(product, categories, docenten)
 }

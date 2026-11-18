@@ -1,11 +1,11 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-import {
-  SF_CONTACT_OBJECT,
-  SF_PERSON_ACCOUNT_OBJECT,
-  splitAccountPushFields,
-} from "../../../modules/salesforce-sync/mappings/customer"
+import { SF_CONTACT_OBJECT, SF_PERSON_ACCOUNT_OBJECT } from "../../../modules/salesforce-sync/mappings/customer"
 import { filterFieldsForConnectedOrg } from "../../../modules/salesforce-sync/utils/salesforce-describe-fields"
+import {
+  patchPersonAccountFields,
+  updateContactWithDuplicateRetry,
+} from "../../../modules/salesforce-sync/utils/patch-salesforce-person-address"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
 
 import type { PreparePushCustomerOutput } from "./prepare-push-customer-step"
@@ -16,52 +16,6 @@ export type PushCustomerToSalesforceOutput = {
   skipped: boolean
   salesforceContactId: string | null
   salesforceAccountId: string | null
-}
-
-async function updateAccountWithDuplicateRetry(
-  svc: InstanceType<typeof SalesforceSyncModuleService>,
-  accountId: string,
-  fields: Record<string, unknown>
-): Promise<void> {
-  if (Object.keys(fields).length === 0) return
-  try {
-    await svc.updateRecord(SF_PERSON_ACCOUNT_OBJECT, accountId, fields)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    if (!message.includes("DUPLICATES_DETECTED")) throw err
-    await svc.updateRecord(SF_PERSON_ACCOUNT_OBJECT, accountId, fields, {
-      allowDuplicateSave: true,
-    })
-  }
-}
-
-async function updateContactWithDuplicateRetry(
-  svc: InstanceType<typeof SalesforceSyncModuleService>,
-  contactId: string,
-  fields: Record<string, unknown>
-): Promise<void> {
-  if (Object.keys(fields).length === 0) return
-  try {
-    await svc.updateRecord(SF_CONTACT_OBJECT, contactId, fields)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    if (!message.includes("DUPLICATES_DETECTED")) throw err
-    await svc.updateRecord(SF_CONTACT_OBJECT, contactId, fields, {
-      allowDuplicateSave: true,
-    })
-  }
-}
-
-async function patchAccountFields(
-  svc: InstanceType<typeof SalesforceSyncModuleService>,
-  accountId: string,
-  accountFields: Record<string, unknown>
-): Promise<void> {
-  if (Object.keys(accountFields).length === 0) return
-
-  const { profileFields, addressFields } = splitAccountPushFields(accountFields)
-  await updateAccountWithDuplicateRetry(svc, accountId, profileFields)
-  await updateAccountWithDuplicateRetry(svc, accountId, addressFields)
 }
 
 export const pushCustomerToSalesforceStep = createStep(
@@ -105,7 +59,7 @@ export const pushCustomerToSalesforceStep = createStep(
       )
 
       if (linkedExisting && Object.keys(input.accountFields).length > 0) {
-        await patchAccountFields(svc, accountId, input.accountFields)
+        await patchPersonAccountFields(svc, accountId, input.accountFields)
       }
 
       if (Object.keys(input.contactFields).length > 0) {
@@ -128,7 +82,7 @@ export const pushCustomerToSalesforceStep = createStep(
     }
 
     if (Object.keys(input.accountFields).length > 0) {
-      await patchAccountFields(svc, accountId, input.accountFields)
+      await patchPersonAccountFields(svc, accountId, input.accountFields)
     }
     if (Object.keys(input.contactFields).length > 0) {
       await updateContactWithDuplicateRetry(svc, contactId, input.contactFields)

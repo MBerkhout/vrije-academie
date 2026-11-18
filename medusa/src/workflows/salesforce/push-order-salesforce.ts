@@ -11,6 +11,7 @@ import { markPushSuccessStep } from "./steps/mark-push-success-step"
 import { persistSalesforceOrderNumberStep } from "./steps/persist-salesforce-order-number-step"
 import { preparePushOrderStep } from "./steps/prepare-push-order-step"
 import { pushOrderHeaderSalesforceStep } from "./steps/push-order-header-salesforce-step"
+import { syncOrderAddressToPersonAccountStep } from "./steps/sync-order-address-to-person-account-step"
 import { pushOrderLinesSalesforceStep } from "./steps/push-order-lines-salesforce-step"
 import { pushOrderVouchersSalesforceStep } from "./steps/push-order-vouchers-salesforce-step"
 
@@ -29,12 +30,16 @@ export const pushOrderToSalesforceWorkflow = createWorkflow(
       }))
     )
 
-    const header = pushOrderHeaderSalesforceStep(
+    const customerWithAddress = syncOrderAddressToPersonAccountStep(
       transform({ prep, customer }, ({ prep, customer }) => ({ prep, customer }))
     )
 
+    const header = pushOrderHeaderSalesforceStep(
+      transform({ prep, customer: customerWithAddress }, ({ prep, customer }) => ({ prep, customer }))
+    )
+
     const lines = pushOrderLinesSalesforceStep(
-      transform({ prep, customer, header }, ({ prep, customer, header }) => ({
+      transform({ prep, customer: customerWithAddress, header }, ({ prep, customer, header }) => ({
         prep,
         customer,
         header,

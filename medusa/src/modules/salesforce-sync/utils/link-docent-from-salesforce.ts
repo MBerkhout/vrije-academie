@@ -119,6 +119,7 @@ type ResolvedTeacher = {
   bio: string | null
   photoUrl: string | null
   role: string
+  visibleOnWebsite?: boolean
 }
 
 export type DocentTeacherInput = {
@@ -127,6 +128,8 @@ export type DocentTeacherInput = {
   bio?: string | null
   photoUrl?: string | null
   role?: string | null
+  /** When set, drives Medusa `docent.is_active` (Salesforce Account Visible_on_website__c). */
+  visibleOnWebsite?: boolean
 }
 
 async function resolveTeacherForDocent(
@@ -153,6 +156,7 @@ async function resolveTeacherForDocent(
     bio: account.bio ?? base.bio,
     photoUrl: account.photoUrl ?? base.photoUrl,
     role: account.role?.trim() || "Docent",
+    visibleOnWebsite: account.visibleOnWebsite,
   }
 }
 
@@ -213,8 +217,10 @@ export async function ensureDocentFromSalesforceTeacher(
   const role = teacher.role?.trim() || "Docent"
   const bio = teacher.bio ?? null
   const photoUrl = teacher.photoUrl ?? null
+  const isActive = teacher.visibleOnWebsite ?? true
 
   let docentId = (await findDocentBySalesforceId(container, sync, teacher.salesforceId))?.id
+  let createdNew = false
 
   if (!docentId) {
     const slugBase = slugifyTeacher(teacher.name) || "docent"
@@ -233,16 +239,23 @@ export async function ensureDocentFromSalesforceTeacher(
         photo_url: photoUrl,
         bio,
         subject_tags: null,
+        is_active: isActive,
       })
       docentId = created?.id ?? null
+      createdNew = Boolean(docentId)
     }
-  } else {
+  }
+
+  if (docentId && !createdNew) {
     const existingDocent = await people.retrieveDocent(docentId)
+    const activeUnchanged =
+      teacher.visibleOnWebsite === undefined || existingDocent.is_active === isActive
     const docentUnchanged =
       existingDocent.name === teacher.name &&
       existingDocent.role === role &&
       (existingDocent.photo_url ?? null) === (photoUrl ?? null) &&
-      (existingDocent.bio ?? null) === (bio ?? null)
+      (existingDocent.bio ?? null) === (bio ?? null) &&
+      activeUnchanged
 
     if (!docentUnchanged) {
       await people.updateDocents({
@@ -251,6 +264,7 @@ export async function ensureDocentFromSalesforceTeacher(
         role,
         photo_url: photoUrl,
         bio,
+        ...(teacher.visibleOnWebsite !== undefined ? { is_active: isActive } : {}),
       })
     }
   }
@@ -287,6 +301,7 @@ export async function linkDocentFromSalesforce(
         bio: teacher.bio,
         photoUrl: teacher.photoUrl,
         role: teacher.role,
+        visibleOnWebsite: teacher.visibleOnWebsite,
       },
       importContext
     )

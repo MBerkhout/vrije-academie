@@ -14,8 +14,14 @@ function portableTextComponents(tone: 'default' | 'onDark') {
 
   return {
     marks: {
-      link: ({ value, children }: { value?: { href?: string }; children: React.ReactNode }) => {
-        const href = value?.href
+      link: ({
+        value,
+        children,
+      }: {
+        value?: { href?: string; externalUrl?: string }
+        children: React.ReactNode
+      }) => {
+        const href = value?.href ?? value?.externalUrl
         if (!href) return <span>{children}</span>
         const isExternal = href.startsWith('http')
         if (isExternal) {

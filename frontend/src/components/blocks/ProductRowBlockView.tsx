@@ -1,4 +1,5 @@
 import { BlockWrapper } from '@/components/cms/BlockWrapper'
+import { PortableText } from '@/components/cms/PortableText'
 import { Button } from '@/components/ui'
 import { PlpEventCard } from '@/components/plp/PlpEventCard'
 import {
@@ -33,6 +34,9 @@ export function ProductRowBlockView({ block, events, heading }: ProductRowBlockV
           <Tag className={cn(getTitleSizeClass(block.titleSize), 'font-sans font-bold text-va-black')}>
             {title}
           </Tag>
+        )}
+        {block.introText && block.introText.length > 0 && (
+          <PortableText value={block.introText} />
         )}
 
         <ProductRowCarousel ariaLabel={ariaLabel}>

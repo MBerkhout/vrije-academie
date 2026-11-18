@@ -1,7 +1,7 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import {
-  courseProductSalesforceFieldsForPull,
+  courseProductSalesforceSelectClause,
   SF_COURSE_PRODUCT_OBJECT,
 } from "../../../modules/salesforce-sync/mappings/course-product"
 import SalesforceSyncModuleService from "../../../modules/salesforce-sync/service"
@@ -16,7 +16,7 @@ export const fetchCourseProductsSalesforceStep = createStep(
     const sync = container.resolve("salesforceSync") as InstanceType<
       typeof SalesforceSyncModuleService
     >
-    const fields = courseProductSalesforceFieldsForPull.join(",")
+    const fields = courseProductSalesforceSelectClause()
     const soql = `SELECT ${fields} FROM ${SF_COURSE_PRODUCT_OBJECT} WHERE Productgroup__c = '${input.productgroupSalesforceId.replace(/'/g, "\\'")}' ORDER BY Start_date_time__c ASC`
     const q = await sync.query<Record<string, unknown>>(soql)
     return new StepResponse(q.records)

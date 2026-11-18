@@ -13,7 +13,12 @@ const THIRD_PARTY_FETCH_HOST =
 const MEDUSA_NETWORK_ERROR =
   /(Load failed|Failed to fetch|NetworkError when attempting to fetch resource).*medusa\.vrijeacademie\.nl/i
 
+/** Safari / mobile often surface aborted storefront→Medusa fetches as TypeErrors (not checkout). */
+const MEDUSA_NETWORK_IGNORE =
+  /^TypeError: (Load failed|Failed to fetch) \(medusa\.vrijeacademie\.nl\)$/i
+
 export const SENTRY_CLIENT_IGNORE_ERRORS: Array<string | RegExp> = [
+  MEDUSA_NETWORK_IGNORE,
   'ResizeObserver loop',
   'Non-Error promise rejection captured',
   /Tab not found/,
@@ -76,15 +81,9 @@ function shouldDropMedusaNetworkError(event: ErrorEvent, message: string): boole
   return false
 }
 
-function shouldDowngradeMedusaNetworkError(event: ErrorEvent, message: string): boolean {
-  if (!MEDUSA_NETWORK_ERROR.test(message)) return false
-  if (isCheckoutTransaction(event)) return false
-  return true
-}
-
 /**
  * Client-only `beforeSend` filter: drop third-party/GTM/extension noise and
- * downgrade benign Medusa fetch aborts to warning.
+ * benign Medusa fetch aborts (offline, tab hidden, navigation).
  */
 export function filterSentryEvent(event: ErrorEvent, hint: EventHint): ErrorEvent | null {
   const message = eventMessage(event, hint)
@@ -95,8 +94,8 @@ export function filterSentryEvent(event: ErrorEvent, hint: EventHint): ErrorEven
 
   if (shouldDropMedusaNetworkError(event, message)) return null
 
-  if (shouldDowngradeMedusaNetworkError(event, message)) {
-    return { ...event, level: 'warning' }
+  if (MEDUSA_NETWORK_ERROR.test(message) && !isCheckoutTransaction(event)) {
+    return null
   }
 
   return event

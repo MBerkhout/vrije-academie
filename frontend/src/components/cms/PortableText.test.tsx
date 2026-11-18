@@ -26,6 +26,38 @@ function numberBlocks(texts: string[]) {
   }))
 }
 
+describe('PortableText links', () => {
+  it('renders internal and external link marks', () => {
+    const { container } = render(
+      <PortableText
+        value={[
+          {
+            _type: 'block',
+            _key: 'b1',
+            style: 'normal',
+            children: [{ _type: 'span', _key: 's1', text: 'Rembrandt', marks: ['l1'] }],
+            markDefs: [{ _key: 'l1', _type: 'link', href: '/podcast-rembrandt-1656' }],
+          },
+          {
+            _type: 'block',
+            _key: 'b2',
+            style: 'normal',
+            children: [{ _type: 'span', _key: 's2', text: 'Spotify', marks: ['l2'] }],
+            markDefs: [
+              { _key: 'l2', _type: 'link', href: 'https://open.spotify.com/show/test' },
+            ],
+          },
+        ]}
+      />,
+    )
+
+    const internal = container.querySelector('a[href="/podcast-rembrandt-1656"]')
+    const external = container.querySelector('a[href="https://open.spotify.com/show/test"]')
+    expect(internal).toBeTruthy()
+    expect(external).toHaveAttribute('target', '_blank')
+  })
+})
+
 describe('PortableText lists', () => {
   it('keeps bullet markers outside wrapping text', () => {
     const { container } = render(

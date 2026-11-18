@@ -5,7 +5,11 @@ import { VaThuisFeaturedGrid } from '@/components/vathuis/VaThuisFeaturedGrid'
 
 async function resolveHandpickedEvents(block: VathuisProductRowBlockType) {
   const handles = (block.products ?? [])
-    .map((p) => (typeof p === 'object' && p?.handle ? p.handle.trim() : ''))
+    .map((p) => {
+      if (typeof p !== 'object' || !p?.handle) return ''
+      const cleaned = cleanBlockValue(p.handle)
+      return cleaned ? cleaned.trim() : ''
+    })
     .filter(Boolean)
   if (handles.length === 0) return []
 

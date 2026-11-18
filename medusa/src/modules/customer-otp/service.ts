@@ -1,5 +1,5 @@
 import { MedusaError, MedusaService } from "@medusajs/framework/utils"
-import { createHash, randomInt, timingSafeEqual } from "crypto"
+import { createHash, randomBytes, randomInt, timingSafeEqual } from "crypto"
 
 import { sendOtpEmail, type OtpPurpose } from "./lib/send-otp-email"
 import { otpTtlMs } from "./lib/otp-ttl"
@@ -7,6 +7,10 @@ import { CustomerOtpChallenge } from "./models/customer-otp-challenge"
 const MAX_REQUESTS_PER_WINDOW = 3
 const REQUEST_WINDOW_MS = 15 * 60 * 1000
 const MAX_VERIFY_ATTEMPTS = 5
+const MAX_IMPERSONATE_ISSUES_PER_ADMIN = 5
+
+export const IMPERSONATION_CHALLENGE_EMAIL_RE =
+  /^impersonate:([^:]+):by:(.+)$/
 
 function normalizeEmail(email: string): string {
   return email.toLowerCase().trim()
@@ -25,6 +29,25 @@ function codesMatch(storedHash: string, code: string): boolean {
 
 function generateCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0")
+}
+
+function generateImpersonationCode(): string {
+  return randomBytes(24).toString("base64url")
+}
+
+export function buildImpersonationChallengeEmail(
+  customerId: string,
+  adminUserId: string
+): string {
+  return `impersonate:${customerId}:by:${adminUserId}`
+}
+
+export function parseImpersonationChallengeEmail(
+  email: string
+): { customerId: string; adminUserId: string } | null {
+  const match = IMPERSONATION_CHALLENGE_EMAIL_RE.exec(email)
+  if (!match) return null
+  return { customerId: match[1], adminUserId: match[2] }
 }
 
 class CustomerOtpModuleService extends MedusaService({
@@ -131,6 +154,101 @@ class CustomerOtpModuleService extends MedusaService({
     }
 
     await this.deleteCustomerOtpChallenges(challenge.id)
+  }
+
+  /**
+   * Admin-issued one-time handoff code (not emailed). Stored under synthetic email key.
+   */
+  async createImpersonationChallenge(
+    customerId: string,
+    adminUserId: string
+  ): Promise<{ code: string; expires_at: string }> {
+    if (!customerId?.trim() || !adminUserId?.trim()) {
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, "customerId and adminUserId required")
+    }
+
+    const challengeEmail = buildImpersonationChallengeEmail(customerId.trim(), adminUserId.trim())
+    const since = new Date(Date.now() - REQUEST_WINDOW_MS)
+    const recent = await this.listCustomerOtpChallenges(
+      { purpose: "impersonate" as OtpPurpose },
+      { take: 50, order: { created_at: "DESC" } }
+    )
+    const adminSuffix = `:by:${adminUserId.trim()}`
+    const adminIssues = recent.filter(
+      (row) =>
+        (row.email?.endsWith(adminSuffix) ?? false) &&
+        row.created_at &&
+        new Date(row.created_at) >= since
+    ).length
+    if (adminIssues >= MAX_IMPERSONATE_ISSUES_PER_ADMIN) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "Too many impersonation codes requested. Try again later."
+      )
+    }
+
+    const code = generateImpersonationCode()
+    const expiresAt = new Date(Date.now() + otpTtlMs("impersonate"))
+
+    await this.createCustomerOtpChallenges({
+      email: challengeEmail,
+      code_hash: hashCode(code),
+      purpose: "impersonate",
+      expires_at: expiresAt,
+      attempts: 0,
+    })
+
+    return { code, expires_at: expiresAt.toISOString() }
+  }
+
+  /**
+   * Consumes a single impersonation handoff code and returns linked ids.
+   */
+  async exchangeImpersonationCode(
+    code: string
+  ): Promise<{ customerId: string; adminUserId: string }> {
+    const trimmed = code?.trim()
+    if (!trimmed) {
+      throw new MedusaError(MedusaError.Types.UNAUTHORIZED, "Invalid or expired code")
+    }
+
+    const since = new Date(Date.now() - otpTtlMs("impersonate") * 2)
+    const rows = await this.listCustomerOtpChallenges(
+      { purpose: "impersonate" as OtpPurpose },
+      { take: 30, order: { created_at: "DESC" } }
+    )
+
+    const candidates = rows.filter(
+      (row) => row.created_at && new Date(row.created_at) >= since
+    )
+
+    for (const challenge of candidates) {
+      if (new Date(challenge.expires_at) < new Date()) {
+        await this.deleteCustomerOtpChallenges(challenge.id)
+        continue
+      }
+
+      const attempts = Number(challenge.attempts ?? 0)
+      if (attempts >= MAX_VERIFY_ATTEMPTS) {
+        await this.deleteCustomerOtpChallenges(challenge.id)
+        continue
+      }
+
+      if (!codesMatch(challenge.code_hash, trimmed)) {
+        continue
+      }
+
+      const parsed = parseImpersonationChallengeEmail(challenge.email ?? "")
+      if (!parsed) {
+        await this.deleteCustomerOtpChallenges(challenge.id)
+        throw new MedusaError(MedusaError.Types.UNAUTHORIZED, "Invalid or expired code")
+      }
+
+      await this.deleteCustomerOtpChallenges(challenge.id)
+      return parsed
+    }
+
+    throw new MedusaError(MedusaError.Types.UNAUTHORIZED, "Invalid or expired code")
   }
 }
 

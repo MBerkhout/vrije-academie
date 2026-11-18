@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  earliestStartAtForPlpListing,
   futureSessionsForListing,
   productEligibleForPlpListing,
   productHasFutureAvailableSession,
@@ -58,5 +59,33 @@ describe("futureSessionsForListing", () => {
         { start_at: null },
       ])
     ).toEqual([{ start_at: future }, { start_at: null }])
+  })
+})
+
+describe("earliestStartAtForPlpListing", () => {
+  const later = new Date(Date.now() + 2 * 86_400_000).toISOString()
+
+  it("returns the earliest future online start when there are no offline sessions", () => {
+    expect(
+      earliestStartAtForPlpListing([
+        { delivery_type: "online", start_at: later },
+        { delivery_type: "online", start_at: future },
+      ])
+    ).toBe(future)
+  })
+
+  it("prefers future offline over online", () => {
+    expect(
+      earliestStartAtForPlpListing([
+        { delivery_type: "online", start_at: future },
+        { delivery_type: "offline", start_at: later },
+      ])
+    ).toBe(later)
+  })
+
+  it("returns null for online-only on-demand sessions without start_at", () => {
+    expect(
+      earliestStartAtForPlpListing([{ delivery_type: "online", start_at: null }])
+    ).toBeNull()
   })
 })

@@ -105,4 +105,44 @@ describe('PdpLocationTabs mobile session cards', () => {
     expect(online.children[1].textContent).toContain('Beschikbaar')
     expect(online.children[1].textContent).toContain('Direct inschrijven')
   })
+
+  it('shows an em dash when a session has no instructor_name (no product-docent fallback)', () => {
+    const offlineNoTeacher: EventVariant[] = [
+      variant({
+        id: 'var_utrecht',
+        title: 'Utrecht',
+        prices: [{ amount: 35500, currency_code: 'eur' }],
+        event_item: {
+          id: 'ei_utrecht',
+          delivery_type: 'offline',
+          available_quantity: 20,
+          capacity: 40,
+          start_at: '2027-01-28T19:00:00.000Z',
+          end_at: '2027-01-28T21:00:00.000Z',
+          city: 'Utrecht',
+          location_name: 'Vrije Academie',
+          is_free_trial: false,
+        },
+      }),
+    ]
+    const withProductDocent: EventCard = {
+      ...event,
+      instructors: [
+        {
+          id: 'doc_1',
+          slug: 'renout-robbertz',
+          name: 'Renout Robbertz',
+          role: 'Docent',
+          photo_url: null,
+          bio: null,
+        },
+      ],
+    }
+
+    render(<PdpLocationTabs event={withProductDocent} variants={offlineNoTeacher} settings={null} />)
+
+    const leftText = document.querySelectorAll('ul > li')[0].children[0].textContent ?? ''
+    expect(leftText).toContain('—')
+    expect(leftText).not.toContain('Renout Robbertz')
+  })
 })

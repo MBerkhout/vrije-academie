@@ -234,6 +234,55 @@ function applyMedusaAddressToAccountFields(
   fields.Same_account_address__c = true
 }
 
+/** Person Account address-only fields from a Medusa or order address shape. */
+export function personAccountAddressFieldsFromMedusaShape(
+  addr: MedusaCustomerAddressShape | null | undefined
+): Partial<SfPersonAccountPushShape> {
+  const fields: SfPersonAccountPushShape = {}
+  applyMedusaAddressToAccountFields(fields, addr)
+  return fields
+}
+
+/** Contact Mailing* fields from a Medusa or order address shape. */
+export function contactMailingFieldsFromAddress(
+  addr: MedusaCustomerAddressShape | null | undefined
+): Partial<SfContactPushShape> {
+  const fields: SfContactPushShape = {}
+  if (addr?.address_1?.trim()) fields.MailingStreet = addr.address_1.trim()
+  if (addr?.city?.trim()) fields.MailingCity = addr.city.trim()
+  const contactPostal = postalCodeToSalesforce(addr?.postal_code, addr?.country_code)
+  if (contactPostal) fields.MailingPostalCode = contactPostal
+  const country = medusaCountryToSalesforce(addr?.country_code)
+  if (country) fields.MailingCountry = country
+  return fields
+}
+
+/** Minimum fields required before pushing an address to Salesforce (checkout-aligned). */
+export function medusaAddressUsableForSalesforce(
+  addr: MedusaCustomerAddressShape | null | undefined
+): boolean {
+  return !!(addr?.address_1?.trim() && addr?.postal_code?.trim())
+}
+
+/** True when the Person Account already has street, city, and postal (PersonMailing or Billing/Shipping). */
+export function accountHasCompleteMailingAddress(
+  account: SfAccountAddressShape | null | undefined
+): boolean {
+  if (!account) return false
+  const street = firstTrimmed(
+    account.PersonMailingStreet,
+    account.BillingStreet,
+    account.ShippingStreet
+  )
+  const city = firstTrimmed(account.PersonMailingCity, account.BillingCity, account.ShippingCity)
+  const postal = firstTrimmed(
+    account.PersonMailingPostalCode,
+    account.BillingPostalCode,
+    account.ShippingPostalCode
+  )
+  return !!(street && city && postal)
+}
+
 /** Account field keys synced from the Medusa default shipping address. */
 export const ACCOUNT_ADDRESS_FIELD_KEYS = new Set([
   "PersonMailingStreet",
@@ -420,13 +469,7 @@ export function contactFieldsFromMedusa(c: MedusaCustomerShape): SfContactPushSh
     fields.MobilePhone = c.phone.trim()
     fields.Phone = c.phone.trim()
   }
-  const addr = c.address
-  if (addr?.address_1?.trim()) fields.MailingStreet = addr.address_1.trim()
-  if (addr?.city?.trim()) fields.MailingCity = addr.city.trim()
-  const contactPostal = postalCodeToSalesforce(addr?.postal_code, addr?.country_code)
-  if (contactPostal) fields.MailingPostalCode = contactPostal
-  const country = medusaCountryToSalesforce(addr?.country_code)
-  if (country) fields.MailingCountry = country
+  Object.assign(fields, contactMailingFieldsFromAddress(c.address))
 
   applyBirthdateFromMedusa(fields, meta, "contact")
 

@@ -132,20 +132,29 @@ export function locationsByEventItemId(
   return out
 }
 
-export function mergeDocentenForProduct(
-  productDocenten: unknown[],
-  variants: Array<{ event_item?: EventItemRow | null }>,
-  docentByEventItemId: Record<string, { slug: string; name: string }[]>
-): unknown[] {
-  const seen = new Set<string>()
-  const merged: unknown[] = []
+export function isStorefrontActiveDocent(docent: unknown): boolean {
+  return (docent as { is_active?: boolean }).is_active !== false
+}
 
+function activeProductDocenten(productDocenten: unknown[]): unknown[] {
+  const seen = new Set<string>()
+  const out: unknown[] = []
   for (const docent of productDocenten) {
+    if (!isStorefrontActiveDocent(docent)) continue
     const slug = (docent as { slug?: string }).slug
     if (!slug || seen.has(slug)) continue
     seen.add(slug)
-    merged.push(docent)
+    out.push(docent)
   }
+  return out
+}
+
+function sessionDocentenFromVariants(
+  variants: Array<{ event_item?: EventItemRow | null }>,
+  docentByEventItemId: Record<string, { slug: string; name: string }[]>
+): { slug: string; name: string }[] {
+  const seen = new Set<string>()
+  const merged: { slug: string; name: string }[] = []
 
   for (const variant of variants) {
     const eventItemId = variant.event_item?.id
@@ -158,6 +167,42 @@ export function mergeDocentenForProduct(
   }
 
   return merged
+}
+
+/**
+ * PLP listing docenten: instructors on the given variants (future sessions in snapshot).
+ * Product-level links apply only when no session has a `docent_id`.
+ */
+export function listingDocentenForProduct(
+  productDocenten: unknown[],
+  variants: Array<{ event_item?: EventItemRow | null }>,
+  docentByEventItemId: Record<string, { slug: string; name: string }[]>
+): unknown[] {
+  const fromSessions = sessionDocentenFromVariants(variants, docentByEventItemId)
+  if (fromSessions.length > 0) return fromSessions
+  return activeProductDocenten(productDocenten)
+}
+
+/** @deprecated Use listingDocentenForProduct for storefront listing rows. */
+export function mergeDocentenForProduct(
+  productDocenten: unknown[],
+  variants: Array<{ event_item?: EventItemRow | null }>,
+  docentByEventItemId: Record<string, { slug: string; name: string }[]>
+): unknown[] {
+  return listingDocentenForProduct(productDocenten, variants, docentByEventItemId)
+}
+
+/** Agenda occurrence: session instructor, else product-level fallback. */
+export function docentenForEventItem(
+  eventItem: EventItemRow | null | undefined,
+  productDocenten: unknown[],
+  docentById: Map<string, { slug: string; name: string }>
+): unknown[] {
+  if (eventItem?.docent_id) {
+    const sessionDocent = docentById.get(eventItem.docent_id)
+    if (sessionDocent) return [sessionDocent]
+  }
+  return activeProductDocenten(productDocenten)
 }
 
 export function uniqueLocationsForVariants(

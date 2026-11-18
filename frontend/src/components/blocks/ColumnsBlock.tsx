@@ -330,7 +330,7 @@ function ColumnProductCards({ col }: { col: ColumnItem }) {
           const product = typeof item === 'object' && item !== null ? item : null
           if (!product) return null
           const title = product.title?.trim()
-          const handle = product.handle?.trim()
+          const handle = cleanBlockValue(product.handle)?.trim()
           const href = handle
             ? productDetailPath(handle, { recordType: product.recordType })
             : '#'

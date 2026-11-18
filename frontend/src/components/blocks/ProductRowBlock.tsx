@@ -11,10 +11,16 @@ function hideWithoutUpcomingSessions(block: ProductRowBlockType): boolean {
   return block.hideWithoutUpcomingSessions !== false
 }
 
+function handleFromProductRef(p: unknown): string {
+  if (typeof p !== 'object' || !p || !('handle' in p)) return ''
+  const raw = (p as { handle?: string }).handle
+  if (!raw) return ''
+  const cleaned = cleanBlockValue(raw)
+  return cleaned ? cleaned.trim() : ''
+}
+
 async function resolveHandpickedEvents(block: ProductRowBlockType) {
-  const handles = (block.products ?? [])
-    .map((p) => (typeof p === 'object' && p?.handle ? p.handle.trim() : ''))
-    .filter(Boolean)
+  const handles = (block.products ?? []).map(handleFromProductRef).filter(Boolean)
   if (handles.length === 0) return []
 
   return resolveProductRowEvents(handles, {
