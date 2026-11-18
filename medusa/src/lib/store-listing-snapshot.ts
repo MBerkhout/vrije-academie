@@ -506,7 +506,7 @@ export async function buildAgendaSnapshot(scope: MedusaContainer): Promise<Agend
           eventGroupByProduct[p.id as string]?.record_type
         )
     )
-  })
+  }) as Array<{ event_item?: Record<string, unknown> | null }>
   const { docentById } = await loadFacetEntitiesForEventItems(scope, allAgendaVariants)
 
   const items = (products ?? []).flatMap((product) => {
