@@ -96,12 +96,13 @@ On the native category detail page (`/app/categories/:id`), the **Sanity** side 
 | `description` | `Product.description` | No |
 | `tags` | `Product.tags[].value` | No |
 | `categories` | category links | No |
-| `docenten` | docent links | No |
+| `docenten` | docents of **future** sessions (`EventItem.docent_id`) if any, else product docent links; inactive docents excluded (same rule as PLP teacher listing) | No |
 | `hasFreeTrial` | any `EventItem.is_free_trial` | No |
 | `priceFrom` | min variant price in **cents** (converted from Medusa major EUR units) | No |
 | `cities` | distinct `EventItem.city` values | No |
-| `startAt` | earliest `EventItem.start_at` across all variants (compared as timestamps, not strings) | No |
-| `lastStartAt` | latest `EventItem.start_at` across all variants (used with GROQ `now()` for docent listings) | No |
+| `startAt` | earliest `EventItem.start_at` across storefront-visible variants (compared as timestamps, not strings) | No |
+| `lastStartAt` | latest `EventItem.start_at` across storefront-visible variants (used with GROQ `now()` for docent listings) | No |
+| `medusaStatus` | `Product.status` (`published` / `draft`). Not `published` (e.g. hidden in Salesforce) = the PDP returns 404; Studio shows “NIET LIVE (404)” in the product list | No |
 | `hasOnDemandSession` | `true` when any variant’s event item has no `start_at` (counts as always upcoming, same as storefront `isFutureSession`) | No |
 
 After deploying these fields, run `npx medusa exec ./src/scripts/sync-sanity.ts -- --entity=products` so Persons **Only docenten with upcoming activities** uses `lastStartAt` (until then the storefront may fall back to `startAt`, which is less accurate when a product has both past and future sessions).

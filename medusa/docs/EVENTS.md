@@ -58,7 +58,7 @@ Module path: `src/modules/events/`. Links: `src/links/` (`product-event-group`, 
 
 ## `people` module
 
-- **`Docent`**: `slug`, `name`, `role`, `photo_url`, `bio`, `subject_tags` (jsonb). Slug is created from the name (e.g. `arianne-deligianis`); a 6-char Salesforce id suffix is added only on a name collision. To clean legacy `-sf-xxxxxx` slugs of existing docents (re-mirrors to Sanity): `npm run fix:docent-slugs` (dry run) and `npm run fix:docent-slugs -- --fix`. Old slug URLs/filters stop matching afterwards.
+- **`Docent`**: `slug`, `name`, `role`, `photo_url`, `bio`, `subject_tags` (jsonb). Slug is created from the name (e.g. `arianne-deligianis`); a 6-char Salesforce id suffix is added only on a name collision. The Salesforce import keeps the slug in step with the name (a slug made from an earlier/wrong name such as `camus` for "Annette van der Elst" is regenerated on the next import). To clean existing docents at once — legacy `-sf-xxxxxx` suffixes and slugs that do not match the name (re-mirrors to Sanity): `npm run fix:docent-slugs` (dry run) and `npm run fix:docent-slugs -- --fix`. Old slug URLs/filters stop matching afterwards. `GET /store/events/:handle` computes `earliest_start_at` by timestamp (not string sort).
 - Links: `product_product_people_docent` (Product ↔ Docent, many-to-many via pivot).
 - Admin: `/admin/people/docenten` (CRUD), `/admin/people/product-groups/:productId/docenten` (attach/detach).
 

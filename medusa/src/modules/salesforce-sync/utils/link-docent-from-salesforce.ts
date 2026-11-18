@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
+import { isDocentSlugInSync, pickDocentSlug, slugifyDocentName } from "../../../lib/docent-slug"
 import productDocentenLink from "../../../links/product-docenten"
 import PeopleModuleService from "../../people/service"
 import type { SfCourseProductShape } from "../mappings/course-product"
@@ -23,15 +24,6 @@ function extractImgSrcFromHtml(html: string | null | undefined): string | null {
   const src = match?.[1]?.trim()
   if (!src || src === " " || src === "/img/msg_icons/confirm16.png") return null
   return isUsablePhotoUrl(src) ? src : null
-}
-
-function slugifyTeacher(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
 }
 
 /** Capitalized words only — keyword match uses /i, name capture does not (JS /i makes [A-Z] match lowercase). */
@@ -223,7 +215,7 @@ export async function ensureDocentFromSalesforceTeacher(
   let createdNew = false
 
   if (!docentId) {
-    const slugBase = slugifyTeacher(teacher.name) || "docent"
+    const slugBase = slugifyDocentName(teacher.name) || "docent"
     // Clean slug first; only add a short Salesforce id suffix when another docent already uses it.
     const suffixed = `${slugBase}-${teacher.salesforceId.slice(-6).toLowerCase()}`
     const [baseTaken] = await people.listDocents({ slug: slugBase }, { take: 1 })
@@ -257,9 +249,22 @@ export async function ensureDocentFromSalesforceTeacher(
       (existingDocent.bio ?? null) === (bio ?? null) &&
       activeUnchanged
 
-    if (!docentUnchanged) {
+    // Keep the URL slug in step with the name (a slug created from an earlier/incorrect name
+    // such as `camus` for "Annette van der Elst" is otherwise never corrected).
+    let nextSlug: string | undefined
+    if (!isDocentSlugInSync(existingDocent.slug, teacher.name)) {
+      const taken = new Set(
+        (await people.listDocents({}, { take: null }))
+          .filter((d) => d.id !== docentId)
+          .map((d) => d.slug)
+      )
+      nextSlug = pickDocentSlug(teacher.name, teacher.salesforceId, (s) => taken.has(s))
+    }
+
+    if (!docentUnchanged || nextSlug) {
       await people.updateDocents({
         id: docentId,
+        ...(nextSlug ? { slug: nextSlug } : {}),
         name: teacher.name,
         role,
         photo_url: photoUrl,

@@ -79,7 +79,7 @@ Pages, categories, and products use a lightweight **`seo`** object type defined 
 | `page` | `seo` | CMS pages, homepage, PLP wrapper, VA Thuis landing |
 | `category` | `seo` (SEO tab) | Preserved on Medusa sync |
 | `product` | `seo` (Editorial group) | Optional PDP override; mirror `seoTitle` / `seoDescription` from Salesforce remain read-only |
-| `product` | `isLinkedOnlineSlave`, `canonicalParentHandle` (Mirror group) | Medusa sync: linked-online slave flag and parent handle for storefront canonical/sitemap rules |
+| `product` | `medusaStatus`, `isLinkedOnlineSlave`, `canonicalParentHandle` (Mirror group) | Medusa sync: linked-online slave flag and parent handle for storefront canonical/sitemap rules |
 | `city` | `seo` | Optional SEO for `/ons-aanbod/plaats/{slug}`; `noIndex` excludes from sitemap |
 
 **Structured data enrichment** (General settings → **Organization**): optional `legalName`, `logo`, `telephone`, `email`, `sameAs` for Schema.org `Organization` JSON-LD (footer contact/social used as fallbacks).

@@ -1,36 +1,41 @@
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+import { isDocentSlugInSync, pickDocentSlug } from "../lib/docent-slug"
 import type PeopleModuleService from "../modules/people/service"
 import { mirrorDocent } from "../modules/sanity-sync/service"
 
 /**
- * Removes the legacy `-sf-xxxxxx` suffix from docent slugs (`arianne-deligianis-sf-mhuaar` -> `arianne-deligianis`).
- * If several docents share the same base slug, the first keeps it and the rest get `-xxxxxx` (no `sf-`).
+ * Makes docent slugs follow the docent name again.
+ *   - legacy `-sf-xxxxxx` suffix is dropped (`arianne-deligianis-sf-mhuaar` -> `arianne-deligianis`)
+ *   - slugs created from an earlier/incorrect name are regenerated
+ *     (`camus` -> `annette-van-der-elst` for "Annette van der Elst")
+ * On a clash the first docent keeps the clean slug, the rest get a short `-xxxxxx` id suffix.
  * Updated docents are re-mirrored to Sanity.
  *
  * Usage:
  *   npx medusa exec ./src/scripts/fix-docent-slugs.ts          # report only
  *   npx medusa exec ./src/scripts/fix-docent-slugs.ts -- --fix # apply
  */
-const LEGACY = /^(.*)-sf-([a-z0-9]{6})$/
-
 export default async function fixDocentSlugs({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const people = container.resolve("people") as InstanceType<typeof PeopleModuleService>
   const apply = process.argv.includes("--fix")
 
   const docents = await people.listDocents({}, { take: null })
-  const taken = new Set(docents.filter((d) => !LEGACY.test(d.slug)).map((d) => d.slug))
+  const outOfSync = docents
+    .filter((d) => !isDocentSlugInSync(d.slug, d.name))
+    .sort((a, b) => a.slug.localeCompare(b.slug))
+  const outOfSyncIds = new Set(outOfSync.map((d) => d.id))
+
+  // Slugs that stay as they are are reserved; fixed docents claim theirs one by one.
+  const taken = new Set(docents.filter((d) => !outOfSyncIds.has(d.id)).map((d) => d.slug))
 
   const changes: { id: string; from: string; to: string }[] = []
-  for (const d of docents.filter((d) => LEGACY.test(d.slug)).sort((a, b) => a.slug.localeCompare(b.slug))) {
-    const [, base, suffix] = d.slug.match(LEGACY)!
-    let to = base
-    if (taken.has(to)) to = `${base}-${suffix}`
-    if (taken.has(to)) continue
+  for (const d of outOfSync) {
+    const to = pickDocentSlug(d.name, d.id, (slug) => taken.has(slug))
     taken.add(to)
-    changes.push({ id: d.id, from: d.slug, to })
+    if (to !== d.slug) changes.push({ id: d.id, from: d.slug, to })
   }
 
   for (const c of changes) logger.info(`[fix-docent-slugs] ${c.id}: ${c.from} -> ${c.to}`)

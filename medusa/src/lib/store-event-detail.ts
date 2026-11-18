@@ -161,11 +161,14 @@ export async function buildStoreEventDetail(
     highlightedTeacherSfId && productInstructors.length > 0 ? productInstructors[0] : null
   const eventItems = variants.map((v) => v.event_item).filter(Boolean) as Record<string, unknown>[]
 
-  const earliestStartAt =
-    eventItems
-      .map((ei) => ei.start_at)
-      .filter(Boolean)
-      .sort()[0] ?? null
+  // start_at may be a Date (query.graph): compare timestamps, never default string sort
+  // (Date#toString sorts by weekday name first, e.g. "Fri Jun 25" < "Tue Feb 16").
+  const startTimes = eventItems
+    .map((ei) => (ei.start_at ? new Date(ei.start_at as string | Date).getTime() : NaN))
+    .filter((t) => Number.isFinite(t))
+  const earliestStartAt = startTimes.length
+    ? new Date(Math.min(...startTimes)).toISOString()
+    : null
 
   const cities = [...new Set(eventItems.map((ei) => ei.city).filter(Boolean))] as string[]
   const deliveryTypes = [

@@ -29,6 +29,8 @@ export type MirrorProductInput = {
   imported_body_blocks?: Record<string, unknown>[]
   is_linked_online_slave?: boolean
   canonical_parent_handle?: string | null
+  /** Medusa product status; anything but `published` is a 404 on the storefront. */
+  status?: string | null
 }
 
 export type ExistingProductEditorial = {
@@ -159,6 +161,7 @@ export function buildProductMirrorDoc(
     externalRegistrationUrl: product.external_registration_url ?? null,
     isLinkedOnlineSlave: product.is_linked_online_slave ?? false,
     canonicalParentHandle: product.canonical_parent_handle ?? null,
+    medusaStatus: product.status ?? null,
   }
 
   const owned = existing?.pageBodyOwnedBySanity === true
@@ -211,6 +214,7 @@ export function productMirrorDocChanged(
     "externalRegistrationUrl",
     "isLinkedOnlineSlave",
     "canonicalParentHandle",
+    "medusaStatus",
     "pageBodyOwnedBySanity",
     "onlineBadge",
     "customUrgencyMessage",
@@ -253,6 +257,7 @@ export const SANITY_PRODUCT_BATCH_FETCH_FIELDS = `
   externalRegistrationUrl,
   isLinkedOnlineSlave,
   canonicalParentHandle,
+  medusaStatus,
   pageBodyOwnedBySanity,
   onlineBadge,
   customUrgencyMessage,

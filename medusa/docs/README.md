@@ -77,7 +77,7 @@ npm run cache:flush
 
 Use the same `REDIS_URL` as the running server. Does not delete Medusa workflow/job keys. Also POSTs the optional storefront PLP revalidate webhook when `STOREFRONT_REVALIDATE_PLP_URL` is set.
 
-Listing snapshots: **`medusa-worker`** job `refresh-store-listing-snapshots` rebuilds PLP/Agenda/VA Thuis/registration counts when a slot is **dirty** or older than `LISTING_CACHE_TTL_SEC` (default 120). Catalog invalidation sets Redis dirty flags (no 10 MB blob rewrite). API processes serve from **in-memory** snapshots and only re-fetch the Redis blob when `:built_at` changes. PDP detail uses `EVENT_DETAIL_CACHE_TTL_SEC` (default 86400) with explicit invalidation on product change. A cached PDP 404 (`__404__`) is rebuilt on the next request when the handle is marked dirty, so a hidden-then-republished product goes live immediately. Logs: `"tag":"listing-cache"` (`hit` / `miss` on API cold start, `rebuild` on worker); set `LISTING_CACHE_LOG_HITS=true` to log hits.
+Listing snapshots: **`medusa-worker`** job `refresh-store-listing-snapshots` rebuilds PLP/Agenda/VA Thuis/registration counts when a slot is **dirty** or older than `LISTING_CACHE_TTL_SEC` (default 120). Catalog invalidation sets Redis dirty flags (no 10 MB blob rewrite). API processes serve from **in-memory** snapshots and only re-fetch the Redis blob when `:built_at` changes. PDP detail uses `EVENT_DETAIL_CACHE_TTL_SEC` (default 86400) with explicit invalidation on product change. A cached PDP 404 (`__404__`) is rebuilt on the next request when the handle is marked dirty **or** the negative entry is older than 60 s (`EVENT_DETAIL_NEGATIVE_CACHE_SEC`), so a hidden-then-republished product goes live immediately. Logs: `"tag":"listing-cache"` (`hit` / `miss` on API cold start, `rebuild` on worker); set `LISTING_CACHE_LOG_HITS=true` to log hits.
 
 **Performance observability:** slow `/store/*` requests log as `"tag":"store-slow"`; subscribers log `"tag":"subscriber-perf"` when ≥ 200 ms and `"tag":"subscriber-perf-minute"` rollups. On the server: `npm run perf:sampler` (see [docs/DEPLOYMENT.md](../../docs/DEPLOYMENT.md) § Performance & caching).
 
@@ -129,6 +129,10 @@ npx medusa exec ./src/scripts/backfill-cities.ts
 ```
 
 Store filter param `city[]` expects a **slug**. Facets return `{ slug, label, count }`.
+
+## Diagnose a product handle (404 / no sessions)
+
+`npx medusa exec ./src/scripts/diagnose-product-handles.ts -- --handles=a,b` prints product status, every variant (Salesforce visibility, future/past, start, quantity, instructor) and the linked docents. A product that is not `published`, or has only hidden/past variants, 404s or shows no sessions by design. Add `--fix` to rebuild the PDP cache and re-sync the Sanity mirror.
 
 ## Docent cleanup (duplicates)
 

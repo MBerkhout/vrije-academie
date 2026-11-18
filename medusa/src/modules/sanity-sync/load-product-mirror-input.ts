@@ -17,6 +17,9 @@ import {
   slaveMirrorSeoFields,
 } from "./resolve-slave-canonical-parent"
 import { isLinkedOnlineSlaveProduct } from "../../lib/store-listing-eligibility"
+import { isStorefrontVisibleVariant } from "../../lib/salesforce-visible-on-website"
+import { isFutureSession } from "../../lib/event-session-eligibility"
+import type PeopleModuleService from "../people/service"
 
 export async function loadProductMirrorInputs(
   productIds: string[],
@@ -40,6 +43,7 @@ export async function loadProductMirrorInputs(
           "handle",
           "description",
           "thumbnail",
+          "status",
           "metadata",
           "images.*",
           "tags.*",
@@ -99,6 +103,23 @@ export async function loadProductMirrorInputs(
     docentenByProduct.set(productId, list)
   }
 
+  // Session-level instructors (event_item.docent_id) replace product-level docenten on the PLP
+  // teacher listing, so the mirror must follow the same rule or teacher pages show "0 activiteiten".
+  const sessionDocentIds = new Set<string>()
+  for (const product of (products ?? []) as Record<string, unknown>[]) {
+    for (const v of (product.variants ?? []) as Record<string, unknown>[]) {
+      const ei = v.event_item as { docent_id?: string | null } | null | undefined
+      if (ei?.docent_id) sessionDocentIds.add(ei.docent_id)
+    }
+  }
+  const people = container.resolve("people") as InstanceType<typeof PeopleModuleService>
+  const sessionDocentById = new Map<string, Record<string, unknown>>()
+  if (sessionDocentIds.size) {
+    for (const d of await people.listDocents({ id: [...sessionDocentIds] })) {
+      if (d.is_active !== false) sessionDocentById.set(d.id, d as unknown as Record<string, unknown>)
+    }
+  }
+
   const recordTypeByProduct = new Map<string, string | undefined>()
   for (const row of groupLinks ?? []) {
     const productId = (row as { product_id?: string }).product_id
@@ -123,6 +144,7 @@ export async function loadProductMirrorInputs(
 
     const variants = (product.variants ?? []) as Record<string, unknown>[]
     const eventItems = variants
+      .filter((v) => isStorefrontVisibleVariant(v as { metadata?: Record<string, unknown> | null }))
       .map((v) => v.event_item)
       .filter((ei): ei is Record<string, unknown> => !!ei && typeof ei === "object")
     // start_at may be a Date (query.graph) — compare by time, never by default string sort
@@ -136,6 +158,15 @@ export async function loadProductMirrorInputs(
     const latestStartAt = startTimes.length
       ? new Date(Math.max(...startTimes)).toISOString()
       : null
+    const futureSessionDocents = new Map<string, Record<string, unknown>>()
+    for (const ei of eventItems) {
+      if (!isFutureSession(ei as { start_at?: string | null })) continue
+      const d = sessionDocentById.get(ei.docent_id as string)
+      if (d) futureSessionDocents.set(d.id as string, d)
+    }
+    const productDocenten = futureSessionDocents.size
+      ? [...futureSessionDocents.values()]
+      : (docentenByProduct.get(productId) ?? [])
     const hasOnDemandSession = eventItems.some((ei) => !ei.start_at)
     const cities = [
       ...new Set(eventItems.map((ei) => ei.city).filter(Boolean)),
@@ -180,7 +211,7 @@ export async function loadProductMirrorInputs(
       description: (product.description as string | null | undefined) ?? null,
       tags: (product.tags ?? []) as { value: string }[],
       categories: categoriesByProduct.get(productId) ?? [],
-      docenten: (docentenByProduct.get(productId) ?? []) as {
+      docenten: productDocenten as {
         id: string
         slug: string
         name: string
@@ -200,6 +231,7 @@ export async function loadProductMirrorInputs(
       imported_body_blocks: importedBodyBlocks,
       is_linked_online_slave: slaveSeo.is_linked_online_slave,
       canonical_parent_handle: slaveSeo.canonical_parent_handle,
+      status: (product.status as string | null | undefined) ?? null,
     })
   }
 

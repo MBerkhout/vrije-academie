@@ -4,7 +4,10 @@ import {
   buildStoreEventDetail,
   EVENT_DETAIL_NOT_FOUND,
 } from "./store-event-detail"
-import { shouldRebuildEventDetail } from "./listing-cache-config"
+import {
+  EVENT_DETAIL_NEGATIVE_CACHE_SEC,
+  shouldRebuildEventDetail,
+} from "./listing-cache-config"
 import { revalidateStorefrontPdpHandles } from "./storefront-revalidate"
 import {
   clearEventDetailDirty,
@@ -121,8 +124,11 @@ export async function getCachedStoreEventDetail(
   ])
 
   if (cached === EVENT_DETAIL_NOT_FOUND) {
-    // A dirty flag means the product changed since the 404 was cached (e.g. republished): rebuild now.
-    if (dirty) return buildBlocking(scope, handle)
+    // A 404 is only trusted briefly: rebuild when flagged dirty (product changed / republished)
+    // or when the negative entry is older than EVENT_DETAIL_NEGATIVE_CACHE_SEC.
+    const negativeExpired =
+      builtAt == null || Date.now() - builtAt >= EVENT_DETAIL_NEGATIVE_CACHE_SEC * 1000
+    if (dirty || negativeExpired) return buildBlocking(scope, handle)
     return null
   }
 

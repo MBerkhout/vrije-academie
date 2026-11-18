@@ -280,13 +280,28 @@ export const product = defineType({
       description:
         "Parent hybrid product handle for SEO canonical when isLinkedOnlineSlave is true. Set by Medusa sync.",
     }),
+    defineField({
+      name: "medusaStatus",
+      title: "Medusa status",
+      type: "string",
+      group: "mirror",
+      readOnly: true,
+      description:
+        "Storefront status in Medusa. Anything other than “published” (e.g. hidden in Salesforce) returns a 404 on the live site. Set by Medusa sync.",
+    }),
   ],
   preview: {
-    select: { title: "title", recordType: "recordType", medusaId: "medusaId" },
-    prepare({ title, recordType, medusaId }) {
+    select: {
+      title: "title",
+      recordType: "recordType",
+      medusaId: "medusaId",
+      medusaStatus: "medusaStatus",
+    },
+    prepare({ title, recordType, medusaId, medusaStatus }) {
+      const notLive = medusaStatus && medusaStatus !== "published" ? "NIET LIVE (404)" : null
       return {
         title: title || "Product",
-        subtitle: [recordType, medusaId ? `medusa:${medusaId.slice(0, 12)}…` : null]
+        subtitle: [notLive, recordType, medusaId ? `medusa:${medusaId.slice(0, 12)}…` : null]
           .filter(Boolean)
           .join(" · "),
       }
