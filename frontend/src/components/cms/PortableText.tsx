@@ -3,6 +3,7 @@
 import { PortableText as BasePortableText, type PortableTextBlock } from '@portabletext/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui'
+import { cleanBlockValue } from '@/lib/cms'
 import { cn } from '@/lib/utils'
 
 function portableTextComponents(tone: 'default' | 'onDark') {
@@ -18,10 +19,18 @@ function portableTextComponents(tone: 'default' | 'onDark') {
         value,
         children,
       }: {
-        value?: { href?: string; externalUrl?: string }
+        value?: {
+          href?: string
+          externalUrl?: string
+          internalRef?: { slug?: { current?: string } }
+        }
         children: React.ReactNode
       }) => {
-        const href = value?.href ?? value?.externalUrl
+        const slug = cleanBlockValue(value?.internalRef?.slug?.current)
+        const href =
+          cleanBlockValue(value?.href) ??
+          cleanBlockValue(value?.externalUrl) ??
+          (slug ? `/${slug.replace(/^\//, '')}` : undefined)
         if (!href) return <span>{children}</span>
         const isExternal = href.startsWith('http')
         if (isExternal) {

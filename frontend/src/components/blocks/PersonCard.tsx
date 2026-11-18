@@ -1,12 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useId, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { getTitleSizeClass } from '@/lib/cms'
 import { lockBodyScroll } from '@/lib/body-scroll-lock'
 import { cn } from '@/lib/utils'
+
+const BIO_PANEL_WIDTH = 300
+const BIO_PANEL_MAX_HEIGHT = 280
+const VIEWPORT_PAD = 12
 
 function isRenderablePhotoUrl(url: string | null | undefined): url is string {
   return !!url && /^https?:\/\//i.test(url)
@@ -64,13 +68,85 @@ function PersonPhoto({ person }: { person: PersonCardPerson }) {
   )
 }
 
+function isDesktopHover() {
+  return typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
+}
+
 export function PersonCard({ person, showBio, listingHref, listingLabel }: PersonCardProps) {
   const name = person.name ?? ''
   const role = person.role
   const bio = person.bio?.trim()
   const revealBio = showBio && Boolean(bio)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [desktopOpen, setDesktopOpen] = useState(false)
+  const [panelPos, setPanelPos] = useState({ top: 0, left: 0, maxHeight: BIO_PANEL_MAX_HEIGHT })
+  const articleRef = useRef<HTMLElement>(null)
+  const hideTimer = useRef<number | null>(null)
   const titleId = useId()
+  const bioPanelId = useId()
+
+  const clearHideTimer = () => {
+    if (hideTimer.current != null) {
+      window.clearTimeout(hideTimer.current)
+      hideTimer.current = null
+    }
+  }
+
+  const updatePanelPos = () => {
+    const el = articleRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const gap = 8
+    const maxHeight = Math.min(
+      BIO_PANEL_MAX_HEIGHT,
+      window.innerHeight - VIEWPORT_PAD * 2
+    )
+
+    let left = rect.right + gap
+    if (left + BIO_PANEL_WIDTH > window.innerWidth - VIEWPORT_PAD) {
+      left = rect.left - BIO_PANEL_WIDTH - gap
+    }
+    if (left < VIEWPORT_PAD) {
+      left = Math.max(VIEWPORT_PAD, rect.left)
+    }
+
+    let top = rect.top
+    if (top + maxHeight > window.innerHeight - VIEWPORT_PAD) {
+      top = Math.max(VIEWPORT_PAD, window.innerHeight - VIEWPORT_PAD - maxHeight)
+    }
+
+    setPanelPos({ top, left, maxHeight })
+  }
+
+  const showDesktopPanel = () => {
+    if (!revealBio || !isDesktopHover()) return
+    clearHideTimer()
+    updatePanelPos()
+    setDesktopOpen(true)
+  }
+
+  const hideDesktopPanel = () => {
+    clearHideTimer()
+    hideTimer.current = window.setTimeout(() => setDesktopOpen(false), 120)
+  }
+
+  useEffect(() => () => clearHideTimer(), [])
+
+  useEffect(() => {
+    if (!desktopOpen) return
+    const close = () => setDesktopOpen(false)
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [desktopOpen])
 
   useEffect(() => {
     if (!mobileOpen) return
@@ -94,13 +170,22 @@ export function PersonCard({ person, showBio, listingHref, listingLabel }: Perso
   return (
     <>
       <article
+        ref={articleRef}
         className={cn(
-          'group relative border border-va-lightgray rounded p-4',
+          'relative rounded border border-va-lightgray p-4',
           revealBio && 'max-md:cursor-pointer'
         )}
         {...(revealBio
           ? {
               tabIndex: 0,
+              'aria-describedby': desktopOpen ? bioPanelId : undefined,
+              onPointerEnter: (e) => {
+                if (e.pointerType === 'touch') return
+                showDesktopPanel()
+              },
+              onPointerLeave: hideDesktopPanel,
+              onFocus: showDesktopPanel,
+              onBlur: hideDesktopPanel,
               onKeyDown: (e: KeyboardEvent) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   if (window.matchMedia('(max-width: 767px)').matches) {
@@ -132,20 +217,27 @@ export function PersonCard({ person, showBio, listingHref, listingLabel }: Perso
             )}
           </div>
         </div>
-        {revealBio && (
-          <div
-            className={cn(
-              'max-md:hidden overflow-hidden transition-[max-height,opacity,margin] duration-200 ease-out',
-              'max-h-0 opacity-0',
-              'group-hover:mt-2 group-hover:max-h-48 group-hover:overflow-y-auto group-hover:opacity-100',
-              'group-focus-within:mt-2 group-focus-within:max-h-48 group-focus-within:overflow-y-auto group-focus-within:opacity-100'
-            )}
-            aria-hidden="true"
-          >
-            <p className="text-sm text-va-darkgray leading-relaxed">{bio}</p>
-          </div>
-        )}
       </article>
+      {revealBio && desktopOpen
+        ? createPortal(
+            <div
+              id={bioPanelId}
+              role="tooltip"
+              style={{
+                top: panelPos.top,
+                left: panelPos.left,
+                width: BIO_PANEL_WIDTH,
+                maxHeight: panelPos.maxHeight,
+              }}
+              className="fixed z-[60] overflow-y-auto rounded border border-va-lightgray bg-white p-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)] max-md:hidden"
+              onPointerEnter={showDesktopPanel}
+              onPointerLeave={hideDesktopPanel}
+            >
+              <p className="text-sm leading-relaxed text-va-darkgray">{bio}</p>
+            </div>,
+            document.body
+          )
+        : null}
       {revealBio && mobileOpen
         ? createPortal(
             <div

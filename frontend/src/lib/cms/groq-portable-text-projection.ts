@@ -8,6 +8,10 @@ const PT_MARKDEFS = `markDefs[] {
   buttonType,
   label,
   url,
+  externalUrl,
+  internalRef-> {
+    "slug": slug.current
+  },
   "href": coalesce(
     href,
     externalUrl,

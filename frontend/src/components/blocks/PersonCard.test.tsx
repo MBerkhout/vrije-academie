@@ -7,7 +7,28 @@ vi.mock('@/components/cms/SanityImage', () => ({
 }))
 
 describe('PersonCard', () => {
-  it('renders bio in hover overlay on desktop layout, not inline', () => {
+  it('shows bio in a side panel on desktop hover, not inline', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('min-width'),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
+    Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        top: 100,
+        left: 100,
+        right: 400,
+        bottom: 200,
+        width: 300,
+        height: 100,
+      }),
+    })
+
     render(
       <PersonCard
         person={{ name: 'Ada Lovelace', role: 'Docent', bio: 'Pioneer of computing.' }}
@@ -15,8 +36,13 @@ describe('PersonCard', () => {
         listingLabel="Activiteiten"
       />
     )
-    expect(screen.getByText('Pioneer of computing.')).toBeInTheDocument()
+    expect(screen.queryByText('Pioneer of computing.')).not.toBeInTheDocument()
+
+    fireEvent.pointerEnter(screen.getByRole('article'), { pointerType: 'mouse' })
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Pioneer of computing.')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    vi.unstubAllGlobals()
   })
 
   it('opens mobile dialog when card is clicked on narrow viewports', () => {

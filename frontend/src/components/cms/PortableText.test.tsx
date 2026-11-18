@@ -27,6 +27,29 @@ function numberBlocks(texts: string[]) {
 }
 
 describe('PortableText links', () => {
+  it('renders link marks combined with underline decorator', () => {
+    const { container } = render(
+      <PortableText
+        value={[
+          {
+            _type: 'block',
+            _key: 'k3',
+            style: 'normal',
+            listItem: 'bullet',
+            level: 1,
+            children: [
+              { _key: 'k2', _type: 'span', marks: ['249a99c1cc2e', 'underline'], text: 'Rembrandt 1656' },
+              { _key: 'x', _type: 'span', marks: ['underline'], text: ':' },
+            ],
+            markDefs: [{ _key: '249a99c1cc2e', _type: 'link', href: '/podcast-rembrandt-1656' }],
+          },
+        ]}
+      />,
+    )
+
+    expect(container.querySelector('a[href="/podcast-rembrandt-1656"]')).toBeTruthy()
+  })
+
   it('renders internal and external link marks', () => {
     const { container } = render(
       <PortableText
