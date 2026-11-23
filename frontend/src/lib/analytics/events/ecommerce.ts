@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '@/lib/safe-storage'
 import { pushEvent } from '@/lib/analytics/data-layer'
 import { createEngagementEventId } from '@/lib/analytics/attribution'
 import {
@@ -221,8 +222,8 @@ export function trackAddPaymentInfo(
 export function trackPurchase(purchase: PurchaseAnalytics): void {
   const storageKey = `va_purchase_tracked_${purchase.transaction_id}`
   try {
-    if (sessionStorage.getItem(storageKey)) return
-    sessionStorage.setItem(storageKey, '1')
+    if (safeSessionStorage.getItem(storageKey)) return
+    safeSessionStorage.setItem(storageKey, '1')
   } catch {
     // sessionStorage unavailable: fire anyway
   }

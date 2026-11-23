@@ -32,6 +32,7 @@ export function PdpSessionDatesHoverCard({
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const triggerRef = useRef<HTMLSpanElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const hideTimer = useRef<number | null>(null)
   const cardId = useId()
   const t = defaultMessages.pdp
@@ -53,7 +54,7 @@ export function PdpSessionDatesHoverCard({
     }
     if (left < 12) left = 12
     const below = rect.bottom + 8
-    const estimatedHeight = Math.min(320, 48 + dates.length * 44)
+    const estimatedHeight = Math.min(320, 72 + dates.length * 44)
     const top =
       below + estimatedHeight > window.innerHeight - 12
         ? Math.max(12, rect.top - estimatedHeight - 8)
@@ -78,14 +79,19 @@ export function PdpSessionDatesHoverCard({
   useEffect(() => {
     if (!open) return
     const close = () => setOpen(false)
+    const onScroll = (event: Event) => {
+      const target = event.target
+      if (target instanceof Node && cardRef.current?.contains(target)) return
+      close()
+    }
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') close()
     }
-    window.addEventListener('scroll', close, true)
+    window.addEventListener('scroll', onScroll, true)
     window.addEventListener('resize', close)
     window.addEventListener('keydown', onKey)
     return () => {
-      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('scroll', onScroll, true)
       window.removeEventListener('resize', close)
       window.removeEventListener('keydown', onKey)
     }
@@ -140,6 +146,7 @@ export function PdpSessionDatesHoverCard({
       {open
         ? createPortal(
             <div
+              ref={cardRef}
               id={cardId}
               role="tooltip"
               onPointerEnter={show}
@@ -150,7 +157,7 @@ export function PdpSessionDatesHoverCard({
               <p className="mb-2 text-sm font-semibold text-va-black">
                 {t.sessionDatesHoverTitle ?? 'Alle data'}
               </p>
-              <ul className="max-h-64 space-y-2 overflow-y-auto text-sm">
+              <ul className="max-h-64 space-y-2 overflow-y-auto overscroll-y-contain text-sm">
                 {dates.map((row) => {
                   const rowKey = row.start_at
                   const isPrimary =
@@ -174,6 +181,9 @@ export function PdpSessionDatesHoverCard({
                   )
                 })}
               </ul>
+              <p className="mt-2 text-xs text-va-gray">
+                {t.sessionDatesHoverDisclaimer ?? 'Wijzigingen onder voorbehoud'}
+              </p>
             </div>,
             document.body
           )

@@ -8,6 +8,7 @@ import {
 } from "./src/admin/vite/promotion-rule-date-picker-plugin"
 import { emailNotificationModule } from "./src/lib/email-notification-config"
 import { patchMolliePluginDeletePayment } from "./src/lib/mollie-plugin-delete-patch"
+import { parseKlarnaMinAmount } from "./src/providers/mollie-klarna/min-amount"
 
 patchMolliePluginDeletePayment()
 
@@ -115,7 +116,10 @@ export default defineConfig({
           {
             resolve: "./src/providers/mollie-klarna",
             id: "mollie",
-            options: mollieOpts,
+            options: {
+              ...mollieOpts,
+              minAmount: parseKlarnaMinAmount(process.env.KLARNA_MIN_AMOUNT),
+            },
           },
         ],
       },

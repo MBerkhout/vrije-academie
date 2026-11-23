@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { usePathname } from 'next/navigation'
+import * as Sentry from '@sentry/nextjs'
 import { commerceClient } from '@/lib/commerce'
 import { trackLogin, trackLogout, trackSignUp } from '@/lib/analytics/events/engagement'
 import {
@@ -58,6 +59,11 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     if (!customer?.id || isCheckoutPath(pathname)) return
     void ensureAccountCartSynced()
   }, [customer?.id, pathname])
+
+  // Opaque ID only (no email) so Sentry "users impacted" is accurate.
+  useEffect(() => {
+    Sentry.setUser(customer?.id ? { id: customer.id } : null)
+  }, [customer?.id])
 
   // Listen for external customer updates (e.g. from another tab or component)
   useEffect(() => {

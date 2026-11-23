@@ -1,3 +1,4 @@
+import { safeLocalStorage } from '@/lib/safe-storage'
 /**
  * Medusa implementation of Commerce client
  */
@@ -229,6 +230,7 @@ function normalizeEventFacets(raw: unknown): EventFacets {
     cities: sortCityFacetsByCount(f.cities ?? []),
     delivery_type: f.delivery_type ?? [],
     day_part: f.day_part ?? [],
+    weekday: f.weekday ?? [],
     months: f.months ?? [],
   }
 }
@@ -238,12 +240,12 @@ const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_API_KEY ?? ''
 
 function getStoredJwt(): string | null {
   if (typeof window === 'undefined') return null
-  return window.localStorage.getItem(MEDUSA_JWT_STORAGE_KEY)
+  return safeLocalStorage.getItem(MEDUSA_JWT_STORAGE_KEY)
 }
 
 function setStoredJwt(token: string): void {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(MEDUSA_JWT_STORAGE_KEY, token)
+  safeLocalStorage.setItem(MEDUSA_JWT_STORAGE_KEY, token)
 }
 
 function mapStoreOrderItem(raw: unknown): OrderItem {
@@ -302,13 +304,40 @@ const medusa = new Medusa({
   },
 })
 
+/** Medusa answered 5xx / was unreachable. Grouped into one Sentry issue (see sentry.server.config.ts). */
+export class MedusaUnavailableError extends Error {
+  readonly status: number
+  constructor(what: string, status: number) {
+    super(`${what}: ${status}`)
+    this.name = 'MedusaUnavailableError'
+    this.status = status
+  }
+}
+
+const RETRYABLE_STATUS = new Set([502, 503, 504])
+
+/** Idempotent GET with a couple of short retries on 502/503/504 and network errors. */
+async function fetchGetWithRetry(url: string, init: RequestInit, retries = 2): Promise<Response> {
+  let attempt = 0
+  for (;;) {
+    try {
+      const res = await fetch(url, init)
+      if (!RETRYABLE_STATUS.has(res.status) || attempt >= retries) return res
+    } catch (err) {
+      if (attempt >= retries) throw err
+    }
+    attempt += 1
+    await new Promise((r) => setTimeout(r, 200 * attempt))
+  }
+}
+
 function storeHeaders(): HeadersInit {
   return PUBLISHABLE_KEY ? { 'x-publishable-api-key': PUBLISHABLE_KEY } : {}
 }
 
 function storeAuthHeaders(): HeadersInit {
   if (typeof window === 'undefined') return {}
-  const token = window.localStorage.getItem(MEDUSA_JWT_STORAGE_KEY)
+  const token = safeLocalStorage.getItem(MEDUSA_JWT_STORAGE_KEY)
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
@@ -547,12 +576,13 @@ export const medusaClient: CommerceClient = {
 
   async getEvent(handle: string): Promise<EventCard | null> {
     const safeHandle = encodeURIComponent(cleanHandle(handle))
-    const response = await fetch(
+    const response = await fetchGetWithRetry(
       `${BACKEND_URL}/store/events/${safeHandle}`,
       { headers: storeHeaders() }
     )
     if (response.status === 404) return null
     if (!response.ok) {
+      if (response.status >= 500) throw new MedusaUnavailableError('Failed to fetch event', response.status)
       throw new Error(`Failed to fetch event: ${response.status}`)
     }
     const data = await response.json()
@@ -616,10 +646,11 @@ export const medusaClient: CommerceClient = {
     for (const v of filters?.categories ?? []) params.append('category', v)
     for (const v of filters?.teachers ?? []) params.append('docent', v)
 
-    const response = await fetch(`${BACKEND_URL}/store/vathuis?${params.toString()}`, {
+    const response = await fetchGetWithRetry(`${BACKEND_URL}/store/vathuis?${params.toString()}`, {
       headers: storeHeaders(),
     })
     if (!response.ok) {
+      if (response.status >= 500) throw new MedusaUnavailableError('Failed to fetch vathuis catalog', response.status)
       throw new Error(`Failed to fetch vathuis catalog: ${response.status}`)
     }
     const data = await response.json()
@@ -665,12 +696,14 @@ export const medusaClient: CommerceClient = {
     for (const v of filters?.deliveryTypes ?? []) params.append('delivery_type[]', v)
     for (const v of filters?.cities ?? []) params.append('city[]', v)
     for (const v of filters?.dayParts ?? []) params.append('day_part[]', v)
+    for (const v of filters?.weekdays ?? []) params.append('weekday[]', v)
 
-    const response = await fetch(`${BACKEND_URL}/store/events?${params.toString()}`, {
+    const response = await fetchGetWithRetry(`${BACKEND_URL}/store/events?${params.toString()}`, {
       headers: storeHeaders(),
       cache: 'no-store',
     })
     if (!response.ok) {
+      if (response.status >= 500) throw new MedusaUnavailableError('Failed to fetch events', response.status)
       throw new Error(`Failed to fetch events: ${response.status}`)
     }
     const data = await response.json()
@@ -1282,6 +1315,18 @@ export const medusaClient: CommerceClient = {
       return (data.payment_providers ?? []).filter((p: PaymentProvider) => p.is_enabled)
     } catch {
       return []
+    }
+  },
+
+  async getKlarnaMinAmount(): Promise<number> {
+    try {
+      const res = await storeFetch('/store/payment-config')
+      if (!res.ok) return 0
+      const data = await res.json()
+      const n = Number(data.klarna_min_amount)
+      return Number.isFinite(n) && n > 0 ? n : 0
+    } catch {
+      return 0
     }
   },
 

@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '@/lib/safe-storage'
 /** Stable random id for GA4/Meta deduplication (browser + server). */
 export function createAnalyticsEventId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -12,10 +13,10 @@ const CHECKOUT_EVENT_ID_KEY = 'va_checkout_event_id'
 export function getOrCreateCheckoutEventId(): string {
   if (typeof window === 'undefined') return createAnalyticsEventId()
   try {
-    const existing = sessionStorage.getItem(CHECKOUT_EVENT_ID_KEY)
+    const existing = safeSessionStorage.getItem(CHECKOUT_EVENT_ID_KEY)
     if (existing?.trim()) return existing.trim()
     const id = createAnalyticsEventId()
-    sessionStorage.setItem(CHECKOUT_EVENT_ID_KEY, id)
+    safeSessionStorage.setItem(CHECKOUT_EVENT_ID_KEY, id)
     return id
   } catch {
     return createAnalyticsEventId()
@@ -25,7 +26,7 @@ export function getOrCreateCheckoutEventId(): string {
 export function clearCheckoutEventId(): void {
   if (typeof window === 'undefined') return
   try {
-    sessionStorage.removeItem(CHECKOUT_EVENT_ID_KEY)
+    safeSessionStorage.removeItem(CHECKOUT_EVENT_ID_KEY)
   } catch {
     // ignore
   }

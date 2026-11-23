@@ -313,6 +313,7 @@
     "instructorHoverAria": "Meer over {name}",
     "sessionDatesHoverAria": "Alle lesdata",
     "sessionDatesHoverTitle": "Alle data",
+    "sessionDatesHoverDisclaimer": "Wijzigingen onder voorbehoud",
     "bookingFreeTrial": "Gratis proefles",
     "bookingSoldOutLabel": "Wachtlijst",
     "waitlistCta": "Aanmelden voor wachtlijst",

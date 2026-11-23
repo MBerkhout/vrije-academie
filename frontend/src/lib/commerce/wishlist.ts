@@ -1,3 +1,4 @@
+import { safeLocalStorage } from '@/lib/safe-storage'
 /**
  * Wishlist: product handles in localStorage (`va-wishlist`) and, when logged in,
  * Medusa customer.metadata.va_wishlist (merged on login).
@@ -55,7 +56,7 @@ export function removeHandleFromList(handles: string[], handle: string): string[
 export function getWishlistHandlesLocal(): string[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = safeLocalStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
     return Array.isArray(parsed)
@@ -72,7 +73,7 @@ export function getWishlistHandlesLocal(): string[] {
 export function setWishlistHandlesLocal(handles: string[]): void {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dedupeHandles(handles)))
+    safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(dedupeHandles(handles)))
   } catch {
     /* quota / private mode */
   }

@@ -1,5 +1,6 @@
 'use client'
 
+import { safeLocalStorage } from '@/lib/safe-storage'
 import { useCustomer } from '@/lib/commerce/CustomerProvider'
 import { clearImpersonationSession, isImpersonationSession } from '@/lib/commerce/impersonation'
 import { MEDUSA_JWT_STORAGE_KEY } from '@/lib/commerce/medusa-jwt-storage'
@@ -10,7 +11,7 @@ export function ImpersonationBanner() {
 
   if (typeof window === 'undefined' || loading) return null
 
-  const token = window.localStorage.getItem(MEDUSA_JWT_STORAGE_KEY)
+  const token = safeLocalStorage.getItem(MEDUSA_JWT_STORAGE_KEY)
   if (!isImpersonationSession(token)) return null
 
   const email = customer?.email ?? 'klant'

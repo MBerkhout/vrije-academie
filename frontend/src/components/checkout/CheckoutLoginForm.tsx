@@ -1,5 +1,6 @@
 'use client'
 
+import { safeSessionStorage } from '@/lib/safe-storage'
 /**
  * Checkout identity step: email lookup → login | guest details (+ optional account).
  * Shared pieces: `ValidatedInput`, `PasswordStrengthMeter`, `validateAccountField` (see `@/lib/auth`, `@/components/auth`).
@@ -88,7 +89,7 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
   useEffect(() => {
     if (typeof window === 'undefined') return
     try {
-      const raw = sessionStorage.getItem('va_checkout_newsletter')
+      const raw = safeSessionStorage.getItem('va_checkout_newsletter')
       if (!raw) return
       const parsed = JSON.parse(raw) as { optIn?: boolean }
       if (typeof parsed?.optIn === 'boolean') setNewsletterOptIn(parsed.optIn)
@@ -520,11 +521,11 @@ export function CheckoutLoginForm({ settings }: CheckoutLoginFormProps) {
     }
     setBusy(true)
     try {
-      sessionStorage.setItem(
+      safeSessionStorage.setItem(
         'va_checkout_newsletter',
         JSON.stringify({ optIn: newsletterOptIn })
       )
-      sessionStorage.removeItem('va_checkout_register')
+      safeSessionStorage.removeItem('va_checkout_register')
 
       await commerceClient.registerPasswordless({
         email,

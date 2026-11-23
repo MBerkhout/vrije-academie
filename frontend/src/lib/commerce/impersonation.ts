@@ -1,19 +1,20 @@
+import { safeSessionStorage } from '@/lib/safe-storage'
 /** Session flag while an admin is viewing the storefront as a customer. */
 export const IMPERSONATION_SESSION_KEY = 'va_impersonation_active'
 
 export function markImpersonationSessionActive(): void {
   if (typeof window === 'undefined') return
-  window.sessionStorage.setItem(IMPERSONATION_SESSION_KEY, '1')
+  safeSessionStorage.setItem(IMPERSONATION_SESSION_KEY, '1')
 }
 
 export function clearImpersonationSession(): void {
   if (typeof window === 'undefined') return
-  window.sessionStorage.removeItem(IMPERSONATION_SESSION_KEY)
+  safeSessionStorage.removeItem(IMPERSONATION_SESSION_KEY)
 }
 
 export function isImpersonationSessionFlagSet(): boolean {
   if (typeof window === 'undefined') return false
-  return window.sessionStorage.getItem(IMPERSONATION_SESSION_KEY) === '1'
+  return safeSessionStorage.getItem(IMPERSONATION_SESSION_KEY) === '1'
 }
 
 type JwtPayload = {

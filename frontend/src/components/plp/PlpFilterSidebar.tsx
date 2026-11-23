@@ -549,6 +549,16 @@ function PeriodeFilter({
   )
 }
 
+const WEEKDAYS = [
+  { value: 'ma', label: 'Maandag' },
+  { value: 'di', label: 'Dinsdag' },
+  { value: 'wo', label: 'Woensdag' },
+  { value: 'do', label: 'Donderdag' },
+  { value: 'vr', label: 'Vrijdag' },
+  { value: 'za', label: 'Zaterdag' },
+  { value: 'zo', label: 'Zondag' },
+]
+
 const DAY_PARTS = [
   { value: 'ochtend', label: 'Ochtend' },
   { value: 'middag', label: 'Middag' },
@@ -598,6 +608,7 @@ export function PlpFilterSidebar({
         (filterState.cities?.length ?? 0) +
         (filterState.deliveryTypes?.length ?? 0) +
         (filterState.dayParts?.length ?? 0) +
+        (filterState.weekdays?.length ?? 0) +
         (filterState.periodStart || filterState.periodEnd ? 1 : 0)) + extraActiveCount
 
   function applyFilter(newState: PlpFilterState, meta?: { filterName: string; filterValue: string }) {
@@ -630,6 +641,7 @@ export function PlpFilterSidebar({
       cities: 'plaats',
       deliveryTypes: 'modaliteit',
       dayParts: 'dagdeel',
+      weekdays: 'weekdag',
       recordTypes: 'type',
     }
     applyFilter(
@@ -648,6 +660,7 @@ export function PlpFilterSidebar({
     category: (slug: string) => facets?.categories?.find((fc) => fc.slug === slug)?.count ?? 0,
     productType: (slug: string) => facets?.product_type?.find((f) => f.slug === slug)?.count ?? 0,
     teacher: (slug: string) => facets?.teachers?.find((fd) => fd.slug === slug)?.count ?? 0,
+    weekday: (slug: string) => facets?.weekday?.find((d) => d.slug === slug)?.count ?? 0,
     dayPart: (slug: string) => facets?.day_part?.find((d) => d.slug === slug)?.count ?? 0,
   }
 
@@ -697,6 +710,10 @@ export function PlpFilterSidebar({
   const dayPartOptions = DAY_PARTS
     .map((opt) => ({ ...opt, count: facetCount.dayPart(opt.value) }))
     .filter((opt) => isVisible(opt.value, filterState.dayParts ?? [], opt.count))
+
+  const weekdayOptions = WEEKDAYS
+    .map((opt) => ({ ...opt, count: facetCount.weekday(opt.value) }))
+    .filter((opt) => isVisible(opt.value, filterState.weekdays ?? [], opt.count))
 
   function renderFilterGroups(collapseGroups: boolean, showDesktopReset: boolean) {
     const groupBadge = collapseGroups
@@ -818,6 +835,24 @@ export function PlpFilterSidebar({
               selected={filterState.cities ?? []}
               onToggle={(v) => toggleArray('cities', v)}
               placeholder="Zoek op plaats…"
+              variant={variant}
+            />
+          </FilterGroupCollapsible>
+        )}
+
+        {!catalogOnly && weekdayOptions.length > 0 && (
+          <FilterGroupCollapsible
+            title="Dag van de week"
+            defaultOpen={groupDefaultOpen(false, collapseGroups)}
+            showActiveCount={groupBadge}
+            largeTitle={largeTitle}
+            activeCount={filterState.weekdays?.length ?? 0}
+            variant={variant}
+          >
+            <MultiSelectChecklist
+              options={weekdayOptions}
+              selected={filterState.weekdays ?? []}
+              onToggle={(v) => toggleArray('weekdays', v)}
               variant={variant}
             />
           </FilterGroupCollapsible>

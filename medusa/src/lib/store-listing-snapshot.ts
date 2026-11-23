@@ -34,7 +34,7 @@ import {
   filterVariantsWithFutureSessions,
   productEligibleForPlpListing,
 } from "./event-session-eligibility"
-import { dayPartFromStartAt, uniqueFutureDayParts } from "./listing-future-filters"
+import { dayPartFromStartAt, uniqueFutureDayParts, uniqueFutureWeekdays } from "./listing-future-filters"
 import { minPriceCentsFromVariants, medusaMajorToCents } from "./medusa-price-to-cents"
 import { ctaBarFieldsFromMetadata } from "./product-cta-bar"
 import { salesforceOrderFromMetadata } from "./listing-sort"
@@ -392,6 +392,10 @@ export async function buildPlpSnapshot(scope: MedusaContainer): Promise<PlpListi
       day_part_of_earliest: dayPartFromStartAt(earliestStartAt),
       day_parts: uniqueFutureDayParts(
         eventItems as Parameters<typeof uniqueFutureDayParts>[0],
+        listingNow
+      ),
+      weekdays: uniqueFutureWeekdays(
+        eventItems as Parameters<typeof uniqueFutureWeekdays>[0],
         listingNow
       ),
       price_from: priceFrom,

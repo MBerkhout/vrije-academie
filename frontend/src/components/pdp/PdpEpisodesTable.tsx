@@ -71,6 +71,7 @@ export function PdpEpisodesTable({
   const hasPurchasedAccess = Boolean(vathuisAccess.hasAccess)
   const accessExpiresAt = vathuisAccess.expiresAt
   const [buying, setBuying] = useState(false)
+  const [buyError, setBuyError] = useState<string | null>(null)
 
   const bundleVariant = useMemo(() => {
     const bundleVariantId = event.bundle_variant_id
@@ -128,6 +129,8 @@ export function PdpEpisodesTable({
       if (previewPlaybackCache.current.has(key)) continue
       void commerceClient.getVathuisPreviewPlayback(productHandle, key).then((config) => {
         if (config) previewPlaybackCache.current.set(key, config)
+      }).catch(() => {
+        // Prefetch is best-effort; playback is fetched again on click.
       })
     }
   }, [playlist, productHandle])
@@ -208,9 +211,13 @@ export function PdpEpisodesTable({
       return
     }
     setBuying(true)
+    setBuyError(null)
     try {
       await addVariantToCart(bundleVariant.id, { event, variant: bundleVariant })
       router.push('/winkelwagen')
+    } catch {
+      // CART_UNAVAILABLE / Medusa outage: tell the visitor instead of an unhandled rejection.
+      setBuyError('Het winkelmandje is tijdelijk niet bereikbaar. Probeer het over een moment opnieuw.')
     } finally {
       setBuying(false)
     }
@@ -398,6 +405,12 @@ export function PdpEpisodesTable({
             </tbody>
           </table>
         </div>
+
+        {buyError && (
+          <p role="alert" className="mt-3 text-sm text-red-700">
+            {buyError}
+          </p>
+        )}
 
         {resolvedChapters.length > 1 && (
           <div className="mt-4">

@@ -38,7 +38,8 @@ function disposeVideoJsInContainer(
   try {
     const player = videojs.getPlayer(el)
     if (player && !player.isDisposed()) {
-      player.off('error')
+      // Drop every listener first so late EME / async callbacks cannot touch a disposed player.
+      ;(player as unknown as { off: () => void }).off()
       player.dispose()
     }
   } catch {

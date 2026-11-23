@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '@/lib/safe-storage'
 /**
  * One-shot checkout messages (email/account conflicts). Survives redirects via sessionStorage.
  */
@@ -32,7 +33,7 @@ export function mapCartSyncErrorMessage(raw: string | undefined): string {
 export function setCheckoutNotice(notice: CheckoutNotice): void {
   if (typeof window === 'undefined') return
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(notice))
+    safeSessionStorage.setItem(STORAGE_KEY, JSON.stringify(notice))
   } catch {
     /* ignore */
   }
@@ -41,9 +42,9 @@ export function setCheckoutNotice(notice: CheckoutNotice): void {
 export function consumeCheckoutNotice(): CheckoutNotice | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    const raw = safeSessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    sessionStorage.removeItem(STORAGE_KEY)
+    safeSessionStorage.removeItem(STORAGE_KEY)
     const parsed = JSON.parse(raw) as CheckoutNotice
     if (typeof parsed?.message !== 'string' || !parsed.message.trim()) return null
     return parsed

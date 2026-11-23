@@ -66,6 +66,19 @@ function hasExtensionStack(event: ErrorEvent): boolean {
   return stackFrames(event).some(isExtensionFrame)
 }
 
+/** Null-after-dispose / invalid-state errors raised inside the video player libs (late EME/async callbacks). */
+const PLAYER_LIB_FRAME = /video\.js|videojs-contrib-eme|audienceplayer-embed-player/i
+const PLAYER_DISPOSED_MESSAGE =
+  /(Cannot read properties of null|null is not an object|is null|is undefined|undefined is not an object|InvalidStateError|object is in an invalid state)/i
+
+function isPlayerDisposedNoise(event: ErrorEvent, message: string): boolean {
+  if (!PLAYER_DISPOSED_MESSAGE.test(message)) return false
+  const frames = stackFrames(event)
+  const top = frames[frames.length - 1]
+  if (!top) return false
+  return [top.filename, top.abs_path].some((p) => p && PLAYER_LIB_FRAME.test(p))
+}
+
 function isCheckoutTransaction(event: ErrorEvent): boolean {
   const transaction = event.transaction ?? event.request?.url ?? ''
   return /checkout\/betaling/i.test(transaction)
@@ -91,6 +104,8 @@ export function filterSentryEvent(event: ErrorEvent, hint: EventHint): ErrorEven
   if (hasThirdPartyStack(event)) return null
   if (hasExtensionStack(event)) return null
   if (THIRD_PARTY_FETCH_HOST.test(message)) return null
+
+  if (isPlayerDisposedNoise(event, message)) return null
 
   if (shouldDropMedusaNetworkError(event, message)) return null
 

@@ -13,6 +13,11 @@ const nextConfig = {
   // Deploys build into a per-release dir (NEXT_DIST_DIR) so running workers keep serving the old build.
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   reactStrictMode: true,
+  // Inline release into the browser bundle so client Sentry events carry `release`.
+  env: {
+    NEXT_PUBLIC_SENTRY_RELEASE:
+      process.env.SENTRY_RELEASE?.trim() || process.env.DEPLOYMENT_VERSION?.trim() || '',
+  },
   // Sitemap pre-render can fetch Sanity + Medusa; allow more than the default 60s on large catalogs.
   staticPageGenerationTimeout: 180,
   images: {

@@ -23,6 +23,9 @@ git reset --hard "origin/$BRANCH"
 git clean -fd -- medusa/src
 
 cd "$APP_DIR"
+# OOM aborts can leave multi-GB core.<pid> in cwd when the host allows core files.
+rm -f core.* 2>/dev/null || true
+
 if [ -f .env ]; then
   set -a
   # shellcheck disable=SC1091

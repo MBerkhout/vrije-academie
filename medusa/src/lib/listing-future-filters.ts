@@ -9,6 +9,8 @@ import {
 export type ListingSessionFilters = {
   citySlugs: string[]
   dayParts: string[]
+  /** Optional weekday slugs (`ma`..`zo`); a session matches when it starts on any of them. */
+  weekdays?: string[]
   periodStart: string | null
   periodEnd: string | null
 }
@@ -19,6 +21,7 @@ export function listingSessionFiltersActive(filters: ListingSessionFilters): boo
   return Boolean(
     filters.citySlugs.length ||
       filters.dayParts.length ||
+      filters.weekdays?.length ||
       filters.periodStart ||
       filters.periodEnd
   )
@@ -26,10 +29,11 @@ export function listingSessionFiltersActive(filters: ListingSessionFilters): boo
 
 export function listingSessionFiltersOmitting(
   filters: ListingSessionFilters,
-  omit: "city" | "day_part" | "period"
+  omit: "city" | "day_part" | "weekday" | "period"
 ): ListingSessionFilters {
   if (omit === "city") return { ...filters, citySlugs: [] }
   if (omit === "day_part") return { ...filters, dayParts: [] }
+  if (omit === "weekday") return { ...filters, weekdays: [] }
   return { ...filters, periodStart: null, periodEnd: null }
 }
 
@@ -45,6 +49,16 @@ export function dayPartFromStartAt(startAt: string | null | undefined): string |
   if (hour < 12) return "ochtend"
   if (hour < 17) return "middag"
   return "avond"
+}
+
+export const WEEKDAY_SLUGS = ["zo", "ma", "di", "wo", "do", "vr", "za"] as const
+
+/** Session weekday slug (`ma`..`zo`) in the process local timezone (Europe/Amsterdam on store hosts). */
+export function weekdayFromStartAt(startAt: string | null | undefined): string | null {
+  if (!startAt) return null
+  const d = new Date(startAt)
+  if (Number.isNaN(d.getTime())) return null
+  return WEEKDAY_SLUGS[d.getDay()]
 }
 
 export function monthKeyFromStartAt(startAt: string | null | undefined): string | null {
@@ -132,6 +146,10 @@ export function eventItemMatchesSessionFilters(
   if (filters.dayParts.length) {
     const dayPart = dayPartFromStartAt(ei.start_at)
     if (!dayPart || !filters.dayParts.includes(dayPart)) return false
+  }
+  if (filters.weekdays?.length) {
+    const weekday = weekdayFromStartAt(ei.start_at)
+    if (!weekday || !filters.weekdays.includes(weekday)) return false
   }
   if (filters.periodStart || filters.periodEnd) {
     if (!sessionStartInPeriod(ei.start_at, filters.periodStart, filters.periodEnd)) return false
@@ -225,6 +243,20 @@ export function uniqueFutureDayParts(
     if (dayPart) parts.add(dayPart)
   }
   return [...parts]
+}
+
+export function uniqueFutureWeekdays(
+  eventItems: EventItemSessionRow[],
+  now: Date = new Date()
+): string[] {
+  const nowMs = now.getTime()
+  const days = new Set<string>()
+  for (const ei of eventItems) {
+    if (!isFutureSession(ei, nowMs)) continue
+    const weekday = weekdayFromStartAt(ei.start_at)
+    if (weekday) days.add(weekday)
+  }
+  return [...days]
 }
 
 export function uniqueFutureMonthKeys(

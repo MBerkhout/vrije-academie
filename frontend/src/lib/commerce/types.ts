@@ -290,6 +290,7 @@ export interface EventFacets {
   cities: { slug: string; label: string; count: number }[]
   delivery_type: { slug: string; count: number }[]
   day_part: { slug: string; count: number }[]
+  weekday?: { slug: string; count: number }[]
   /** YYYY-MM keys for future dated sessions (period filter). */
   months: { slug: string; count: number }[]
 }
@@ -533,6 +534,8 @@ export interface CommerceClient {
   recordRecentViewedHandle(handle: string): Promise<void>
   // Checkout / payment
   listPaymentProviders(regionId: string): Promise<PaymentProvider[]>
+  /** Klarna minimum order amount (euros); 0 = no minimum. */
+  getKlarnaMinAmount(): Promise<number>
   initiatePaymentSession(cartId: string, providerId: string): Promise<PaymentSession>
   completeCart(cartId: string): Promise<{ type: 'order'; order: Order } | { type: 'cart'; cart: Cart }>
   getOrder(orderId: string): Promise<Order | null>
@@ -593,6 +596,8 @@ export interface PaginatedEventFilters {
   deliveryTypes?: string[]
   cities?: string[]
   dayParts?: string[]
+  /** Weekday slugs `ma`..`zo` */
+  weekdays?: string[]
   periodStart?: string
   periodEnd?: string
   sort?: 'order' | 'start_date' | 'newest' | 'relevance' | 'price_asc' | 'price_desc' | 'popularity'

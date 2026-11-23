@@ -39,7 +39,7 @@ module.exports = {
     {
       name: "medusa-worker",
       cwd: __dirname,
-      script: "node_modules/.bin/medusa",
+      script: path.join(__dirname, "scripts/pm2-start.sh"),
       args: "start",
       instances: worker.instances,
       exec_mode: "fork",

@@ -1,5 +1,6 @@
 'use client'
 
+import { safeSessionStorage } from '@/lib/safe-storage'
 import type { Cart, CartUpdateInput } from './types'
 import { isCartShippingComplete } from './checkout-profile'
 
@@ -76,7 +77,7 @@ export function draftToCartUpdate(draft: Omit<CheckoutDraft, 'savedAt'>): CartUp
 export function saveCheckoutDraft(draft: Omit<CheckoutDraft, 'savedAt'>): void {
   if (typeof window === 'undefined') return
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...draft, savedAt: Date.now() }))
+    safeSessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...draft, savedAt: Date.now() }))
   } catch {
     /* quota / private mode */
   }
@@ -85,12 +86,12 @@ export function saveCheckoutDraft(draft: Omit<CheckoutDraft, 'savedAt'>): void {
 export function loadCheckoutDraft(): CheckoutDraft | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    const raw = safeSessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as CheckoutDraft
     if (!parsed?.email || !parsed.savedAt) return null
     if (Date.now() - parsed.savedAt > TTL_MS) {
-      sessionStorage.removeItem(STORAGE_KEY)
+      safeSessionStorage.removeItem(STORAGE_KEY)
       return null
     }
     return parsed
@@ -102,7 +103,7 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
 export function clearCheckoutDraft(): void {
   if (typeof window === 'undefined') return
   try {
-    sessionStorage.removeItem(STORAGE_KEY)
+    safeSessionStorage.removeItem(STORAGE_KEY)
   } catch {
     /* ignore */
   }

@@ -323,6 +323,15 @@ cd ~/app && git rm --cached frontend/next-env.d.ts && git reset --hard origin/st
 
 ## Medusa troubleshooting
 
+**Multi‑GB `core.<pid>` files in `~/app/medusa` (or `/var/www/medusa/app/medusa`)** — Linux writes a full process core when Node aborts. With `kernel.core_pattern=core` and `LimitCORE=infinity` on `pm2-medusa.service`, each crash leaves ~1–2 GiB in the PM2 `cwd`. On production these overwhelmingly come from **`medusa` / `medusa-worker` Node** (`…/.nodenv/versions/*/bin/node` in the core) hitting **JavaScript heap OOM** (`FATAL ERROR: … heap out of memory` in `/var/www/medusa/.pm2/logs/medusa*-error*.log`), not from Postgres/Redis. They are safe to delete (you are not debugging live cores on prod):
+
+```bash
+rm -f ~/app/medusa/core.*   # or /var/www/medusa/app/medusa/core.*
+df -h
+```
+
+Prevention: `medusa-worker` uses `scripts/pm2-start.sh` (`ulimit -c 0`); the HTTP `medusa` app stays on the Node binary so PM2 **cluster** mode still works (a bash wrapper would force fork). `medusa/scripts/deploy.sh` deletes stale `core.*` on every deploy. Optional hardening as root: drop-in `LimitCORE=0` for `pm2-medusa.service` and/or `sysctl kernel.core_pattern='|/bin/false'` (covers API cluster workers too). If OOMs continue, raise `PM2_MEDUSA_WORKER_MAX_MEMORY` / worker `NODE_OPTIONS` or fix the leaking job (check worker logs around the crash time).
+
 **Stuck in `fork` mode instead of `cluster`** — same drift as the frontend issue above (see Frontend troubleshooting §2); check with `pm2 jlist | grep -A2 exec_mode` and fix with `pm2 delete medusa && pm2 start ecosystem.config.cjs && pm2 save`.
 
 **`ecosystem.config.cjs not found`** — The server checkout is behind `staging`. As the `medusa` user:

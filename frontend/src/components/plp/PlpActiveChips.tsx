@@ -21,6 +21,16 @@ import { cn } from '@/lib/utils'
 import { listingPeriodChipLabel } from '@/lib/plp/listing-period-filter'
 import { PLP_BASE_PATH } from '@/lib/routes'
 
+const WEEKDAY_LABELS: Record<string, string> = {
+  ma: 'Maandag',
+  di: 'Dinsdag',
+  wo: 'Woensdag',
+  do: 'Donderdag',
+  vr: 'Vrijdag',
+  za: 'Zaterdag',
+  zo: 'Zondag',
+}
+
 interface PlpActiveChipsProps {
   filterState: PlpFilterState
   categories: CategoryOption[]
@@ -87,6 +97,9 @@ export function PlpActiveChips({
   }
   for (const v of filterState.dayParts ?? []) {
     chips.push({ key: 'dayParts', value: v, label: v.charAt(0).toUpperCase() + v.slice(1) })
+  }
+  for (const v of filterState.weekdays ?? []) {
+    chips.push({ key: 'weekdays', value: v, label: WEEKDAY_LABELS[v] ?? v })
   }
   if (filterState.periodStart || filterState.periodEnd) {
     chips.push({

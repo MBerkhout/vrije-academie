@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '@/lib/safe-storage'
 import {
   HAS_CONSENT_COOKIE_NAME,
   HAS_CONSENT_MAX_AGE_SECONDS,
@@ -30,19 +31,17 @@ function readConsentFromCookie(): StoredConsent {
 }
 
 function readConsentFromSession(): StoredConsent {
-  if (typeof sessionStorage === 'undefined') return null
   try {
-    return parseConsentValue(sessionStorage.getItem(HAS_CONSENT_SESSION_KEY))
+    return parseConsentValue(safeSessionStorage.getItem(HAS_CONSENT_SESSION_KEY))
   } catch {
     return null
   }
 }
 
 function writeConsentToSession(consent: boolean | null): void {
-  if (typeof sessionStorage === 'undefined') return
   try {
-    if (consent === null) sessionStorage.removeItem(HAS_CONSENT_SESSION_KEY)
-    else sessionStorage.setItem(HAS_CONSENT_SESSION_KEY, consent ? 'true' : 'false')
+    if (consent === null) safeSessionStorage.removeItem(HAS_CONSENT_SESSION_KEY)
+    else safeSessionStorage.setItem(HAS_CONSENT_SESSION_KEY, consent ? 'true' : 'false')
   } catch {
     // Private mode / blocked storage — cookie is enough when it works.
   }

@@ -14,7 +14,11 @@ export function sentryEnvironment(): string {
 }
 
 export function sentryRelease(): string | undefined {
-  const raw = process.env.SENTRY_RELEASE?.trim() || process.env.DEPLOYMENT_VERSION?.trim()
+  // NEXT_PUBLIC_* is inlined at build time (see next.config.js) so the browser gets a release too.
+  const raw =
+    process.env.SENTRY_RELEASE?.trim() ||
+    process.env.DEPLOYMENT_VERSION?.trim() ||
+    process.env.NEXT_PUBLIC_SENTRY_RELEASE?.trim()
   return raw || undefined
 }
 

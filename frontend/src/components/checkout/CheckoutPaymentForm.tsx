@@ -193,8 +193,15 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
 
     let cancelled = false
     ;(async () => {
-      const ps = await commerceClient.listPaymentProviders(cart.region_id!)
+      const [allProviders, klarnaMin] = await Promise.all([
+        commerceClient.listPaymentProviders(cart.region_id!),
+        commerceClient.getKlarnaMinAmount(),
+      ])
       if (cancelled) return
+      const ps =
+        klarnaMin > 0 && totalDue < klarnaMin
+          ? allProviders.filter((p) => p.id !== 'pp_mollie-klarna_mollie')
+          : allProviders
       setProviders(ps)
       setSelectedMethod((prev) => {
         if (prev && ps.some((p) => p.id === prev && !HIDDEN_PROVIDER_IDS.has(p.id))) return prev

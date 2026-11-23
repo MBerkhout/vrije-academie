@@ -64,6 +64,8 @@ The plugin registers one provider per payment method. All share the plugin's `id
 
 Klarna requires complete billing details (name, e-mail, address) and order lines. The local provider builds a single digital line matching the Medusa payment amount and sends the billing address from `context.customer` (same as other Mollie methods — see [Billing address](#billing-address-storefront)).
 
+**Minimum amount:** Klarna is only offered for orders from `KLARNA_MIN_AMOUNT` euros (default `100`, `0` = no minimum; restart/redeploy after changing). `initiatePayment` rejects lower amounts (hard guard), and `GET /store/payment-config` returns `{ klarna_min_amount }` so the storefront can hide the tile.
+
 ## Region setup
 
 After starting Medusa with the plugin for the first time:

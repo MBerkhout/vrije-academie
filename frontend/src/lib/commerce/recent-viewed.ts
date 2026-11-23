@@ -1,3 +1,4 @@
+import { safeLocalStorage } from '@/lib/safe-storage'
 /**
  * Recently viewed product handles: localStorage + optional Medusa customer.metadata.va_recent_viewed
  */
@@ -23,7 +24,7 @@ export function parseRecentViewedHandles(
 export function getRecentViewedHandlesLocal(): string[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = safeLocalStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
     return Array.isArray(parsed)
@@ -40,7 +41,7 @@ export function getRecentViewedHandlesLocal(): string[] {
 export function setRecentViewedHandlesLocal(handles: string[]): void {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(
+    safeLocalStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(handles.slice(0, MAX_RECENT_STORED))
     )

@@ -41,6 +41,7 @@ import {
   safeCancelMolliePayment,
 } from "../../lib/mollie-safe-delete"
 import { buildKlarnaOrderLine } from "./build-klarna-lines"
+import { isBelowKlarnaMinimum } from "./min-amount"
 import { MOLLIE_KLARNA_PROVIDER_ID, type MollieKlarnaProviderOptions } from "./types"
 
 type InjectedDependencies = {
@@ -137,6 +138,12 @@ class MollieKlarnaProviderService extends AbstractPaymentProvider<MollieKlarnaPr
 
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     const { context, amount, currency_code } = input
+    if (isBelowKlarnaMinimum(amount, this.options_.minAmount)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Klarna is only available for orders from EUR ${this.options_.minAmount}`
+      )
+    }
     const billing = extractBillingContext(context as Record<string, unknown> | undefined)
     const description = this.options_.description ?? "Bestelling Vrije Academie"
     const currency = currency_code.toUpperCase()

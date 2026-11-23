@@ -21,6 +21,28 @@ describe('PdpSessionDatesHoverCard', () => {
     expect(tooltip).toHaveTextContent('Alle data')
     expect(tooltip.textContent).toMatch(/januari/)
     expect(tooltip.textContent).toMatch(/februari/)
+    expect(tooltip).toHaveTextContent('Wijzigingen onder voorbehoud')
+  })
+
+  it('stays open when scrolling the date list inside the tooltip', () => {
+    const manyDates = Array.from({ length: 12 }, (_, i) => ({
+      start_at: `2027-01-${String(i + 1).padStart(2, '0')}T13:00:00.000Z`,
+      end_at: `2027-01-${String(i + 1).padStart(2, '0')}T15:00:00.000Z`,
+    }))
+
+    render(
+      <PdpSessionDatesHoverCard dates={manyDates}>
+        <span>Meerdere data</span>
+      </PdpSessionDatesHoverCard>
+    )
+
+    fireEvent.focus(screen.getByRole('button', { name: /Alle lesdata/i }))
+    const tooltip = screen.getByRole('tooltip')
+    const list = tooltip.querySelector('ul')
+    expect(list).toBeTruthy()
+
+    fireEvent.scroll(list!)
+    expect(screen.getByRole('tooltip')).toBeInTheDocument()
   })
 
   it('renders plain text without hover for a single date', () => {

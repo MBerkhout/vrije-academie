@@ -113,3 +113,5 @@ Nieuwe regeltypen: breid het type **`LineItemDetailBlock`** uit in `src/lib/comm
 After a successful order, `clearCartId()` removes the cookie (also on `/bedankt` when the order is confirmed). Completed Medusa carts (`completed_at` set) and 404s are treated as inactive: `getActiveCart()` clears the stale cookie. Retrieve errors (401/5xx/network) **keep** the cookie so a failed load after login cannot wipe the cart and bounce checkout back to `/winkelwagen`.
 
 - After the session ends, the `va_cart_id` cookie persists for 30 days for **open** carts only; completed carts are discarded automatically.
+
+**`CART_UNAVAILABLE`:** thrown by `getOrCreateCartId()` when a cart cookie exists but Medusa cannot be reached (so the cookie is never overwritten with a new cart). Callers must catch it; `PdpEpisodesTable` shows "winkelmandje tijdelijk niet bereikbaar".

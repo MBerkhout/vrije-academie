@@ -58,3 +58,7 @@ Sanity constants: `sanity/src/constants/storefront-paths.ts` (`VATHUIS_CMS_PAGE_
 ## Follow-ups (out of scope v1)
 
 - Dedicated Sanity PLP block for catalog intro (catalog uses defaults today)
+
+## Player teardown
+
+`src/lib/audience-player/runtime.ts` destroys the upstream embed player first, then removes all video.js listeners (`player.off()`) and disposes it, so late EME/async callbacks cannot hit a disposed player. Remaining null-after-dispose errors are filtered in `sentry-filter.ts`.

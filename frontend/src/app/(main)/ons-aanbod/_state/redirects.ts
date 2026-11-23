@@ -37,6 +37,7 @@ function hasExtraFiltersBeyondSingleScope(filterState: PlpFilterState): boolean 
     filterState.deliveryTypes?.length ||
     filterState.cities?.length ||
     filterState.dayParts?.length ||
+    filterState.weekdays?.length ||
     filterState.periodStart ||
     filterState.periodEnd ||
     filterState.sort

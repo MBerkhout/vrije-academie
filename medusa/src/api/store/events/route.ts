@@ -33,6 +33,7 @@ import {
   listingSessionFiltersOmitting,
   matchingListingSessions,
   uniqueFutureDayParts,
+  uniqueFutureWeekdays,
   uniqueFutureMonthKeys,
   uniqueSessionCityRefs,
   type ListingSessionFilters,
@@ -71,6 +72,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   const docentSlugs = parseArrayParam(q.docent as string | string[])
   const citySlugs = parseArrayParam(q.city as string | string[])
   const dayParts = parseArrayParam(q.day_part as string | string[])
+  const weekdays = parseArrayParam(q.weekday as string | string[])
   const periodStart = typeof q.period_start === "string" ? q.period_start : null
   const periodEnd = typeof q.period_end === "string" ? q.period_end : null
   const sort = typeof q.sort === "string" ? q.sort : "order"
@@ -143,6 +145,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   const sessionFilters: ListingSessionFilters = {
     citySlugs,
     dayParts,
+    weekdays,
     periodStart,
     periodEnd,
   }
@@ -307,6 +310,7 @@ function buildFacets(
   const cityCounts: Record<string, { slug: string; label: string; count: number }> = {}
   const deliveryTypeCounts: Record<string, number> = {}
   const dayPartCounts: Record<string, number> = {}
+  const weekdayCounts: Record<string, number> = {}
   const monthCounts: Record<string, number> = {}
 
   for (const p of list) {
@@ -319,12 +323,16 @@ function buildFacets(
       eventItems,
       listingSessionFiltersOmitting(sessionFilters, "day_part")
     )
+    const weekdayFiltered = matchingListingSessions(
+      eventItems,
+      listingSessionFiltersOmitting(sessionFilters, "weekday")
+    )
     const periodFiltered = matchingListingSessions(
       eventItems,
       listingSessionFiltersOmitting(sessionFilters, "period")
     )
 
-    if (sessionFilters.dayParts.length || sessionFilters.periodStart || sessionFilters.periodEnd) {
+    if (sessionFilters.dayParts.length || sessionFilters.weekdays?.length || sessionFilters.periodStart || sessionFilters.periodEnd) {
       incrementCityFacetCounts(cityCounts, uniqueSessionCityRefs(timeFiltered))
     } else {
       incrementCityFacetCounts(cityCounts, (p.cities ?? []) as CityRef[])
@@ -335,6 +343,9 @@ function buildFacets(
     }
     for (const dp of uniqueFutureDayParts(cityFiltered)) {
       dayPartCounts[dp] = (dayPartCounts[dp] ?? 0) + 1
+    }
+    for (const wd of uniqueFutureWeekdays(weekdayFiltered)) {
+      weekdayCounts[wd] = (weekdayCounts[wd] ?? 0) + 1
     }
     for (const month of uniqueFutureMonthKeys(periodFiltered)) {
       monthCounts[month] = (monthCounts[month] ?? 0) + 1
@@ -353,6 +364,7 @@ function buildFacets(
     cities: sortCityFacetsByCount(Object.values(cityCounts)),
     delivery_type: Object.entries(deliveryTypeCounts).map(([slug, count]) => ({ slug, count })),
     day_part: Object.entries(dayPartCounts).map(([slug, count]) => ({ slug, count })),
+    weekday: Object.entries(weekdayCounts).map(([slug, count]) => ({ slug, count })),
     months: Object.entries(monthCounts).map(([slug, count]) => ({ slug, count })),
   }
 }

@@ -9,6 +9,8 @@ import {
   monthKeyFromStartAt,
   sessionStartInPeriod,
   uniqueFutureMonthKeys,
+  uniqueFutureWeekdays,
+  weekdayFromStartAt,
 } from "./listing-future-filters"
 
 const now = new Date("2026-09-18T12:00:00.000Z")
@@ -167,5 +169,37 @@ describe("uniqueFutureMonthKeys", () => {
 
   it("builds YYYY-MM keys from local session dates", () => {
     expect(monthKeyFromStartAt(octoberEvening)).toBe("2026-10")
+  })
+})
+
+describe("weekday filter", () => {
+  const friday = { start_at: new Date(2026, 8, 25, 18, 30, 0).toISOString(), city_slug: "amsterdam" }
+  const saturday = { start_at: new Date(2026, 8, 26, 10, 0, 0).toISOString(), city_slug: "utrecht" }
+  const monday = { start_at: new Date(2026, 9, 5, 10, 0, 0).toISOString(), city_slug: "amsterdam" }
+  const items = [friday, saturday, monday]
+  const base = { citySlugs: [], dayParts: [], periodStart: null, periodEnd: null }
+
+  it("derives weekday slugs from start_at", () => {
+    expect(weekdayFromStartAt(friday.start_at)).toBe("vr")
+    expect(weekdayFromStartAt(monday.start_at)).toBe("ma")
+    expect(weekdayFromStartAt(null)).toBeNull()
+  })
+
+  it("matches any of several selected weekdays", () => {
+    expect(futureEventItemsMatchSessionFilters(items, { ...base, weekdays: ["di", "za"] }, now)).toBe(true)
+    expect(futureEventItemsMatchSessionFilters(items, { ...base, weekdays: ["di", "wo"] }, now)).toBe(false)
+  })
+
+  it("requires weekday and city on the same session", () => {
+    expect(
+      futureEventItemsMatchSessionFilters(items, { ...base, citySlugs: ["utrecht"], weekdays: ["vr"] }, now)
+    ).toBe(false)
+    expect(
+      futureEventItemsMatchSessionFilters(items, { ...base, citySlugs: ["utrecht"], weekdays: ["za"] }, now)
+    ).toBe(true)
+  })
+
+  it("lists unique future weekdays", () => {
+    expect(uniqueFutureWeekdays(items, now).sort()).toEqual(["ma", "vr", "za"])
   })
 })

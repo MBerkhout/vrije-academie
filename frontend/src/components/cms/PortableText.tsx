@@ -51,7 +51,7 @@ function portableTextComponents(tone: 'default' | 'onDark') {
         if (!url || !label) return null
         const variant = buttonType === 'primary' ? 'primary' : buttonType === 'secondary' ? 'secondary' : 'ghost'
         return (
-          <Button variant={variant} size="md" href={url} className="mx-1">
+          <Button variant={variant} size="md" href={url} className="mx-1 my-1.5">
             {label}
           </Button>
         )

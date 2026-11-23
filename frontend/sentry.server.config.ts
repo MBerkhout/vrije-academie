@@ -19,7 +19,16 @@ if (sentryEnabled()) {
     ignoreErrors: [
       'NEXT_NOT_FOUND',
       'NEXT_REDIRECT',
+      /router state header was sent but could not be parsed/,
     ],
-    beforeSend: scrubSentryEvent,
+    beforeSend(event, hint) {
+      // Group every Medusa 5xx / outage error into one issue so an outage does not flood Sentry.
+      const original = hint?.originalException
+      if (original instanceof Error && original.name === 'MedusaUnavailableError') {
+        event.fingerprint = ['medusa-upstream-unavailable']
+        event.tags = { ...event.tags, upstream: 'medusa' }
+      }
+      return scrubSentryEvent(event)
+    },
   })
 }

@@ -81,6 +81,48 @@ describe('PortableText links', () => {
   })
 })
 
+describe('PortableText inlineButton', () => {
+  it('adds vertical margin so wrapped buttons keep row spacing', () => {
+    const { container } = render(
+      <PortableText
+        value={[
+          {
+            _type: 'block',
+            _key: 'btns',
+            style: 'normal',
+            children: [
+              { _type: 'span', _key: 's1', text: '', marks: ['btn1'] },
+              { _type: 'span', _key: 's2', text: '', marks: ['btn2'] },
+            ],
+            markDefs: [
+              {
+                _key: 'btn1',
+                _type: 'inlineButton',
+                label: 'Luister op Spotify',
+                url: 'https://open.spotify.com/show/test',
+                buttonType: 'primary',
+              },
+              {
+                _key: 'btn2',
+                _type: 'inlineButton',
+                label: 'Kijk op YouTube',
+                url: 'https://youtube.com/test',
+                buttonType: 'primary',
+              },
+            ],
+          },
+        ]}
+      />,
+    )
+
+    const links = container.querySelectorAll('a')
+    expect(links.length).toBeGreaterThanOrEqual(2)
+    for (const link of links) {
+      expect(link.className).toMatch(/\bmy-1\.5\b/)
+    }
+  })
+})
+
 describe('PortableText lists', () => {
   it('keeps bullet markers outside wrapping text', () => {
     const { container } = render(

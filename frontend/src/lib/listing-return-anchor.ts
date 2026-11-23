@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '@/lib/safe-storage'
 export const LISTING_PRODUCT_ANCHOR_PREFIX = 'product'
 export const LISTING_AGENDA_ANCHOR_PREFIX = 'agenda'
 
@@ -67,7 +68,7 @@ export function markListingReturnAnchor(anchorId: string): void {
     savedAt: Date.now(),
   }
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+    safeSessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   } catch {
     // Ignore quota / private-mode failures; hash + history.state still work.
   }
@@ -75,12 +76,12 @@ export function markListingReturnAnchor(anchorId: string): void {
 
 function readSavedListingAnchor(): SavedListingAnchor | null {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    const raw = safeSessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const saved = JSON.parse(raw) as SavedListingAnchor
     if (!saved?.anchorId || !saved.pathname) return null
     if (typeof saved.savedAt === 'number' && Date.now() - saved.savedAt > MAX_AGE_MS) {
-      sessionStorage.removeItem(STORAGE_KEY)
+      safeSessionStorage.removeItem(STORAGE_KEY)
       return null
     }
     return saved
@@ -217,7 +218,7 @@ export function clearCachedListingItems(cacheKey?: string): void {
 export function clearListingReturnAnchor(): void {
   if (typeof window === 'undefined') return
   try {
-    sessionStorage.removeItem(STORAGE_KEY)
+    safeSessionStorage.removeItem(STORAGE_KEY)
   } catch {
     // ignore
   }
