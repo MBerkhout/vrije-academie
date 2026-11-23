@@ -45,7 +45,7 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 
 ## Aankoop (code uitgeven)
 
-- **`order.placed`**: line items met `metadata.gift_card` → `createForOrderLine` (tijdelijk intern `GIFT-` + hex; saldo en ontvanger-metadata). Geen e-mail in deze stap.
+- **`order.placed`**: line items met `metadata.gift_card` → `createForOrderLine` (tijdelijk intern `GIFT-` + hex; saldo en ontvanger-metadata). Geen e-mail in deze stap. `retrieveOrder` in [`gift-cards-order-placed.ts`](../src/subscribers/gift-cards-order-placed.ts) moet **`currency_code`** in `select` bevatten — anders faalt `createForOrderLine` stil (geen `gift_card`, geen voucher/e-mail).
 - **`order.completed` → Salesforce push**: `Voucher__c` upsert (zonder `Code__c` te overschrijven). Daarna leest [`sync-gift-card-code-from-salesforce.ts`](../src/lib/sync-gift-card-code-from-salesforce.ts) `Code__c` / `Name` en zet de **Salesforce GTC-code** (`GTC-YYYYMM-…`) op `gift_card.code`. Pas dan e-mail via **notification** (`template: gift-card-purchased`, fallback: log). Resend/SMTP/SendGrid: [CUSTOMER_AUTH.md](./CUSTOMER_AUTH.md#email-optional).
 - Idempotent per orderregel: `source_line_item_id` + `purchased_by_order_id`. E-mail-idempotency: `gift-card-{id}`; bij correctie na oude `GIFT-` mail: `gift-card-{id}-sf-code`.
 - **Codes in checkout**: Salesforce **`Code__c`** (bijv. `LNL6NKD`) is de verzilvercode; **`Name`** is vaak `GTC-…` (beheer-id). `GTC-…` / `GIFT-…` / korte alfanumerieke codes blijven ongewijzigd; alleen legacy 8-teken hex krijgt `GIFT-` ([`gift-card-code.ts`](../src/lib/gift-card-code.ts)).

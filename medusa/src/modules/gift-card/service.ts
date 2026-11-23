@@ -163,7 +163,7 @@ class GiftCardModuleService extends MedusaService({
         code,
         initial_value: amountCents,
         balance: amountCents,
-        currency_code: currencyCode.toLowerCase(),
+        currency_code: (currencyCode ?? "eur").toLowerCase(),
         status: ACTIVE,
         recipient_name: meta.recipient_name,
         recipient_email: meta.recipient_email,

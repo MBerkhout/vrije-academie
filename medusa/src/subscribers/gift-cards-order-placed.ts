@@ -27,7 +27,7 @@ async function giftCardsOnOrderPlaced({
 
   const order = await orderModule.retrieveOrder(orderId, {
     relations: ["items", "credit_lines"],
-    select: ["id", "metadata", "items", "credit_lines"],
+    select: ["id", "metadata", "currency_code", "items", "credit_lines"],
   })
 
   if (isImportedSalesforceOrder(order.metadata as Record<string, unknown> | null)) {
