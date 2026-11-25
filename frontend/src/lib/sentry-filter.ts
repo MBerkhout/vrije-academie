@@ -26,6 +26,8 @@ export const SENTRY_CLIENT_IGNORE_ERRORS: Array<string | RegExp> = [
   /The operation is insecure/,
   /^Load error!$/,
   /runtime\.sendMessage/,
+  // Injected third-party/in-app-browser script (not in our code base)
+  /OnetrustActiveGroups is not defined/,
 ]
 
 function stackFrames(event: ErrorEvent): StackFrame[] {

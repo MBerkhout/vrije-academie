@@ -3,6 +3,7 @@ import { sentrySubscriber } from "../lib/subscriber-sentry"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { withSubscriberPerf } from "../lib/subscriber-perf"
+import { enqueueProductReindex } from "../lib/search-reindex-queue"
 import SearchModuleService from "../modules/search/service"
 
 async function resolveProductIdFromVariant(
@@ -38,14 +39,14 @@ async function syncSearchIndexSubscriber({
       }
 
       if (name === "product.created" || name === "product.updated") {
-        await search.reindexProductById(container, data.id)
+        enqueueProductReindex(data.id, (id) => search.reindexProductById(container, id))
         return
       }
 
       if (name === "product-variant.created" || name === "product-variant.updated") {
         const productId = await resolveProductIdFromVariant(container, data.id)
         if (productId) {
-          await search.reindexProductById(container, productId)
+          enqueueProductReindex(productId, (id) => search.reindexProductById(container, id))
         }
       }
     } catch (err) {
