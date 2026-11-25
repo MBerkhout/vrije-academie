@@ -17,8 +17,9 @@ describe('PersonCard', () => {
       />
     )
     expect(screen.queryByText('Pioneer of computing.')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Bekijk alle activiteiten' })).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'Meer informatie' }))
     expect(screen.getByRole('dialog')).toHaveTextContent('Pioneer of computing.')
-    expect(screen.getByRole('link', { name: 'Bekijk alle activiteiten' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Bekijk alle activiteiten' }).length).toBeGreaterThan(0)
   })
 })

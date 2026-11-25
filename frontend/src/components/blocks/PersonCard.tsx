@@ -95,21 +95,27 @@ export function PersonCard({ person, showBio, listingHref, listingLabel }: Perso
               {name}
             </h3>
             {role && <p className="text-sm text-va-gray">{role}</p>}
-            {revealBio ? (
-              <button
-                type="button"
-                aria-haspopup="dialog"
-                className="mt-2 inline-flex items-center justify-center rounded-sm bg-va-yellow px-3 py-1.5 text-sm font-semibold text-va-black transition-colors hover:bg-va-yellow-600 active:bg-va-yellow-700"
-                onClick={() => setOpen(true)}
-              >
-                Meer informatie
-              </button>
-            ) : (
-              listingHref && (
-                <Link href={listingHref} className="mt-2 inline-flex items-center justify-center rounded-sm bg-va-yellow px-3 py-1.5 text-sm font-semibold text-va-black transition-colors hover:bg-va-yellow-600 active:bg-va-yellow-700">
+            {revealBio && (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  className="text-sm font-semibold text-va-black underline underline-offset-2 hover:text-va-darkgray"
+                  onClick={() => setOpen(true)}
+                >
+                  Meer informatie
+                </button>
+              </div>
+            )}
+            {listingHref && (
+              <div className="mt-2">
+                <Link
+                  href={listingHref}
+                  className="inline-flex items-center justify-center rounded-sm bg-va-yellow px-3 py-1.5 text-sm font-semibold text-va-black transition-colors hover:bg-va-yellow-600 active:bg-va-yellow-700"
+                >
                   {listingLabel}
                 </Link>
-              )
+              </div>
             )}
           </div>
         </div>
