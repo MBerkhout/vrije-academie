@@ -131,6 +131,7 @@ describe("slimAgendaItemForResponse", () => {
       registration_deadline_at: null,
       price: 2500,
       day_part: "ochtend",
+      weekday: "ma",
       status: "open",
     } satisfies AgendaOccurrenceRow & { status: "open" }
 
@@ -158,6 +159,7 @@ describe("slimAgendaItemForResponse", () => {
       registration_deadline_at: null,
       price: 2500,
       day_part: "ochtend",
+      weekday: "ma",
       status: "open",
     })
   })

@@ -33,6 +33,22 @@ export async function claimPendingWebhookEvents(
   const client = new pg.Client({ connectionString: url })
   await client.connect()
   try {
+    // Stale `processing` rows that already used all attempts (worker died mid-batch) are never
+    // claimed again; fail them so they do not sit in `processing` forever.
+    await client.query(
+      `
+      UPDATE salesforce_webhook_event
+      SET status = 'failed',
+          error = COALESCE(error, 'worker stopped while processing (max attempts reached)'),
+          processed_at = now(),
+          updated_at = now()
+      WHERE deleted_at IS NULL
+        AND status = 'processing'
+        AND attempts >= $1
+        AND updated_at < now() - make_interval(mins => $2::int)
+      `,
+      [maxAttempts, staleProcessingMinutes]
+    )
     const { rows } = await client.query<ClaimedWebhookEventRow>(
       `
       WITH cte AS (

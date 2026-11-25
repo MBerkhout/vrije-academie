@@ -8,9 +8,11 @@ import {
 } from "./src/admin/vite/promotion-rule-date-picker-plugin"
 import { emailNotificationModule } from "./src/lib/email-notification-config"
 import { patchMolliePluginDeletePayment } from "./src/lib/mollie-plugin-delete-patch"
+import { patchPromotionLineItemsForGiftCards } from "./src/lib/promotion/patch-line-items-for-gift-cards"
 import { parseKlarnaMinAmount } from "./src/providers/mollie-klarna/min-amount"
 
 patchMolliePluginDeletePayment()
+patchPromotionLineItemsForGiftCards()
 
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim()

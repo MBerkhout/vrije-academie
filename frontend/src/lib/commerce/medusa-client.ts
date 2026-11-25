@@ -740,6 +740,7 @@ export const medusaClient: CommerceClient = {
     for (const v of filters?.deliveryTypes ?? []) params.append('delivery_type[]', v)
     for (const v of filters?.cities ?? []) params.append('city[]', v)
     for (const v of filters?.dayParts ?? []) params.append('day_part[]', v)
+    for (const v of filters?.weekdays ?? []) params.append('weekday[]', v)
 
     const response = await fetch(`${BACKEND_URL}/store/agenda?${params.toString()}`, {
       headers: storeHeaders(),
@@ -1094,6 +1095,8 @@ export const medusaClient: CommerceClient = {
     }
     setStoredJwt(data.token)
     markImpersonationSessionActive()
+    // Pull-only refresh from Salesforce (the route resolves the email from the JWT), so admins see current data.
+    await enqueueSalesforceCustomerSync('')
     const customer = await retrieveAuthenticatedCustomer()
     if (!customer) {
       throw new Error('IMPERSONATION_CUSTOMER_LOAD_FAILED')

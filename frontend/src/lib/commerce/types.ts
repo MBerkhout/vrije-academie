@@ -272,6 +272,8 @@ export interface AgendaFilters {
   deliveryTypes?: string[]
   cities?: string[]
   dayParts?: string[]
+  /** Weekday slugs `ma`..`zo` */
+  weekdays?: string[]
   periodStart?: string
   periodEnd?: string
   /** YYYY-MM-DD, single-day filter (mutually useful with period) */

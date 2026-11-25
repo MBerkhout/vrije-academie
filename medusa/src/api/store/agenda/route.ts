@@ -46,6 +46,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
   const docentSlugs = parseArrayParam(q.docent as string | string[])
   const citySlugs = parseArrayParam(q.city as string | string[])
   const dayParts = parseArrayParam(q.day_part as string | string[])
+  const weekdays = parseArrayParam(q.weekday as string | string[])
   const periodStart = typeof q.period_start === "string" ? q.period_start : null
   const periodEnd = typeof q.period_end === "string" ? q.period_end : null
   const dateOnly = typeof q.date === "string" ? q.date : null
@@ -149,6 +150,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse): Promise<void
       (it) => it.day_part && dayParts.includes(it.day_part)
     )
   }
+  if (weekdays.length) {
+    items = items.filter((it) => it.weekday && weekdays.includes(it.weekday))
+    itemsForProductTypeFacets = itemsForProductTypeFacets.filter(
+      (it) => it.weekday && weekdays.includes(it.weekday)
+    )
+  }
   if (periodStart || periodEnd) {
     items = items.filter((it) => sessionStartInPeriod(it.start_at, periodStart, periodEnd))
     itemsForProductTypeFacets = itemsForProductTypeFacets.filter((it) =>
@@ -230,6 +237,7 @@ function buildFacets(
   const delivery: Record<string, number> = {}
   const cities: Record<string, { slug: string; label: string; count: number }> = {}
   const daypart: Record<string, number> = {}
+  const weekday: Record<string, number> = {}
   const months: Record<string, number> = {}
   const categoriesMap: Record<string, { slug: string; label: string; count: number }> = {}
   const docentenMap: Record<string, { slug: string; name: string; count: number }> = {}
@@ -244,6 +252,7 @@ function buildFacets(
       cities[slug].count++
     }
     if (it.day_part) daypart[it.day_part] = (daypart[it.day_part] ?? 0) + 1
+    if (it.weekday) weekday[it.weekday] = (weekday[it.weekday] ?? 0) + 1
     const month = monthKeyFromStartAt(it.start_at)
     if (month) months[month] = (months[month] ?? 0) + 1
     if (it.record_type) recordType[it.record_type] = (recordType[it.record_type] ?? 0) + 1
@@ -277,6 +286,7 @@ function buildFacets(
     cities: sortCityFacetsByCount(Object.values(cities)),
     delivery_type: Object.entries(delivery).map(([slug, count]) => ({ slug, count })),
     day_part: Object.entries(daypart).map(([slug, count]) => ({ slug, count })),
+    weekday: Object.entries(weekday).map(([slug, count]) => ({ slug, count })),
     months: Object.entries(months).map(([slug, count]) => ({ slug, count })),
   }
 }

@@ -1,16 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SanityImage } from '@/components/cms/SanityImage'
 import { getTitleSizeClass } from '@/lib/cms'
 import { lockBodyScroll } from '@/lib/body-scroll-lock'
 import { cn } from '@/lib/utils'
-
-const BIO_PANEL_WIDTH = 300
-const BIO_PANEL_MAX_HEIGHT = 280
-const VIEWPORT_PAD = 12
 
 function isRenderablePhotoUrl(url: string | null | undefined): url is string {
   return !!url && /^https?:\/\//i.test(url)
@@ -68,141 +64,30 @@ function PersonPhoto({ person }: { person: PersonCardPerson }) {
   )
 }
 
-function isDesktopHover() {
-  return typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
-}
-
 export function PersonCard({ person, showBio, listingHref, listingLabel }: PersonCardProps) {
   const name = person.name ?? ''
   const role = person.role
   const bio = person.bio?.trim()
   const revealBio = showBio && Boolean(bio)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [desktopOpen, setDesktopOpen] = useState(false)
-  const [panelPos, setPanelPos] = useState({ top: 0, left: 0, maxHeight: BIO_PANEL_MAX_HEIGHT })
-  const articleRef = useRef<HTMLElement>(null)
-  const hideTimer = useRef<number | null>(null)
+  const [open, setOpen] = useState(false)
   const titleId = useId()
-  const bioPanelId = useId()
-
-  const clearHideTimer = () => {
-    if (hideTimer.current != null) {
-      window.clearTimeout(hideTimer.current)
-      hideTimer.current = null
-    }
-  }
-
-  const updatePanelPos = () => {
-    const el = articleRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const gap = 8
-    const maxHeight = Math.min(
-      BIO_PANEL_MAX_HEIGHT,
-      window.innerHeight - VIEWPORT_PAD * 2
-    )
-
-    let left = rect.right + gap
-    if (left + BIO_PANEL_WIDTH > window.innerWidth - VIEWPORT_PAD) {
-      left = rect.left - BIO_PANEL_WIDTH - gap
-    }
-    if (left < VIEWPORT_PAD) {
-      left = Math.max(VIEWPORT_PAD, rect.left)
-    }
-
-    let top = rect.top
-    if (top + maxHeight > window.innerHeight - VIEWPORT_PAD) {
-      top = Math.max(VIEWPORT_PAD, window.innerHeight - VIEWPORT_PAD - maxHeight)
-    }
-
-    setPanelPos({ top, left, maxHeight })
-  }
-
-  const showDesktopPanel = () => {
-    if (!revealBio || !isDesktopHover()) return
-    clearHideTimer()
-    updatePanelPos()
-    setDesktopOpen(true)
-  }
-
-  const hideDesktopPanel = () => {
-    clearHideTimer()
-    hideTimer.current = window.setTimeout(() => setDesktopOpen(false), 120)
-  }
-
-  useEffect(() => () => clearHideTimer(), [])
 
   useEffect(() => {
-    if (!desktopOpen) return
-    const close = () => setDesktopOpen(false)
+    if (!open) return
+    const unlock = lockBodyScroll()
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') close()
+      if (e.key === 'Escape') setOpen(false)
     }
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
     window.addEventListener('keydown', onKey)
     return () => {
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
+      unlock()
       window.removeEventListener('keydown', onKey)
     }
-  }, [desktopOpen])
-
-  useEffect(() => {
-    if (!mobileOpen) return
-    return lockBodyScroll()
-  }, [mobileOpen])
-
-  useEffect(() => {
-    if (!mobileOpen) return
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') setMobileOpen(false)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [mobileOpen])
-
-  const openMobileBio = () => {
-    if (!revealBio) return
-    setMobileOpen(true)
-  }
+  }, [open])
 
   return (
     <>
-      <article
-        ref={articleRef}
-        className={cn(
-          'relative rounded border border-va-lightgray p-4',
-          revealBio && 'max-md:cursor-pointer'
-        )}
-        {...(revealBio
-          ? {
-              tabIndex: 0,
-              'aria-describedby': desktopOpen ? bioPanelId : undefined,
-              onPointerEnter: (e) => {
-                if (e.pointerType === 'touch') return
-                showDesktopPanel()
-              },
-              onPointerLeave: hideDesktopPanel,
-              onFocus: showDesktopPanel,
-              onBlur: hideDesktopPanel,
-              onKeyDown: (e: KeyboardEvent) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  if (window.matchMedia('(max-width: 767px)').matches) {
-                    e.preventDefault()
-                    openMobileBio()
-                  }
-                }
-              },
-              onClick: (e: MouseEvent) => {
-                if ((e.target as HTMLElement).closest('a')) return
-                if (!window.matchMedia('(max-width: 767px)').matches) return
-                openMobileBio()
-              },
-              'aria-label': role ? `${name}, ${role}` : name,
-            }
-          : {})}
-      >
+      <article className="rounded border border-va-lightgray p-4">
         <div className="flex gap-4">
           <PersonPhoto person={person} />
           <div className="min-w-0 flex-1">
@@ -210,46 +95,37 @@ export function PersonCard({ person, showBio, listingHref, listingLabel }: Perso
               {name}
             </h3>
             {role && <p className="text-sm text-va-gray">{role}</p>}
-            {listingHref && (
-              <Link href={listingHref} className="text-va-orange underline text-sm mt-1 inline-block">
-                {listingLabel}
-              </Link>
+            {revealBio ? (
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                className="mt-2 inline-flex items-center justify-center rounded-sm bg-va-yellow px-3 py-1.5 text-sm font-semibold text-va-black transition-colors hover:bg-va-yellow-600 active:bg-va-yellow-700"
+                onClick={() => setOpen(true)}
+              >
+                Meer informatie
+              </button>
+            ) : (
+              listingHref && (
+                <Link href={listingHref} className="mt-2 inline-flex items-center justify-center rounded-sm bg-va-yellow px-3 py-1.5 text-sm font-semibold text-va-black transition-colors hover:bg-va-yellow-600 active:bg-va-yellow-700">
+                  {listingLabel}
+                </Link>
+              )
             )}
           </div>
         </div>
       </article>
-      {revealBio && desktopOpen
+      {revealBio && open
         ? createPortal(
             <div
-              id={bioPanelId}
-              role="tooltip"
-              style={{
-                top: panelPos.top,
-                left: panelPos.left,
-                width: BIO_PANEL_WIDTH,
-                maxHeight: panelPos.maxHeight,
-              }}
-              className="fixed z-[60] overflow-y-auto rounded border border-va-lightgray bg-white p-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)] max-md:hidden"
-              onPointerEnter={showDesktopPanel}
-              onPointerLeave={hideDesktopPanel}
-            >
-              <p className="text-sm leading-relaxed text-va-darkgray">{bio}</p>
-            </div>,
-            document.body
-          )
-        : null}
-      {revealBio && mobileOpen
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-4 sm:items-center md:hidden"
+              className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 md:items-center md:p-4"
               role="presentation"
-              onClick={() => setMobileOpen(false)}
+              onClick={() => setOpen(false)}
             >
               <div
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
-                className="max-h-[min(85vh,32rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-va-lightgray bg-white p-4 shadow-xl"
+                className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border border-va-lightgray bg-white p-5 shadow-xl md:max-w-lg md:rounded-lg"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex gap-4">
@@ -264,23 +140,25 @@ export function PersonCard({ person, showBio, listingHref, listingLabel }: Perso
                     {role && <p className="text-sm text-va-gray">{role}</p>}
                   </div>
                 </div>
-                <p className="mt-4 text-sm leading-relaxed text-va-darkgray">{bio}</p>
-                {listingHref && (
-                  <Link
-                    href={listingHref}
-                    className="text-va-orange underline text-sm mt-4 inline-block"
-                    onClick={() => setMobileOpen(false)}
+                <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-va-darkgray">{bio}</p>
+                <div className="mt-5 flex flex-col gap-2 md:flex-row-reverse">
+                  {listingHref && (
+                    <Link
+                      href={listingHref}
+                      className="rounded-sm bg-va-yellow px-4 py-2.5 text-center text-sm font-semibold text-va-black transition-colors hover:bg-va-yellow-600 active:bg-va-yellow-700"
+                      onClick={() => setOpen(false)}
+                    >
+                      {listingLabel}
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    className="rounded border border-va-lightgray px-4 py-2.5 text-sm font-semibold text-va-black hover:bg-va-lightgray/40"
+                    onClick={() => setOpen(false)}
                   >
-                    {listingLabel}
-                  </Link>
-                )}
-                <button
-                  type="button"
-                  className="mt-4 w-full rounded border border-va-lightgray py-2.5 text-sm font-semibold text-va-black hover:bg-va-lightgray/40"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Sluiten
-                </button>
+                    Sluiten
+                  </button>
+                </div>
               </div>
             </div>,
             document.body

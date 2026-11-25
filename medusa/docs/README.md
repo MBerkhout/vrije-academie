@@ -97,10 +97,11 @@ Medusa stores money in the **smallest currency unit** (e.g. EUR **cents**), incl
 
 ### Event-specific target rules
 
-In Admin → Promotions → **Target rules** (when application target is **Items**), four extra conditions are available:
+In Admin → Promotions → **Target rules** (when application target is **Items**), these extra conditions are available:
 
 | Condition | Attribute | Value format |
 |-----------|-----------|--------------|
+| Gift card purchase | `items.is_giftcard` | **Yes** (`true`) / **No** (`false`). Use **Equal → Yes** to discount only digitale cadeaubon lines (product stays non-discountable; runtime patch in `src/lib/promotion/`). |
 | Item price (EUR) | `items.unit_price` | Amount in **euros** (major currency unit), e.g. `50` = €50.00. Operators: gt, gte, lt, lte. Only matching line items receive the discount. |
 | Event starts on or after | `items.metadata.event_start_from` | Calendar date (stored as `YYYYMMDD`, shown in Admin as `DD/MM/YYYY`). Use with **≥** or **>** . |
 | Event starts on or before | `items.metadata.event_start_until` | Same format. Use with **≤** or **<** . Combine both for a date range (two separate rules). |
@@ -114,7 +115,7 @@ Event date/city values are written to line item metadata server-side when a vari
 
 **Logged-in cart sync:** `POST /store/carts/sync` (customer JWT required) merges all open carts for the logged-in customer into the oldest cart. Optional body `{ cart_id }` transfers a guest cart first. Implementation: `src/lib/account-cart-sync.ts`. The storefront skips this during `/checkout/*` and on `/bedankt` so payment stays on the device cart. Carts with a payment session in `pending` / `requires_more` / `authorized` (`hasPaymentInProgress`) are never merged or emptied; if the passed `cart_id` has one, sync returns that cart untouched.
 
-Implementation: `src/lib/event-line-item-metadata.ts`, `src/lib/promotion-event-rule-attributes.ts`, admin Vite plugin `src/admin/vite/promotion-rule-date-picker-plugin.ts` (patches the prebuilt dashboard promotion rule field for event date pickers), optional reference override under `src/admin/overrides/medusa-dashboard/.../rule-value-form-field/`, and core route overrides under `src/api/admin/promotions/` and `src/api/store/carts/[id]/line-items/`. Re-verify after every Medusa upgrade (`src/lib/medusa-core-imports.ts`, date-picker Vite plugin vs dashboard dist chunk shape).
+Implementation: `src/lib/event-line-item-metadata.ts`, `src/lib/promotion-event-rule-attributes.ts`, `src/lib/promotion/patch-line-items-for-gift-cards.ts` (loaded from `medusa-config.ts`), admin Vite plugin `src/admin/vite/promotion-rule-date-picker-plugin.ts` (patches the prebuilt dashboard promotion rule field for event date pickers), optional reference override under `src/admin/overrides/medusa-dashboard/.../rule-value-form-field/`, and core route overrides under `src/api/admin/promotions/` and `src/api/store/carts/[id]/line-items/`. Example manual + automatic gift-card promos: `npm run seed:gift-card-promotion` (`CADEAU20` / `AUTO-CADEAU20`, −20% by default). Re-verify after every Medusa upgrade (`src/lib/medusa-core-imports.ts`, promotion line-items patch vs `@medusajs/promotion` dist, date-picker Vite plugin vs dashboard dist chunk shape).
 
 ## Catalog cities (plaatsen)
 

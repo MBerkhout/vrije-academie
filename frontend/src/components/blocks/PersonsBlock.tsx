@@ -101,7 +101,7 @@ export function PersonsBlock({ block }: { block: PersonsBlockType }) {
               const slug = (person as { slug?: string }).slug?.trim()
               const listingHref =
                 profileUrl?.trim() || (slug ? plpTeacherHref(slug) : undefined)
-              const listingLabel = profileUrl?.trim() ? 'Profiel' : 'Activiteiten'
+              const listingLabel = profileUrl?.trim() ? 'Profiel' : 'Bekijk alle activiteiten'
               return (
                 <PersonCard
                   key={(person as { _id?: string })._id}

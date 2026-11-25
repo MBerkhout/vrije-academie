@@ -11,10 +11,13 @@ import {
 
 export const EVENT_PROMOTION_RULE_ATTRIBUTE_IDS = {
   item_unit_price: "item_unit_price",
+  item_is_giftcard: "item_is_giftcard",
   event_start_from: "event_start_from",
   event_start_until: "event_start_until",
   event_city: "event_city",
 } as const
+
+export const GIFT_CARD_PURCHASE_RULE_VALUE = "true"
 
 const numericOperators = [
   {
@@ -39,8 +42,29 @@ const numericOperators = [
   },
 ]
 
-/** Extra target-rule attributes for event sessions (items scope only). */
+const booleanEqNeOperators = [
+  {
+    id: RuleOperator.EQ,
+    value: RuleOperator.EQ,
+    label: "Equal",
+  },
+  {
+    id: RuleOperator.NE,
+    value: RuleOperator.NE,
+    label: "Not equal",
+  },
+]
+
+/** Extra target-rule attributes for event sessions and gift cards (items scope only). */
 export const eventPromotionRuleAttributes: AdminRuleAttributeOption[] = [
+  {
+    id: EVENT_PROMOTION_RULE_ATTRIBUTE_IDS.item_is_giftcard,
+    value: "items.is_giftcard",
+    label: "Gift card purchase",
+    required: false,
+    field_type: "select",
+    operators: booleanEqNeOperators,
+  },
   {
     id: EVENT_PROMOTION_RULE_ATTRIBUTE_IDS.item_unit_price,
     value: "items.unit_price",
@@ -128,4 +152,13 @@ export function isEventPromotionRuleAttributeId(id: string): boolean {
   return Object.values(EVENT_PROMOTION_RULE_ATTRIBUTE_IDS).includes(
     id as (typeof EVENT_PROMOTION_RULE_ATTRIBUTE_IDS)[keyof typeof EVENT_PROMOTION_RULE_ATTRIBUTE_IDS]
   )
+}
+
+/** @alias isEventPromotionRuleAttributeId */
+export const isCustomPromotionRuleAttributeId = isEventPromotionRuleAttributeId
+
+export function findCustomPromotionRuleAttribute(
+  attributeValue: string
+): AdminRuleAttributeOption | undefined {
+  return eventPromotionRuleAttributes.find((attr) => attr.value === attributeValue)
 }

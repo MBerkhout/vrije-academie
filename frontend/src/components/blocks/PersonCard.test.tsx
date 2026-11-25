@@ -7,67 +7,18 @@ vi.mock('@/components/cms/SanityImage', () => ({
 }))
 
 describe('PersonCard', () => {
-  it('shows bio in a side panel on desktop hover, not inline', () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: query.includes('min-width'),
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
-    Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
-      configurable: true,
-      value: () => ({
-        top: 100,
-        left: 100,
-        right: 400,
-        bottom: 200,
-        width: 300,
-        height: 100,
-      }),
-    })
-
+  it('hides bio until "Meer informatie" is pressed, then shows dialog', () => {
     render(
       <PersonCard
         person={{ name: 'Ada Lovelace', role: 'Docent', bio: 'Pioneer of computing.' }}
         showBio
-        listingLabel="Activiteiten"
+        listingHref="/ons-aanbod?docent=ada"
+        listingLabel="Bekijk alle activiteiten"
       />
     )
     expect(screen.queryByText('Pioneer of computing.')).not.toBeInTheDocument()
-
-    fireEvent.pointerEnter(screen.getByRole('article'), { pointerType: 'mouse' })
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Pioneer of computing.')
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-
-    vi.unstubAllGlobals()
-  })
-
-  it('opens mobile dialog when card is clicked on narrow viewports', () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: query.includes('max-width'),
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
-
-    render(
-      <PersonCard
-        person={{ name: 'Ada Lovelace', bio: 'Pioneer of computing.' }}
-        showBio
-        listingLabel="Activiteiten"
-      />
-    )
-
-    fireEvent.click(screen.getByRole('article'))
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
-    expect(screen.getAllByText('Pioneer of computing.').length).toBeGreaterThanOrEqual(1)
-
-    vi.unstubAllGlobals()
+    fireEvent.click(screen.getByRole('button', { name: 'Meer informatie' }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('Pioneer of computing.')
+    expect(screen.getByRole('link', { name: 'Bekijk alle activiteiten' })).toBeInTheDocument()
   })
 })

@@ -40,6 +40,7 @@ export function parseFilterState(
     deliveryTypes: excludeVathuisDeliveryTypes(getAll('delivery_type')),
     cities: getAll('city'),
     dayParts: getAll('day_part'),
+    weekdays: getAll('weekday'),
     periodStart: get('period_start') || undefined,
     periodEnd: get('period_end') || undefined,
     date: get('date') || undefined,
@@ -58,6 +59,7 @@ export function serializeFilterState(state: AgendaFilterState): URLSearchParams 
   for (const v of excludeVathuisDeliveryTypes(state.deliveryTypes)) p.append('delivery_type', v)
   for (const v of state.cities ?? []) p.append('city', v)
   for (const v of state.dayParts ?? []) p.append('day_part', v)
+  for (const v of state.weekdays ?? []) p.append('weekday', v)
   if (state.periodStart) p.set('period_start', state.periodStart)
   if (state.periodEnd) p.set('period_end', state.periodEnd)
   if (state.date) p.set('date', state.date)
@@ -74,6 +76,7 @@ export function hasActiveFilters(state: AgendaFilterState): boolean {
     state.deliveryTypes?.length ||
     state.cities?.length ||
     state.dayParts?.length ||
+    state.weekdays?.length ||
     state.periodStart ||
     state.periodEnd ||
     state.date

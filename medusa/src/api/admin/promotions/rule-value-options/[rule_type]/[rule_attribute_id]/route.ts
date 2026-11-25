@@ -77,6 +77,20 @@ export async function GET(
     return
   }
 
+  if (ruleAttributeId === EVENT_PROMOTION_RULE_ATTRIBUTE_IDS.item_is_giftcard) {
+    const values = [
+      { label: "Yes", value: "true" },
+      { label: "No", value: "false" },
+    ]
+    res.json({
+      values,
+      count: values.length,
+      offset: 0,
+      limit: values.length,
+    })
+    return
+  }
+
   if (isEventPromotionRuleAttributeId(ruleAttributeId)) {
     res.json({
       values: [],

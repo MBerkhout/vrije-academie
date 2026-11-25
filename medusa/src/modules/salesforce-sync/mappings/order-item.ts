@@ -2,6 +2,8 @@ import { centsToMajorEur } from "../utils/money"
 import { ORDER_ITEM_EXTERNAL_ID_FIELD } from "../utils/salesforce-config"
 import { usesSalesforceMedusaCustomFields } from "../utils/salesforce-medusa-fields"
 
+export const GIFTCARD_TYPE_VALUE = "Giftcard"
+
 export type SfOrderItemShape = {
   Id?: string
   Medusa_Order_Item_Id__c?: string
@@ -15,6 +17,8 @@ export type SfOrderItemShape = {
   /** Writable name shown on Orderproducten (`Product_Name__c` is a formula). */
   ProductName__c?: string
   Discount_Code__c?: string
+  /** Must be "Giftcard": Salesforce only creates the Voucher__c when this is set. */
+  Giftcard_Type__c?: string
   Giftcard_Beneficiary_Name__c?: string
   Giftcard_Beneficiary_Email__c?: string
   Voucher__c?: string
@@ -104,6 +108,7 @@ export function giftCardPurchaseOrderItemFields(
     PricebookEntryId: input.pricebookEntryId,
     Quantity: 1,
     UnitPrice: centsToMajorEur(input.amountCents),
+    Giftcard_Type__c: GIFTCARD_TYPE_VALUE,
     Giftcard_Beneficiary_Name__c: input.recipientName,
     Giftcard_Beneficiary_Email__c: input.recipientEmail,
     ProductName__c: "Cadeaubon",

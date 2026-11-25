@@ -41,7 +41,7 @@ export const pullProductFromSalesforceWorkflow = createWorkflow(
     const done = markPullSuccessStep(
       transform({ input, applied }, ({ input, applied }) => ({
         entityType: "product",
-        medusaId: applied.medusaId,
+        medusaId: applied?.medusaId,
         salesforceId: input.salesforceId,
       }))
     )
@@ -49,9 +49,9 @@ export const pullProductFromSalesforceWorkflow = createWorkflow(
     return new WorkflowResponse(
       transform({ applied, done }, ({ applied, done }) => ({
         ...done,
-        medusaId: applied.medusaId,
-        created: applied.created,
-        updated: applied.updated,
+        medusaId: applied?.medusaId,
+        created: applied?.created,
+        updated: applied?.updated,
       }))
     )
   }

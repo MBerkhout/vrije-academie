@@ -34,7 +34,7 @@ import {
   filterVariantsWithFutureSessions,
   productEligibleForPlpListing,
 } from "./event-session-eligibility"
-import { dayPartFromStartAt, uniqueFutureDayParts, uniqueFutureWeekdays } from "./listing-future-filters"
+import { dayPartFromStartAt, uniqueFutureDayParts, uniqueFutureWeekdays, weekdayFromStartAt } from "./listing-future-filters"
 import { minPriceCentsFromVariants, medusaMajorToCents } from "./medusa-price-to-cents"
 import { ctaBarFieldsFromMetadata } from "./product-cta-bar"
 import { salesforceOrderFromMetadata } from "./listing-sort"
@@ -104,6 +104,7 @@ export type AgendaOccurrenceRow = {
   registration_deadline_at: string | null
   price: number | null
   day_part: string | null
+  weekday: string | null
 }
 
 export type AgendaListingSnapshot = {
@@ -590,6 +591,7 @@ export async function buildAgendaSnapshot(scope: MedusaContainer): Promise<Agend
           registration_deadline_at: (ei.registration_deadline_at as string) ?? null,
           price: priceCents && priceCents > 0 ? priceCents : null,
           day_part: dayPartFromStartAt(ei.start_at as string),
+          weekday: weekdayFromStartAt(ei.start_at as string),
         } satisfies AgendaOccurrenceRow
       })
       .filter(isAgendaOccurrenceEligible)

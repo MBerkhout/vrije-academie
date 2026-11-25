@@ -212,6 +212,15 @@ async function runPullForEntity(
       error: "productgroup pull did not complete (apply step failed and is retrying)",
     }
   }
+  // Same for docent/product pulls: a retrying apply step leaves no medusaId. Record the real
+  // failure instead of a `Cannot read properties of undefined (reading 'medusaId')` TypeError or a false `done`.
+  if ((entityType === "docent" || entityType === "product") && !apply?.medusaId && !apply?.skipped) {
+    return {
+      outcome: "failed",
+      entityType,
+      error: `${entityType} pull did not complete (apply step failed and is retrying)`,
+    }
+  }
   const pullOutcome = webhookOutcomeFromApply(apply)
   const resolvedMedusaId = pullOutcome.medusaId ?? extractMedusaIdFromRun(ret) ?? medusaId
 

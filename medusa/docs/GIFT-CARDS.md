@@ -51,6 +51,14 @@ Alle routes gebruiken de normale **publishable API key** header (`x-publishable-
 - **Codes in checkout**: Salesforce **`Code__c`** (bijv. `LNL6NKD`) is de verzilvercode; **`Name`** is vaak `GTC-…` (beheer-id). `GTC-…` / `GIFT-…` / korte alfanumerieke codes blijven ongewijzigd; alleen legacy 8-teken hex krijgt `GIFT-` ([`gift-card-code.ts`](../src/lib/gift-card-code.ts)).
 - **Notification `data`**: o.a. `name` / `recipient_name`, `code`, `amount_euros`, `sender_name`, `message`, `order_id`.
 
+## Promotions op cadeaubon
+
+Het cadeaubon-product blijft **`discountable: false`** zodat brede kortingen niet per ongeluk op bonnen slaan. Medusa slaat standaard `is_discountable: false` regels over; `medusa-config.ts` laadt [`patch-line-items-for-gift-cards.ts`](../src/lib/promotion/patch-line-items-for-gift-cards.ts) zodat regels op **Target rules** wél kunnen matchen.
+
+**Admin (handmatige code):** Promotions → type Standard → application target **Items** → percentage/vast bedrag → **Target rule** **Gift card purchase** = **Yes** (`items.is_giftcard` = `true`). Werkt ook met **Automatic promotion**.
+
+**Programmatisch:** `npm run seed:gift-card-promotion` (default codes `CADEAU20` en `AUTO-CADEAU20`, −20%; env: `GIFT_CARD_PROMO_CODE`, `GIFT_CARD_AUTO_PROMO_CODE`, `GIFT_CARD_PROMO_PERCENT`). Zie ook [README.md § Promotions](./README.md#event-specific-target-rules).
+
 ## Frontend
 
 - Kooppagina: **`/cadeaubon`** — CMS Page `pageCadeaubon` (`[slug]` + `GiftCardBlock`); zie `sanity/docs/CADEAUBON.md`.
