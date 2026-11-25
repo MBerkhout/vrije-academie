@@ -1,3 +1,4 @@
+import type { BigNumberInput } from "@medusajs/framework/types"
 import {
   ApplicationMethodTargetType,
   MathBN,
@@ -59,7 +60,7 @@ export function filterApplicableCartLineItems(
 
   if (isTargetShippingMethod && !hasTargetRules) {
     return items.filter(
-      (item) => item && "subtotal" in item && MathBN.gt(item.subtotal, 0)
+      (item) => item && "subtotal" in item && MathBN.gt(item.subtotal as BigNumberInput, 0)
     )
   }
 
@@ -82,7 +83,7 @@ export function filterApplicableCartLineItems(
       }
     }
 
-    if (!("subtotal" in item) || MathBN.lte(item.subtotal, 0)) {
+    if (!("subtotal" in item) || MathBN.lte(item.subtotal as BigNumberInput, 0)) {
       return false
     }
 

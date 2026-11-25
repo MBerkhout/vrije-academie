@@ -64,7 +64,7 @@ type ComputedAction = any
 export function getComputedActionsForItems(
   promotion: PromotionLike,
   items: CartLineLike[],
-  appliedPromotionsMap: Map<string, unknown>,
+  appliedPromotionsMap: Map<string, any>,
   allocationOverride?: string,
   attributeUsage?: unknown
 ): ComputedAction[] {
@@ -81,7 +81,7 @@ export function getComputedActionsForItems(
 function applyPromotionToItems(
   promotion: PromotionLike,
   items: CartLineLike[],
-  appliedPromotionsMap: Map<string, unknown>,
+  appliedPromotionsMap: Map<string, any>,
   allocationOverride?: string,
   attributeUsage?: unknown
 ): ComputedAction[] {
@@ -97,7 +97,7 @@ function applyPromotionToItems(
   }
 
   const computedActions: ComputedAction[] = []
-  let applicableItems = filterApplicableCartLineItems(
+  let applicableItems: CartLineLike[] = filterApplicableCartLineItems(
     items,
     promotion,
     areRulesValidForContext
