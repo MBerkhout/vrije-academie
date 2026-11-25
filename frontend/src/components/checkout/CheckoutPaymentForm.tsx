@@ -199,7 +199,8 @@ export function CheckoutPaymentForm({ settings }: CheckoutPaymentFormProps) {
       ])
       if (cancelled) return
       const ps =
-        klarnaMin > 0 && totalDue < klarnaMin
+        // cart.total is in cents; klarnaMin is in euros
+        klarnaMin > 0 && totalDue < klarnaMin * 100
           ? allProviders.filter((p) => p.id !== 'pp_mollie-klarna_mollie')
           : allProviders
       setProviders(ps)
