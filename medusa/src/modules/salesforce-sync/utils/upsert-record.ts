@@ -41,8 +41,17 @@ async function ensureSalesforceOrderDraft(
   salesforceOrderId: string
 ): Promise<void> {
   const row = await sync.retrieve(SF_ORDER_OBJECT, salesforceOrderId, ["Status"])
-  if (String(row.Status ?? "") === "Activated") {
+  const status = String(row.Status ?? "")
+  if (status !== "Activated") return
+  try {
     await sync.updateRecord(SF_ORDER_OBJECT, salesforceOrderId, { Status: "Draft" })
+  } catch (err) {
+    const msg = (err as Error).message ?? ""
+    // Production org often forbids editing Activated orders; re-push must not demote.
+    if (/geactiveerde order|activated order|FIELD_INTEGRITY_EXCEPTION|INSUFFICIENT_ACCESS/i.test(msg)) {
+      return
+    }
+    throw err
   }
 }
 
@@ -70,7 +79,19 @@ export async function upsertSalesforceRecordById(
           )
         : cleanFields
     const writable = await filterFieldsForConnectedOrg(sobject, patchFields, "update")
-    await sync.updateRecord(sobject, salesforceId, writable)
+    if (Object.keys(writable).length === 0) return salesforceId
+    try {
+      await sync.updateRecord(sobject, salesforceId, writable)
+    } catch (err) {
+      const msg = (err as Error).message ?? ""
+      if (
+        sobject === SF_ORDER_OBJECT &&
+        /geactiveerde order|activated order|FIELD_INTEGRITY_EXCEPTION|INSUFFICIENT_ACCESS/i.test(msg)
+      ) {
+        return salesforceId
+      }
+      throw err
+    }
     return salesforceId
   }
   if (!usesSalesforceMedusaCustomFields()) {

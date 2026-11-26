@@ -61,12 +61,16 @@ export async function reportSalesforceFailure(
     `[salesforce-sync] terminal failure: ${ctx.errorMessage} | entity=${ctx.entityType} medusa=${ctx.medusaId} salesforce=${ctx.salesforceId ?? ""} workflow=${ctx.workflowId} failures=${row.failure_count}`
   )
 
+  const urgentOrder =
+    ctx.entityType === "order" && ctx.workflowId === "push-order-salesforce"
+
   captureWithContext(new Error(ctx.errorMessage), {
     tags: {
       kind: "workflow",
       flow: "salesforce-sync",
       entity_type: ctx.entityType,
       workflow: ctx.workflowId,
+      ...(urgentOrder ? { priority: "urgent" } : {}),
     },
     extra: {
       medusa_id: ctx.medusaId,

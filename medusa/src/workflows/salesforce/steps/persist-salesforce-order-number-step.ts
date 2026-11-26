@@ -30,10 +30,15 @@ export const persistSalesforceOrderNumberStep = createStep(
       })
     }
 
-    const salesforceOrderNumber = await resolveSalesforceOrderNumber(container, {
-      orderId: input.prep.medusaId,
-      salesforceOrderId: input.activated.salesforceOrderId,
-    })
+    let salesforceOrderNumber: string | null = null
+    try {
+      salesforceOrderNumber = await resolveSalesforceOrderNumber(container, {
+        orderId: input.prep.medusaId,
+        salesforceOrderId: input.activated.salesforceOrderId,
+      })
+    } catch {
+      salesforceOrderNumber = null
+    }
 
     return new StepResponse<PersistSalesforceOrderNumberOutput>({
       skipped: false,
