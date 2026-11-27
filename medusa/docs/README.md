@@ -166,13 +166,37 @@ See [SANITY_SYNC.md](./SANITY_SYNC.md). Cities sync as Sanity `city` documents (
 - `POST /hooks/salesforce` — Salesforce outbound webhook (batched `{ object_type, method, ids[] }`, shared secret)
 - `/admin/salesforce/*` — sync status, push/pull, webhook queue, failure list & retry (authenticated). See [SALESFORCE_SYNC.md](./SALESFORCE_SYNC.md).
 
+## GA4 product stats (nightly)
+
+Module `product-analytics` (tables `product_analytics_daily`: views, unique users, add-to-cart, list clicks, avg list position per `product_handle` + `date`; `product_list_click_daily`: clicks per list and position). Worker job `sync-ga4-product-stats` runs at 03:00 and pulls the GA4 Data API (`view_item`, `add_to_cart`, `select_item` by `itemId`, joined on product handle; unknown handles are dropped), re-syncing the last `GA4_SYNC_LOOKBACK_DAYS` (default 3) days idempotently.
+
+- Env (worker): `GA4_ENABLED`, `GA4_PROPERTY_ID`, `GA4_SERVICE_ACCOUNT_JSON` (or `GOOGLE_APPLICATION_CREDENTIALS`), optional `GA4_LIST_POSITION_DIMENSION` (see `.env.template`). Without them the job logs a skip.
+- Setup: enable the Analytics Data API, create a service account, add its e-mail as **Viewer** on the GA4 property, and register the list position event/item parameter as a custom dimension.
+- Migrate: `npm run migrate`. Backfill: `npx medusa exec ./src/scripts/backfill-ga4-product-stats.ts -- 2026-10-01 2026-11-26`.
+- Code: `src/lib/ga4/`, `src/modules/product-analytics/`, `src/jobs/sync-ga4-product-stats.ts`.
+
+## Sorting-lab data export (CSV)
+
+`npm run export:sorting-data -- [--days=90] [--out=./tmp/sorting-export-YYYY-MM-DD]` writes the datasets for the sorteerlab to CSV (UTF-8 with BOM, comma separated):
+
+| File | Content |
+| --- | --- |
+| `products.csv` | id, slug, activity type (`record_type`), categories, from/max price (EUR), `created_at` (proxy for publication date), status, `show_in_plp`, `order_value` (= `metadata.salesforce_order`, Salesforce `Order__c`; PLP sorts ascending, nulls last) |
+| `sessions.csv` | one row per session (`event_item`): start, delivery type, city, capacity, available, sold, status |
+| `sales.csv` | order lines of the last N days: date, product, session, tickets, revenue |
+| `behavior_daily.csv`, `list_clicks_daily.csv` | GA4 tables (`product_analytics_daily`, `product_list_click_daily`) for the last N days |
+| `editorial_featured.csv` | empty template (`product_id,start_date,end_date`); no CMS source exists yet |
+| `opensearch-mapping.json`, `opensearch-sample-document.json` | index mapping and one product doc (only when `OPENSEARCH_NODE` is set) |
+
+Notes: session `status` is derived (`volgeboekt` when capacity > 0 and nothing available, else `open`); cancelled sessions are not imported and a waitlist only exists on sold-out sessions. `guaranteed_departure` is empty (not in Salesforce mapping). Order lines of all statuses are exported (see `order_status`). GA4 data requires the nightly sync/backfill (see above).
+
 ## Monitoring (Sentry)
 
 When `SENTRY_DSN` is set, `src/instrument.ts` loads via `medusa-config.ts` (server + worker).
 
 - **HTTP**: custom `errorHandler` in `src/api/middlewares.ts`; store requests get route/customer tags in `store-request-timing`.
 - **Background**: subscribers wrapped with `sentrySubscriber`; scheduled jobs use `withCronMonitor` (`src/lib/sentry.ts`; production `medusa-worker` only, with margin/failure thresholds); Salesforce workflow failures call `captureWithContext` in `workflows/salesforce/report-failure.ts`.
-- **Salesforce ops**: `salesforceIntegrationReady` / `kind:integration-not-ready`; webhook `kind:queue-backlog` after `process-salesforce-webhook-queue` (`webhook-queue-sentry.ts`).
+- **Salesforce ops**: `salesforceIntegrationReady` / `kind:integration-not-ready`; webhook `kind:queue-failed-backlog` / `kind:queue-pending-backlog` after `process-salesforce-webhook-queue` (`webhook-queue-sentry.ts`); `npm run salesforce:inspect-webhook-failures`.
 - **Helpers**: `captureWithContext` / `captureMessageWithContext` in `src/lib/sentry.ts` — use tags (`flow`, `kind`), no PII in `extra`.
 - **Ignored noise**: the pg@8 `client.query() when the client is already executing a query` DeprecationWarning (from Medusa/MikroORM internals, captured via `console.error`) is dropped via `ignoreErrors` in `src/instrument.ts`; revisit when upgrading to pg@9.
 - **Checkout/payments**: Mollie Klarna and OTP email failures are captured with `flow: checkout` / `auth`.

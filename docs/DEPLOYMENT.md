@@ -589,7 +589,7 @@ Storefront client noise: `frontend/src/lib/sentry-filter.ts` drops benign aborte
 
 **Cron** (SDK check-ins, `vrije-academie-medusa`): `process-salesforce-webhook-queue`, `refresh-store-listing-snapshots`, `refresh-event-detail-snapshots`.
 
-**Metric** (environment `production`): error spikes (frontend + Medusa), `flow:checkout`, `flow:auth`, Salesforce order sync (critical on any error), non-order Salesforce sync, integration-not-ready (`kind:integration-not-ready`), webhook queue backlog (`kind:queue-backlog`), store API p95 latency (`/store/*` spans).
+**Metric** (environment `production`): error spikes (frontend + Medusa), `flow:checkout`, `flow:auth`, Salesforce order sync (critical on any error), non-order Salesforce sync, integration-not-ready (`kind:integration-not-ready`), webhook queue backlog (`kind:queue-failed-backlog` or `kind:queue-pending-backlog`; legacy `kind:queue-backlog` until deploy), store API p95 latency (`/store/*` spans).
 
 **Issue alerts**: new issue + regression in `production`; dedicated rules for tags `flow:checkout` and `flow:salesforce-sync` (Medusa ± frontend). Terminal order push failures tag `priority:urgent` (see `reportSalesforceFailure` in `push-order-salesforce`). Metric **Production Salesforce order sync failure** (`flow:salesforce-sync entity_type:order`) fires on errors in 15m. Metric breaches use workflow **Production: metric monitor email**.
 

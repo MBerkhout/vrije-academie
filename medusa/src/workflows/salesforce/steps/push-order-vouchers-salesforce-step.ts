@@ -1,12 +1,14 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import {
+  discountOrderItemFields,
   giftCardPurchaseOrderItemFields,
   voucherRedemptionOrderItemFields,
 } from "../../../modules/salesforce-sync/mappings/order-item"
 import { voucherPurchaseToSalesforce } from "../../../modules/salesforce-sync/mappings/registration"
 import {
   ORDER_ITEM_EXTERNAL_ID_FIELD,
+  SALESFORCE_DISCOUNT_PRODUCT2_ID,
   SF_ORDER_ITEM_OBJECT,
   SF_VOUCHER_OBJECT,
   VOUCHER_GIFT_CARD_EXTERNAL_ID_FIELD,
@@ -90,6 +92,33 @@ export const pushOrderVouchersSalesforceStep = createStep(
         })
       )
       orderItemIds[purchase.externalId] = itemId
+
+      if (purchase.discountLineExternalId && purchase.discountCents > 0) {
+        const discountProduct2Id = SALESFORCE_DISCOUNT_PRODUCT2_ID
+        const discountPbe = await resolvePricebookEntryId(sync, discountProduct2Id)
+        let discountItemId = await findSalesforceIdByExternalId(
+          sync,
+          SF_ORDER_ITEM_OBJECT,
+          ORDER_ITEM_EXTERNAL_ID_FIELD,
+          purchase.discountLineExternalId
+        )
+        discountItemId = await upsertSalesforceRecordById(
+          sync,
+          SF_ORDER_ITEM_OBJECT,
+          discountItemId,
+          ORDER_ITEM_EXTERNAL_ID_FIELD,
+          purchase.discountLineExternalId,
+          discountOrderItemFields({
+            externalId: purchase.discountLineExternalId,
+            orderId,
+            pricebookEntryId: discountPbe,
+            product2Id: discountProduct2Id,
+            discountCents: purchase.discountCents,
+            promotionCode: purchase.promotionCode,
+          })
+        )
+        orderItemIds[purchase.discountLineExternalId] = discountItemId
+      }
 
       if (purchase.giftCardId) {
         let voucherId =

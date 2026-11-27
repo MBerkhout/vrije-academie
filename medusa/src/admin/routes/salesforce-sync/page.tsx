@@ -18,6 +18,11 @@ type FailureRow = {
   openInSalesforceUrl: string | null
 }
 
+type WebhookFailedSummary = {
+  topErrors: Array<{ message: string; count: number }>
+  byObjectType: Record<string, number>
+}
+
 type WebhookQueueStats = {
   pending: number
   processing: number
@@ -26,6 +31,7 @@ type WebhookQueueStats = {
   skipped: number
   doneLast24h: number
   oldestPendingAt: string | null
+  failedSummary?: WebhookFailedSummary | null
 }
 
 type WebhookEventRow = {
@@ -203,6 +209,19 @@ const SalesforceSyncPage = () => {
               <div className="txt-compact-small text-ui-fg-subtle">Done (24h)</div>
               <div className="text-xl font-semibold">{queueStats.doneLast24h}</div>
             </div>
+          </div>
+        ) : null}
+
+        {queueStats?.failedSummary && queueStats.failed > 0 ? (
+          <div className="rounded-lg border border-ui-border-base p-3 flex flex-col gap-2">
+            <div className="txt-compact-small font-medium">Top failed webhook errors</div>
+            <ul className="txt-compact-small text-ui-fg-subtle list-disc pl-4 flex flex-col gap-1">
+              {queueStats.failedSummary.topErrors.map((row) => (
+                <li key={row.message}>
+                  ({row.count}×) {row.message}
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
 

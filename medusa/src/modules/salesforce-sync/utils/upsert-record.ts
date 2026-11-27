@@ -85,7 +85,7 @@ export async function upsertSalesforceRecordById(
     } catch (err) {
       const msg = (err as Error).message ?? ""
       if (
-        sobject === SF_ORDER_OBJECT &&
+        (sobject === SF_ORDER_OBJECT || sobject === SF_ORDER_ITEM_OBJECT) &&
         /geactiveerde order|activated order|FIELD_INTEGRITY_EXCEPTION|INSUFFICIENT_ACCESS/i.test(msg)
       ) {
         return salesforceId

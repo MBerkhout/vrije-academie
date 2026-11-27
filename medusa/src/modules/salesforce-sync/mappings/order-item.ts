@@ -42,7 +42,8 @@ export type DiscountLineInput = {
   pricebookEntryId: string
   product2Id: string
   discountCents: number
-  registrationId: string
+  /** Omitted for gift card lines (no registration). */
+  registrationId?: string
   promotionCode?: string | null
 }
 
@@ -93,7 +94,7 @@ export function discountOrderItemFields(input: DiscountLineInput): Partial<SfOrd
     PricebookEntryId: input.pricebookEntryId,
     Quantity: 1,
     UnitPrice: -centsToMajorEur(input.discountCents),
-    Registration__c: input.registrationId,
+    ...(input.registrationId ? { Registration__c: input.registrationId } : {}),
     ProductName__c: "Korting",
     Discount_Code__c: input.promotionCode ?? undefined,
   }

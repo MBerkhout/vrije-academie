@@ -84,6 +84,9 @@ export default defineConfig({
     catalog: {
       resolve: "./src/modules/catalog",
     },
+    productAnalytics: {
+      resolve: "./src/modules/product-analytics",
+    },
     giftCard: {
       resolve: "./src/modules/gift-card",
     },

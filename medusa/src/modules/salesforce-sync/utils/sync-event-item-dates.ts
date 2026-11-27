@@ -81,9 +81,30 @@ export async function syncEventItemDatesForChild(
       continue
     }
 
-    await events.createEventItemDates({
-      event_item_id: eventItemId,
-      ...patch,
-    })
+    try {
+      await events.createEventItemDates({
+        event_item_id: eventItemId,
+        ...patch,
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (!msg.includes("already exists")) throw err
+      const [found] = await events.listEventItemDates(
+        { salesforce_id: patch.salesforce_id },
+        { take: 1 }
+      )
+      if (!found) throw err
+      if (
+        found.event_item_id === eventItemId &&
+        eventItemDateEquals(found as unknown as Record<string, unknown>, patch)
+      ) {
+        continue
+      }
+      await events.updateEventItemDates({
+        id: found.id,
+        event_item_id: eventItemId,
+        ...patch,
+      })
+    }
   }
 }

@@ -1,4 +1,8 @@
 import type SalesforceSyncModuleService from "../service"
+import {
+  summarizeTerminalFailedWebhookEvents,
+  type WebhookFailedSummary,
+} from "./webhook-queue-failed-summary"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -10,6 +14,8 @@ export type WebhookQueueStats = {
   skipped: number
   doneLast24h: number
   oldestPendingAt: string | null
+  /** Present when `failed` > 0 (grouped error messages + object types). */
+  failedSummary: WebhookFailedSummary | null
 }
 
 export async function computeWebhookQueueStats(
@@ -25,6 +31,7 @@ export async function computeWebhookQueueStats(
     skipped: 0,
     doneLast24h: 0,
     oldestPendingAt: null,
+    failedSummary: null,
   }
 
   let oldestPending: Date | null = null
@@ -46,5 +53,8 @@ export async function computeWebhookQueueStats(
     }
   }
   stats.oldestPendingAt = oldestPending?.toISOString() ?? null
+  if (stats.failed > 0) {
+    stats.failedSummary = summarizeTerminalFailedWebhookEvents(allForStats)
+  }
   return stats
 }

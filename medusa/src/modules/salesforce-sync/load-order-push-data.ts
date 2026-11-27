@@ -45,6 +45,9 @@ export type OrderPushGiftCardPurchase = {
   message: string | null
   giftCardId: string | null
   giftCardCode: string | null
+  discountLineExternalId: string | null
+  discountCents: number
+  promotionCode: string | null
 }
 
 export type OrderPushGiftCardRedemption = {
@@ -271,7 +274,15 @@ export async function loadOrderPushPayload(
     })
     const card = cards[0]
 
+    const giftDiscountCents = lineDiscountCents(item)
+
     giftCardPurchases.push({
+      discountCents: giftDiscountCents,
+      discountLineExternalId:
+        giftDiscountCents > 0
+          ? buildOrderItemExternalId(orderId, String(item.id), "discount")
+          : null,
+      promotionCode,
       lineItemId: String(item.id),
       externalId: buildOrderItemExternalId(orderId, String(item.id), "giftcard_purchase"),
       amountCents,

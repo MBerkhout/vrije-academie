@@ -30,6 +30,7 @@
     "salesforce:backfill-facets": "medusa exec ./src/scripts/backfill-event-item-facets.ts --",
     "salesforce:backfill-record-types": "medusa exec ./src/scripts/backfill-event-group-record-types.ts",
     "salesforce:audit-facets": "medusa exec ./src/scripts/audit-event-item-facets.ts",
+    "salesforce:inspect-webhook-failures": "medusa exec ./src/scripts/inspect-webhook-queue-failures.ts",
     "salesforce:inspect": "medusa exec ./src/scripts/inspect-salesforce-productgroup.ts --",
     "salesforce:inspect-order": "medusa exec ./src/scripts/inspect-salesforce-order.ts --",
     "salesforce:import-voucher": "medusa exec ./src/scripts/import-salesforce-voucher.ts --",
@@ -43,6 +44,7 @@
     "fix:docent-slugs": "medusa exec ./src/scripts/fix-docent-slugs.ts --",
     "fix:invisible-handles": "medusa exec ./src/scripts/fix-invisible-handles.ts --",
     "search:reindex": "medusa exec ./src/scripts/reindex-search.ts",
+    "export:sorting-data": "medusa exec ./src/scripts/export-sorting-data.ts --",
     "cache:flush": "medusa exec ./src/scripts/flush-store-listing-cache.ts",
     "perf:sampler": "node scripts/host-performance-sampler.mjs",
     "tunnel": "node scripts/cloudflare-tunnel.mjs"
@@ -55,6 +57,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-analytics/data": "^7.3.0",
     "@medusajs/admin-sdk": "2.22.4",
     "@medusajs/draft-order": "2.22.4",
     "@medusajs/framework": "2.22.4",

@@ -107,6 +107,10 @@ On checkout payment submit (`CheckoutPaymentForm`), the storefront writes `cart.
 | `view_waitlist_form` / `waitlist_signup` / `newsletter_signup` | `WaitlistModal` (sold-out CTAs on PDP, agenda, PLP) |
 | `share` | PDP invite e-mail link |
 
+## GA4 to Medusa nightly sync
+
+Medusa reads `view_item`, `add_to_cart` and `select_item` (list, position) per `item_id` (= product handle) from the GA4 Data API every night and stores daily per-product stats for ranking. Keep `item_id` and `index` on these events stable. Details and env: [medusa/docs/README.md](../../medusa/docs/README.md#ga4-product-stats-nightly). Consent Mode means rejected-cookie users are not counted.
+
 ## Tests
 
 ```bash
