@@ -21,6 +21,12 @@ export async function sendGiftCardPurchasedNotification(
   input: GiftCardPurchasedEmailInput
 ): Promise<void> {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+  if (process.env.GIFT_CARD_EMAIL_ENABLED?.trim().toLowerCase() !== "true") {
+    logger.info(
+      `[gift-card] email disabled (GIFT_CARD_EMAIL_ENABLED!=true), skipped for gift card ${input.giftCardId}`
+    )
+    return
+  }
   let notification: {
     createNotifications: (payload: unknown) => Promise<unknown>
   } | null = null
